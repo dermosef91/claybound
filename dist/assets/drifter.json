@@ -1,0 +1,24 @@
+{
+  "source": "Meshy_AI_Clay_Cyclone_0909212442_texture.glb",
+  "sourceSha256": "dbb55e1178052380bdef100e49140614e40bb7e7217cdd1ab04c54a37a4401ba",
+  "shippedSha256": "94ab9e434016a4872ce53a87193d5e1d8d08603e841ba4313777ae8d78dc6e55",
+  "sourceBytes": 4415968,
+  "shippedBytes": 744720,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryUnchanged": true,
+  "geometrySha256": "89ff1d7d3c9519f0052f3331899add21d004e5e7a3e8a0cc874287f7131df9ee",
+  "triangles": 10398
+}

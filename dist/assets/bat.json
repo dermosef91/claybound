@@ -1,0 +1,47 @@
+{
+  "rigSource": "flying-bat.glb",
+  "rigSourceSha256": "ed90d30acbfcbb6b4685c3d2fe831966c768334e9703b5c0460c063e09fc8e68",
+  "textureSource": "Meshy_AI__0906203614_texture (1).glb",
+  "textureSourceSha256": "83b9612ea6930525d82af01c86a3a27f5262556fcad9467eb7e7ac93fcdfa09c",
+  "shippedSha256": "d28e6ea5b2dc29fca9042bace2f47de4c71dbfd049a5f8fbeae2f1e3e10611af",
+  "bytes": 917260,
+  "vertices": 7382,
+  "triangles": 10426,
+  "bones": 8,
+  "clips": [
+    "Fly",
+    "Hover",
+    "Swoop"
+  ],
+  "images": [
+    {
+      "name": "base_color",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 124032
+    },
+    {
+      "name": "metallic_roughness",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 71817
+    },
+    {
+      "name": "normal",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 59012
+    }
+  ],
+  "preserved": [
+    "positions",
+    "normals",
+    "UVs",
+    "indices",
+    "joints",
+    "weights",
+    "inverse bind matrices",
+    "animation channels",
+    "authored tangents"
+  ]
+}

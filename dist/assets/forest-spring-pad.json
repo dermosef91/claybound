@@ -1,0 +1,28 @@
+{
+  "source": "Meshy_AI_Clay_Garden_Target_0910122133_texture.glb",
+  "sourceSha256": "311b0e34c3bd82926b6bafa1fe431cf20eafde1cc7d6234e9cba4a6569cb7a94",
+  "shippedSha256": "bfe991f3846049783ea03e38fd4df6c8f59d83886fd7bcee863183890dc4da98",
+  "sourceBytes": 5823772,
+  "shippedBytes": 854620,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryBufferSha256": [
+    "17a380962c9bd4df592c6e0212a3ad95c2997f96d84b84c232ddb940bcd7e8c8",
+    "a5d7fb8d56f36be28d94eb1d71936e1f5073f9b702721411aa1dbf96ea77a78f",
+    "b2e5dd0f67eaa8c338b49770344b040e3e4c13998c421a6036d29cd03915c90a",
+    "8689d38aff4ab5baa9c0f94e26c4584aa1c0485047dccee08a82349780e826ee"
+  ],
+  "geometryUnchanged": true
+}

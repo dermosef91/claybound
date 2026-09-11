@@ -1,0 +1,30 @@
+{
+  "source": "Meshy_AI_Crystalcap_Cavern_0909191839_texture.glb",
+  "sourceSha256": "d16ded7ead7cda5cc35b6ea0b5b5935449978ef775da8db310325e4b15a78f7b",
+  "shippedSha256": "d973a733480ae64d33de35f610c1693358d139f7437dbfa0a51880bb606df207",
+  "sourceBytes": 6801344,
+  "shippedBytes": 1084916,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryBufferSha256": [
+    "173764916dcb963af426681f8d915898456ffdfe59e59fc1b4aac97d05751166",
+    "b1d1630701781c85b93b2e57e81d7d6fab10ef7048dbaf85083338cea9048492",
+    "5656839a01f2636bcf6273854631bfac902009521f79c07ac2a755fbfd31919a",
+    "848219bdff6198ec72ea48ea9320ef73bd925160bd88f77dc1960c32c94958ff"
+  ],
+  "geometryUnchanged": true,
+  "glowMapSha256": "2d6a75ed241a393ec8635b461f11710ecc2912006afb33a10bc474ca018a48d6",
+  "glowPixelFraction": 0.06933403015136719
+}

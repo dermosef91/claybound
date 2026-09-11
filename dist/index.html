@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
+  <meta name="theme-color" content="#7ca8cb">
+  <meta name="description" content="Small feet. Bigger worlds. Leap through canyons, treetops, caves and a blue clay city in the clouds, with keyboard and touch controls.">
+  <title>Claybound — Small feet. Bigger worlds.</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./controls.css">
+  <link rel="stylesheet" href="./completion.css">
+  <link rel="stylesheet" href="./editor.css">
+  <link rel="stylesheet" href="./title.css">
+  <link rel="stylesheet" href="./clay-ui.css">
+  <link rel="icon" href="data:,">
+  <link rel="preload" href="./assets/title/logo.webp" as="image">
+  <script src="./lib/lucide.min.js" defer></script>
+</head>
+<body class="is-menu">
+  <main id="game-shell" aria-label="Claybound platform game">
+    <canvas id="world" aria-label="Side-view clay platformer. Use arrow keys to move and Space to jump."></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <div id="loading" class="loading hidden" aria-busy="true">
+      <span class="eyebrow">A LITTLE WORLD IS TAKING SHAPE</span>
+      <span class="loading-title">claybound<span>.</span></span>
+      <div id="loading-progress" class="loading-line"><span id="loading-fill"></span></div>
+      <span id="loading-status" role="status" aria-live="polite">Shaping the clay world…</span>
+    </div>
+
+    <header id="hud" class="hud hidden">
+      <div class="health-block"><div id="health" class="health" aria-label="3 health remaining" role="img"><i></i><i></i><i></i></div></div>
+      <div class="chapter-status"><span id="chapter-label">01 <b>/</b> SUNBAKED CANYON</span><div class="progress-track"><span id="progress"></span></div></div>
+      <div class="hud-right"><div class="collect-count"><img class="hud-bead" src="./assets/completion/bead.webp" alt="Clay beads"><span id="coin-count">0</span><span class="count-divider">/</span><span id="coin-total">26</span></div><div class="stamp-count"><i data-lucide="flower-2"></i><span id="stamp-count">0/3</span></div><button id="hud-fullscreen" class="icon-button" data-fullscreen aria-label="Enter fullscreen" title="Fullscreen (F)"><i data-lucide="expand"></i></button><button id="pause" class="icon-button" aria-label="Pause game"><i data-lucide="pause"></i></button></div>
+    </header>
+
+    <section id="menu" class="main-menu title-screen" aria-label="Claybound title screen">
+      <p id="title-scene-status" class="title-scene-status" role="status">Shaping the canyon…</p>
+      <header class="title-brand">
+        <h1><img class="title-logo" src="./assets/title/logo.webp" alt="Claybound" width="1600" height="456" fetchpriority="high"></h1>
+        <p>Small feet. Bigger worlds.</p>
+      </header>
+      <nav class="title-actions" aria-label="Main menu">
+        <button id="play" class="title-button title-play"><i data-lucide="play" aria-hidden="true"></i><span id="play-label">Play</span></button>
+        <button id="chapters" class="title-button"><i data-lucide="map" aria-hidden="true"></i><span>Chapters</span></button>
+        <button id="collectibles" class="title-button"><i data-lucide="flower" aria-hidden="true"></i><span>Collectibles</span></button>
+        <button id="settings" class="title-button"><i data-lucide="settings" aria-hidden="true"></i><span>Settings</span></button>
+      </nav>
+      <p class="title-motto" aria-hidden="true"><span>Explore</span><span>Shape</span><span>Discover</span><span>Repeat</span></p>
+      <footer class="title-footer">
+        <button id="open-editor" class="title-editor"><i data-lucide="pencil-ruler" aria-hidden="true"></i><span>Level editor</span></button>
+        <div class="title-tools">
+          <button id="howto" class="title-tool" aria-label="How to play" title="How to play"><i data-lucide="circle-help" aria-hidden="true"></i></button>
+          <button id="menu-sound" class="title-tool" aria-label="Mute sound" title="Sound"><i data-lucide="volume-2" aria-hidden="true"></i></button>
+          <button id="fullscreen" data-fullscreen class="title-tool" aria-label="Enter fullscreen" title="Fullscreen (F)"><i data-lucide="expand" aria-hidden="true"></i></button>
+        </div>
+      </footer>
+    </section>
+
+    <div id="chapter-intro" class="chapter-intro hidden"><span id="intro-number" class="eyebrow">CHAPTER ONE</span><h2 id="intro-name"></h2><p id="intro-text"></p></div>
+    <div id="hint" class="hint hidden"><span class="hint-mark"><i data-lucide="sparkles"></i></span><div><strong id="hint-title"></strong><p id="hint-text"></p></div><button id="dismiss-hint" aria-label="Dismiss hint"><i data-lucide="x"></i></button></div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="timer" class="bridge-timer hidden"><i data-lucide="timer"></i><span id="timer-label"></span><span class="timer-track"><span id="timer-bar"></span></span></div>
+    <div id="desktop-controls" class="desktop-controls hidden"><span><kbd>A</kbd><kbd>D</kbd> move</span><span><kbd>SPACE</kbd> jump</span><span><kbd>↓</kbd> stomp</span><span><kbd>ESC</kbd> pause</span><span><kbd>F</kbd> fullscreen</span></div>
+    <nav id="touch-controls" class="touch-controls hidden" aria-label="Game controls">
+      <div id="move-pad" class="virtual-joystick" role="group" aria-label="Movement joystick. Drag left or right, gently for small steps. Release to stop.">
+        <span class="joystick-well" aria-hidden="true"></span><span class="joystick-guide" aria-hidden="true"></span><span class="joystick-thumb" aria-hidden="true"></span><span class="joystick-caption" aria-hidden="true">MOVE</span>
+      </div>
+      <div class="touch-action"><button id="stomp" class="touch-button stomp" aria-label="Stomp downward"><i data-lucide="arrow-down-to-line"></i><span>STOMP</span></button><button id="jump" class="touch-button jump" aria-label="Jump. Hold for a higher jump"><i data-lucide="arrow-up"></i><span>JUMP</span></button></div>
+    </nav>
+
+    <section id="dialog" class="dialog-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><div class="dialog-card" id="dialog-content"></div></section>
+    <div id="editor-testbar" class="editor-testbar"><span>Workshop playtest</span><button id="return-editor" class="editor-button"><i data-lucide="pencil-ruler"></i> Back to editor</button></div>
+    <div id="fade" aria-hidden="true"></div>
+    <section id="error" class="error hidden" role="alert"><h1>A little hiccup.</h1><p id="error-text">This world needs WebGL. Try updating your browser or enabling hardware acceleration.</p><button class="primary" onclick="location.reload()">Try again</button><button id="error-home" class="quiet-button">Back to title</button></section>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

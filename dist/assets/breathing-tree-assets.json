@@ -1,0 +1,127 @@
+{
+  "forest-hero-mushroom.glb": {
+    "source": "Meshy_AI_Claycap_Mushroom_0910095608_texture(1).glb",
+    "sourceSha256": "75ae782d8acb345b30ef603c5a217592031bb445f11950b1f7af48f16aa26bc8",
+    "shippedSha256": "61db1f5daad827de1cd07130cde9fcc5001fb7735993cac6b09eae70b59364b3",
+    "sourceBytes": 89330672,
+    "shippedBytes": 1160608,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": false,
+    "topologyUnchanged": false,
+    "triangles": 30272,
+    "adaptation": "glTF Transform 4.5.0 simplify ratio=.01 error=.001; warm scarlet cap, cream stem, UV-baked cream spots"
+  },
+  "forest-canopy.glb": {
+    "source": "Meshy_AI_Clay_Canopy_0910095554_texture.glb",
+    "sourceSha256": "fc473e40d6e69de11d61a343830ac8e4782e98a78f5a28bb48444c2da1db4cd0",
+    "shippedSha256": "41cee265d6eb0011b6f611d554c8cdef8874e9fd33a693693582b41475463a18",
+    "sourceBytes": 6015660,
+    "shippedBytes": 890968,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": true,
+    "topologyUnchanged": true,
+    "triangles": 10464,
+    "adaptation": null
+  },
+  "forest-canopy-distant.glb": {
+    "source": "Meshy_AI_Clay_Canopy_0910095548_texture(1).glb",
+    "sourceSha256": "5c8c347bcdacffce8dd8d388a608247df0e73c7f538b1e26b10abce3fd0f45ad",
+    "shippedSha256": "3eb1e9ed0c588462e595187e1131cd529012fe071d7b35044e364ab9437aa894",
+    "sourceBytes": 4666640,
+    "shippedBytes": 678636,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": true,
+    "topologyUnchanged": true,
+    "triangles": 10442,
+    "adaptation": null
+  },
+  "forest-mushroom.glb": {
+    "source": "Meshy_AI_Spotted_Scarlet_Mushr_0910095602_texture(1).glb",
+    "sourceSha256": "1b4ebec17f5ad30fea525098ccd403a43980b4b295d07c92c33d7fa30f566614",
+    "shippedSha256": "441acd9cefb5e9908f64d6e6a9b458917c69c19578338e4a7da3e37b6a93152d",
+    "sourceBytes": 5513756,
+    "shippedBytes": 819580,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": false,
+    "topologyUnchanged": true,
+    "triangles": 10422,
+    "adaptation": "compressed cap, longer stalk, warm scarlet pigment"
+  },
+  "forest-bloom.glb": {
+    "source": "Meshy_AI_Clay_Garden_Bloom_0910095541_texture(1).glb",
+    "sourceSha256": "d18ffd1ae302211030d6af154a94edc085afd916d1bd33001bcff83be8ebf16a",
+    "shippedSha256": "cdbb4d65abdd6cfc8fae95c296e68a8b9e54e0c44c4a4547a6d60bde71f750c4",
+    "sourceBytes": 5523528,
+    "shippedBytes": 890944,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": true,
+    "topologyUnchanged": true,
+    "triangles": 10428,
+    "adaptation": null
+  }
+}

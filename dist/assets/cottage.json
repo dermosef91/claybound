@@ -1,0 +1,24 @@
+{
+  "source": "Meshy_AI_Clay_Cottage_Laundry__0906142437_texture.glb",
+  "sourceSha256": "8b7528d98987dfafeb284a7f370b5b12e021a29d303b255655b545da5422a108",
+  "shippedSha256": "6d12ac67833ad70f8ff5b8bd7e62ca9c5bb5a3d22978d77e1117aebea1040372",
+  "sourceBytes": 6614424,
+  "shippedBytes": 1227064,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryUnchanged": true,
+  "geometrySha256": "42577c85eb23989ea6d7826d1515ccbf51ed34db20adc8aa319782ef753d5e17",
+  "triangles": 10398
+}

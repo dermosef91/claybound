@@ -1,0 +1,26 @@
+{
+  "source": "Meshy_AI_Character_output.glb",
+  "sourceSha256": "d6903510860262ab92bad1b9574920661a2e3cd58e2c46547a7395186761368d",
+  "shippedSha256": "7c60633150acb1a0ded0b8bcf25a2066ebba561bf27c60595c0ebbadc72d06e8",
+  "sourceBytes": 6037760,
+  "shippedBytes": 1131256,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryUnchanged": true,
+  "skinAdaptation": "strongest four of eight weights, normalized; full 26-bone rig retained",
+  "sourceAnimationClips": 0,
+  "geometrySha256": "490aca8a32a33acf9069d74f2b8e1569aae9b0c41495c444c6da0bbb41863861",
+  "triangles": 10396
+}

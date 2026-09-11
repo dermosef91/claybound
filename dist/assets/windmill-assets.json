@@ -1,0 +1,46 @@
+{
+  "windmill-tower.glb": {
+    "source": "Meshy_AI_Autumn_Windmill\u5854_0909180755_texture.glb",
+    "sourceSha256": "28eee9dba715a3c9b1ce6fbbd6df07f0a0032bfd554c472219dc3cc3a038005a",
+    "shippedSha256": "e91798c7f96aae649b11dceac351a02eb3a510e0f73b76224e345df92311beb6",
+    "sourceBytes": 5707488,
+    "shippedBytes": 776084,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": true
+  },
+  "windmill-sails.glb": {
+    "source": "Meshy_AI_Clay_Windmill_Sails_0909180810_texture.glb",
+    "sourceSha256": "f9ad11112cd0f42828c421fb81fbeffb82080fc25efaea21f14803114d52e839",
+    "shippedSha256": "5079b06aa71cac8f5afcbe4d3c91fb483e6debd81eccf9d073abdfdeb3583a36",
+    "sourceBytes": 6217704,
+    "shippedBytes": 862564,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": true
+  }
+}

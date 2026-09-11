@@ -1,0 +1,68 @@
+{
+  "forest-hills.glb": {
+    "source": "Meshy_AI_Mossy_Blossom_Hills_0909184629_texture.glb",
+    "sourceSha256": "c33adbf364706b50a4bd51a346d4f3edac30eeedd158100316cd125f98aec6c2",
+    "shippedSha256": "df6c7b5179b8fc756b97588b6c40061ff935ba0032d0ed3c6e6ed51c231d48ff",
+    "sourceBytes": 4624464,
+    "shippedBytes": 492344,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": true
+  },
+  "forest-grove.glb": {
+    "source": "Meshy_AI_Floating_Clay_Grove_0909184637_texture.glb",
+    "sourceSha256": "20086a4fd88f82c4f53cacec9c8f204c4fe88b7e1d4c4af38c1c1f0a046706db",
+    "shippedSha256": "c99f71c7ccb01fc4fafa0e567382d2dd881f91f2675bec5612833f41322a60b4",
+    "sourceBytes": 5598372,
+    "shippedBytes": 857444,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": true
+  },
+  "forest-falls.glb": {
+    "source": "Meshy_AI_Skybridge_Falls_0909184644_texture.glb",
+    "sourceSha256": "c78d459f3422ba8bc9291990ef28d65589865e3bb34d582a0ff376c4d83d3254",
+    "shippedSha256": "e20b62ddd1967edef39040db32b151c693715f142fc2b4f09b9e001170a8f813",
+    "sourceBytes": 7114468,
+    "shippedBytes": 1113484,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": true
+  }
+}

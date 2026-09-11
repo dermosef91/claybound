@@ -1,0 +1,107 @@
+@font-face{font-family:"Clay Display";src:url('./assets/completion/fonts/display.woff') format('woff');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:"Clay Sans";src:url('./assets/completion/fonts/sans-medium.woff') format('woff');font-weight:400 600;font-style:normal;font-display:swap}
+@font-face{font-family:"Clay Sans";src:url('./assets/completion/fonts/sans-bold.woff') format('woff');font-weight:700;font-style:normal;font-display:swap}
+@font-face{font-family:"Clay Hand";src:url('./assets/completion/fonts/hand.woff') format('woff');font-weight:400;font-style:normal;font-display:swap}
+
+/* The completion is a whole scene, rather than a card inside the pause menu. */
+#dialog.is-completion{display:block;padding:0;background:#28384c;backdrop-filter:none;overscroll-behavior:contain}
+#dialog.is-completion #dialog-content{width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:0;border:0;border-radius:0;background:none;color:#fff2d7;box-shadow:none;overflow:visible;font-family:"Clay Sans",Arial,sans-serif}
+.completion-scene{--reward-size:clamp(66px,10.5vh,108px);--result-cream:#fff2d7;--result-orange:#f26525;position:relative;isolation:isolate;width:100%;min-height:100%;overflow:hidden;background:#28384c;animation:completion-reveal .55s ease-out both}
+.completion-background,.completion-shade{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:-2}
+.completion-background{object-fit:cover;object-position:65% 66%;user-select:none}
+.completion-shade{z-index:-1;background:#18243616}
+.completion-scene[data-scene="citadel"] .completion-shade{background:#12203533}
+.completion-content{position:relative;padding:max(30px,5.2vh,env(safe-area-inset-top)) max(30px,6.4vw,env(safe-area-inset-right)) max(35px,7vh,env(safe-area-inset-bottom)) max(30px,6.4vw,env(safe-area-inset-left));}
+.completion-chapter{display:flex;gap:22px;align-items:baseline;width:max-content;max-width:100%;font-size:clamp(11px,1.25vw,17px);font-weight:700;line-height:1.4;letter-spacing:.19em;text-transform:uppercase}
+.completion-chapter>span:first-child{position:relative;flex-shrink:0;padding-bottom:17px;border-bottom:2px solid #fff2d7ba}
+.completion-heading{margin-top:clamp(23px,4.6vh,48px);width:max-content;max-width:100%}
+#dialog.is-completion h2{font-family:"Clay Display",Georgia,serif;font-weight:400;font-size:clamp(72px,8.3vw,128px);line-height:.86;letter-spacing:-.045em;color:var(--result-cream);margin:0;text-shadow:0 2px 16px #16233615}
+.completion-heading h2>span{display:block;white-space:nowrap}
+.completion-flourish{width:43%;height:clamp(12px,2.2vh,23px);margin:17px 0 0 -2%;overflow:hidden;position:relative}
+.completion-flourish img{width:115%;height:auto;position:absolute;left:-7%;top:50%;transform:translateY(-50%)}
+.completion-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;width:clamp(340px,35vw,510px);max-width:100%;margin:clamp(19px,3.5vh,38px) 0 0;padding:0;text-align:center}
+.completion-stat{display:flex;flex-direction:column;align-items:center;min-width:0;position:relative;animation:completion-rise .45s .12s both}
+.completion-stat:nth-child(2){animation-delay:.2s}.completion-stat:nth-child(3){animation-delay:.28s}
+.completion-reward{order:0;display:block;width:var(--reward-size);height:var(--reward-size);object-fit:contain;filter:drop-shadow(0 6px 7px #23180d20)}
+.completion-stat dt{order:2;margin:8px 0 0;font-size:clamp(10px,1.04vw,14px);font-weight:700;text-transform:uppercase;letter-spacing:.085em;line-height:1.3;white-space:nowrap}
+.completion-stat dd{order:1;margin:4px 0 0;font-size:clamp(25px,2.6vw,37px);line-height:1.15;letter-spacing:-.02em;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.completion-denominator{font-size:.9em;font-weight:500}
+.completion-record,.completion-personal-best{order:3;margin-top:11px;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;min-height:25px;font-size:10px;line-height:1.2;letter-spacing:.07em;text-transform:uppercase;font-weight:700}
+.completion-record{border:1px solid #ed9a52;border-radius:20px;padding:5px 9px;background:#7c452b66;color:#ffe9c8}
+.completion-record svg{width:12px;height:12px;fill:currentColor;stroke-width:1.5}
+.completion-personal-best{opacity:.78;letter-spacing:.04em;text-transform:none}
+.completion-actions{display:flex;flex-direction:column;gap:12px;width:clamp(285px,30vw,420px);max-width:100%;margin-top:clamp(22px,3.8vh,39px);animation:completion-rise .45s .34s both}
+.completion-button{display:flex;align-items:center;justify-content:center;gap:17px;min-height:clamp(51px,6.8vh,69px);width:100%;padding:12px 20px;border:1.5px solid #f6d4b185;border-radius:23px 24px 23px 24px;background:#b08b753d;box-shadow:inset 0 1px 1px #ffebcf25,0 3px 12px #3020180d;color:var(--result-cream);font-size:clamp(16px,1.65vw,22px);font-weight:500;line-height:1.2;backdrop-filter:blur(9px);transition:background .18s,transform .18s,border-color .18s;touch-action:manipulation}
+.completion-button svg{width:27px;height:27px;flex-shrink:0;stroke-width:1.75}
+.completion-button:hover{background:#cca48855;border-color:#fff0d5;transform:translateY(-2px)}
+.completion-button:focus-visible{outline:3px solid #fff4df;outline-offset:5px}
+.completion-button:active{transform:translateY(2px)}
+.completion-primary{background-color:var(--result-orange);border-color:#ffb5779c;box-shadow:inset 0 2px 2px #ffc5845c,inset 0 -3px 0 #b441143b,0 4px 0 #9d3e1b77,0 8px 22px #70301c30;font-weight:700;backdrop-filter:none}
+.completion-primary:hover{background-color:#fa7737;border-color:#ffd0a0}
+.completion-primary svg{width:29px;height:29px}
+#dialog.is-completion .completion-note{position:absolute;right:5.5%;margin:0;color:#fff1d3;font-family:"Clay Hand","Segoe Print",cursive;font-size:clamp(24px,2.4vw,35px);line-height:1.12;font-weight:400;opacity:.91;transform:rotate(-8deg);text-align:center;pointer-events:none;text-shadow:0 2px 8px #2b263d33}
+.completion-note-top{top:9.5%}.completion-note-bottom{bottom:6.5%}
+.completion-note::after{content:"";display:block;width:39%;margin:14px auto 0;border-bottom:2px solid currentColor;transform:rotate(-10deg);opacity:.85}
+body.is-complete .hud,body.is-complete .desktop-controls,body.is-complete .touch-controls,body.is-complete .toast{visibility:hidden;pointer-events:none}
+@keyframes completion-reveal{from{opacity:0}to{opacity:1}}
+@keyframes completion-rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+
+@media(orientation:portrait){
+  .completion-scene{--reward-size:clamp(75px,13.4vw,153px);min-height:100dvh}
+  .completion-background{object-position:65% 50%}
+  .completion-content{padding: max(29px,5.1vh,env(safe-area-inset-top)) max(24px,6.4vw,env(safe-area-inset-right)) max(160px,22vh,env(safe-area-inset-bottom)) max(24px,6.4vw,env(safe-area-inset-left))}
+  .completion-chapter{font-size:clamp(10px,1.94vw,22px);gap:clamp(17px,2vw,24px)}
+  .completion-chapter>span:first-child{padding-bottom:clamp(10px,1.65vw,19px)}
+  .completion-heading{margin-top:5.2vh}
+  #dialog.is-completion h2{font-size:clamp(60px,12.5vw,144px);line-height:.86;letter-spacing:-.04em}
+  .completion-flourish{width:43%;margin-top:clamp(10px,1.55vw,19px);height:clamp(10px,1.9vw,22px)}
+  .completion-stats{width:min(100%,max(310px,53vw));gap:clamp(8px,1.2vw,15px);margin-top:4.2vh}
+  .completion-stat dd{font-size:clamp(24px,3.9vw,44px);margin-top:1px}
+  .completion-stat dt{font-size:clamp(9px,1.64vw,18px);margin-top:clamp(6px,.95vw,11px);letter-spacing:.065em}
+  .completion-record,.completion-personal-best{margin-top:clamp(8px,1.2vw,14px);min-height:22px;font-size:clamp(9px,1.4vw,16px)}
+  .completion-record{padding:clamp(4px,.65vw,8px) clamp(6px,1.15vw,13px);gap:clamp(4px,.6vw,7px)}
+  .completion-record svg{width:clamp(10px,1.55vw,18px);height:clamp(10px,1.55vw,18px)}
+  .completion-actions{width:min(100%,max(242px,42vw));gap:clamp(10px,1.45vw,18px);margin-top:3.6vh}
+  .completion-button{min-height:clamp(52px,8vw,94px);font-size:clamp(16px,2.6vw,30px);border-radius:clamp(17px,2.7vw,30px);gap:clamp(12px,3vw,34px)}
+  .completion-button svg{width:clamp(22px,3.4vw,39px);height:clamp(22px,3.4vw,39px)}
+  #dialog.is-completion .completion-note{font-size:clamp(23px,3.2vw,37px);right:5.8%}
+  .completion-note-top{top:10.5%}.completion-note-bottom{bottom:7.5%}
+}
+
+/* A phone turned sideways gets two quiet columns instead of a shrunken poster. */
+@media(orientation:landscape) and (max-height:850px){
+  .completion-scene{--reward-size:clamp(47px,13vh,66px)}
+  .completion-content{width:70%;display:grid;grid-template-columns:1.05fr 1fr;column-gap:clamp(20px,3vw,40px);padding:max(20px,5vh,env(safe-area-inset-top)) 0 max(20px,5vh,env(safe-area-inset-bottom)) max(28px,5.2vw,env(safe-area-inset-left));align-content:start}
+  .completion-chapter{grid-column:1/-1;font-size:clamp(9px,1.15vw,12px);gap:15px}
+  .completion-chapter>span:first-child{padding-bottom:9px}
+  .completion-heading{grid-column:1;grid-row:2;margin-top:clamp(16px,4vh,24px)}
+  #dialog.is-completion h2{font-size:clamp(45px,7.2vw,78px);line-height:.86}
+  .completion-flourish{height:10px;margin-top:10px}
+  .completion-stats{grid-column:1;grid-row:3;width:100%;gap:6px;margin-top:clamp(13px,3.5vh,22px)}
+  .completion-stat dd{font-size:clamp(20px,2.4vw,27px);margin-top:0}
+  .completion-stat dt{font-size:clamp(8px,.95vw,11px);margin-top:6px;letter-spacing:.045em}
+  .completion-record,.completion-personal-best{font-size:8px;margin-top:7px;min-height:20px}
+  .completion-record{padding:4px 6px;gap:3px}.completion-record svg{width:9px;height:9px}
+  .completion-actions{grid-column:2;grid-row:2/4;align-self:center;width:100%;margin:24px 0 0;gap:11px}
+  .completion-button{min-height:48px;padding:11px 12px;font-size:clamp(13px,1.55vw,17px);gap:11px;border-radius:17px}
+  .completion-button svg{width:21px;height:21px}
+  .completion-note-top{display:none}
+  #dialog.is-completion .completion-note-bottom{font-size:22px;bottom:5%;right:4%}
+  .completion-note::after{margin-top:7px}
+}
+@media(orientation:portrait) and (max-width:600px){
+  .completion-note-top{display:none}
+  .completion-shade{background:#1723342b}
+  .completion-scene[data-scene="citadel"] .completion-shade{background:#12203544}
+}
+@media(orientation:portrait) and (max-height:720px){
+  .completion-content{padding-top:max(24px,env(safe-area-inset-top));padding-bottom:max(100px,16vh,env(safe-area-inset-bottom))}
+  .completion-heading{margin-top:3.5vh}
+  .completion-stats{margin-top:2.8vh}
+  .completion-actions{margin-top:2.5vh}
+  .completion-note-bottom{bottom:4%}
+}
+@media(prefers-reduced-motion:reduce){
+  .completion-scene,.completion-stat,.completion-actions{animation:none!important}
+  .completion-button{transition:none}.completion-button:hover{transform:none}
+}

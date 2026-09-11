@@ -1,0 +1,46 @@
+import {chapter,p,row,arc,path} from '../route-authoring.js';
+export default chapter({
+  name:'The Wildwood',short:'Wildwood',label:'Bounce, burrow & bloom',biome:'forest',
+  intro:'Climb the living tree. Break its sealed roots and let the forest breathe.',
+  sky:'#b2d2b7',fog:'#b7d2bc',spawn:{x:1.5,y:0},end:264,previousDistance:875,cameraY:3,
+  sections:[{x:-8,name:'Mushroom Choir',landmark:'mushroom'},{x:48,name:'Under the Roots',landmark:'rootarch'},{x:99,name:'The Breathing Tree',landmark:'sporepod'},{x:157,name:'Brittle Canopy',landmark:'birdhouse'},{x:213,name:'Heartwood Bloom',landmark:'mushroom'}],
+  platforms:[
+    p('start',-8,19,0),p('spring1',8,1.8,.44,'spring'),p('first-bough',14,6,4.5,'ledge',{scenery:'branch'}),
+    p('choir-step',22,3.5,5.7,'ledge'),p('choir-perch',27,5,6.6,'ledge'),
+    p('choir-base',33,6,3.1,'stone',{landmark:'mushroom'}),p('choir-spring',36.5,1.8,3.54,'spring'),
+    p('choir-crown',42,6,7.8,'ledge'),p('root-entry',48,7,7.8,'ledge',{checkpoint:51,landmark:'rootarch'}),
+    p('crack1',57,4,7.8,'break',{releases:'root-a'}),p('root-floor',55,12,2.6,'ledge',{checkpoint:64,landmark:'sporepod'}),
+    p('root-bridge',69,4,3.5,'ledge'),p('root-spring-base',75,5,3.8,'stone'),p('root-spring',77,1.8,4.24,'spring'),
+    p('root-upper',83,5,8.5,'ledge'),p('root-crumble',90,3.8,9.3,'crumble',{delay:.95}),
+    p('tree-foot',96,8,8.1,'stone',{checkpoint:101,landmark:'rootarch'}),p('tree-spring',102,1.8,8.54,'spring'),
+    p('tree-east',108,4.5,12.8,'ledge'),p('tree-west',103.3,3.3,14.4,'ledge'),p('tree-west-spring',103.9,1.8,14.84,'spring'),
+    p('tree-top',110,5,19.2,'ledge'),p('tree-seal',119.15,1.7,19.75,'break',{releases:'tree-spores'}),
+    p('tree-heart',116,10,14,'ledge',{checkpoint:124.2,landmark:'sporepod'}),p('spore1',128,4,15.6,'ledge'),p('spore2',134,4,20.2,'ledge'),
+    p('spore-crown',140,5,22,'ledge'),p('bird-rest',147,10,20,'ledge',{checkpoint:151,landmark:'birdhouse',rest:true}),
+    p('canopy-entry',157,6,20,'ledge',{landmark:'rootarch'}),p('crumb1',165,3.5,20.8,'crumble',{delay:1}),p('crumb2',170.5,3.5,21.6,'crumble',{delay:.9}),
+    p('canopy-rest',176,4.5,22,'ledge'),p('crumb3',182.5,3.5,22.5,'crumble',{delay:.85}),p('crumb4',188,3.5,21.7,'crumble',{delay:.9}),
+    p('canopy-catch',164,16,17.3,'ledge',{recovery:true}),p('canopy-return',179,3.8,19.5,'ledge',{recovery:true}),
+    p('canopy-nest',194,6,20.5,'ledge',{landmark:'birdhouse'}),p('nest-spring',198,1.8,20.94,'spring'),
+    p('bloom-entry',205,8,25,'ledge',{checkpoint:208,landmark:'mushroom'}),p('bloom-spring',211,1.8,25.44,'spring'),p('bloom1',217,4.2,29.8,'ledge'),
+    p('bloom-seal',223.2,4,29.8,'break',{releases:'bloom-spores'}),p('bloom-root',223,8,24.5,'ledge',{checkpoint:229,landmark:'sporepod'}),
+    p('bloom-rise',233,4,26.3,'ledge'),p('bloom-cloud',239,4,30.8,'crumble',{delay:1.2}),p('bloom-perch',245,5,32.3,'ledge'),
+    p('bloom-last',252,3.5,33.4,'ledge'),p('heart-bell',257.5,14,33.4,'ledge',{goal:true,landmark:'bellgate'}),
+    p('choir-flower',24,3.2,8.4,'ledge',{optional:true}),p('root-flower',61,3.3,.8,'ledge',{optional:true}),p('heart-flower',113.5,3,21,'ledge',{optional:true})
+  ],
+  route:['start',['spring1','walk'],'first-bough','choir-step','choir-perch',['choir-base','fall'],['choir-spring','walk'],'choir-crown',['root-entry','walk'],'crack1',['root-floor','drop'],'root-bridge','root-spring-base',['root-spring','walk'],'root-upper','root-crumble','tree-foot',['tree-spring','walk'],'tree-east','tree-west-spring','tree-top','tree-seal',['tree-heart','drop'],'spore1','spore2','spore-crown','bird-rest',['canopy-entry','walk'],'crumb1','crumb2','canopy-rest','crumb3','crumb4','canopy-nest',['nest-spring','walk'],'bloom-entry',['bloom-spring','walk'],'bloom1','bloom-seal',['bloom-root','drop'],'bloom-rise','bloom-cloud','bloom-perch','bloom-last','heart-bell'],
+  detours:[path(['choir-perch','choir-flower','choir-perch']),path(['root-floor',['root-flower','fall'],'root-floor']),path(['tree-top','heart-flower','tree-top'])],
+  recoveries:[path(['canopy-catch','canopy-return','canopy-rest'])],
+  winds:[{id:'root-breath',x:60,w:6,y:0,h:7,fx:0,fy:16,channel:'root-a',spores:true},{id:'heart-breath',x:126,w:14,y:13,h:11,fx:0,fy:19,channel:'tree-spores',spores:true},{id:'bloom-breath',x:231,w:14,y:23,h:12,fx:0,fy:19,channel:'bloom-spores',spores:true}],
+  circuits:[{source:'crack1',channel:'root-a',targets:['root-floor'],kind:'spore'},{source:'tree-seal',channel:'tree-spores',targets:['spore1','spore2'],kind:'spore'},{source:'bloom-seal',channel:'bloom-spores',targets:['bloom-rise','bloom-cloud'],kind:'spore'}],
+  coins:[...row(4,1,3),...arc(9,1,7,4.5,5,1),...row(23,6.7,2),...arc(37,4.4,7,4.6,4,1),...arc(59,7,0,-3,3,0),...row(62,3.6,3),...row(70,4.5,2),...arc(78,5,7,4.5,4,.8),...row(97,9.1,3),...arc(104,9.5,6,4.5,4,1),...row(104,15.4,2),...arc(105,16,7,4.2,4,1),...arc(121.3,17.9,2.4,-.2,3,.5),...arc(129,17,6,4.5,5,.7),...row(149,21,4),...row(166,21.8,2),...row(171,22.6,2),...row(183,23.5,2),...arc(212,26.3,7,4.6,5,1),...row(226,25.5,3),...arc(234,27.5,7,4.5,5,.8),...row(258,34.4,5)],
+  stamps:[{x:25.5,y:9.4},{x:62.6,y:1.8},{x:115,y:22}],
+  enemies:[
+    {kind:'spore',x:30,y:6.6,min:28.8,max:31.25,speed:.45},
+    {kind:'spore',x:86,y:8.5,min:84.2,max:87.2,speed:.5},
+    {kind:'spore',x:155,y:20,min:154,max:156.2,speed:.5},
+    {kind:'spore',x:196.5,y:20.5,min:195.1,max:197.3,speed:.55}
+  ],
+  hazards:[{x:11,w:22,y:-4},{x:67,w:8,y:-1},{x:80,w:16,y:3},{x:104,w:12,y:3.8},{x:145,w:2,y:14},{x:163,w:31,y:12.8},{x:200,w:5,y:14},{x:213,w:10,y:19},{x:231,w:26.5,y:19}],
+  hints:[{x:0,end:11,title:'Play the mushroom',text:'Run onto the orange target. Hold jump for the highest bounce.'},{x:48,end:62,y:6,title:'Open the roots',text:'Jump over the golden spore balloon, then press ↓ / S or STOMP. Follow the beads down.'},{x:115,end:126,y:13,title:'Let the tree breathe',text:'Stomp the golden spore balloon above. Released spores carry the next climb.'}],
+  guides:[{platformId:'tree-east',offset:1,dir:-1},{platformId:'tree-west',offset:2.7,dir:1},{platformId:'tree-top',offset:4.5,dir:1}]
+});

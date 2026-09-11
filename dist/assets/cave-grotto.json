@@ -1,0 +1,30 @@
+{
+  "source": "Meshy_AI_Grotto_of_the_Glowing_0909184924_texture.glb",
+  "sourceSha256": "0cdc3f0fb652a307e8e7682b14b63addefaee19c7fc11e053831d8d3210e6128",
+  "shippedSha256": "5aa7b08866430ca29d1c4969c3b39d6c8346e064c74d887c54b0bedb39fe1766",
+  "sourceBytes": 6542496,
+  "shippedBytes": 1027972,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryBufferSha256": [
+    "5ef386c13519b2481b0328c9126ff3078a31d53f26834e187b492358bdbefc4d",
+    "86d5e727508db1405584b21806e2f57152dbbf6dcf39355fa519a82801fcf385",
+    "24e13b2e00613afc9f82a5b00c41a227eaed51b38ce68c5e3406fbf5eac9df2f",
+    "333a22b14fb5ce8788fd79249a4e7cc9f0c0e715beb1ada8558de627f1a3a1cc"
+  ],
+  "geometryUnchanged": true,
+  "glowMapSha256": "a8445f71937a8fc54bf8903bfa884df7e1d331e26489eb4b22950f07423ad476",
+  "glowPixelFraction": 0.06147003173828125
+}

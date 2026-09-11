@@ -1,0 +1,28 @@
+{
+  "source": "Meshy_AI_Desert_Festival_Gatew_0909183922_texture.glb",
+  "sourceSha256": "271667a20727cd1a107a9ca657cdd167eee77b7ba56be1eac36c6adde11a6231",
+  "shippedSha256": "53351c09e0f9c45a9b0e36a2e573df1e601cba59639638368654679a19b0bb55",
+  "sourceBytes": 6018700,
+  "shippedBytes": 1067040,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryBufferSha256": [
+    "d01eda511e74067290a50d7e8d5b3bfe5008edfb692f936cec029c552fee8521",
+    "cb4369358bcdc9c2aaac618ee60ff73efff2d18263364b844bdf2391f2e9685a",
+    "2514905012381af42ddd3d3a6d43be65bce5c93fc6ad5ad015454970d1e10f0f",
+    "154ba1f256b9dbaa569d4c10261f83c41bb8bdb7e5ece9e1174610ecefa56f2d"
+  ],
+  "geometryUnchanged": true
+}

@@ -1,0 +1,68 @@
+{
+  "canyon-arch.glb": {
+    "source": "Meshy_AI_Clay_Canyon_Arch_0906011758_texture.glb",
+    "sourceSha256": "c0403b664640caf74ad8b43ce876fe6c00cf0055f440b5920579478f74f04dc0",
+    "shippedSha256": "97daa7b870f8e05134a494a221349664f468ca493160bbbc560291b1d62d1fc1",
+    "sourceBytes": 6234224,
+    "shippedBytes": 920068,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": true
+  },
+  "canyon-summit.glb": {
+    "source": "Meshy_AI_Clay_Summit_Flag_0906011749_texture.glb",
+    "sourceSha256": "a484930db9df7d1326bdb6aeb90a8974fdd9ec909035c1f2c56f673f2cc61cc9",
+    "shippedSha256": "45aed0d14f329509eb5d84ba37ada559d6866b12aeb1de5f5820f445ac8ea466",
+    "sourceBytes": 5295912,
+    "shippedBytes": 543212,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": true
+  },
+  "cactus.glb": {
+    "source": "Meshy_AI_Clay_Cactus_0906011738_texture.glb",
+    "sourceSha256": "3a1814029f35cac241b23be3d27ed2fd63aa05e14b5013500d520b559c892072",
+    "shippedSha256": "1589fd1b29beea8603f77e333195147a69ef671dd6178a95c1918142a3ebc375",
+    "sourceBytes": 5583064,
+    "shippedBytes": 551788,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": true
+  }
+}

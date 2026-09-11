@@ -1,0 +1,37 @@
+/* The same sculpted height texture used in the world, pressed into UI clay. */
+#game-shell button:is(.title-button,.primary,.secondary,.completion-button,.chapter-choice,.title-setting,.collection-chapter,.editor-primary,.editor-add,.touch-button) {
+  --button-clay:#edd7b3;--button-veil:#edd7b3d6;--button-edge:#aa8258;--button-ink:#423a32;
+  color:var(--button-ink);font-family:"Clay Sans",Arial,sans-serif;font-weight:700;
+  border:1px solid #fff0cf80;border-radius:42px 46px 39px 44px / 36px 33px 38px 35px;
+  background-color:var(--button-clay);
+  background-image:linear-gradient(180deg,#fff8e34d 0%,transparent 32%,#68311508 68%,#5a2c1624 100%),linear-gradient(var(--button-veil),var(--button-veil)),url('./assets/clay-height.png');
+  background-size:100% 100%,100% 100%,105px 105px;background-position:0 0,0 0,16% 41%;background-blend-mode:normal,normal,soft-light;
+  box-shadow:inset 0 3px 4px #fff6dc9c,inset 3px 0 7px #fff2cd38,inset -2px -5px 6px #71442031,0 5px 0 var(--button-edge),0 9px 12px #42220e39;
+  text-shadow:0 1px 0 #fff4db9e,0 -1px 0 #33251c19;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  transition:transform .12s,box-shadow .12s,filter .12s;
+}
+#game-shell button:is(.primary,.title-play,.completion-primary,.editor-primary,.touch-button.jump) {
+  --button-clay:#ed6329;--button-veil:#ed6329d1;--button-edge:#a23e1c;--button-ink:#fff0d1;
+  border-color:#ffb6749c;text-shadow:0 2px 0 #ae431e,0 3px 3px #79331845;
+  box-shadow:inset 0 3px 4px #ffc57a9c,inset 3px 0 7px #ffa35238,inset -2px -5px 6px #88351555,0 5px 0 var(--button-edge),0 9px 12px #42220e39;
+}
+#game-shell .title-button {letter-spacing:-.025em;}
+#game-shell .title-button:nth-child(2) {background-position:0 0,0 0,65% 10%;border-radius:43px 40px 47px 39px / 36px 40px 33px 38px;}
+#game-shell .title-button:nth-child(3) {background-position:0 0,0 0,35% 80%;}
+#game-shell .title-button:nth-child(4) {background-position:0 0,0 0,90% 50%;border-radius:40px 46px 41px 45px / 35px 38px 33px 40px;}
+#game-shell .title-button svg {stroke-width:2.4;filter:drop-shadow(0 2px 0 #694f3630);}
+#game-shell .title-play svg {filter:drop-shadow(0 2px 1px #88361885);}
+#game-shell .title-setting>svg,#game-shell .chapter-choice>span:first-child {color:#93512e;}
+#game-shell button.touch-button {border-radius:48% 52% 49% 51%;}
+#game-shell button:is(.title-button,.primary,.secondary,.completion-button,.chapter-choice,.title-setting,.collection-chapter,.editor-primary,.editor-add,.touch-button):active:not(:disabled) {
+  transform:translateY(4px) scale(.985);filter:brightness(.98);
+  box-shadow:inset 0 2px 3px #fff0ce70,inset 0 -2px 4px #6f34152b,0 1px 0 var(--button-edge),0 3px 5px #42220e2e;
+}
+#game-shell button:is(.title-button,.primary,.secondary,.completion-button,.chapter-choice,.title-setting,.collection-chapter,.editor-primary,.editor-add,.touch-button):focus-visible {outline:3px solid #fff7e2;outline-offset:5px;}
+@media(hover:hover) {
+  #game-shell button:is(.title-button,.primary,.secondary,.completion-button,.chapter-choice,.title-setting,.collection-chapter,.editor-primary,.editor-add):hover:not(:disabled) {filter:brightness(1.06);transform:translateY(-1px);}
+}
+@media(prefers-reduced-motion:reduce) {
+  #game-shell button:is(.title-button,.primary,.secondary,.completion-button,.chapter-choice,.title-setting,.collection-chapter,.editor-primary,.editor-add,.touch-button) {transition:none;}
+}
