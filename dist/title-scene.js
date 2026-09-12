@@ -74,6 +74,7 @@ export class TitleScene {
   makeOverlook(){
     if(!this.world.titleMesa)throw new Error('Load the supplied title mesa before composing the title.');
     this.mesa=this.world.titleMesa.scene.clone(true);this.mesa.name='Supplied clay cactus mesa';
+    this.flagCloths=[];this.mesa.traverse(o=>{if(o.isMesh&&o.geometry.userData.titleFlagWind)this.flagCloths.push(o);});
     // Match the feet to an actual triangle on the clear upper surface.
     const ray=new THREE.Raycaster(new THREE.Vector3(.23,2,.15),new THREE.Vector3(0,-1,0));
     this.mesa.updateMatrixWorld(true);const surface=ray.intersectObject(this.mesa,true)[0];
@@ -130,6 +131,11 @@ export class TitleScene {
   }
   update(dt){
     const w=this.view,step=this.world.reducedMotion?0:Math.min(dt,.05);this.time+=step;w.reducedMotion=this.world.reducedMotion;
+    if(step>0)for(const cloth of this.flagCloths){
+      const swell=this.time*1.65,ripple=this.time*2.7+.7;
+      cloth.morphTargetInfluences[0]=Math.cos(swell);cloth.morphTargetInfluences[1]=Math.sin(swell);
+      cloth.morphTargetInfluences[2]=Math.cos(ripple);cloth.morphTargetInfluences[3]=Math.sin(ripple);
+    }
     animateHero(w,this.game,step);w.character.root.rotation.y=1.3;w.character.root.scale.set(1.2,1.02,1.15);
     // animateHero's pose and skin remain intact; only the presentation yaw differs.
     w.character.root.visible=true;

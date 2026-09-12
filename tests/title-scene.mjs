@@ -13,6 +13,22 @@ title.mesa.traverse(o=>{if(o.isMesh){
   for(const name of ['position','normal'])assert(o.geometry.attributes[name].array.every(Number.isFinite));
 }});
 const bodyMat=title.view.mat.orange,sharedGeo=new Set(w.assetGeometry);
+assert.equal(title.flagCloths.length,1,'the supplied flag cloth receives wind morphs');
+const cloth=title.flagCloths[0],geometry=cloth.geometry,base=geometry.attributes.position;
+let moving=0;
+for(let i=0;i<base.count;i++){
+  const moves=geometry.morphAttributes.position.some(a=>a.getY(i)!==0||a.getZ(i)!==0);
+  if(moves){
+    moving++;assert(base.getX(i)>.012&&base.getY(i)>.24&&base.getZ(i)<-.32,'only the cloth beyond the pole moves');
+  }
+  for(const attr of geometry.morphAttributes.position){
+    assert.equal(attr.getX(i),0,'the flag stays attached horizontally');
+    assert(Math.abs(attr.getY(i))<=.0081&&Math.abs(attr.getZ(i))<=.0221,'wind remains subtle');
+  }
+}
+assert(moving>100&&moving<200,'wind is confined to the flag, leaving the mesa and cactus still');
+for(const attr of geometry.morphAttributes.normal)assert(attr.array.every(Number.isFinite));
+const sourceCloth=w.titleMesa.scene.getObjectByName(cloth.name);
 assert.notEqual(bodyMat,w.mat.orange);const color=bodyMat.color.getHex();w.mat.orange.color.set('#ffffff');assert.equal(bodyMat.color.getHex(),color);
 assert.notEqual(title.view.clay.boxes,w.clay.boxes,'chapter eviction cannot dispose title geometry');
 for(const [width,height]of [[390,844],[768,1024],[1280,720],[1536,691]]){
@@ -24,10 +40,14 @@ for(const [width,height]of [[390,844],[768,1024],[1280,720],[1536,691]]){
 }
 const pose=w.character.model.getObjectByName('Hips').quaternion.toArray();for(let i=0;i<30;i++)title.update(1/60);
 assert.notDeepEqual(w.character.model.getObjectByName('Hips').quaternion.toArray(),pose,'title uses the supplied skeletal idle');
-w.reducedMotion=true;const t=title.time;title.update(.5);assert.equal(title.time,t);w.reducedMotion=false;
+const flagPose=[...cloth.morphTargetInfluences];for(let i=0;i<60;i++)title.update(1/60);
+assert.notDeepEqual(cloth.morphTargetInfluences,flagPose,'wind travels through the cloth over time');
+assert(sourceCloth.morphTargetInfluences.every(v=>v===0),'title animation does not change the cached source pose');
+w.reducedMotion=true;const t=title.time,frozenFlag=[...cloth.morphTargetInfluences];title.update(.5);assert.equal(title.time,t);
+assert.deepEqual(cloth.morphTargetInfluences,frozenFlag,'reduced motion freezes the flag');w.reducedMotion=false;
 for(let i=0;i<6;i++){title.hide();assert.equal(w.character.root.parent,w.scene);assert.deepEqual(w.character.root.scale.toArray(),[1,1,1]);assert.equal(w.character.root.rotation.y,0);title.show();assert.equal(w.character.root.parent,title.foreground);}
 assert([...sharedGeo].every(g=>w.assetGeometry.has(g)));title.hide();
-console.log('PASS live title: responsive hero composition, source textures, skeletal idle, reduced motion, single hero ownership and independent scene caches');
+console.log('PASS live title: responsive hero composition, source textures, skeletal idle, pinned flag wind, reduced motion, single hero ownership and independent scene caches');
 
 // Exercise real saved-checkpoint events and the real hoist, including a pause
 // halfway through, a streamed replacement, an old save, and a fresh restart.
