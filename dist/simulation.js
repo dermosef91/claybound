@@ -6,10 +6,12 @@ import {updatePress,pressTouches} from './presses.js';
 import {updateCavernMachine,solidWall,solidDepth} from './cavern-machines.js';
 import {resetSpitter,contactSpitter,updateShots} from './spitter-rules.js';
 
+import {claySurface,clayWallBounds,updateShaping,stompClay} from './shaping.js';
+
 export const FIXED_DT=1/120;
 export const RULES={speed:6.7,jump:11.8,gravity:27,radius:.32,height:1.7,maxHealth:3};
 const approach=(v,t,d)=>v<t?Math.min(t,v+d):Math.max(t,v-d);
-export const surfaceAt=(s,x,previous=false)=>(previous?s.prevY:s.y)+(s.kind==='balance'?Math.sin(previous?s.prevAngle:s.angle)*(x-(previous?s.prevX:s.x)-s.w/2):0);
+export const surfaceAt=(s,x,previous=false)=>s.shape?claySurface(s,x,previous):(previous?s.prevY:s.y)+(s.kind==='balance'?Math.sin(previous?s.prevAngle:s.angle)*(x-(previous?s.prevX:s.x)-s.w/2):0);
 
 export class Game {
   constructor(onEvent=()=>{}) {this.onEvent=onEvent;this.status='menu';this.load(0);this.status='menu';}
@@ -77,7 +79,7 @@ export class Game {
     for(const s of L.platforms) {
       s.prevX=s.x;s.prevY=s.y;s.prevAngle=s.angle;
       updateCavernMachine(s,p,this.time,dt,this.channels);
-      if(s.kind==='lift'){
+      if(s.kind==='lift'&&!s.shapeLift){
         const a=this.time*Math.PI*2/s.period+(s.phase||0);
         s.x=s.baseX+Math.sin(a)*(s.moveX||0);s.y=s.baseY+Math.sin(a)*(s.moveY||0);
       }
@@ -97,6 +99,7 @@ export class Game {
         if(s.timer>3.8){s.timer=0;s.active=true;}
       }
     }
+    updateShaping(this,dt,input);
     for(const c of L.crushers||[])updatePress(c,dt,this.channels,L.platforms,(type,data)=>this.event(type,data));
     const wasStunned=p.stunTime>0;
     if(wasStunned&&input.jumpPressed)p.stunJumpQueued=true;
@@ -111,7 +114,12 @@ export class Game {
     else if(wasStunned&&p.stunJumpQueued){input={...input,jumpPressed:!!input.jumpHeld};p.stunJumpQueued=false;}
     p.invuln=Math.max(0,p.invuln-dt);p.squash=approach(p.squash,0,dt*3.8);p.dropTimer=Math.max(0,(p.dropTimer||0)-dt);
     const oldGround=L.platforms.find(s=>s.id===p.groundId&&s.active);
-    if(oldGround){p.x+=oldGround.x-oldGround.prevX;p.y+=surfaceAt(oldGround,p.x)-surfaceAt(oldGround,p.x,true);p.coyote=.135;}
+    if(oldGround){
+      const previousFoot=surfaceAt(oldGround,p.x,true);
+      if(oldGround.shape){const u=(p.x-oldGround.prevX)/(oldGround.prevW||oldGround.w);p.x=oldGround.x+u*oldGround.w;p.y+=surfaceAt(oldGround,p.x)-previousFoot;}
+      else {p.x+=oldGround.x-oldGround.prevX;p.y+=surfaceAt(oldGround,p.x)-surfaceAt(oldGround,p.x,true);}
+      p.coyote=.135;
+    }
     else {p.groundId=null;p.coyote=Math.max(0,p.coyote-dt);}
     if(p.stunTime>0)p.jumpBuffer=0;
     p.jumpBuffer=input.jumpPressed ? .16 : Math.max(0,p.jumpBuffer-dt);
@@ -142,7 +150,7 @@ export class Game {
     p.vy=Math.max(-26,p.vy);
     p.x=Math.max(-6,p.x+p.vx*dt);p.y+=p.vy*dt;
     p.groundId=null;
-    if(oldGround?.kind==='balance'&&p.vy<=0&&p.x>oldGround.x&&p.x<oldGround.x+oldGround.w)p.y=Math.min(p.y,surfaceAt(oldGround,p.x));
+    if((oldGround?.kind==='balance'||oldGround?.shape)&&p.vy<=0&&p.x>oldGround.x&&p.x<oldGround.x+oldGround.w)p.y=oldGround.shape?surfaceAt(oldGround,p.x):Math.min(p.y,surfaceAt(oldGround,p.x));
     const candidates=L.platforms.filter(s=>s.active&&!s.broken&&!(p.dropTimer>0&&p.dropThrough===s.id)&&p.x+RULES.radius>s.x&&p.x-RULES.radius<s.x+s.w&&prevY>=surfaceAt(s,p.x,true)-(s.kind==='spring'&&oldGround ? .55 : .14)&&p.y<=surfaceAt(s,p.x)+.03&&p.vy<=Math.max(0,(surfaceAt(s,p.x)-surfaceAt(s,p.x,true))/dt)).sort((a,b)=>surfaceAt(b,p.x)-surfaceAt(a,p.x));
     if(candidates.length) {
       const s=candidates[0],impact=p.vy;
@@ -150,6 +158,7 @@ export class Game {
         s.broken=true;s.active=false;this.event('break',{x:p.x,y:s.y,spore:L.biome==='forest'});p.vy=-14;p.stomping=false;
         if(s.releases)this.activate(s.releases,p.x,s.y,'The roots are breathing · follow the rising spores');
       } else {
+        if(s.shape&&p.stomping)stompClay(this,s);
         p.y=surfaceAt(s,p.x);p.vy=0;p.groundId=s.id;p.coyote=.135;p.springing=false;
         if(impact<-2){p.squash=Math.min(.4,-impact*.019);this.event('land',{x:p.x,y:p.y,strong:p.stomping,impact:-impact});}
         if(s.kind==='spring') {
@@ -169,10 +178,11 @@ export class Game {
     }
     if(p.groundId&&Math.abs(p.vx)>.8){p.stride+=Math.abs(p.vx)*dt;if(p.stride>.86){p.stride=0;this.event('step',{x:p.x-p.facing*.13,y:p.y});}}
     // Tall solid towers have sides; ledges and rope decks can be jumped through.
-    for(const s of L.platforms)if(solidWall(s)&&p.y<s.y-.12&&p.y+RULES.height>s.y-solidDepth(s)){
-      if(p.x+RULES.radius>s.x&&p.x-RULES.radius<s.x+s.w){
-        const mid=s.x+s.w/2;
-        if(p.x<mid){p.x=s.x-RULES.radius;p.vx=Math.min(0,p.vx);}else {p.x=s.x+s.w+RULES.radius;p.vx=Math.max(0,p.vx);}
+    for(const s of L.platforms)if((solidWall(s)||s.shape)&&p.y<(s.shape?surfaceAt(s,p.x):s.y)-.12&&p.y+RULES.height>s.y-(s.shape?s.h:solidDepth(s))){
+      const bounds=s.shape?clayWallBounds(s,p.y+RULES.height):{left:s.x,right:s.x+s.w};
+      if(p.x+RULES.radius>bounds.left&&p.x-RULES.radius<bounds.right){
+        const mid=(bounds.left+bounds.right)/2;
+        if(p.x<mid){p.x=bounds.left-RULES.radius;p.vx=Math.min(0,p.vx);}else {p.x=bounds.right+RULES.radius;p.vx=Math.max(0,p.vx);}
       }
     }
     for(const s of L.platforms)if(s.checkpoint&&Math.abs(p.x-s.checkpoint)<1&&Math.abs(p.y-s.y)<.3&&this.checkpointId!==s.id) {

@@ -17,7 +17,7 @@ export function prepareEnemyAsset(w,gltf,motion){
   const clip=source.clone(),track=clip.tracks.find(t=>t.name===motion.rootTrack);
   if(!track||track.values.length!==motion.values.length||!(motion.height>0))throw new Error('The enemy motion data does not match its model.');
   track.values.set(motion.values);clip.name='Clayling walk';
-  clayMaterials(gltf.scene);clayModel(w,gltf.scene);retainModel(w,gltf.scene);
+  clayMaterials(gltf.scene,{orangeSource:.816});clayModel(w,gltf.scene);retainModel(w,gltf.scene);
   w.enemyAsset={scene:gltf.scene,clip,motion};
   for(const view of w.enemyViews?.values()||[])if(!['bat','drifter','spore','spitter'].includes(view.kind))attachEnemyView(w,view);
 }

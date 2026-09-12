@@ -1,0 +1,25 @@
+completion EXIT 0 PASS completion results, record timing, old-layout isolation, all four scenes and chapter actions
+ 
+title-menu EXIT 0 PASS title collectibles: checkpoint IDs, no duplicate finds, best/checkpoint overlap, old-layout exclusion and edited score isolation
+ 
+title-scene EXIT 0 PASS live title: responsive hero composition, source textures, skeletal idle, reduced motion, single hero ownership and independent scene caches
+PASS checkpoint hoist: four chapters, pause/resume, single burst, streaming state, old/new saves and restart
+ 
+editor EXIT 0 PASS all four drafts: normalization, connections, persistence, carry contents, undo/redo, and real runtime loading
+PASS finish follows its platform, protected anchors, cancel and invalid-field rollback
+PASS new mechanics, circuit wiring, deletion repair, unique duplicates, and all palette types
+PASS physics jump guides, import boundaries, quota fallback, old-layout rejection and original restoration
+ 
+audio EXIT 0 PASS four supplied chapter songs, continuous title/Hanging Quarter playback, single streaming player, no duplicate motif, independent effects, pause/resume, mute, hidden-page silence, autoplay retry, per-track failure recovery and stale-request isolation
+ 
+editor-ui EXIT 0 PASS title menu: slow/shared loading, overlapping play requests, immediate navigation, four chapters, saved collectibles, sound preference and dialog focus boundaries
+PASS app/DOM integration: touch select/drag/resize, properties, undo/redo, palette, modal focus, mobile pinch/pan, test/return, saved custom play and completion actions
+PASS app joystick: simultaneous jump, keyboard precedence, pause/resume, resize/rotation, focus loss, hidden page and editor input boundaries
+PASS cave bat loading/re-entry, touch selection, palette, hover controls and editor playtest return
+PASS forest and cavern scenery readiness on chapter entry and return
+PASS Spore Puff touch palette/selection, patrol tuning, saved draft, asset reuse and editor playtest return
+PASS canyon drifter readiness/reuse, touch palette/selection, hover tuning and editor playtest return
+PASS pre-Drifter saved canyon reproduction, original/edit selection, all four restored Drifters, preserved drafts and independent checkpoints, and remembered choice after reload
+ (node:7523) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+

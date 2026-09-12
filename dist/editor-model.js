@@ -63,7 +63,7 @@ export function validateDraft(source,base){
         if(item.kind!==undefined){if(!['bat','clayling','drifter','spore','spitter'].includes(item.kind))throw new Error('Choose a clayling, flying bat, Dust Drifter Spore Puff or Echo Spitter.');clean.kind=item.kind;}
         if(clean.kind==='bat'){clean.bob??=BAT.bob;clean.period??=BAT.period;clean.min??=clean.x;clean.max??=clean.x;}
         if(clean.kind==='drifter'){clean.bob??=DRIFTER.bob;clean.period??=DRIFTER.period;clean.speed??=DRIFTER.patrolSpeed;clean.phase??=0;}
-        if(clean.kind==='spitter'){clean.min=clean.max=clean.x;clean.speed=.1;}
+        if(clean.kind==='spitter'){clean.min??=clean.x-2;clean.max??=clean.x+2;clean.speed??=.38;}
         clean.min??=clean.x-1;clean.max??=clean.x+1;clean.speed??=1.5;
         if(clean.min>clean.max)throw new Error('Enemy patrol start must precede its end.');clean.x=clamp(clean.x,clean.min,clean.max);
       }
@@ -158,7 +158,7 @@ export class DraftSession{
     this.change(level=>{
       let list,obj;
       if(KINDS[type]){list='platforms';obj={id:id('clay'),x:x-2,y,w:4,kind:type};if(type==='gate')Object.assign(obj,{h:10,channel:'new-circuit'});if(type==='ferry')Object.assign(obj,{travel:24,speed:3.2});if(type==='orbit')Object.assign(obj,{moveX:4,moveY:4,period:12});if(type==='lift')Object.assign(obj,{period:5,moveY:1.2});if(type==='pulse')Object.assign(obj,{period:4.8,duty:.76});if(type==='switch')Object.assign(obj,{w:1.8,channel:'new-circuit',duration:10});if(type==='timed'||type==='counter')Object.assign(obj,{channel:'new-circuit',...(type==='counter'?{rise:3}:{})});}
-      else{list=['bat','drifter','spore','spitter'].includes(type)?'enemies':type;obj={x,y};if(type==='spitter')Object.assign(obj,{kind:'spitter',min:x,max:x,speed:.1});if(type==='spore')Object.assign(obj,{kind:'spore',min:x-1,max:x+1,speed:.5});if(type==='bat')Object.assign(obj,{kind:'bat',min:x-1.6,max:x+1.6,speed:BAT.patrolSpeed,bob:BAT.bob,period:BAT.period});if(type==='drifter')Object.assign(obj,{kind:'drifter',min:x-1.5,max:x+1.5,speed:DRIFTER.patrolSpeed,bob:DRIFTER.bob,period:DRIFTER.period});if(type==='hazards')Object.assign(obj,{x:x-2,w:4});if(type==='enemies')Object.assign(obj,{min:x-1.5,max:x+1.5,speed:1.5});if(type==='winds')Object.assign(obj,{id:id('wind'),x:x-2,w:4,h:7,fx:0,fy:18});if(type==='crushers')Object.assign(obj,{w:1.8,range:3,period:5});}
+      else{list=['bat','drifter','spore','spitter'].includes(type)?'enemies':type;obj={x,y};if(type==='spitter')Object.assign(obj,{kind:'spitter',min:x-2,max:x+2,speed:.38});if(type==='spore')Object.assign(obj,{kind:'spore',min:x-1,max:x+1,speed:.5});if(type==='bat')Object.assign(obj,{kind:'bat',min:x-1.6,max:x+1.6,speed:BAT.patrolSpeed,bob:BAT.bob,period:BAT.period});if(type==='drifter')Object.assign(obj,{kind:'drifter',min:x-1.5,max:x+1.5,speed:DRIFTER.patrolSpeed,bob:DRIFTER.bob,period:DRIFTER.period});if(type==='hazards')Object.assign(obj,{x:x-2,w:4});if(type==='enemies')Object.assign(obj,{min:x-1.5,max:x+1.5,speed:1.5});if(type==='winds')Object.assign(obj,{id:id('wind'),x:x-2,w:4,h:7,fx:0,fy:18});if(type==='crushers')Object.assign(obj,{w:1.8,range:3,period:5});}
       if(!LISTS.includes(list))throw new Error('Unsupported object type.');
       level[list].push(obj);this.selection={list,index:level[list].length-1};
     });

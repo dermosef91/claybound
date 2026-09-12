@@ -1,13 +1,14 @@
-// Echo Spitter: watch → cheek swell (aim locks) → clay pellet → recovery.
+// Echo Spitter: patrol → sightline lock → wind-up → crystal → recovery.
 // No homing. Cover stops shots; one descending stomp defeats the creature.
-export const SPITTER={height:1.12,radius:.49,range:10,charge:.9,cooldown:2.1,shotSpeed:6.5,shotRadius:.19,shotLife:2.5};
+export const SPITTER={height:1.12,radius:.49,range:10,charge:.9,cooldown:2.1,shotSpeed:6.5,shotRadius:.3,patrolSpeed:.38,turn:.95,mouthY:.4300511474,mouthZ:.7884600970,shotLife:2.5};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function initializeSpitter(e){
-  e.min??=e.x;e.max??=e.x;e.homeX=e.x;e.speed=0;resetSpitter(e);
+  e.min??=e.x-2;e.max??=e.x+2;e.homeX=e.x;e.speed??=SPITTER.patrolSpeed;
+  if(e.min===e.max&&e.speed>0){e.min=e.x-2;e.max=e.x+2;}resetSpitter(e);
 }
 export function resetSpitter(e){
   if(e.kind!=='spitter'||!e.alive)return;
-  Object.assign(e,{x:e.homeX,y:e.baseY,prevX:e.homeX,prevY:e.baseY,aiState:'watch',stateTime:0,cooldown:1.1,dir:e.facing||-1});
+  Object.assign(e,{x:e.homeX,y:e.baseY,prevX:e.homeX,prevY:e.baseY,aiState:'patrol',stateTime:0,cooldown:1.1,dir:e.facing||-1});
 }
 export function segmentBox(x,y,nx,ny,left,bottom,right,top){
   let enter=0,leave=1;
@@ -27,25 +28,41 @@ export function shotWall(x,y,nx,ny,platforms,r=SPITTER.shotRadius){
   }
   return nearest;
 }
+// Calibrated on the normalized Gloobasnout lip at the full wind-up pose.
+// tests/spitter-assets.mjs verifies this against a head-bone mouth anchor.
+export function spitterMuzzle(e){
+  const turn=(e.dir||-1)*SPITTER.turn;
+  return {x:e.x+Math.sin(turn)*SPITTER.mouthZ,y:e.y+SPITTER.mouthY,z:.12+Math.cos(turn)*SPITTER.mouthZ};
+}
+function patrol(e,dt,platforms){
+  const floor=platforms.find(s=>s.active!==false&&!s.broken&&Math.abs(s.y-e.y)<.12&&e.x>=s.x&&e.x<=s.x+s.w&&s.kind!=='gate');
+  if(!floor)return;
+  const left=Math.max(e.min,floor.x+SPITTER.radius),right=Math.min(e.max,floor.x+floor.w-SPITTER.radius);
+  if(right<=left)return;
+  const next=clamp(e.x+e.dir*e.speed*dt,left,right);
+  // A wall or closed gate can cut across an otherwise continuous floor.
+  if(shotWall(e.x,e.y+.55,next,e.y+.55,platforms,SPITTER.radius)<Infinity){e.dir*=-1;return;}
+  e.x=next;if(e.x<=left)e.dir=1;else if(e.x>=right)e.dir=-1;
+}
 export function moveSpitter(e,dt,time,{player:p,platforms=[],onEvent,shots=[],nextShotId}={}){
   e.stateTime+=dt;e.cooldown=Math.max(0,e.cooldown-dt);
-  const nearby=p&&p.health>0&&!p.invuln&&Math.abs(p.x-e.x)<SPITTER.range&&Math.abs(p.y-e.y)<3.3;
-  if(e.aiState==='watch'){
-    if(nearby)e.dir=Math.sign(p.x-e.x)||e.dir;
-    if(nearby&&!e.cooldown&&shotWall(e.x,e.y+.77,p.x,p.y+.85,platforms,.05)===Infinity){
-      e.aimX=p.x;e.aimY=p.y+.85;e.aiState='charge';e.stateTime=0;
-      onEvent?.('spitter-charge',{x:e.x,y:e.y});
-    }
+  const nearby=['patrol','watch'].includes(e.aiState)&&p&&p.health>0&&!p.invuln&&Math.abs(p.x-e.x)<SPITTER.range&&Math.abs(p.y-e.y)<3.3;
+  const facing=nearby?Math.sign(p.x-e.x)||e.dir:e.dir;
+  const muzzle=spitterMuzzle({...e,dir:facing});
+  const visible=nearby&&shotWall(e.x,e.y+SPITTER.mouthY,muzzle.x,muzzle.y,platforms,.05)===Infinity&&shotWall(muzzle.x,muzzle.y,p.x,p.y+.85,platforms,.05)===Infinity;
+  if(e.aiState==='patrol'||e.aiState==='watch'){
+    if(visible){
+      e.dir=facing;e.aiState='watch';
+      if(!e.cooldown){e.aimX=p.x;e.aimY=p.y+.85;e.aiState='charge';e.stateTime=0;onEvent?.('spitter-charge',{x:e.x,y:e.y});}
+    }else{e.aiState='patrol';patrol(e,dt,platforms);}
   }else if(e.aiState==='charge'&&e.stateTime>=SPITTER.charge){
-    const dx=e.aimX-e.x,dy=e.aimY-(e.y+.77),len=Math.hypot(dx,dy)||1;
-    // A fixed budget also applies when many enemies are placed in the editor.
+    const origin=spitterMuzzle(e),dx=e.aimX-origin.x,dy=e.aimY-origin.y,len=Math.hypot(dx,dy)||1;
     if(p&&Math.abs(p.x-e.x)<SPITTER.range+3&&shots.length<16){
       const vx=dx/len*SPITTER.shotSpeed,vy=clamp(dy/len*SPITTER.shotSpeed,-4.5,4.5);
-      shots.push({id:nextShotId(),owner:e.id,x:e.x+Math.sign(dx)*.62,y:e.y+.77,vx,vy,age:0});
-      onEvent?.('spitter-fire',{x:e.x,y:e.y+.77});
+      shots.push({id:nextShotId(),owner:e.id,...origin,vx,vy,age:0});onEvent?.('spitter-fire',origin);
     }
     e.aiState='recover';e.stateTime=0;e.cooldown=SPITTER.cooldown;
-  }else if(e.aiState==='recover'&&e.stateTime>.55){e.aiState='watch';e.stateTime=0;}
+  }else if(e.aiState==='recover'&&e.stateTime>.55){e.aiState='patrol';e.stateTime=0;}
 }
 export function updateShots(game,dt,previousPlayer){
   const p=game.player,R=SPITTER.shotRadius;

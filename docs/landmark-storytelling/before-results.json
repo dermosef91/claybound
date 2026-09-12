@@ -1,0 +1,94 @@
+{
+  "errors": [],
+  "requests": [],
+  "results": [
+    {
+      "index": 0,
+      "x": 45,
+      "draws": 309,
+      "triangles": 564034,
+      "textures": 26,
+      "geometries": 148
+    },
+    {
+      "index": 0,
+      "x": 93,
+      "draws": 366,
+      "triangles": 663522,
+      "textures": 26,
+      "geometries": 221
+    },
+    {
+      "index": 0,
+      "x": 145,
+      "draws": 329,
+      "triangles": 614784,
+      "textures": 29,
+      "geometries": 188
+    },
+    {
+      "index": 2,
+      "x": 62,
+      "draws": 518,
+      "triangles": 1125632,
+      "textures": 39,
+      "geometries": 330
+    },
+    {
+      "index": 2,
+      "x": 118,
+      "draws": 568,
+      "triangles": 1099848,
+      "textures": 42,
+      "geometries": 370
+    },
+    {
+      "index": 2,
+      "x": 168,
+      "draws": 619,
+      "triangles": 1410926,
+      "textures": 42,
+      "geometries": 414
+    },
+    {
+      "index": 2,
+      "x": 226,
+      "draws": 658,
+      "triangles": 1124750,
+      "textures": 42,
+      "geometries": 402
+    },
+    {
+      "index": 3,
+      "x": 120,
+      "draws": 200,
+      "triangles": 372224,
+      "textures": 47,
+      "geometries": 273
+    },
+    {
+      "index": 3,
+      "x": 168,
+      "draws": 213,
+      "triangles": 313120,
+      "textures": 49,
+      "geometries": 283
+    },
+    {
+      "index": 3,
+      "x": 183,
+      "draws": 245,
+      "triangles": 381260,
+      "textures": 50,
+      "geometries": 285
+    },
+    {
+      "index": 3,
+      "x": 243,
+      "draws": 264,
+      "triangles": 377694,
+      "textures": 49,
+      "geometries": 299
+    }
+  ]
+}

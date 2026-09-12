@@ -1,0 +1,30 @@
+PASS completion results, record timing, old-layout isolation, all four scenes and chapter actions
+PASS title collectibles: checkpoint IDs, no duplicate finds, best/checkpoint overlap, old-layout exclusion and edited score isolation
+PASS live title: responsive hero composition, source textures, skeletal idle, reduced motion, single hero ownership and independent scene caches
+PASS checkpoint hoist: four chapters, pause/resume, single burst, streaming state, old/new saves and restart
+PASS all four drafts: normalization, connections, persistence, carry contents, undo/redo, and real runtime loading
+PASS finish follows its platform, protected anchors, cancel and invalid-field rollback
+PASS new mechanics, circuit wiring, deletion repair, unique duplicates, and all palette types
+PASS physics jump guides, import boundaries, quota fallback, old-layout rejection and original restoration
+PASS four supplied chapter songs, continuous title/Hanging Quarter playback, single streaming player, no duplicate motif, independent effects, pause/resume, mute, hidden-page silence, autoplay retry, per-track failure recovery and stale-request isolation
+World loading failed [TypeError: fetch failed] {
+  [cause]: Error: not implemented... yet...
+      at makeNetworkError (node:internal/deps/undici/undici:11806:35)
+      at schemeFetch (node:internal/deps/undici/undici:13359:34)
+      at mainFetch (node:internal/deps/undici/undici:13207:30)
+      at fetching (node:internal/deps/undici/undici:13176:7)
+      at fetch (node:internal/deps/undici/undici:13040:20)
+      at fetch (node:internal/deps/undici/undici:17708:10)
+      at fetch (node:internal/bootstrap/web/exposed-window-or-worker:83:12)
+      at FileLoader.load (file:///Users/moritzgrassy/Claybound/dist/lib/three.core.js:44628:3)
+      at GLTFLoader.load (file:///Users/moritzgrassy/Claybound/dist/lib/GLTFLoader.js:319:10)
+      at file:///Users/moritzgrassy/Claybound/dist/lib/three.core.js:44367:10
+}
+file:///Users/moritzgrassy/Claybound/tests/editor-ui.mjs:68
+assert.equal(editor.world.prepared,1,'Only the latest play request prepares a chapter');
+                          ^
+
+TypeError: Cannot read properties of undefined (reading 'prepared')
+    at file:///Users/moritzgrassy/Claybound/tests/editor-ui.mjs:68:27
+
+Node.js v24.19.0

@@ -1,4 +1,5 @@
 import * as THREE from './lib/three.module.js';
+import {cullCaveCells} from './cavern.js';
 
 // Render only distant scenery at reduced resolution. The game plane, hero,
 // ropes and platforms stay sharp, like a small photographed clay set.
@@ -7,6 +8,7 @@ export function renderCitadelDepth(w){
   // blur/composite path can disappear on mobile, leaving only the clear color.
   // These environments already use depth-separated meshes and distance fog.
   if(w.biome==='desert'||w.biome==='cave'){
+    if(w.biome==='cave')cullCaveCells(w);
     if(w.citadelDepth)w.citadelDepth.quad.visible=false;
     w.backRoot.visible=true;w.renderer.setRenderTarget(null);
     w.renderer.render(w.scene,w.camera);return;

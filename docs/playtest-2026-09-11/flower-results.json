@@ -1,0 +1,55 @@
+[
+  {
+    "index": 0,
+    "seconds": 64.13333333333044,
+    "frames": 7696,
+    "coins": 42,
+    "flowers": 3,
+    "checkpoint": "sky-rest",
+    "latched": {
+      "wind-a": true,
+      "wind-b": true
+    }
+  },
+  {
+    "index": 1,
+    "seconds": 73.06666666667088,
+    "frames": 8768,
+    "coins": 37,
+    "flowers": 3,
+    "checkpoint": "bloom-root",
+    "latched": {
+      "root-a": true,
+      "tree-spores": true,
+      "bloom-spores": true
+    }
+  },
+  {
+    "index": 2,
+    "seconds": 78.08333333334154,
+    "frames": 9370,
+    "coins": 73,
+    "flowers": 3,
+    "checkpoint": "gallery-out",
+    "latched": {
+      "spark-lock": true,
+      "heart-lock": true,
+      "sluice-lock": true,
+      "last-light": true
+    }
+  },
+  {
+    "index": 3,
+    "seconds": 68.22500000000036,
+    "frames": 8187,
+    "coins": 66,
+    "flowers": 3,
+    "checkpoint": "bell-roof2",
+    "latched": {
+      "weight-a": true,
+      "weight-b": true,
+      "weight-c": true,
+      "weight-d": true
+    }
+  }
+]

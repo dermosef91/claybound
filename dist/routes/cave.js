@@ -113,10 +113,10 @@ export default chapter({
   ],
   stamps:[{x:14,y:8.2},{x:86.7,y:7},{x:180.7,y:9.4}],
   enemies:[
-    {kind:'spitter',x:40.5,y:0,min:40.5,max:40.5,speed:.1},
+    {kind:'spitter',x:40.5,y:0,min:38,max:43,speed:.38},
     {kind:'bat',x:144,y:10.7,min:141.5,max:144.8,speed:1.1,bob:.3,period:5.5,phase:1},
-    {kind:'spitter',x:198,y:5,min:198,max:198,speed:.1},
-    {kind:'spitter',x:245,y:1.8,min:245,max:245,speed:.1},
+    {kind:'spitter',x:198,y:5,min:192,max:198,speed:.38},
+    {kind:'spitter',x:245,y:1.8,min:241,max:247,speed:.38},
     {kind:'bat',x:271,y:3.8,min:269,max:271.5,speed:1.1,bob:.3,period:5,phase:1.5}
   ],
   hazards:[

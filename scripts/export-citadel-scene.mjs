@@ -19,6 +19,7 @@ import {readPlayer,readGLB} from '../tests/load-player.mjs';
 import {prepareEnemyAsset,animateEnemy} from '../dist/enemies.js';
 import {prepareCastleAsset} from '../dist/castle.js';
 import {prepareCottageAsset} from '../dist/cottage.js';
+import {prepareCityLaundry} from '../dist/city-laundry.js';
 import {prepareCloudAsset} from '../dist/clouds.js';
 import {cameraFraming,cameraTarget} from '../dist/camera.js';
 import {animateWind} from '../dist/setpieces.js';
@@ -38,6 +39,7 @@ for(const [key,color]of Object.entries({blue:0x315e96,blueLight:0x3d6da5,blueDar
 w.hemi=new THREE.HemisphereLight();w.sun=new THREE.DirectionalLight();w.fill=new THREE.DirectionalLight();w.torchLights=createCaveLights();
 w.levelRoot=new THREE.Group();w.backRoot=new THREE.Group();w.fxRoot=new THREE.Group();w.scene.add(w.levelRoot,w.backRoot,w.fxRoot);w.character=createHero(w);w.scene.add(w.character.root);w.time=0;
 const player=await readPlayer(),enemy=await readGLB(new URL('../dist/assets/enemy.glb',import.meta.url)),castle=await readGLB(new URL('../dist/assets/castle.glb',import.meta.url)),cloud=await readGLB(new URL('../dist/assets/cloud.glb',import.meta.url));
+const laundry=await readGLB(new URL('../dist/assets/city-laundry.glb',import.meta.url));prepareCityLaundry(w,laundry);
 const cottage=await readGLB(new URL('../dist/assets/cottage.glb',import.meta.url));prepareCottageAsset(w,cottage);
 attachHero(w,player,JSON.parse(await readFile(new URL('../dist/assets/player-motion.json',import.meta.url))),JSON.parse(await readFile(new URL('../dist/assets/player-idle.json',import.meta.url))));
 prepareEnemyAsset(w,enemy,JSON.parse(await readFile(new URL('../dist/assets/enemy-motion.json',import.meta.url))));prepareCastleAsset(w,castle);prepareCloudAsset(w,cloud);
@@ -123,4 +125,4 @@ for(const e of g.level.enemies)animateEnemy(w.enemyViews.get(e.id),e,0,g.status)
 for(let i=0;i<45;i++){w.time+=1/120;animateHero(w,g,1/120);}
 for(const v of w.windViews.values())animateWind(v,.5);
 animateEnvironment(w,0);animateDepthScenery(w,g,0);w.scene.updateMatrixWorld(true);
-await exportReview(w.scene,w.backRoot,dir,{camera:{x:w.cameraX,y:w.cameraY,z:26,elevation:w.theme.cameraElevation??(level===3?1.25:3.05),viewH:w.viewH,viewW:w.viewW},theme:w.theme,sky:g.level.sky,fog:g.level.fog,fogNear:w.scene.fog.near,fogFar:w.scene.fog.far,backgroundBlur:level===0||level===2?0:level===1?3:.9,lights:w.torchLights.filter(l=>l.intensity>0).map(l=>({position:l.position.toArray(),color:l.color.toArray(),intensity:l.intensity}))},new Map([...player.cpuImages,...drifterImages,...spore.cpuImages,...bat.cpuImages,...enemy.cpuImages,...castle.cpuImages,...cloud.cpuImages,...cottage.cpuImages,...canyonImages,...windmillImages,...forestImages,...grottoImages,...clayImages]));
+await exportReview(w.scene,w.backRoot,dir,{camera:{x:w.cameraX,y:w.cameraY,z:26,elevation:w.theme.cameraElevation??(level===3?1.25:3.05),viewH:w.viewH,viewW:w.viewW},theme:w.theme,sky:g.level.sky,fog:g.level.fog,fogNear:w.scene.fog.near,fogFar:w.scene.fog.far,backgroundBlur:level===0||level===2?0:level===1?3:.9,lights:w.torchLights.filter(l=>l.intensity>0).map(l=>({position:l.position.toArray(),color:l.color.toArray(),intensity:l.intensity}))},new Map([...player.cpuImages,...drifterImages,...spore.cpuImages,...bat.cpuImages,...enemy.cpuImages,...castle.cpuImages,...cloud.cpuImages,...cottage.cpuImages,...laundry.cpuImages,...canyonImages,...windmillImages,...forestImages,...grottoImages,...clayImages]));

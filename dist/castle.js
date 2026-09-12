@@ -6,7 +6,7 @@ export function prepareCastleAsset(w,gltf){
   gltf.scene.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(gltf.scene,true),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
   if(!(size.x>0&&size.y>0))throw new Error('The castle model has invalid bounds.');
-  clayMaterials(gltf.scene,{background:true});clayModel(w,gltf.scene,{background:true});retainModel(w,gltf.scene);
+  clayMaterials(gltf.scene,{background:true,orangeSource:.859});clayModel(w,gltf.scene,{background:true});retainModel(w,gltf.scene);
   w.castleAsset={scene:gltf.scene,width:size.x,center: [center.x,bounds.min.y,center.z]};
 }
 export async function loadCastle(w,onProgress){

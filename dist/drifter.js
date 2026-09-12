@@ -12,7 +12,7 @@ export function prepareDrifterAsset(w,gltf){
   gltf.scene.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(gltf.scene,true),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
   if(!(size.x>0&&size.y>0&&size.z>0))throw new Error('The Dust Drifter model is incomplete.');
-  clayMaterials(gltf.scene);clayModel(w,gltf.scene);retainModel(w,gltf.scene);
+  clayMaterials(gltf.scene,{orangeSource:.788});clayModel(w,gltf.scene);retainModel(w,gltf.scene);
   const scale=DRIFTER.width/size.x,points=[],v=new THREE.Vector3();
   gltf.scene.traverse(o=>{if(o.isMesh){const a=o.geometry.attributes.position;for(let i=0;i<a.count;i++){
     v.fromBufferAttribute(a,i).applyMatrix4(o.matrixWorld).sub(center).multiplyScalar(scale);points.push([v.x,v.y]);

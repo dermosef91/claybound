@@ -91,14 +91,22 @@ export function buildCanyonBackdrop(w){
   for(let i=-2;i<10;i++){
     const x=i*16;
     canyonModel(w,'summit',far,x+5,-3.7,-53,3.2+random(i+3)*1.2,(random(i+9)-.5)*.3);
-    if(i%2===0)canyonModel(w,'arch',far,x-1,-3.6,-49,3.8+random(i)*.8,.03);
+    if(i%3===0)canyonModel(w,'arch',far,x-1,-3.6,-49,3.8+random(i)*.8,.28);
     cloudModel(w,clouds,x+2,-.4+random(i+8)*.8,-58,2.8+random(i+4)*1.3,.05);
   }
   for(let i=-2;i<8;i++){
     const x=i*24;
-    const arch=canyonModel(w,'arch',middle,x-1.4,-2.8,-32,4.2,(random(i)-.5)*.11);
-    canyonModel(w,'summit',middle,x+10,-4.1,-28,6.2,(random(i+4)-.5)*.2);
-    if(arch.children.length&&i%2===0){
+    // Broad openings alternate with eroded stacks. The skyline has breathing
+    // room instead of repeating the same arch / flag pair in every view.
+    const arch=i%2===0?canyonModel(w,'arch',middle,x-1.4,-3.5,-34,5.0+random(i)*1.4,-.3+random(i+2)*.6):null;
+    canyonModel(w,'summit',middle,x+9,-4.8,-30,4.5+random(i+4)*2.8,-.42+random(i+6)*.84);
+    if(!arch){
+      for(let j=0;j<3;j++){
+        const h=3.1+random(i*9+j)*3.5;
+        block(w,middle,2.2-j*.35,h,3,x-4+j*2.05,-3.8-h/2,-27,'back2',i*13+j);
+      }
+    }
+    if(arch?.children.length){
       arch.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(arch,true);
       const origin=new THREE.Vector3(bounds.min.x+(bounds.max.x-bounds.min.x)*.23,bounds.max.y+1,-32);
       const hit=new THREE.Raycaster(origin,new THREE.Vector3(0,-1,0)).intersectObject(arch,true)[0];

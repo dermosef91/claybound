@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "check": "node tests/mechanics.mjs && node tests/platform-update.mjs && node tests/cavern-redesign.mjs && node tests/health-hud.mjs && node tests/routes.mjs && node tests/journeys.mjs && node tests/playthroughs.mjs && node tests/controls.mjs && node tests/player.mjs && node tests/assets.mjs && node tests/bats.mjs && node tests/bat-ai.mjs && node tests/drifter.mjs && node tests/spore.mjs && node tests/windmills.mjs && node tests/clay.mjs && node tests/cave-lighting.mjs && node tests/scene.mjs && node tests/completion.mjs && node tests/title-menu.mjs && node tests/title-scene.mjs && node tests/editor.mjs && node tests/audio.mjs && node --experimental-vm-modules tests/editor-ui.mjs"
+    "check": "node tests/mechanics.mjs && node tests/shaping.mjs && node tests/shaping-views.mjs && node tests/platform-update.mjs && node tests/cavern-redesign.mjs && node tests/spitter-assets.mjs && node tests/health-hud.mjs && node tests/routes.mjs && node tests/journeys.mjs && node tests/playthroughs.mjs && node tests/controls.mjs && node tests/player.mjs && node tests/assets.mjs && node tests/bats.mjs && node tests/bat-ai.mjs && node tests/drifter.mjs && node tests/spore.mjs && node tests/windmills.mjs && node tests/clay.mjs && node tests/cave-lighting.mjs && node tests/scene.mjs && node tests/completion.mjs && node tests/title-menu.mjs && node tests/title-scene.mjs && node tests/editor.mjs && node tests/audio.mjs && node --experimental-vm-modules tests/editor-ui.mjs"
   },
   "devDependencies": {
     "linkedom": "^0.18.12",

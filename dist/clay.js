@@ -1,6 +1,7 @@
 import * as THREE from './lib/three.module.js';
 import {RoundedBoxGeometry} from './lib/RoundedBoxGeometry.js';
 import {loadData,assetURL} from './model-assets.js';
+import {orangeTextureShader} from './palette.js';
 
 // The ball supplies a neutral, seamless field of presses and fingerprints.
 // Authored model maps stay intact; constructed forms no longer use the cube atlas.
@@ -38,6 +39,7 @@ export function clayMaterial(w,material,depth){
   material.bumpMap=detail;material.metalness=0;
   material.userData.clay={type:'relief',period:w.clay.profile.period,requestedDepth,depth:material.bumpScale};
   material.onBeforeCompile=shader=>{
+    orangeTextureShader(shader,material.userData.clayOrangeSource);
     shader.uniforms.clayPeriod={value:w.clay.profile.period};
     shader.uniforms.clayOffset={value:new THREE.Vector3().fromArray(material.userData.clayOffset||[0,0,0])};
     shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
@@ -81,7 +83,7 @@ roughnessFactor = clamp(roughnessFactor * clayData.g, 0.52, 0.98);`)
 #endif
 normal = clayPerturbNormal(-vViewPosition, normal, clayData.r * bumpScale, faceDirection);`);
   };
-  material.customProgramCacheKey=()=> 'ball-clay-relief-v3';material.needsUpdate=true;return material;
+  material.customProgramCacheKey=()=> 'ball-clay-relief-v3'+(material.userData.clayOrangeSource?'-orange-v1':'');material.needsUpdate=true;return material;
 }
 
 export function clayModel(w,root,{background=false}={}){

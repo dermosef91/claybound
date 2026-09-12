@@ -2,6 +2,8 @@ import * as THREE from './lib/three.module.js';
 import {windmillModel} from './windmill.js';
 import {canyonModel} from './canyon-assets.js';
 import {forestLandmark} from './forest-details.js';
+import {dryBasin,caveStory} from './story-landmarks.js';
+import {cityLaundry} from './city-laundry.js';
 
 // Functional clay stand-ins. Their dimensions and pivots are documented in
 // ASSET_REQUESTS.md so supplied models can replace the art without changing play.
@@ -9,6 +11,13 @@ export function landmark(w,s,parent){
   // Goal platforms already create the animated bell and its frame.
   if(!s.landmark||(s.goal&&s.landmark==='bellgate'))return;
   if(w.biome==='forest'&&['mushroom','sporepod','rootarch'].includes(s.landmark))return forestLandmark(w,s,parent);
+  if(w.biome==='cave'&&caveStory(w,s,parent))return;
+  if(w.biome==='citadel'&&s.id==='laundry-entry'){
+    cityLaundry(w,parent,s.w*.64,.015,-1.12,3.8);return;
+  }
+  // The maintenance terrace and resting court tell their story through props;
+  // reserve big rope frames for working lifts and the bell for the true goal.
+  if(w.biome==='citadel'&&['exchange-entry','bell-court'].includes(s.id))return;
   const g=new THREE.Group();g.name='Landmark: '+s.landmark;g.position.set(s.w*.57,0,-2.25);parent.add(g);
   if(w.biome==='desert'&&s.landmark==='arch'){
     // Both feet rest on the rear of the existing platform, clear of the hero.
@@ -17,7 +26,10 @@ export function landmark(w,s,parent){
     return g;
   }
   switch(s.landmark){
-    case 'windmill':case 'sandwheel':{
+    case 'sandwheel':{
+      if(w.biome==='desert'){g.position.z=-1.2;dryBasin(w,g);}else windmillModel(w,g);break;
+    }
+    case 'windmill':{
       windmillModel(w,g);break;
     }
     case 'sporepod':case 'mushroom':{

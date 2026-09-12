@@ -6,7 +6,7 @@
 /* The completion is a whole scene, rather than a card inside the pause menu. */
 #dialog.is-completion{display:block;padding:0;background:#28384c;backdrop-filter:none;overscroll-behavior:contain}
 #dialog.is-completion #dialog-content{width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:0;border:0;border-radius:0;background:none;color:#fff2d7;box-shadow:none;overflow:visible;font-family:"Clay Sans",Arial,sans-serif}
-.completion-scene{--reward-size:clamp(66px,10.5vh,108px);--result-cream:#fff2d7;--result-orange:#f26525;position:relative;isolation:isolate;width:100%;min-height:100%;overflow:hidden;background:#28384c;animation:completion-reveal .55s ease-out both}
+.completion-scene{--reward-size:clamp(66px,10.5vh,108px);--result-cream:#fff2d7;--result-orange:var(--clay-orange);position:relative;isolation:isolate;width:100%;min-height:100%;overflow:hidden;background:#28384c;animation:completion-reveal .55s ease-out both}
 .completion-background,.completion-shade{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:-2}
 .completion-background{object-fit:cover;object-position:65% 66%;user-select:none}
 .completion-shade{z-index:-1;background:#18243616}
@@ -37,7 +37,7 @@
 .completion-button:focus-visible{outline:3px solid #fff4df;outline-offset:5px}
 .completion-button:active{transform:translateY(2px)}
 .completion-primary{background-color:var(--result-orange);border-color:#ffb5779c;box-shadow:inset 0 2px 2px #ffc5845c,inset 0 -3px 0 #b441143b,0 4px 0 #9d3e1b77,0 8px 22px #70301c30;font-weight:700;backdrop-filter:none}
-.completion-primary:hover{background-color:#fa7737;border-color:#ffd0a0}
+.completion-primary:hover{background-color:var(--clay-orange-light);border-color:#ffd0a0}
 .completion-primary svg{width:29px;height:29px}
 #dialog.is-completion .completion-note{position:absolute;right:5.5%;margin:0;color:#fff1d3;font-family:"Clay Hand","Segoe Print",cursive;font-size:clamp(24px,2.4vw,35px);line-height:1.12;font-weight:400;opacity:.91;transform:rotate(-8deg);text-align:center;pointer-events:none;text-shadow:0 2px 8px #2b263d33}
 .completion-note-top{top:9.5%}.completion-note-bottom{bottom:6.5%}

@@ -1,10 +1,12 @@
 import * as THREE from './lib/three.module.js';
 import {clayMaterial,sculptClay} from './clay.js';
 import {RULES} from './simulation.js';
+import {CLAY_PALETTE} from './palette.js';
+import {THEMES} from './environments.js';
 
 export function createHealthClumps(w){
   const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(0,1,1,0,.1,200);camera.position.z=100;
-  const clay=clayMaterial(w,new THREE.MeshStandardMaterial({color:0xf27835,roughness:.92}),.048);
+  const clay=clayMaterial(w,new THREE.MeshStandardMaterial({color:CLAY_PALETTE.orange,roughness:.94}),.048);
   const empty=clayMaterial(w,new THREE.MeshStandardMaterial({color:0x395066,roughness:1}),.04);
   const geo=new THREE.SphereGeometry(1,30,22),pos=geo.attributes.position;
   for(let i=0;i<pos.count;i++){
@@ -18,9 +20,10 @@ export function createHealthClumps(w){
     const mesh=new THREE.Mesh(geometry,clay);mesh.name='Health clay clump '+(i+1);mesh.rotation.set(i*.73,i*1.71,i*.29);scene.add(mesh);
     return {mesh,phase:i*2.31,angle:0,health:true,radius:12};
   });
-  scene.add(new THREE.HemisphereLight(0xffefd6,0x522820,2.1));
-  const key=new THREE.DirectionalLight(0xffe1ba,3);key.position.set(-40,60,80);scene.add(key);
-  const fill=new THREE.DirectionalLight(0xa5c5e2,.7);fill.position.set(60,-10,30);scene.add(fill);
+  const light=THEMES.citadel;
+  scene.add(new THREE.HemisphereLight(light.skyLight,light.groundLight,light.ambient));
+  const key=new THREE.DirectionalLight(light.sun,light.sunPower);key.position.set(-40,60,80);scene.add(key);
+  const fill=new THREE.DirectionalLight(light.fill,light.fillPower);fill.position.set(60,-10,30);scene.add(fill);
   return {scene,camera,clumps,clay,empty,time:0};
 }
 export function animateHealthClumps(view,health,dt,reducedMotion=false){

@@ -40,7 +40,7 @@ vm.runInContext(await readFile(new URL('../dist/lib/lucide.min.js',import.meta.u
 const source=await readFile(new URL('../dist/app.js',import.meta.url),'utf8');
 const appModule=new vm.SourceTextModule(source+'\nglobalThis.appTest={get game(){return game;},get editor(){return editor;},get saved(){return saved;},input,get joystick(){return joystick;},begin,home,pause,chapters,onEvent,result};',{context});
 const linkApp=async specifier=>{
- let exports;if(specifier==='./world.js')exports={World:WorldStub};else if(specifier==='./title-scene.js')exports={TitleScene:TitleSceneStub};else if(specifier==='./health-hud.js')exports={HealthHUD:HealthHUDStub};else if(specifier==='./audio.js')exports={Sound:SoundStub};else if(specifier==='./fullscreen.js')exports={Fullscreen:FullscreenStub};else exports=await import(new URL('../dist/'+specifier,import.meta.url));
+ let exports;if(specifier==='./world.js')exports={World:WorldStub};else if(specifier==='./title-scene.js')exports={TitleScene:TitleSceneStub};else if(specifier==='./title-assets.js')exports={loadTitleAssets:async w=>{w.titleMesa={};}};else if(specifier==='./health-hud.js')exports={HealthHUD:HealthHUDStub};else if(specifier==='./audio.js')exports={Sound:SoundStub};else if(specifier==='./fullscreen.js')exports={Fullscreen:FullscreenStub};else exports=await import(new URL('../dist/'+specifier,import.meta.url));
  const names=Object.keys(exports);return new vm.SyntheticModule(names,function(){for(const name of names)this.setExport(name,exports[name]);},{context});
 };
 await appModule.link(linkApp);
@@ -60,7 +60,7 @@ await click('[data-action="settings-sound"]');assert.equal(app.saved.sound,false
 await click('[data-action="close"]');await click('#settings');assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'false');
 await click('[data-action="close"]');await click('#menu-sound');assert.equal(app.saved.sound,true);
 $('settings').focus();await click('#settings');await click('[data-action="help"]');await click('[data-action="close"]');assert.equal(document.activeElement,$('settings'),'Nested help returns focus to the title trigger');
-await click('#chapters');assert.equal(document.querySelectorAll('.chapter-choice').length,4);await click('[data-action="close"]');
+await click('#chapters');assert.equal(document.querySelectorAll('.chapter-choice[data-level]').length,4);assert.equal(document.querySelectorAll('.chapter-choice[data-action="playground"]').length,1);await click('[data-action="close"]');
 assert.equal(editor.world,undefined,'Menu dialogs stay responsive during a slow asset load');
 assert.equal(worldCount,1,'The title creates just one renderer');
 const firstBegin=app.begin(0),secondBegin=app.begin(0);releaseFirstWorld();await Promise.all([firstBegin,secondBegin]);

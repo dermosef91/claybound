@@ -3,6 +3,7 @@ import {castle} from './castle.js';
 import {cottageModel} from './cottage.js';
 import {sculptClay} from './clay.js';
 import {cloudModel} from './clouds.js';
+import {cityStory} from './story-landmarks.js';
 const rand=n=>{const v=Math.sin(n*123.21+47.5)*43758.5453;return v-Math.floor(v);};
 const group=(parent,x=0,y=0,z=0)=>{const g=new THREE.Group();g.position.set(x,y,z);parent.add(g);return g;};
 
@@ -106,6 +107,7 @@ export function buildCitadelTerrain(w,s,g){
     else if(!s.goal)w.flag(.9,.07,g,.82);
     if(s.goal)w.makeBell(g,s.bellX??width-5.2,.1);
     crease(w,g,[[width*.32,-1.0,1.77],[width*.31,-1.5,1.77],[width*.35,-2.1,1.78]],.011);
+    cityStory(w,s,g);
   }
 }
 

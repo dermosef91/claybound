@@ -1,87 +1,76 @@
-/* Accessible menu controls over the live 3D canyon overlook. */
+/* The reference composition uses tangible clay controls over a live diorama. */
 #menu.title-screen {
-  --title-cream:#fff1d5;
-  --title-orange:#ee5f24;
-  --title-glass:rgba(104,66,48,.56);
+  --title-cream:#fff1d5;--title-orange:var(--clay-orange);
   position:absolute;inset:0;display:block;padding:0;isolation:isolate;
   color:var(--title-cream);font-family:"Clay Sans",Arial,sans-serif;
   background:transparent;overflow:hidden;
 }
 .title-scene-status {position:absolute;right:6%;bottom:12%;max-width:40%;font-size:14px;line-height:1.5;text-align:right;color:#fff1d5;}
 .title-scene-ready .title-scene-status {display:none;}
-.title-brand {position:absolute;left:6.8%;right:6.8%;top:max(4.6svh,env(safe-area-inset-top));text-align:center;}
-.title-brand h1 {margin:0;height:18.5svh;}
-.title-logo {display:block;width:100%;height:100%;object-fit:contain;}
-.title-brand p {margin:1svh 0 0;font-size:clamp(12px,2.05vw,26px);font-weight:500;line-height:1.5;letter-spacing:.29em;text-transform:uppercase;text-shadow:0 1px 4px #52738c55;}
-.title-actions {position:absolute;top:31.6%;left:max(7.2%,env(safe-area-inset-left));width:clamp(190px,33.7vw,440px);display:grid;gap:1.2svh;}
-.title-button {width:100%;min-height:48px;height:5.65svh;padding:8px 14%;display:flex;gap:clamp(16px,4.8vw,62px);align-items:center;text-align:left;border:1px solid #ffe7c345;border-radius:clamp(14px,1.9vw,25px);color:var(--title-cream);background:var(--title-glass);box-shadow:inset 0 1px 0 #fff3d326,0 2px 4px #59362016;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font-size:clamp(16px,2.55vw,33px);font-weight:500;line-height:1.2;transition:background .16s,transform .16s,box-shadow .16s;}
-.title-button svg {width:clamp(24px,4.1vw,52px);height:clamp(24px,4.1vw,52px);flex-shrink:0;stroke-width:1.7;}
-.title-play {height:6.7svh;min-height:57px;margin-bottom:.45svh;background:var(--title-orange);border:1px solid #ffb466a8;box-shadow:inset 0 2px 1px #ffbf6e66,0 5px 0 #a9421b,0 8px 14px #8c3a2620;font-size:clamp(20px,3.5vw,44px);}
-.title-play svg {fill:currentColor;stroke-width:1.4;}
-.title-button:focus-visible,.title-tool:focus-visible,.title-editor:focus-visible {outline:3px solid #fff8e5;outline-offset:4px;}
-.title-button:active {transform:translateY(3px);}
-.title-play:active {box-shadow:inset 0 2px 1px #ffbf6e66,0 2px 0 #a9421b;}
-.title-motto {position:absolute;right:5.5%;bottom:7%;margin:0;display:grid;gap:.34em;font-size:clamp(12px,1.65vw,21px);letter-spacing:.25em;line-height:1.45;text-transform:uppercase;text-shadow:0 1px 5px #42282099;opacity:.8;pointer-events:none;}
-.title-motto::after {content:"";width:2.4em;height:2px;margin-top:.6em;background:currentColor;}
-.title-footer {position:absolute;left:max(6.8%,env(safe-area-inset-left));right:max(5%,env(safe-area-inset-right));bottom:max(1.8svh,env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:center;gap:12px;}
-.title-editor,.title-tool {display:inline-flex;align-items:center;justify-content:center;min-height:44px;border:1px solid #ffe7c32b;background:#60351d57;color:var(--title-cream);border-radius:13px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-size:14px;gap:9px;transition:background .15s;}
-.title-editor {padding:8px 13px;}
-.title-editor svg {width:18px;height:18px;}
-.title-tool {width:44px;padding:10px;}
-.title-tool svg {width:20px;height:20px;}
-.title-tools {display:flex;gap:8px;}
-body.is-menu #world {visibility:hidden;background:#81aed1;}
-body.is-menu:not(.title-scene-ready) #menu {background:#81aed1;}
+.title-brand {position:absolute;left:7.7%;top:max(6.5svh,env(safe-area-inset-top));width:min(46vw,84.5svh);text-align:center;}
+.title-brand h1 {margin:0;aspect-ratio:1600 / 456;}
+.title-logo {display:block;width:100%;height:100%;object-fit:contain;filter:url('#clay-logo-orange');}
+.title-brand p {margin:2.3svh -8% 0;font-size:clamp(12px,1.45vw,25px);font-weight:500;line-height:1.5;letter-spacing:.29em;text-transform:uppercase;text-shadow:0 1px 4px #52738c22;}
+.title-actions {position:absolute;top:39.8%;left:max(7.35%,env(safe-area-inset-left));width:min(31.7vw,56.35svh);display:grid;gap:1.25svh;container-type:inline-size;}
+#game-shell #menu .title-button {
+  width:93.6%;margin-left:3.2%;min-height:44px;height:auto;aspect-ratio:5.06;padding:0 12.5%;
+  display:flex;gap:9.62cqw;align-items:center;text-align:left;
+  border:0;border-radius:999px;color:#583824;font-family:"Clay Sans",Arial,sans-serif;
+  font-size:clamp(17px,6.25cqw,34px);font-weight:700;line-height:1.2;letter-spacing:-.025em;
+  background-color:transparent;background-image:url('./assets/title/button-cream.webp');background-size:100% 112%;background-repeat:no-repeat;background-position:center;background-blend-mode:normal;
+  box-shadow:none;filter:brightness(1.09) saturate(1.13) drop-shadow(0 14px 15px #274f6755);text-shadow:0 1px 0 #fff4df55;
+  backdrop-filter:none;-webkit-backdrop-filter:none;transition:transform .16s,filter .16s;
+}
+#game-shell #menu .title-button svg {width:10.1cqw;height:auto;aspect-ratio:1;flex-shrink:0;stroke-width:2.7;filter:none;}
+#game-shell #menu .title-play {position:relative;isolation:isolate;width:100%;margin:0 0 .2svh;height:auto;aspect-ratio:4.31;min-height:52px;padding:0 15.2%;gap:9.62cqw;background-image:none;color:#fff5df;font-size:clamp(23px,9.46cqw,51px);text-shadow:0 3px 2px #92360985;filter:drop-shadow(0 14px 15px #274f6755);}
+#game-shell #menu .title-play::before {content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background-image:url('./assets/title/button-orange.webp');background-size:100% 112%;background-position:center;background-repeat:no-repeat;filter:url('#clay-button-orange');}
+#game-shell #menu .title-play svg {width:10.73cqw;fill:currentColor;stroke-width:2.2;filter:drop-shadow(0 3px 2px #80341690);}
+#game-shell #menu #settings svg {fill:currentColor;stroke-width:2;}
+#game-shell #menu #settings svg circle {fill:#f4dfbc;}
+#game-shell #menu .title-button:focus-visible {outline:3px solid #fff8e5;outline-offset:5px;}
+#game-shell #menu .title-button:active {transform:translateY(3px) scale(.99);box-shadow:none;}
+.title-motto,.title-footer {display:none;}
+body.is-menu #world {visibility:hidden;background:#66b4e4;}
+body.is-menu:not(.title-scene-ready) #menu {background:#66b4e4;}
 body.is-menu.title-scene-ready #world {visibility:visible;}
 body.is-menu .vignette {visibility:hidden;}
 body.is-menu .toast {z-index:25;max-width:90vw;white-space:normal;text-align:center;}
-
-/* The same menu travels to the left of a separately composed wide overlook. */
-@media(orientation:landscape) {
-  .title-brand {left:5.8%;right:auto;top:max(4.5svh,env(safe-area-inset-top));width:48%;}
-  .title-brand h1 {height:21svh;}
-  .title-brand p {font-size:clamp(12px,1.05vw,19px);margin-top:.75svh;letter-spacing:.3em;}
-  .title-actions {left:max(8.6%,env(safe-area-inset-left));top:35%;width:clamp(218px,28vw,420px);gap:1.6svh;}
-  .title-button {height:8svh;min-height:46px;padding:8px 12%;gap:clamp(20px,3.1vw,48px);font-size:clamp(17px,1.7vw,27px);border-radius:18px;}
-  .title-button svg {width:clamp(24px,2.6vw,37px);height:clamp(24px,2.6vw,37px);}
-  .title-play {height:9svh;min-height:52px;font-size:clamp(21px,2.3vw,35px);}
-  .title-motto {right:4.5%;bottom:12.5%;font-size:clamp(12px,1.1vw,17px);}
-  .title-footer {left:5.8%;right:4.5%;bottom:max(2svh,env(safe-area-inset-bottom));}
+@media(hover:hover) {
+  #game-shell #menu .title-button:hover {filter:brightness(1.14) saturate(1.13) drop-shadow(0 16px 16px #274f6755);transform:translateY(-2px);}
+}
+@media(orientation:portrait) {
+  .title-brand {left:6%;width:88%;top:max(5svh,env(safe-area-inset-top));}
+  .title-brand p {margin:1.6svh -4% 0;font-size:clamp(11px,2.6vw,19px);letter-spacing:.23em;}
+  .title-actions {top:max(27%,calc(11svh + min(25.51vw,21svh)));left:max(6%,env(safe-area-inset-left));width:63%;gap:1.05svh;}
+  #game-shell #menu .title-button {padding:0 12%;}
+  #game-shell #menu .title-play {padding:0 14%;}
 }
 @media(orientation:landscape) and (max-height:540px) {
-  .title-brand {width:44%;top:max(3svh,env(safe-area-inset-top));}
-  .title-brand h1 {height:21svh;}
-  .title-brand p {font-size:12px;letter-spacing:.18em;margin-top:0;}
-  .title-actions {top:32%;width:clamp(210px,29vw,300px);gap:7px;}
-  .title-button {height:44px;min-height:44px;font-size:16px;border-radius:13px;padding:7px 12%;gap:26px;}
-  .title-play {height:48px;min-height:48px;font-size:20px;margin:0;box-shadow:inset 0 1px 0 #ffba7370,0 3px 0 #a9421b;}
-  .title-button svg {width:23px;height:23px;}
-  .title-footer {left:auto;right:max(3%,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom));gap:14px;}
-  .title-motto {display:none;}
-}
-@media(orientation:portrait) and (max-width:600px) {
-  .title-brand {left:5%;right:5%;top:max(5svh,env(safe-area-inset-top));}
-  .title-brand h1 {height:17svh;}
-  .title-brand p {font-size:12px;letter-spacing:.2em;margin-top:0;}
-  .title-actions {top:31.5%;left:max(7.2%,env(safe-area-inset-left));width:clamp(190px,49vw,260px);gap:10px;}
-  .title-button {padding:10px 17px;gap:20px;border-radius:15px;}
-  .title-motto {right:6%;bottom:10.5%;font-size:12px;}
-  .title-footer {left:6%;right:6%;bottom:max(16px,env(safe-area-inset-bottom));}
-  .title-tools {gap:6px;}
+  .title-brand {top:max(3svh,env(safe-area-inset-top));}
+  .title-brand p {font-size:clamp(10px,1.45vw,15px);margin-top:1.3svh;}
+  .title-actions {top:36%;width:min(33vw,72svh);gap:1.8svh;}
+  #game-shell #menu .title-button {min-height:44px;font-size:clamp(14px,1.98vw,22px);}
+  #game-shell #menu .title-play {min-height:46px;font-size:clamp(20px,3vw,31px);}
 }
 @media(orientation:portrait) and (max-height:700px) {
-  .title-brand {top:max(2svh,env(safe-area-inset-top));}
-  .title-brand h1 {height:14svh;}
-  .title-actions {top:22.5%;gap:8px;}
-  .title-button {height:44px;min-height:44px;}
-  .title-play {height:52px;min-height:52px;}
-  .title-motto {display:none;}
+  .title-brand {top:max(3svh,env(safe-area-inset-top));}
+  .title-actions {top:max(25%,calc(10svh + min(25.51vw,21svh)));width:66%;}
 }
-@media(hover:hover) {
-  .title-button:hover {background:#6d4632c9;transform:translateY(-2px);}
-  .title-play:hover {background:#fa712d;}
-  .title-tool:hover,.title-editor:hover {background:#633820ae;}
+/* Keep square and near-square windows in one composition across orientation. */
+@media(min-aspect-ratio:2/3) and (max-aspect-ratio:4/3) {
+  .title-brand {left:6%;top:max(5svh,env(safe-area-inset-top));width:min(78vw,70svh);}
+  .title-brand p {margin:1.6svh -4% 0;font-size:clamp(11px,2.1vw,19px);letter-spacing:.23em;}
+  .title-actions {left:max(6%,env(safe-area-inset-left));top:calc(11.5svh + min(22.23vw,19.95svh));width:min(44vw,40.5svh);min-width:min(225px,88vw);gap:1.25svh;}
+  #game-shell #menu .title-button {height:auto;font-size:clamp(17px,6.25cqw,34px);padding:0 12.5%;}
+  #game-shell #menu .title-play {height:auto;font-size:clamp(23px,9.46cqw,51px);padding:0 15.2%;}
 }
+@media(max-height:350px) {
+  #menu.title-screen {overflow-y:auto;touch-action:pan-y;}
+  .title-brand {top:10px;}
+  .title-brand h1 {height:60px;}
+  .title-actions {top:100px;width:clamp(215px,33%,350px);padding-bottom:24px;}
+}
+@media(prefers-reduced-motion:reduce) {#game-shell #menu .title-button{transition:none;}}
 /* Dialogs keep the menu's type and warm materials, including all scroll areas. */
 .is-menu #dialog:not(.is-completion) {background:#513b296e;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
 .is-menu .dialog-card {font-family:"Clay Sans",Arial,sans-serif;color:#503c2d;background:#fff1d8;border:1px solid #fff8e8aa;box-shadow:0 7px 0 #c69973,0 18px 70px #39201944;}
@@ -108,13 +97,3 @@ body.is-menu .toast {z-index:25;max-width:90vw;white-space:normal;text-align:cen
 .collection-flowers small {margin-left:5px;font-size:13px;}
 .collection-beads {font-size:13px;color:#775e49;}
 .collection-chapter>svg {width:20px;height:20px;}
-@media(max-width:360px) {.title-editor{font-size:13px;padding:8px 10px;}.title-tools{gap:3px;}.title-footer{left:5%;right:5%;}.collection-chapter>img{width:45px;height:68px;}.collection-details strong{font-size:14px;}}
-/* Very short windows remain operable with scrolling, instead of clipped CTAs. */
-@media(max-height:350px) {
-  #menu.title-screen {overflow-y:auto;touch-action:pan-y;}
-  .title-backdrop {position:fixed;}
-  .title-brand {top:12px;}
-  .title-brand h1 {height:70px;}
-  .title-actions {top:112px;left:max(5%,env(safe-area-inset-left));padding-bottom:24px;}
-  .title-footer {position:fixed;}
-}

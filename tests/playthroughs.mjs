@@ -56,6 +56,13 @@ for(const [i,L]of LEVELS.entries()){
  function journey(state,li){
   if(li>furthest&&process.env.TRACE)console.log('Reached',li,links[li]?.from||'bell');furthest=Math.max(furthest,li);if(li===links.length)return {g:state,parts:[]};
   if(attempts>=6000)return null;
+  // Machine transfers ignore jump offsets/holds/waits. Repeating their exact
+  // input search 112 times cannot discover another result; backtrack upstream.
+  const link=links[li],from=state.level.platforms.find(p=>p.id===link.from);
+  if(from.kind==='ferry'||link.mode==='ride'||link.mode==='board'){
+   attempts++;const r=machineTransfer(state,link);if(!r)return null;
+   const rest=journey(r.g,li+1);return rest?{g:rest.g,parts:[r.controls,...rest.parts]}:null;
+  }
   for(const wait of [0,24,60,120,180,240,330])for(const offset of [.55,1.1,1.75,2.4])for(const hold of [600,48,30,18]){
    if(++attempts>6000)return null;
    const r=attempt(state,links[li],{wait,offset,hold});if(!r)continue;

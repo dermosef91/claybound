@@ -24,7 +24,7 @@
 .joystick-thumb{
   position:absolute;left:50%;top:50%;width:44%;height:44%;border:1px solid #ffe2ad9c;
   border-radius:46% 50% 47% 49%;pointer-events:none;
-  background:radial-gradient(ellipse at 35% 25%,#ffcd88,#ed9a58 52%,#cf733b);
+  background:radial-gradient(ellipse at 35% 25%,var(--clay-orange-light),var(--clay-orange) 52%,var(--clay-orange-dark));
   box-shadow:inset 1px 2px 3px #fff0c97d,inset -2px -3px 5px #99512b40,0 4px 0 #894622b3,0 7px 13px #15293955;
   transform:translate(calc(-50% + var(--stick-x)),calc(-50% + var(--stick-y)));
   transition:transform .14s cubic-bezier(.18,.85,.3,1);
@@ -35,7 +35,7 @@
 }
 .virtual-joystick.is-active .joystick-thumb{transition:none}
 .virtual-joystick.is-active .joystick-well{border-color:#ffe0a5bb}
-.virtual-joystick.is-steering .joystick-thumb{background:radial-gradient(ellipse at 35% 25%,#ffda9b,#f4a15e 52%,#d9783c)}
+.virtual-joystick.is-steering .joystick-thumb{background:radial-gradient(ellipse at 35% 25%,color-mix(in srgb,var(--clay-orange-light),#fff0d5 18%),var(--clay-orange-light) 52%,var(--clay-orange))}
 .joystick-caption{
   position:absolute;top:calc(100% + 9px);left:0;width:100%;text-align:center;
   font-size:9px;font-weight:700;letter-spacing:.16em;color:#fff0d5c9;text-shadow:0 1px 4px #182b3dcc;pointer-events:none;

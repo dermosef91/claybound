@@ -1,0 +1,77 @@
+PASS joystick neutral zone, precision curve, vertical-drift rejection and full speed at mobile sizes
+PASS one-thumb ownership, tracking beyond the ring, release/cancel/capture loss and disabled input
+PASS gentle joystick steps brake within 0.025 world units; full tilt retains run speed
+PASS fullscreen enter, duplicate requests, exit, and Escape state synchronization
+PASS blocked fullscreen returns an honest error and remains usable
+PASS original skinned GLB, all 11 source clips plus the new idle, texture references and 24-bone rig are loaded
+PASS every mapped clip stays finite and in place; ground contact sampled throughout all grounded animations
+PASS analog walk/run blending, moving jump, paused pose, stomp, damage recovery, knockdown, respawn and celebration
+PASS left/right turns preserve model scale and the fixed physics origin
+PASS new default idle, strict one-second delay, interruption, paused timer and one fidget per continuous rest
+PASS custom enemy rig, independent walk cycles, shared textures, stable feet, turn direction, pause and stomp squash
+PASS original textured castle, normalized framing, shared geometry and background-only placement
+PASS supplied cottage geometry, all three maps, base placement, uniform scale and retained shared resources
+PASS bat rig, three clips, PBR maps, wing deformation, fixed body, independent skeletons, pause, defeat and shared resources
+PASS player-facing buildup, left/right/down aim, three outward clay arcs, shared cue resources, pause/reduced motion, and cue removal on dive/death/editor
+PASS bat jump/stomp kills, edge forgiveness, moving top contacts, side damage, cooldown, pause and cave-only placement
+PASS bat editor placement, hover settings, drag, undo/redo, autosave and backup import
+PASS all authored bats patrol both ways; old hover-only drafts gain flight lanes without changing saved designs
+PASS retreat direction, climb, 650ms warning, locked aim, fast downward dive, recovery, cooldown and disengagement
+PASS solid occlusion, swept dive/deck contact, inactive bridges and return from a blocked dive
+PASS paused AI, respawn grace, attack coordination, stomp counters in every attack phase and single-hit dive damage
+PASS all four drifters alternate rolling and drifting, stay on their decks, rotate by travel, transition smoothly and respond to wind
+PASS body/underside damage in both modes, hit grace and escape, jump/stomp defeat without damage, one defeat event, pause and reset
+PASS rolling follows a moving deck, lifts when support disappears, and airborne editor placements need no artificial floor
+PASS editor placement, hover/patrol tuning, import/export, undo/redo and moving a platform with its drifter
+PASS real-model ground contact, retained maps, frozen pause, hidden defeated model, tumbling leaf burst, effect cleanup/budget and shared asset retention
+PASS wiggle/puff/crouch/leap/landing sequence, short stun, queued jump, pause, respawn grace, cooldown and evasive movement
+PASS sight/range/airborne avoidance, no chain stun, harmless resting body, single-hit jump damage, and jump/stomp counters in every state
+PASS moving-deck attachment, falling/deactivation, and interrupted-stun input cleanup
+PASS supplied 26-bone model, normalized skin, shared maps/geometry, animated grounded poses, frozen pause, cleanup and editable/exportable Spore Puff
+PASS supplied windmill topology/materials, source fingerprints, uniform scale, axle placement, rotating sails, fixed towers and shared resources
+PASS clay ball provenance and unmirrored relief, real surface relief, safe collision margins, geometry reuse and both material shader paths
+PASS camera midpoint jitter keeps stable fixture assignments
+PASS crossfades overlap smoothly through direction reversals and zero-time updates
+PASS streamed removal and parallax wrapping fade out without light-position jumps
+PASS chapter changes reset light assignments and respect the fixed four-light budget
+PASS Sunbaked Canyon: 298 meshes, 166 sculpted clay forms, 172 treated solid surfaces, valid geometry and animation
+PASS Sunbaked Canyon forward/backward streaming: max 13 platforms, 36 views, 199 cached clay shapes
+PASS Wildwood: 511 meshes, 229 sculpted clay forms, 255 treated solid surfaces, valid geometry and animation
+PASS Wildwood forward/backward streaming: max 14 platforms, 46 views, 196 cached clay shapes
+PASS Ember Caverns: 858 meshes, 345 sculpted clay forms, 345 treated solid surfaces, valid geometry and animation
+PASS Ember Caverns forward/backward streaming: max 18 platforms, 48 views, 200 cached clay shapes
+PASS Hanging Quarter: 171 meshes, 122 sculpted clay forms, 127 treated solid surfaces, valid geometry and animation
+PASS Hanging Quarter forward/backward streaming: max 12 platforms, 39 views, 199 cached clay shapes
+PASS every chapter has its own terrain palette and repeated world rebuilds succeed
+PASS supplied clouds, castle skyline and animated enemies survive streaming and chapter changes without disposing shared assets
+PASS editor camera, streamed modified foreground, retained backgrounds/assets, and normal camera restoration
+PASS all authored grounded direction signs, platform movement, disappearing decks, editor resizing/deletion and streaming
+PASS removed foreground huts and middle scenery, retained rooftop cottages, foreground parallax, player clearance fading, unchanged gameplay data and scenery disposal
+PASS canyon formations in the direct draw pass, chapter return, no canyon cottages, two functional windmills, sandstone basin, stable rotor hubs and pause
+PASS textured canyon tent, grounded placement, retained source mesh, streaming/editor rebuilds, and exactly one animated finish bell per chapter
+PASS supplied distant grotto arches, stronger cave fog, bounded light handoffs, and direct cavern draw coverage in portrait/landscape through climbs and backtracking
+PASS Breathing Tree spring/pod contact, opened vine and checkpoint resume, pause/reduced motion, and forest coverage through portrait/landscape climbs
+PASS all four Dust Drifter models remain loaded and in view after forest-to-canyon changes, streaming and portrait/landscape framing
+PASS anchored moving presses, visible spring targets, single front flag/larger cottage, fractured slabs, bounded debris, pause and recovery
+PASS laundry bounds, grounding, face budget, shared assets, streaming/editor rebuild and unchanged collision data
+PASS cave and city storytelling fits both broad decks and narrow balconies
+PASS cradle deck/axle transforms, visible opening grates, projectile shape, paused visuals and effect cleanup
+PASS completion results, record timing, old-layout isolation, all four scenes and chapter actions
+PASS title collectibles: checkpoint IDs, no duplicate finds, best/checkpoint overlap, old-layout exclusion and edited score isolation
+PASS live title: responsive hero composition, source textures, skeletal idle, reduced motion, single hero ownership and independent scene caches
+PASS checkpoint hoist: four chapters, pause/resume, single burst, streaming state, old/new saves and restart
+PASS all four drafts: normalization, connections, persistence, carry contents, undo/redo, and real runtime loading
+PASS finish follows its platform, protected anchors, cancel and invalid-field rollback
+PASS new mechanics, circuit wiring, deletion repair, unique duplicates, and all palette types
+PASS physics jump guides, import boundaries, quota fallback, old-layout rejection and original restoration
+PASS four supplied chapter songs, continuous title/Hanging Quarter playback, single streaming player, no duplicate motif, independent effects, pause/resume, mute, hidden-page silence, autoplay retry, per-track failure recovery and stale-request isolation
+PASS title menu: slow/shared loading, overlapping play requests, immediate navigation, four chapters, saved collectibles, sound preference and dialog focus boundaries
+PASS app/DOM integration: touch select/drag/resize, properties, undo/redo, palette, modal focus, mobile pinch/pan, test/return, saved custom play and completion actions
+PASS app joystick: simultaneous jump, keyboard precedence, pause/resume, resize/rotation, focus loss, hidden page and editor input boundaries
+PASS cave bat loading/re-entry, touch selection, palette, hover controls and editor playtest return
+PASS forest and cavern scenery readiness on chapter entry and return
+PASS Spore Puff touch palette/selection, patrol tuning, saved draft, asset reuse and editor playtest return
+PASS canyon drifter readiness/reuse, touch palette/selection, hover tuning and editor playtest return
+PASS pre-Drifter saved canyon reproduction, original/edit selection, all four restored Drifters, preserved drafts and independent checkpoints, and remembered choice after reload
+(node:19730) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -7,7 +7,8 @@ export function prepareCanyonAsset(w,key,gltf){
   gltf.scene.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(gltf.scene,true),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
   if(!(size.y>0&&size.x>0))throw new Error('Invalid canyon model: '+key);
-  const background=key==='arch'||key==='summit';clayMaterials(gltf.scene,{background});clayModel(w,gltf.scene,{background});
+  const background=key==='arch'||key==='summit',orangeSource={arch:.875,summit:.820,tent:.824}[key]||0;
+  clayMaterials(gltf.scene,{background,orangeSource});clayModel(w,gltf.scene,{background});
   // Continue the lowest foot of each formation down into the canyon. The
   // authored arch and summit stay intact above the base, instead of floating.
   if(background)gltf.scene.traverse(o=>{if(o.isMesh){

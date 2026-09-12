@@ -12,11 +12,18 @@
   <link rel="stylesheet" href="./editor.css">
   <link rel="stylesheet" href="./title.css">
   <link rel="stylesheet" href="./clay-ui.css">
+  <link rel="stylesheet" href="./shaping.css">
   <link rel="icon" href="data:,">
   <link rel="preload" href="./assets/title/logo.webp" as="image">
   <script src="./lib/lucide.min.js" defer></script>
 </head>
 <body class="is-menu">
+  <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute;pointer-events:none">
+    <defs>
+      <filter id="clay-logo-orange" color-interpolation-filters="sRGB"><feColorMatrix id="clay-logo-pigment" type="matrix"/></filter>
+      <filter id="clay-button-orange" color-interpolation-filters="sRGB"><feColorMatrix id="clay-button-pigment" type="matrix"/></filter>
+    </defs>
+  </svg>
   <main id="game-shell" aria-label="Claybound platform game">
     <canvas id="world" aria-label="Side-view clay platformer. Use arrow keys to move and Space to jump."></canvas>
     <div class="vignette" aria-hidden="true"></div>

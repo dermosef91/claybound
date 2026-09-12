@@ -33,7 +33,7 @@ export function caveCrystals(w,parent,x,y,z=-1.15,size=1){
 }
 function backdropMaterials(w){
   for(const [name,color]of [
-    ['caveVault',0x45404a],['caveColumn',0x494553],['caveDistant',0x344d67],
+    ['caveVault',0x29333f],['caveColumn',0x34414e],['caveDistant',0x344d67],
     ['caveVeil',0x314b66],['caveMoss',0x728044],['caveMossLight',0x8c9953]
   ])if(!w.mat[name]){
     w.mat[name]=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:name.includes('Moss')?.05:.18,roughness:.94,metalness:0});
@@ -143,16 +143,20 @@ export function buildCaveBackdrop(w){
     tooth(w,far,6,-15,1.6,14,'caveDistant',false,i+2);
   }
   for(let i=-4;i<6;i++){
-    const span=group(arches,i*14.4+2,0,-41);span.name='Distant grotto chamber';
-    cavernModel(w,i%2?'crystalcap':'grotto',span,0,-5.2+rand(i)*1.5,0,8.2+rand(i+5)*1.2,(rand(i)-.5)*.12,{lights:false});
+    const span=group(arches,i*14.4+2+Math.sin(i*2.3)*1.8,0,-43-(i%2)*3);span.name='Distant grotto chamber';
+    cavernModel(w,i%3===0?'grotto':'crystalcap',span,0,-6.8+rand(i)*3.4,0,7.5+rand(i+5)*3.2,(rand(i)-.5)*.85,{lights:false});
   }
   // Wider assets overlap their neighbours and disappear into rock at the base.
   // Alternate heights/turns keep the supplied islands from reading as repeated
   // freestanding miniatures against a blank wall.
   for(let i=-3;i<6;i++){
-    const recess=group(rooms,i*16-1.5,0,-24-(i%2)*2);recess.name='Embedded grotto alcove';
-    const width=10.6+rand(i+11)*1.4,base=-7.9+rand(i+2)*1.7;
-    cavernModel(w,i%2?'crystalcap':'grotto',recess,0,base,0,width,(rand(i+2)-.5)*.16);
+    const recess=group(rooms,i*16-1.5+Math.sin(i*1.9)*2.4,0,-25-(i%2)*3);recess.name='Embedded grotto alcove';
+    const width=8.4+rand(i+11)*4.8,base=-9.6+rand(i+2)*4.2;
+    // Continuous backing buries the island bases inside the cavern wall.
+    caveRock(w,recess,0,-1.5,-4.5,19,25,6,'caveDistant',i+31);
+    // Reserve the spiral silhouette for occasional landmarks. Most recesses
+    // expose different side views of the crystal formations instead.
+    cavernModel(w,i%3===0?'grotto':'crystalcap',recess,0,base,0,width,(rand(i+2)-.5)*1.12);
     for(let j=0;j<3;j++)caveRock(w,recess,(j-1)*width*.28,base-.1,-.2,width*.45,2.1,3.6,'caveDistant',i*7+j);
     tooth(w,recess,width*.44,base+.6,.6,3.8,'caveDistant',false,i+6);
   }
@@ -160,17 +164,17 @@ export function buildCaveBackdrop(w){
     const roof=group(vault,i*24,0,-8.5);roof.name='Continuous cave vault';
     // Hidden overlapping volume guarantees roof coverage even on portrait
     // screens; a chain of sculpted lobes forms the visible irregular edge.
-    w.box(24.4,18,3.5,'caveVault',roof,0,16,-1,.8);
+    w.box(24.4,18,3.5,'caveVault',roof,0,13.4,-1,.8);
     for(let j=0;j<6;j++){
-      const x=-10+j*4,low=6.3+rand(i*6+j)*.9;
+      const x=-10+j*4,low=4.3+rand(i*6+j)*.75;
       caveRock(w,roof,x,low+2,-.2,5.8,5.6,4.6,'caveVault',i*6+j);
-      tooth(w,roof,x+.6,low,.45+rand(j+i)*.55,1.5+rand(i*8+j)*2.8,'caveVault',true,i*6+j);
-      if(j%2===0)caveMoss(w,roof,x+.35,low-.15,2,.95,1.35+rand(i+j),i*5+j);
+      tooth(w,roof,x+.6,low,.45+rand(j+i)*.55,1.4+rand(i*8+j)*1.8,'caveVault',true,i*6+j);
+      if(rand(i*17+j)>.58)caveMoss(w,roof,x+.35,low-.15,2,.7+rand(i+j)*.5,.6+rand(i*3+j)*1.4,i*5+j);
     }
-    pillar(w,roof,-3.4,-13,2.8,22,'caveColumn',i*2+.6);
-    pillar(w,roof,11.4,-13,2.2,23,'caveColumn',i*2+4);
+    pillar(w,roof,-4.2+rand(i+2)*2,-13,2.1+rand(i+3)*1.1,22,'caveColumn',i*2+.6);
+    pillar(w,roof,10+rand(i+5)*2.2,-13,1.5+rand(i+4)*.8,23,'caveColumn',i*2+4);
     for(let j=0;j<6;j++){
-      const x=-10+j*4,base=-5.6+rand(i*8+j)*.5;
+      const x=-10+j*4,base=-3.9+rand(i*8+j)*.5;
       caveRock(w,roof,x,base-2.5,-.6,6.7,6.1,4.4,'caveColumn',j+i*7);
       if(j%2===0)tooth(w,roof,x+.7,base+.3,.65,2.4+rand(j+i)*1.8,'caveColumn',false,i+j);
       if(j===1||j===4){
@@ -184,5 +188,23 @@ export function buildCaveBackdrop(w){
     const ember=w.ball(.009,.013,.01,'flame',w.backRoot,-8+i*10,(i%7)*.8,-7-(i%3));ember.castShadow=false;
     w.ambient.push({mesh:ember,base:ember.position.clone(),seed:i});
   }
+  // Static descendants retain their exact transforms. Only the parallax layer
+  // and its wrapping cells need local matrix composition each frame.
   w.backRoot.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
+  for(const layer of w.parallax)for(const cell of layer.group.children){
+    cell.traverse(o=>{if(o!==cell){o.updateMatrix();o.matrixAutoUpdate=false;}});
+    cell.updateWorldMatrix(true,true);
+    cell.userData.caveBounds=new THREE.Box3().setFromObject(cell).applyMatrix4(new THREE.Matrix4().copy(cell.matrixWorld).invert()).getBoundingSphere(new THREE.Sphere());
+  }
+}
+
+const caveFrustum=new THREE.Frustum(),caveProjection=new THREE.Matrix4(),caveSphere=new THREE.Sphere();
+export function cullCaveCells(w){
+  w.camera.updateMatrixWorld();
+  caveFrustum.setFromProjectionMatrix(caveProjection.multiplyMatrices(w.camera.projectionMatrix,w.camera.matrixWorldInverse));
+  for(const layer of w.parallax)for(const cell of layer.group.children){
+    if(!cell.userData.caveBounds)continue;
+    cell.updateWorldMatrix(true,false);
+    cell.visible=caveFrustum.intersectsSphere(caveSphere.copy(cell.userData.caveBounds).applyMatrix4(cell.matrixWorld));
+  }
 }

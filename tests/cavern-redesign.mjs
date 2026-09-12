@@ -42,7 +42,7 @@ function arena(cover=false){
 {
  const {g,e,events}=arena();tick(g,133);assert.equal(e.aiState,'charge');assert.equal(g.shots.length,0);
  const locked=[e.aimX,e.aimY];tick(g,50);assert.deepEqual([e.aimX,e.aimY],locked);assert(!events.some(e=>e.type==='spitter-fire'));
- tick(g,60);assert.equal(g.shots.length,1);const q=g.shots[0];assert(Math.abs(q.vx+SPITTER.shotSpeed)<.01);
+ tick(g,60);assert.equal(g.shots.length,1);const q=g.shots[0];assert(q.vx<0);assert(Math.abs(Math.hypot(q.vx,q.vy)-SPITTER.shotSpeed)<.01);
  g.pause();const state=JSON.stringify([g.shots,e]);tick(g,200);assert.equal(JSON.stringify([g.shots,e]),state);g.resume();
  tick(g,140);assert.equal(g.player.health,2,'visible projectile damages on contact');
  g.respawn();assert.equal(g.shots.length,0,'respawn clears outstanding shots');
@@ -67,4 +67,22 @@ function arena(cover=false){
  const read=lib.read(lib.export(2,s.level),2);assert.equal(read.enemies.at(-1).kind,'spitter');assert.equal(read.enemies.at(-1).x,21);
  assert.equal(new DraftLibrary(LEVELS,storage).get(2).platforms.length,s.level.platforms.length);
  console.log('PASS all new machines and enemies round-trip through editing, undo, saves and backups');
+}
+
+{
+ const {initializeSpitter,moveSpitter,spitterMuzzle}=await import('../dist/spitter-rules.js');
+ const floor={x:0,y:0,w:8,kind:'stone',active:true},e={id:4,kind:'spitter',x:4,y:0,baseY:0,min:-10,max:20,speed:SPITTER.patrolSpeed,alive:true};initializeSpitter(e);
+ const player={x:30,y:0,health:3,invuln:0},shots=[];
+ const context={player,platforms:[floor],shots,nextShotId:()=>17};
+ let lo=e.x,hi=e.x,turned=false,last=e.dir;
+ for(let i=0;i<3600;i++){moveSpitter(e,dt,i*dt,context);lo=Math.min(lo,e.x);hi=Math.max(hi,e.x);if(last!==e.dir)turned=true;last=e.dir;}
+ assert(turned&&hi-lo>5);assert(lo>=SPITTER.radius&&hi<=8-SPITTER.radius,'patrol respects platform edges even with oversized authored bounds');
+ player.x=e.x>4?2:6;e.cooldown=0;moveSpitter(e,dt,0,context);assert.equal(e.aiState,'charge');
+ const locked={x:e.x,dir:e.dir,aimX:e.aimX,aimY:e.aimY};player.x+=.5;
+ for(let i=0;i<140&&shots.length===0;i++){moveSpitter(e,dt,0,context);assert.equal(e.x,locked.x);assert.equal(e.dir,locked.dir);assert.equal(e.aimX,locked.aimX);}
+ assert.equal(shots.length,1);const muzzle=spitterMuzzle(e);for(const k of ['x','y','z'])assert(Math.abs(shots[0][k]-muzzle[k])<1e-9,'shot starts at the shared animated muzzle');
+ const blocked={...e,x:2,homeX:2,min:1,max:7,aiState:'patrol',cooldown:0,stateTime:0,dir:1};player.x=6;
+ const gate={x:4,y:4,w:.6,h:4,kind:'gate',active:true};
+ for(let i=0;i<600;i++){moveSpitter(blocked,dt,0,{...context,platforms:[floor,gate],shots:[]});assert.notEqual(blocked.aiState,'charge');assert(blocked.x<gate.x-SPITTER.radius);}
+ console.log('PASS supported patrols, ledge turns, closed-gate cover, sightline acquisition, stationary locked charge and 3D mouth origin');
 }

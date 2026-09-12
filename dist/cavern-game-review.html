@@ -1,0 +1,4 @@
+<!doctype html><meta charset="utf-8"><style>body{margin:0}canvas{display:block;width:100vw;height:100vh}</style><canvas></canvas><script type="module">
+import {World} from './world.js';import {Game} from './simulation.js';
+const game=new Game();game.start(2);const w=new World(document.querySelector('canvas'));await w.ready;await w.prepareLevel(game.level);w.build(game.level,2,230);Object.assign(game.player,{x:230,y:2});w.editorCamera={x:233,y:4,viewH:10};w.render(game,0);window.review={w,game,ready:true};
+</script>

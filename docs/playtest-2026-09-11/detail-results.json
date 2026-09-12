@@ -1,0 +1,96 @@
+{
+  "errors": [],
+  "requests": [],
+  "results": [
+    {
+      "platform": "wind-crown",
+      "x": 58.99976322066224,
+      "y": 10.1,
+      "health": 2
+    },
+    {
+      "platform": "sand2",
+      "x": 107.59022325922386,
+      "y": 10.3,
+      "health": 3
+    },
+    {
+      "platform": "arch-roof",
+      "x": 172.99433131232655,
+      "y": 16,
+      "health": 3
+    },
+    {
+      "platform": "tree-top",
+      "x": 111.47044784892188,
+      "y": 19.2,
+      "health": 3
+    },
+    {
+      "platform": "tree-heart",
+      "x": 120.97030012045536,
+      "y": 14,
+      "health": 3
+    },
+    {
+      "platform": "crumb2",
+      "x": 172.0795737660652,
+      "y": 21.6,
+      "health": 3
+    },
+    {
+      "platform": "furnace-ferry",
+      "x": 67.33813140895774,
+      "y": 0,
+      "health": 3
+    },
+    {
+      "platform": "heart-paddle",
+      "x": 130.1282784608388,
+      "y": 1.6873682457480408,
+      "health": 3
+    },
+    {
+      "platform": "heart-balcony",
+      "x": 142.0558313290215,
+      "y": 9.7,
+      "health": 3
+    },
+    {
+      "platform": "sluice-bottom",
+      "x": 179.78690807923698,
+      "y": -3.2,
+      "health": 3
+    },
+    {
+      "platform": "gallery-watch",
+      "x": 243.87892477459465,
+      "y": 1.8,
+      "health": 2
+    },
+    {
+      "platform": "weight1",
+      "x": 59.25014598380098,
+      "y": 4.2,
+      "health": 3
+    },
+    {
+      "platform": "laundry-upper",
+      "x": 134.06106254904566,
+      "y": 18.8,
+      "health": 3
+    },
+    {
+      "platform": "exchange2",
+      "x": 196.69545920277386,
+      "y": 18.683921116033986,
+      "health": 3
+    },
+    {
+      "platform": "sky-bell",
+      "x": 299.61646710476157,
+      "y": 31,
+      "health": 3
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+PASS Sunbaked Canyon: 298 meshes, 166 sculpted clay forms, 172 treated solid surfaces, valid geometry and animation
+PASS Sunbaked Canyon forward/backward streaming: max 13 platforms, 36 views, 199 cached clay shapes
+PASS Wildwood: 511 meshes, 229 sculpted clay forms, 255 treated solid surfaces, valid geometry and animation
+PASS Wildwood forward/backward streaming: max 14 platforms, 46 views, 196 cached clay shapes
+PASS Ember Caverns: 858 meshes, 345 sculpted clay forms, 345 treated solid surfaces, valid geometry and animation
+PASS Ember Caverns forward/backward streaming: max 18 platforms, 48 views, 200 cached clay shapes
+PASS Hanging Quarter: 171 meshes, 122 sculpted clay forms, 127 treated solid surfaces, valid geometry and animation
+PASS Hanging Quarter forward/backward streaming: max 12 platforms, 39 views, 199 cached clay shapes
+PASS every chapter has its own terrain palette and repeated world rebuilds succeed
+PASS supplied clouds, castle skyline and animated enemies survive streaming and chapter changes without disposing shared assets
+PASS editor camera, streamed modified foreground, retained backgrounds/assets, and normal camera restoration
+PASS all authored grounded direction signs, platform movement, disappearing decks, editor resizing/deletion and streaming
+PASS removed foreground huts and middle scenery, retained rooftop cottages, foreground parallax, player clearance fading, unchanged gameplay data and scenery disposal
+PASS canyon formations in the direct draw pass, chapter return, no canyon cottages, two functional windmills, sandstone basin, stable rotor hubs and pause
+PASS textured canyon tent, grounded placement, retained source mesh, streaming/editor rebuilds, and exactly one animated finish bell per chapter
+PASS supplied distant grotto arches, stronger cave fog, bounded light handoffs, and direct cavern draw coverage in portrait/landscape through climbs and backtracking
+PASS Breathing Tree spring/pod contact, opened vine and checkpoint resume, pause/reduced motion, and forest coverage through portrait/landscape climbs
+PASS all four Dust Drifter models remain loaded and in view after forest-to-canyon changes, streaming and portrait/landscape framing
+PASS anchored moving presses, visible spring targets, single front flag/larger cottage, fractured slabs, bounded debris, pause and recovery
+PASS laundry bounds, grounding, face budget, shared assets, streaming/editor rebuild and unchanged collision data
+PASS cave and city storytelling fits both broad decks and narrow balconies
+PASS cradle deck/axle transforms, visible opening grates, projectile shape, paused visuals and effect cleanup
+PASS title menu: slow/shared loading, overlapping play requests, immediate navigation, four chapters, saved collectibles, sound preference and dialog focus boundaries
+PASS app/DOM integration: touch select/drag/resize, properties, undo/redo, palette, modal focus, mobile pinch/pan, test/return, saved custom play and completion actions
+PASS app joystick: simultaneous jump, keyboard precedence, pause/resume, resize/rotation, focus loss, hidden page and editor input boundaries
+PASS cave bat loading/re-entry, touch selection, palette, hover controls and editor playtest return
+PASS forest and cavern scenery readiness on chapter entry and return
+PASS Spore Puff touch palette/selection, patrol tuning, saved draft, asset reuse and editor playtest return
+PASS canyon drifter readiness/reuse, touch palette/selection, hover tuning and editor playtest return
+PASS pre-Drifter saved canyon reproduction, original/edit selection, all four restored Drifters, preserved drafts and independent checkpoints, and remembered choice after reload
+(node:26283) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

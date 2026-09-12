@@ -18,6 +18,7 @@ import {attachClay} from './load-clay.mjs';
 import {attachCanyon} from './load-canyon.mjs';
 import {attachWindmills} from './load-windmills.mjs';
 import {attachForest} from './load-forest.mjs';
+import {attachSpitter} from './load-spitter.mjs';
 import {attachGrotto} from './load-grotto.mjs';
 import {animateDepthScenery} from '../dist/depth-scenery.js';
 import {cameraTarget} from '../dist/camera.js';
@@ -27,6 +28,8 @@ import {repairDraft} from '../dist/editor-model.js';
 import {animateForest} from '../dist/forest-details.js';
 import {animateCircuit} from '../dist/mechanism-views.js';
 import {TitleScene} from '../dist/title-scene.js';
+import {prepareTitleMesa} from '../dist/title-assets.js';
+import {prepareCityLaundry} from '../dist/city-laundry.js';
 const w=Object.create(World.prototype);
 w.scene=new THREE.Scene();w.scene.background=new THREE.Color();w.scene.fog=new THREE.Fog(0,32,90);w.bump=new THREE.Texture();w.mat={};
 for(const key of ['blue','blueDark','blueLight','orange','orangeLight','cream','rope','dark','gold','ghost','shadow'])w.mat[key]=new THREE.MeshStandardMaterial({color:0xffffff,transparent:key==='shadow'});
@@ -42,6 +45,7 @@ prepareBatAsset(w,await readGLB(new URL('../dist/assets/bat.glb',import.meta.url
 prepareCastleAsset(w,await readGLB(new URL('../dist/assets/castle.glb',import.meta.url)));
 prepareCottageAsset(w,await readGLB(new URL('../dist/assets/cottage.glb',import.meta.url)));
 prepareCloudAsset(w,await readGLB(new URL('../dist/assets/cloud.glb',import.meta.url)));
+prepareCityLaundry(w,await readGLB(new URL('../dist/assets/city-laundry.glb',import.meta.url)));
 await attachCanyon(w);
 await attachWindmills(w);
 await attachForest(w);
@@ -49,6 +53,8 @@ await attachGrotto(w);
 await attachDrifter(w);
 prepareSporeAsset(w,await readGLB(new URL('../dist/assets/spore-puff.glb',import.meta.url)));
 await attachClay(w);
+await attachSpitter(w);
+prepareTitleMesa(w,await readGLB(new URL('../dist/assets/title/cactus-mesa.glb',import.meta.url)));
 const titleScene=new TitleScene(w);
 let sharedDisposals=0;for(const resource of [...w.assetGeometry,...w.assetMaterials])resource.addEventListener('dispose',()=>sharedDisposals++);
 const palettes=new Set();
@@ -199,7 +205,8 @@ for(const x of [4,45,93,194,240]){
   w.render(g,1/60);w.renderer.render=render;w.renderer.setRenderTarget=setTarget;
   assert.equal(calls.length,1);assert.equal(calls[0].target,null);assert(calls[0].back&&calls[0].path&&!calls[0].composite);assert(calls[0].formations>=2);
   assert(!w.scene.getObjectByName('Clay cottage with laundry'),'no blue cottages anywhere in the canyon');
-  if([45,93,194].includes(x)){
+  if(x===93)assert(w.levelRoot.getObjectByName('Eroded sandstone basin'),'the sinking shortcut has its own ruin landmark');
+  if([45,194].includes(x)){
     const mill=w.levelRoot.getObjectByName('Autumn clay windmill');assert(mill);
     const rotor=mill.getObjectByName('Rotating clay sails'),origin=rotor.position.clone();const turn=rotor.rotation.z;
     g.tick(1/30);w.render(g,1/30);assert(rotor.rotation.z>turn);assert(rotor.position.equals(origin));
@@ -207,7 +214,7 @@ for(const x of [4,45,93,194,240]){
   }
 }
 assert.equal(sharedDisposals,0);
-console.log('PASS canyon formations in the direct draw pass, chapter return, no canyon cottages, all three supplied windmills, stable rotor hubs and pause');
+console.log('PASS canyon formations in the direct draw pass, chapter return, no canyon cottages, two functional windmills, sandstone basin, stable rotor hubs and pause');
 
 {
   const g=new Game();g.start(0);const before=JSON.stringify(g.level);
@@ -425,6 +432,43 @@ console.log('PASS all four Dust Drifter models remain loaded and in view after f
 }
 console.log('PASS anchored moving presses, visible spring targets, single front flag/larger cottage, fractured slabs, bounded debris, pause and recovery');
 
+// The new scenery must remain grounded, behind the hero, and survive streaming
+// without editing the gameplay layout or disposing its shared source model.
+{
+  const g=new Game();g.start(3);const before=JSON.stringify(g.level);
+  const inspect=()=>{
+    w.scene.updateMatrixWorld(true);
+    const view=w.platforms.get('laundry-entry').root;
+    const nook=view.getObjectByName('Rooftop laundry nook');assert(nook);
+    const box=new THREE.Box3().setFromObject(nook,true);
+    assert(Math.abs(box.max.x-box.min.x-3.8)<1e-5);
+    assert(box.min.x>116&&box.max.x<124&&box.min.z>-1.81&&box.max.z<-.4,'entire laundry prop rests behind the player on its deck');
+    assert(Math.abs(box.min.y-13.315)<1e-5,'plinth is grounded');
+    let triangles=0;nook.traverse(o=>{if(o.isMesh){triangles+=o.geometry.index.count/3;assert(w.assetGeometry.has(o.geometry)&&w.assetMaterials.has(o.material));}});
+    assert(triangles>0&&triangles<=6000);
+  };
+  w.build(g.level,3,120);inspect();w.syncVisible(g.level,240,true);assert(!w.levelRoot.getObjectByName('Rooftop laundry nook'));
+  w.syncVisible(g.level,120,true);inspect();w.refreshEditor(g.level,120);inspect();
+  assert.equal(JSON.stringify(g.level),before);
+}
+console.log('PASS laundry bounds, grounding, face budget, shared assets, streaming/editor rebuild and unchanged collision data');
+
+{
+  for(const index of [2,3]){
+    const g=new Game();g.start(index);w.build(g.level,index);
+    for(const s of g.level.platforms){
+      w.syncVisible(g.level,s.x+s.w/2,true);w.scene.updateMatrixWorld(true);
+      const root=w.platforms.get(s.id)?.root;if(!root)continue;
+      for(const prop of root.children.filter(o=>o.name.startsWith('Cavern story:')||['City story: ropeyard','City story: garden'].includes(o.name))){
+        const box=new THREE.Box3().setFromObject(prop,true),halfDepth=s.kind==='ledge'?.9:1.755;
+        assert(box.min.x>s.x&&box.max.x<s.x+s.w,prop.name+' fits the platform width');
+        assert(box.min.z>-halfDepth&&box.max.z<-.25,prop.name+' stays on the rear of its supporting deck');
+      }
+    }
+  }
+}
+console.log('PASS cave and city storytelling fits both broad decks and narrow balconies');
+
 // Render adapters for the new cavern machines and bounded projectile pool.
 {
   const g=new Game();g.start(2);w.build(g.level,2,136);g.level.enemies=[];
@@ -438,7 +482,7 @@ console.log('PASS anchored moving presses, visible spring targets, single front 
   for(let i=0;i<80;i++){g.tick(1/120);w.render(g,1/120);}
   assert(!gate.active);const gv=w.platforms.get(gate.id);if(gv)assert(!gv.grate.visible);
   g.shots.push({id:900,x:g.player.x+1,y:g.player.y+1,vx:-6.5,vy:0,age:.2});w.render(g,0);
-  assert.equal(w.shotViews.size,1);const shot=w.shotViews.get(900).root;assert(shot.children.length===3&&shot.parent===w.fxRoot);
+  assert.equal(w.shotViews.size,1);const shot=w.shotViews.get(900).root;assert(shot.getObjectByName('Supplied Echo crystal')&&shot.parent===w.fxRoot);
   g.pause();const position=shot.position.clone();w.render(g,.1);assert(shot.position.equals(position));g.resume();g.respawn();w.render(g,0);assert.equal(w.shotViews.size,0);
 }
 console.log('PASS cradle deck/axle transforms, visible opening grates, projectile shape, paused visuals and effect cleanup');

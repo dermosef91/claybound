@@ -19,6 +19,7 @@ import {landmark,balanceDeck,animateWind} from './setpieces.js';
 import {loadCanyonAssets} from './canyon-assets.js';
 import {loadWindmills} from './windmill.js';
 import {loadForestAssets} from './forest.js';
+import {loadSpitterAssets} from './spitter-asset.js';
 import {loadCavernAssets} from './cavern-asset.js';
 import {createCaveLights} from './cave-lighting.js';
 import {makeCanyonLift} from './canyon.js';
@@ -32,8 +33,11 @@ import {animatePressView} from './press-views.js';
 import {checkpointFlag,raiseCheckpoint,animateCheckpoints} from './checkpoints.js';
 import {createCavernMachine,animateCavernMachine} from './cavern-machine-views.js';
 import {syncShots} from './spitter.js';
+import {loadCityLaundry} from './city-laundry.js';
+import {createClayView,updateClayView} from './shaping-views.js';
+import {CLAY_PALETTE} from './palette.js';
 
-const C={blue:0x315e96,blueLight:0x3d6da5,blueDark:0x244c7b,orange:0xd85c2d,orangeLight:0xed783a,cream:0xf1d8a3,rope:0xdcb985,dark:0x172b3f,gold:0xf8ce75};
+const C={blue:0x315e96,blueLight:0x3d6da5,blueDark:0x244c7b,orange:CLAY_PALETTE.orange,orangeLight:CLAY_PALETTE.orangeLight,cream:0xf1d8a3,rope:0xdcb985,dark:0x172b3f,gold:0xf8ce75};
 const fract=n=>n-Math.floor(n);
 const rand=n=>fract(Math.sin(n*127.1+311.7)*43758.5453);
 const geometries=new Map();
@@ -161,7 +165,8 @@ export class World {
     if(L.biome==='forest'||L.enemies.some(e=>e.kind==='spore'))await loadSpores(this,onProgress);
     if(L.biome==='forest')await loadForestAssets(this,onProgress);
     if(L.biome==='cave')await loadCavernAssets(this,onProgress);
-    if(L.biome==='citadel')await loadCastle(this,onProgress);
+    if(L.biome==='cave'||L.enemies.some(e=>e.kind==='spitter'))await loadSpitterAssets(this,onProgress);
+    if(L.biome==='citadel'){await loadCastle(this,onProgress);await loadCityLaundry(this,onProgress);}
     if(L.biome==='cave'||L.enemies.some(e=>e.kind==='bat'))await loadBats(this,onProgress);
   }
   makeBell(parent,x,y) {
@@ -175,6 +180,7 @@ export class World {
   }
   makePlatform(s) {
     const g=new THREE.Group();g.position.set(s.x,s.y,0);this.levelRoot.add(g);
+    if(s.shape)return createClayView(this,s,g);
     if(['gate','ferry','orbit'].includes(s.kind))return createCavernMachine(this,s,g);
     if(this.biome==='citadel'&&(s.kind==='lift'||s.kind==='counter'))return makeCitadelLift(this,s,g);
     if(this.biome==='desert'&&s.kind==='lift')return makeCanyonLift(this,s,g);
@@ -274,6 +280,7 @@ export class World {
   resize() {
     const rect=this.canvas.getBoundingClientRect(),w=Math.max(1,rect.width||window.innerWidth),h=Math.max(1,rect.height||window.innerHeight);this.renderer.setSize(w,h,false);
     Object.assign(this,cameraFraming(w,h,this.biome));
+    if(this.currentLevel?.playground){const scale=this.landscape?1.4:1.15;this.viewH*=scale;this.viewW*=scale;}
     if(this.editorCamera){this.viewH=this.editorCamera.viewH;this.viewW=this.viewH*w/h;}
     this.camera.left=-this.viewW/2;this.camera.right=this.viewW/2;this.camera.top=this.viewH/2;this.camera.bottom=-this.viewH/2;this.camera.updateProjectionMatrix();
   }
@@ -298,7 +305,7 @@ export class World {
     else if(e.type==='squish'&&e.kind==='spitter'){this.burst(e.x,e.y,'accent',12,.9);this.burst(e.x,e.y,'orangeLight',8,.7);}
     else if(e.type==='spore-leap'||e.type==='spore-land')this.burst(e.x,e.y,'dust',6,.4);
     else if(e.type==='squish'&&e.kind==='drifter')burstDrifterLeaves(this,e.x,e.y);
-    else if(['land','jump','coin','stamp','break','spring','squish','checkpoint','hurt','step','skid','activate','drifter-bump'].includes(e.type))
+    else if(['land','jump','coin','stamp','break','spring','squish','checkpoint','hurt','step','skid','activate','shape','drifter-bump'].includes(e.type))
       this.burst(e.x,e.y,e.type==='coin'||e.type==='stamp'?'gold':e.type==='hurt'||e.type==='break'?'orange':'dust',e.type==='step'?2:e.type==='stamp'||e.type==='break'?23:e.type==='jump'?7:10,e.type==='step'?.3:e.type==='break'?2:1);
     if(!this.reducedMotion){if(e.type==='land'&&e.impact>12)this.shake=.09;if(e.type==='break'||e.type==='hurt')this.shake=.17;if(e.type==='spring')this.shake=.06;}
     if(e.type==='spring'){const near=this.platforms.get(e.platformId);if(near)near.bounce=1;}
@@ -347,6 +354,7 @@ export class World {
     for(const s of L.platforms){
       const view=this.platforms.get(s.id);if(!view)continue;view.root.position.set(s.x,s.y,0);view.root.visible=!s.broken;
       for(const guide of view.guides||[])guide.visible=!s.broken&&s.active!==false;
+      updateClayView(view,s);
       if(view.balance){view.balance.rotation.z=s.angle;view.meter?.forEach((m,i)=>m.scale.setScalar(game.latched[s.channel]||s.charge>(i+1)/4?1:.45));}
       if(s.kind==='timed'||s.kind==='pulse'){
         view.root.visible=true;

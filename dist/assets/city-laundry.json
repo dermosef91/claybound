@@ -1,0 +1,28 @@
+{
+  "source": "model.glb",
+  "sourceSha256": "a9ed16b35606bec014c694ed2318cab6c7d833baaaa33bf177e729b55548ce28",
+  "shippedSha256": "7d6460c0d3c1b8f4ec3a1c4bff4acfc86c1509d587449143918cbe6e67d9ee5a",
+  "sourceBytes": 705788,
+  "shippedBytes": 625172,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryBufferSha256": [
+    "32ecd2551e8964ca5a628d293ac8f7f2fa445389ba1d6abb14abfa58ede8c74a",
+    "dbbd8c6ba914138605efaa62f4fccc2b18283b4b1da0fcc09089d04df57f3861",
+    "9286d713e653fd1ceacd3aa620f2b9321b2bf6a9f2370693d7d21e051c810548",
+    "e0713db200a3bd3e42eaf9a6f94ebd49047eefed8dea06bdd9686a659edd185a"
+  ],
+  "geometryUnchanged": true
+}

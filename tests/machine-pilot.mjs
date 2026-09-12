@@ -25,7 +25,8 @@ export function machineTransfer(original,link){
       const dir=Math.sign(b.x+b.w/2-p.x)||1;let stop=false;
       for(const c of g.level.crushers){
         const distance=(c.x-p.x)*dir;
-        if(c.held||distance<-.5||distance>4.2)continue;
+        if(c.held||distance<-.5||distance>5.0)continue;
+        // Include the ferry's braking drift and player width in the approach margin.
         // Commit only to a clear window long enough to cross the entire head.
         for(let t=.15;t<1.75;t+=.1){const phase=(((c.cycleTime+t)/c.period+(c.phase||0)/(Math.PI*2))%1+1)%1;if(phase>.39&&phase<.94)stop=true;}
       }

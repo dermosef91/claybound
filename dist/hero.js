@@ -83,9 +83,9 @@ export function attachHero(w,gltf,motion,idle){
     // One skinned mesh: avoid stale rest-pose bounds culling a jump or turn.
     o.frustumCulled=false;
     for(const material of Array.isArray(o.material)?o.material:[o.material]){
-      // Keep the supplied clay colour texture; its exporter used a metallic,
-      // fully emissive material which would ignore the game's environment light.
-      material.roughness=.94;material.metalness=0;material.emissiveIntensity=.025;
+      // Keep the supplied surface detail while matching its orange pigment.
+      material.userData.clayOrangeSource=.780;
+      material.roughness=.94;material.metalness=0;material.emissiveIntensity=0;
       if('specularIntensity' in material)material.specularIntensity=.22;
       if(material.map)material.map.anisotropy=maxAnisotropy;
       material.needsUpdate=true;

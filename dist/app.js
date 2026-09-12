@@ -10,6 +10,13 @@ import {DraftLibrary} from './editor-model.js';
 import {LevelEditor} from './editor.js';
 import {collectiblesMarkup,settingsMarkup} from './title-menu.js';
 import {TitleScene} from './title-scene.js';
+import {loadTitleAssets} from './title-assets.js';
+import playground from './routes/clay-playground.js';
+import {ShapingControls} from './shaping-controls.js';
+import {visitStation} from './shaping.js';
+import {applyUIPalette} from './palette.js';
+
+applyUIPalette(document.documentElement);
 
 const $=id=>document.getElementById(id);
 const icon=name=>`<i data-lucide="${name}"></i>`;
@@ -26,17 +33,17 @@ if(!saved.chapterSource||typeof saved.chapterSource!=='object'||Array.isArray(sa
 const activeLevel=index=>saved.chapterSource[index]==='original'?LEVELS[index]:drafts.get(index);
 for(const [i,run]of Object.entries(saved.runs))if(run.version!==LEVELS[i]?.layoutVersion)delete saved.runs[i];
 const runStore=()=>game.level.custom?saved.customRuns:saved.runs;
-const saveJourney=()=>{if(game&&!editor?.active&&!editor?.testing&&game.status!=='complete'&&game.checkpointId!=='start'){runStore()[game.index]=game.snapshot();persist();}};
+const saveJourney=()=>{if(game&&!game.level.playground&&!editor?.active&&!editor?.testing&&game.status!=='complete'&&game.checkpointId!=='start'){runStore()[game.index]=game.snapshot();persist();}};
 const sound=new Sound();sound.enabled=saved.sound;
 const input={left:false,right:false,moveAxis:0,jumpHeld:false,jumpPressed:false,stompPressed:false};
 const pressed=new Set(),touchPointers=new Map();
-let joystick;
-const clearInput=()=>{pressed.clear();touchPointers.clear();joystick?.reset();for(const k of Object.keys(input))input[k]=false;input.moveAxis=0;document.querySelectorAll('.pressed').forEach(e=>e.classList.remove('pressed'));};
+let joystick,shapingControls;
+const clearInput=()=>{shapingControls?.clear();pressed.clear();touchPointers.clear();joystick?.reset();for(const k of Object.keys(input))input[k]=false;input.moveAxis=0;document.querySelectorAll('.pressed').forEach(e=>e.classList.remove('pressed'));};
 let world,game,editor,healthHUD,titleScene,worldError,worldRequested=false,assetsReady=false,worldLoading=null,menu=true,introUntil=0,hintKey='',hintUntil=0,dismissed=new Set(),toastTimer,dialogOrigin='menu',lastFocus=null,lastResult=null,hitStop=0,fullscreenTransition=0,chapterRequest=0,dialogFocusTimer,completionTimer;
 function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2100);}
 function onEvent(e){
   if(e.type==='press-impact'&&world&&Math.abs(world.cameraX-e.x)>world.viewW*.8)return;
-  world?.event(e);sound.effect(e.type);
+  world?.event(e);sound.effect(e.type==='shape'?'activate':e.type);
   if(e.type==='coin'||e.type==='stamp'){const el=$(e.type==='coin'?'coin-count':'stamp-count');el.animate?.([{transform:'scale(1)'},{transform:'scale(1.4)'},{transform:'scale(1)'}],{duration:190});}
   if(!world?.reducedMotion){if(e.type==='break'||e.type==='squish')hitStop=.035;if(e.type==='hurt')hitStop=.055;}
   if(e.type==='checkpoint')saveJourney();
@@ -47,6 +54,7 @@ function onEvent(e){
   if(e.type==='respawn')$('fade').classList.remove('active');
   if(e.type==='complete'){
     clearInput();show('hint',false);show('touch-controls',false);show('desktop-controls',false);show('timer',false);
+    if(game.level.playground){openDialog(`<span class="eyebrow">CLAY PLAYGROUND</span><h2>A world shaped by you.</h2><p>You reached the Hanging Quarter’s bell. Keep experimenting with the five clay stations.</p><button class="primary" data-action="playground">Play again</button><button class="secondary" data-action="home">Return to title</button>`);return;}
     if(editor?.testing){openDialog(`<span class="eyebrow">WORKSHOP PLAYTEST</span><h2>You reached the bell.</h2><p>Your design is saved. Return to the workshop to keep shaping the next leap.</p><button class="primary" data-action="back-editor">${icon('pencil-ruler')} Back to editor</button><button class="secondary" data-action="restart-test">${icon('rotate-ccw')} Test again</button>`,'test');return;}
     const bestStore=game.level.custom?saved.customBest:saved.best;
     const record=completionRecord(e,game.level,bestStore[e.index]);
@@ -81,6 +89,7 @@ async function ensureWorld(blocking=true){
       $('loading-status').textContent=ratio<1?`Shaping the clay world · ${Math.round(ratio*100)}%`:'Finding our feet…';
     }});
     await world.ready;
+    await loadTitleAssets(world);
     healthHUD??=new HealthHUD(world,$('health'));
     titleScene=new TitleScene(world);if(menu)titleScene.show();
     editor.world=world;assetsReady=true;
@@ -108,13 +117,14 @@ const fullscreen=new Fullscreen({
 
 function resetDialog(){clearTimeout(dialogFocusTimer);clearTimeout(completionTimer);document.body.classList.remove('is-complete');$('dialog').classList.remove('is-completion');$('hud').inert=false;$('menu').inert=false;}
 function showPlaying(){titleScene?.hide();menu=false;resetDialog();lastResult=null;document.body.classList.remove('is-menu');show('menu',false);show('hud',true);show('touch-controls',true);show('desktop-controls',false);show('dialog',false);}
-async function begin(index=0,restart=false,sourceChoice){
+async function begin(index=0,restart=false,sourceChoice,playgroundSource=null){
+  saveJourney();
   if(editor)editor.request++;
   sound.unlock();
   index=Math.max(0,Math.min(LEVELS.length-1,Number(index)||0));const request=++chapterRequest;
   if(!await ensureWorld()||request!==chapterRequest)return;
   const choice=['original','edited'].includes(sourceChoice)?sourceChoice:saved.chapterSource[index];
-  const nextLevel=choice==='original'?LEVELS[index]:drafts.get(index);
+  const nextLevel=playgroundSource||(choice==='original'?LEVELS[index]:drafts.get(index));
   {
     const assetName={forest:'woodland',cave:'glowing caverns',citadel:'cloudtop castle',desert:'canyon'}[nextLevel.biome]||'chapter';
     clearInput();game.pause();$('loading').style.opacity='1';show('loading',true);
@@ -128,9 +138,9 @@ async function begin(index=0,restart=false,sourceChoice){
     if(request!==chapterRequest)return;show('loading',false);
   }
   clearInput();showPlaying();dismissed=new Set();hintKey='';hitStop=0;
-  game.start(index,nextLevel);if(restart)delete runStore()[index];
-  const resumed=!restart&&game.restore(runStore()[index]);world.build(game.level,index,game.player.x);saved.last=index;
-  if(choice)saved.chapterSource[index]=choice;persist();
+  game.start(index,nextLevel);if(restart&&!nextLevel.playground)delete runStore()[index];
+  const resumed=!nextLevel.playground&&!restart&&game.restore(runStore()[index]);world.build(game.level,index,game.player.x);if(!nextLevel.playground)saved.last=index;
+  if(choice&&!nextLevel.playground)saved.chapterSource[index]=choice;persist();
   const L=game.level;warmCompletionAssets(L.biome);document.body.dataset.biome=L.biome;$('chapter-label').innerHTML=`0${index+1} <b>/</b> ${L.short.toUpperCase()}${L.custom?' · EDITED':''}`;
   $('coin-total').textContent=L.coins.length;$('intro-number').textContent=['CHAPTER ONE','CHAPTER TWO','CHAPTER THREE','CHAPTER FOUR'][index];
   $('intro-name').textContent=resumed?game.level.sections[game.sectionId].name:L.name;$('intro-text').textContent=resumed?'Your checkpoint is safe. The journey continues.':L.intro;
@@ -152,11 +162,11 @@ function pause(){
   if(game.status!=='playing'&&game.status!=='paused')return;
   if(game.status==='paused'){closeDialog();return;}
   if(editor?.testing){openDialog(`<span class="eyebrow">WORKSHOP PLAYTEST</span><h2>One more little tweak?</h2><button class="primary" data-action="resume">Keep testing ${icon('play')}</button><div class="dialog-actions"><button class="secondary" data-action="restart-test">${icon('rotate-ccw')} Restart test</button><button class="secondary" data-action="back-editor">${icon('pencil-ruler')} Back to editor</button></div>`,'test');return;}
-  openDialog(`<button class="dialog-close" data-action="resume" aria-label="Resume game">${icon('x')}</button><span class="eyebrow">TAKE YOUR TIME</span><h2>A little breather.</h2><p>${LEVELS[game.index].name} · ${game.level.sections[game.sectionId].name}</p><button class="primary" data-action="resume">Keep going ${icon('play')}</button><div class="dialog-actions"><button class="secondary" data-action="restart">${icon('rotate-ccw')} Start over</button><button class="secondary" data-action="chapters">${icon('layers-2')} Chapters</button></div><button class="quiet-button" data-action="editor">${icon('pencil-ruler')} Edit this chapter</button><button class="quiet-button" data-action="sound">${icon(sound.enabled?'volume-2':'volume-x')} Sound ${sound.enabled?'on':'off'}</button><button class="quiet-button" data-action="fullscreen" data-fullscreen="label">${icon(fullscreen.active?'minimize':'expand')}<span>${fullscreen.active?'Exit fullscreen':'Fullscreen'}</span></button><button class="quiet-button" data-action="home">Return to title</button>`);
+  openDialog(`<button class="dialog-close" data-action="resume" aria-label="Resume game">${icon('x')}</button><span class="eyebrow">TAKE YOUR TIME</span><h2>A little breather.</h2><p>${game.level.name} · ${game.level.sections[game.sectionId].name}</p><button class="primary" data-action="resume">Keep going ${icon('play')}</button><div class="dialog-actions"><button class="secondary" data-action="restart">${icon('rotate-ccw')} Start over</button><button class="secondary" data-action="chapters">${icon('layers-2')} Chapters</button></div>${game.level.playground?'<button class="quiet-button" data-action="stations">Choose a shaping station</button>':`<button class="quiet-button" data-action="editor">${icon('pencil-ruler')} Edit this chapter</button>`}<button class="quiet-button" data-action="sound">${icon(sound.enabled?'volume-2':'volume-x')} Sound ${sound.enabled?'on':'off'}</button><button class="quiet-button" data-action="fullscreen" data-fullscreen="label">${icon(fullscreen.active?'minimize':'expand')}<span>${fullscreen.active?'Exit fullscreen':'Fullscreen'}</span></button><button class="quiet-button" data-action="home">Return to title</button>`);
 }
 function chapters(){
   const choices=LEVELS.map((base,i)=>{const L=activeLevel(i),edited=drafts.has(i),run=(L.custom?saved.customRuns:saved.runs)[i],best=(L.custom?saved.customBest:saved.best)[i];return `<div class="chapter-option"><button class="chapter-choice" data-level="${i}"><span>0${i+1}</span><div><strong>${L.short}${edited?L.custom?' · Your edit':' · Original':''}</strong><small>${L.sections.length} passages${run?.version===L.layoutVersion?' · Checkpoint saved':best?.version===L.layoutVersion?` · ${best.stamps}/${L.stamps.length} flowers`:''}</small></div>${icon('arrow-up-right')}</button>${edited?`<button class="quiet-button chapter-alternate" data-level="${i}" data-source="${L.custom?'original':'edited'}">${icon(L.custom?'refresh-cw':'pencil-ruler')} ${L.custom?'Play updated original':'Play your edit'}</button>`:''}</div>`;}).join('');
-  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">FOUR PLACES TO GET A LITTLE LOST</span><h2>Choose your path.</h2><div class="chapters-list">${choices}</div><p>Original chapters include the latest updates. Your edits and their checkpoints are kept separately on this device.</p>`);
+  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">FOUR CHAPTERS & A CLAY PLAYGROUND</span><h2>Choose your path.</h2><div class="chapters-list">${choices}<button class="chapter-choice playground-choice" data-action="playground"><span>✦</span><div><strong>Clay playground</strong><small>Hanging Quarter copy · 5 shaping experiments</small></div>${icon('arrow-up-right')}</button></div><p>Original chapters include the latest updates. Your edits and their checkpoints are kept separately on this device.</p>`);
 }
 function help(){
   openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">A FEW LITTLE THINGS</span><h2>Find your feet.</h2><div class="control-list"><div class="control-row">${icon('move-horizontal')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick gently for small steps or farther to run. Release to stop.</span></div></div><div class="control-row">${icon('arrow-up')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them.</span></div></div><div class="control-row">${icon('arrow-down-to-line')}<div><strong>S or ↓ to stomp in the air</strong><span>Break sealed caps to release spores. On a thin ledge, press down to drop through. Stomp a mushroom for an extra bounce.</span></div></div><div class="control-row">${icon('flag')}<div><strong>Find the bell at the end of each chapter</strong><span>Orange flags save your place. Gather little beads and secret flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
@@ -192,7 +202,9 @@ $('dialog-content').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;sound.unlock();
   if(b.hasAttribute('data-level')){begin(Number(b.dataset.level),false,b.dataset.source);return;}
   const a=b.dataset.action;
-  if(a==='resume'||a==='close')closeDialog();if(a==='play')begin(saved.last);if(a==='restart')begin(game.index,true);if(a==='next')begin(game.index+1);if(a==='chapters')chapters();if(a==='home')home();
+  if(a==='resume'||a==='close')closeDialog();if(a==='play')begin(saved.last);if(a==='restart')begin(game.index,true,undefined,game.level.playground?playground:null);if(a==='next')begin(game.index+1);if(a==='chapters')chapters();if(a==='home')home();
+  if(a==='playground')begin(3,true,'original',playground);if(a==='stations')stationPicker();
+  if(b.dataset.station){visitStation(game,b.dataset.station);closeDialog();show('touch-controls',true);}
   if(a==='editor')openEditor();if(a==='back-editor')editor.returnToEditor();if(a==='restart-test')editor.playtest(false);
   if(a==='fullscreen'){fullscreenTransition=performance.now()+1000;fullscreen.toggle();}
   if(a==='sound'){toggleSound();b.innerHTML=`${icon(sound.enabled?'volume-2':'volume-x')} Sound ${sound.enabled?'on':'off'}`;icons();}
@@ -235,6 +247,11 @@ window.addEventListener('pagehide',()=>{sound.setForeground(false);saveJourney()
 window.addEventListener('pageshow',syncAudioFocus);
 window.addEventListener('contextmenu',e=>e.preventDefault());
 $('world').addEventListener('webglcontextlost',e=>{e.preventDefault();game.pause();clearInput();$('error-text').textContent='The graphics connection was interrupted. Reload to continue — your latest checkpoint is saved.';show('error',true);});
+function stationPicker(){
+  if(!game.level.playground)return;
+  openDialog(`<button class="dialog-close" data-action="resume" aria-label="Resume game">${icon('x')}</button><span class="eyebrow">CLAY PLAYGROUND</span><h2>Try a different shape.</h2><p>Drag the orange clay, or hold E / KNEAD. R resets the current station. Shapes stay as you leave them until you restart the playground.</p><div class="chapters-list">${game.level.shaping.map((s,i)=>`<button class="chapter-choice" data-station="${s.id}"><span>0${i+1}</span><div><strong>${s.name}</strong><small>${s.verb} · ${Math.round(s.amount*100)}% shaped</small></div>${icon('arrow-up-right')}</button>`).join('')}</div>`);
+}
+shapingControls=new ShapingControls({game,world:()=>world,input,picker:stationPicker});
 function updateHUD(now){
   if(editor?.active)return;
   const p=game.player;$('coin-count').textContent=game.coins;$('stamp-count').textContent=`${game.stamps}/${game.level.stamps.length}`;
@@ -253,6 +270,7 @@ function updateHUD(now){
 }
 let prev=performance.now(),accum=0,hudAccum=0;
 function frame(now){
+  shapingControls?.update();
   const dt=Math.min((now-prev)/1000,.06);prev=now;
   sound.update(dt,game.status==='playing',game.index,game.level.sections[game.sectionId]?.quiet,menu);
   if(!assetsReady||document.hidden){accum=0;requestAnimationFrame(frame);return;}

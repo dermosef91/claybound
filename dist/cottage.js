@@ -6,7 +6,8 @@ export function prepareCottageAsset(w,gltf){
   gltf.scene.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(gltf.scene,true),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
   if(!(size.x>0&&size.y>0&&size.z>0))throw new Error('The cottage model has invalid bounds.');
-  clayMaterials(gltf.scene);clayModel(w,gltf.scene);
+  // Match the roof pigment; darker wooden trim keeps its baked shading.
+  clayMaterials(gltf.scene,{orangeSource:.92});clayModel(w,gltf.scene);
   gltf.scene.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])m.normalScale?.setScalar(1);});
   retainModel(w,gltf.scene);
   w.cottageAsset={scene:gltf.scene,width:size.x,center:[center.x,bounds.min.y,center.z]};

@@ -6,11 +6,12 @@ import {buildForestBackdrop} from './forest.js';
 import {forestCover,forestMushroom} from './forest-details.js';
 import {buildCaveBackdrop,caveMushrooms,caveCrystals,caveLedgeDetails} from './cavern.js';
 import {animateCaveLights} from './cave-lighting.js';
+import {CLAY_PALETTE} from './palette.js';
 const rand=n=>{const v=Math.sin(n*127.1+87.3)*43758.5453;return v-Math.floor(v);};
 
 export const THEMES={
-  citadel:{terrain:0x315e96,terrain2:0x2d588c,top:0xd8592e,bark:0x244973,barkLight:0xd96b3a,foliage:0x4775a2,leafLight:0x638eb8,vine:0x3e6491,back:0x587fa8,back2:0x416e9d,accent:0xe56a35,water:0x507d9f,rope:0xdfbc86,dust:0xe8cca0,skyLight:0xd3e3f0,groundLight:0x23466b,sun:0xffe3bd,sunPower:3.25,ambient:2.1,fill:0xb8d1e9,fillPower:.5},
-  desert:{terrain:0xd56a37,terrain2:0xc85c31,top:0xed9551,bark:0x8e4e27,barkLight:0xbe793d,foliage:0x408559,leafLight:0x5b9b62,vine:0x487c47,back:0xe89c69,back2:0xd98550,accent:0xffd568,water:0x7daaae,rope:0xe3b56f,dust:0xf1c798,skyLight:0xd3e5fa,groundLight:0xa35b35,sun:0xffdfb6,sunPower:3.3,ambient:2.1,fill:0xc7def7,fillPower:.7,cameraElevation:1.6},
+  citadel:{terrain:0x315e96,terrain2:0x2d588c,top:CLAY_PALETTE.orange,bark:0x244973,barkLight:CLAY_PALETTE.orangeLight,foliage:0x4775a2,leafLight:0x638eb8,vine:0x3e6491,back:0x587fa8,back2:0x416e9d,accent:CLAY_PALETTE.orange,water:0x507d9f,rope:0xdfbc86,dust:0xe8cca0,skyLight:0xd3e3f0,groundLight:0x23466b,sun:0xffe3bd,sunPower:3.25,ambient:2.1,fill:0xb8d1e9,fillPower:.5},
+  desert:{terrain:CLAY_PALETTE.orange,terrain2:CLAY_PALETTE.orangeDark,top:CLAY_PALETTE.orangeLight,bark:0x8e4e27,barkLight:0xbe793d,foliage:0x408559,leafLight:0x5b9b62,vine:0x487c47,back:CLAY_PALETTE.orangeLight,back2:CLAY_PALETTE.orange,accent:0xffd568,water:0x7daaae,rope:0xe3b56f,dust:0xf1c798,skyLight:0xd3e5fa,groundLight:0xa35b35,sun:0xffdfb6,sunPower:3.3,ambient:2.1,fill:0xc7def7,fillPower:.7,cameraElevation:1.6},
   forest:{terrain:0xaa7950,terrain2:0x906344,top:0x67a650,bark:0x795135,barkLight:0xb68a52,foliage:0x628448,leafLight:0x87a958,vine:0x58804b,back:0x93aa91,back2:0xa58b68,accent:0xf4d592,water:0x86b7b3,rope:0x829656,dust:0xaec387,skyLight:0xe5f0d7,groundLight:0x606646,sun:0xffe5b7,sunPower:3.2,ambient:2.1,fill:0xc4e1dc,fillPower:.7,cameraElevation:1.65},
   cave:{terrain:0x474751,terrain2:0x363c48,top:0x777e8a,bark:0x654731,barkLight:0x9b7043,foliage:0x378e94,leafLight:0x7bbdc0,vine:0x4b7c78,back:0x1e2c39,back2:0x334756,accent:0x8acedd,water:0x244b59,rope:0x9d7d54,dust:0xa1acb1,skyLight:0xb0c5d9,groundLight:0x293444,sun:0xc6d2df,sunPower:2.35,ambient:1.55,fill:0x91c5e8,fillPower:1.1,cameraElevation:1.8}
 };
@@ -82,9 +83,13 @@ export function buildTerrain(w,s,g){
     for(let j=0;j<3;j++){const y=-1.3-j*1.7;w.ball(.42,.16,.11,'foliage',g,width*.54+Math.sin(j)*.6,y,1.78);}
   }else{
     caveLedgeDetails(w,s,g,3.6);
-    caveCrystals(w,g,width-1.2,.07,-1.2,.72);
+    // Let room function change the dressing: warm foundry, quiet survey
+    // chamber, and cooler crystal gallery. Spikes remain behind the walk line.
+    const foundry=['ferry-dock','ferry-exit','heart-entry'].includes(s.id);
+    const survey=['vault-entry','sluice-floor'].includes(s.id);
+    if(!foundry&&!survey)caveCrystals(w,g,width-1.2,.07,-1.38,s.id==='gallery-entry'?.5:.64);
     if(s.id==='start'||s.checkpoint||s.goal)torch(w,g,s.id==='start'?8.1:width*.4,.05);
-    if(width>8)caveMushrooms(w,g,2,.03,-1.15,.72);
+    if(width>8&&!survey)caveMushrooms(w,g,foundry?width-2.2:2,.03,-1.4,foundry?.86:.6);
     for(let i=0;i<3;i++)w.ball(.47,.35,.15,'terrain',g,.8+rand(i+s.x)*Math.max(1,width-1.6),-1.3-i*2.1,1.64);
     if(s.goal){const chest=group(g,width-6.3,.18,-.72);w.box(1.28,.67,.77,'bark',chest,0,.33,0,.17);w.box(1.3,.39,.82,'barkLight',chest,0,.74,0,.18);for(const x of [-.42,.42])w.box(.14,.96,.85,'gold',chest,x,.49,0,.04);w.box(.24,.27,.1,'gold',chest,0,.51,.47,.04);}
   }
@@ -121,5 +126,7 @@ export function animateEnvironment(w,dt){
     a.mesh.position.y=a.base.y+Math.max(0,w.cameraY-1.1)*.85+(a.wave?Math.sin(t+a.seed)*.03:Math.sin(t*.8+a.seed)*.5);
   }
   if(w.water){w.water.position.x=w.cameraX;w.water.position.y=-7.8+Math.max(0,w.cameraY-1.1)*.85;}
+  // Resolve moved parallax parents before sampling static light anchors.
+  if(w.biome==='cave')w.backRoot.updateMatrixWorld(true);
   animateCaveLights(w,dt);
 }

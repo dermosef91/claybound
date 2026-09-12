@@ -1,0 +1,622 @@
+[
+  {
+    "buttons": [
+      {
+        "bottom": 367.6171875,
+        "height": 84.5703125,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 4.310023094688222,
+        "text": "Play",
+        "width": 364.5,
+        "x": 54,
+        "y": 283.046875
+      },
+      {
+        "bottom": 448.0859375,
+        "height": 67.421875,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060254924681344,
+        "text": "Chapters",
+        "width": 341.171875,
+        "x": 65.65625,
+        "y": 380.6640625
+      },
+      {
+        "bottom": 526.7578125,
+        "height": 67.421875,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060254924681344,
+        "text": "Collectibles",
+        "width": 341.171875,
+        "x": 65.65625,
+        "y": 459.3359375
+      },
+      {
+        "bottom": 605.4296875,
+        "height": 67.421875,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060254924681344,
+        "text": "Settings",
+        "width": 341.171875,
+        "x": 65.65625,
+        "y": 538.0078125
+      }
+    ],
+    "logo": {
+      "fit": "contain",
+      "height": 179.546875,
+      "ratio": 3.5088329997389263,
+      "width": 630
+    },
+    "tagline": {
+      "bottom": 267.2890625,
+      "top": 238.9453125
+    },
+    "viewport": [
+      900,
+      900
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 367.6171875,
+        "height": 84.5703125,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 4.310023094688222,
+        "text": "Play",
+        "width": 364.5,
+        "x": 60,
+        "y": 283.046875
+      },
+      {
+        "bottom": 448.0859375,
+        "height": 67.421875,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060254924681344,
+        "text": "Chapters",
+        "width": 341.171875,
+        "x": 71.65625,
+        "y": 380.6640625
+      },
+      {
+        "bottom": 526.7578125,
+        "height": 67.421875,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060254924681344,
+        "text": "Collectibles",
+        "width": 341.171875,
+        "x": 71.65625,
+        "y": 459.3359375
+      },
+      {
+        "bottom": 605.4296875,
+        "height": 67.421875,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060254924681344,
+        "text": "Settings",
+        "width": 341.171875,
+        "x": 71.65625,
+        "y": 538.0078125
+      }
+    ],
+    "logo": {
+      "fit": "contain",
+      "height": 179.546875,
+      "ratio": 3.5088329997389263,
+      "width": 630
+    },
+    "tagline": {
+      "bottom": 267.4453125,
+      "top": 238.9453125
+    },
+    "viewport": [
+      1000,
+      900
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 245.0703125,
+        "height": 56.375,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 4.310421286031042,
+        "text": "Play",
+        "width": 243,
+        "x": 36,
+        "y": 188.6953125
+      },
+      {
+        "bottom": 298.7109375,
+        "height": 44.9453125,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060490179037024,
+        "text": "Chapters",
+        "width": 227.4453125,
+        "x": 43.7734375,
+        "y": 253.765625
+      },
+      {
+        "bottom": 351.15625,
+        "height": 44.9453125,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060490179037024,
+        "text": "Collectibles",
+        "width": 227.4453125,
+        "x": 43.7734375,
+        "y": 306.2109375
+      },
+      {
+        "bottom": 403.6015625,
+        "height": 44.9453125,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060490179037024,
+        "text": "Settings",
+        "width": 227.4453125,
+        "x": 43.7734375,
+        "y": 358.65625
+      }
+    ],
+    "logo": {
+      "fit": "contain",
+      "height": 119.6953125,
+      "ratio": 3.508909340121402,
+      "width": 420
+    },
+    "tagline": {
+      "bottom": 178.1875,
+      "top": 159.2890625
+    },
+    "viewport": [
+      600,
+      600
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 203.15625,
+        "height": 52.203125,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 4.310086800359174,
+        "text": "Play",
+        "width": 225,
+        "x": 28.796875,
+        "y": 150.953125
+      },
+      {
+        "bottom": 254.109375,
+        "height": 44,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 4.786221590909091,
+        "text": "Chapters",
+        "width": 210.59375,
+        "x": 35.9921875,
+        "y": 210.109375
+      },
+      {
+        "bottom": 304.109375,
+        "height": 44,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 4.786221590909091,
+        "text": "Collectibles",
+        "width": 210.59375,
+        "x": 35.9921875,
+        "y": 260.109375
+      },
+      {
+        "bottom": 354.109375,
+        "height": 44,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 4.786221590909091,
+        "text": "Settings",
+        "width": 210.59375,
+        "x": 35.9921875,
+        "y": 310.109375
+      }
+    ],
+    "logo": {
+      "fit": "contain",
+      "height": 95.7578125,
+      "ratio": 3.5088520845231295,
+      "width": 336
+    },
+    "tagline": {
+      "bottom": 143.9375,
+      "top": 127.4375
+    },
+    "viewport": [
+      480,
+      480
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 497.484375,
+        "height": 122.96875,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 4.310228716645489,
+        "text": "Play",
+        "width": 530.0234375,
+        "x": 122.890625,
+        "y": 374.515625
+      },
+      {
+        "bottom": 609.15625,
+        "height": 98.0390625,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060243844131007,
+        "text": "Chapters",
+        "width": 496.1015625,
+        "x": 139.84375,
+        "y": 511.1171875
+      },
+      {
+        "bottom": 718.953125,
+        "height": 98.0390625,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060243844131007,
+        "text": "Collectibles",
+        "width": 496.1015625,
+        "x": 139.84375,
+        "y": 620.9140625
+      },
+      {
+        "bottom": 828.75,
+        "height": 98.0390625,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060243844131007,
+        "text": "Settings",
+        "width": 496.1015625,
+        "x": 139.84375,
+        "y": 730.7109375
+      }
+    ],
+    "logo": {
+      "fit": "contain",
+      "height": 219.1953125,
+      "ratio": 3.508821328010835,
+      "width": 769.1171875
+    },
+    "tagline": {
+      "bottom": 338.359375,
+      "top": 302
+    },
+    "viewport": [
+      1672,
+      941
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 366.8828125,
+        "height": 78.3984375,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 4.310214250124564,
+        "text": "Play",
+        "width": 337.9140625,
+        "x": 46.078125,
+        "y": 288.484375
+      },
+      {
+        "bottom": 444.2265625,
+        "height": 62.5,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.0605,
+        "text": "Chapters",
+        "width": 316.28125,
+        "x": 56.890625,
+        "y": 381.7265625
+      },
+      {
+        "bottom": 519.5234375,
+        "height": 62.5,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.0605,
+        "text": "Collectibles",
+        "width": 316.28125,
+        "x": 56.890625,
+        "y": 457.0234375
+      },
+      {
+        "bottom": 594.8203125,
+        "height": 62.5,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.0605,
+        "text": "Settings",
+        "width": 316.28125,
+        "x": 56.890625,
+        "y": 532.3203125
+      }
+    ],
+    "logo": {
+      "fit": "contain",
+      "height": 170.71875,
+      "ratio": 3.508923668314113,
+      "width": 599.0390625
+    },
+    "tagline": {
+      "bottom": 262.484375,
+      "top": 238.296875
+    },
+    "viewport": [
+      768,
+      1024
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 284.875,
+        "height": 57,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 4.310444078947368,
+        "text": "Play",
+        "width": 245.6953125,
+        "x": 23.3984375,
+        "y": 227.875
+      },
+      {
+        "bottom": 340.8671875,
+        "height": 45.4453125,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060340381640021,
+        "text": "Chapters",
+        "width": 229.96875,
+        "x": 31.2578125,
+        "y": 295.421875
+      },
+      {
+        "bottom": 395.171875,
+        "height": 45.4453125,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060340381640021,
+        "text": "Collectibles",
+        "width": 229.96875,
+        "x": 31.2578125,
+        "y": 349.7265625
+      },
+      {
+        "bottom": 449.4765625,
+        "height": 45.4453125,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": 5.060340381640021,
+        "text": "Settings",
+        "width": 229.96875,
+        "x": 31.2578125,
+        "y": 404.03125
+      }
+    ],
+    "logo": {
+      "fit": "contain",
+      "height": 97.8046875,
+      "ratio": 3.508986340762042,
+      "width": 343.1953125
+    },
+    "tagline": {
+      "bottom": 170,
+      "top": 153.5
+    },
+    "viewport": [
+      390,
+      844
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 0,
+        "height": 0,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": null,
+        "text": "Play",
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      {
+        "bottom": 0,
+        "height": 0,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": null,
+        "text": "Chapters",
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      {
+        "bottom": 0,
+        "height": 0,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": null,
+        "text": "Collectibles",
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      {
+        "bottom": 0,
+        "height": 0,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": null,
+        "text": "Settings",
+        "width": 0,
+        "x": 0,
+        "y": 0
+      }
+    ],
+    "logo": {
+      "fit": "contain",
+      "height": 0,
+      "ratio": null,
+      "width": 0
+    },
+    "tagline": {
+      "bottom": 0,
+      "top": 0
+    },
+    "viewport": [
+      1024,
+      1024
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 0,
+        "height": 0,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": null,
+        "text": "Play",
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      {
+        "bottom": 0,
+        "height": 0,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": null,
+        "text": "Chapters",
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      {
+        "bottom": 0,
+        "height": 0,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": null,
+        "text": "Collectibles",
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      {
+        "bottom": 0,
+        "height": 0,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": null,
+        "text": "Settings",
+        "width": 0,
+        "x": 0,
+        "y": 0
+      }
+    ],
+    "logo": {
+      "fit": "contain",
+      "height": 0,
+      "ratio": null,
+      "width": 0
+    },
+    "tagline": {
+      "bottom": 0,
+      "top": 0
+    },
+    "viewport": [
+      1024,
+      1024
+    ]
+  },
+  {
+    "buttons": [
+      {
+        "bottom": 0,
+        "height": 0,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": null,
+        "text": "Play",
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      {
+        "bottom": 0,
+        "height": 0,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": null,
+        "text": "Chapters",
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      {
+        "bottom": 0,
+        "height": 0,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": null,
+        "text": "Collectibles",
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      {
+        "bottom": 0,
+        "height": 0,
+        "inViewport": true,
+        "labelFits": true,
+        "ratio": null,
+        "text": "Settings",
+        "width": 0,
+        "x": 0,
+        "y": 0
+      }
+    ],
+    "logo": {
+      "fit": "contain",
+      "height": 0,
+      "ratio": null,
+      "width": 0
+    },
+    "tagline": {
+      "bottom": 0,
+      "top": 0
+    },
+    "viewport": [
+      1024,
+      1024
+    ]
+  }
+]

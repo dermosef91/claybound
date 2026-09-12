@@ -7,7 +7,8 @@ export function prepareForestAsset(w,key,gltf){
   gltf.scene.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(gltf.scene,true),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
   if(!(size.x>0&&size.y>0&&size.z>0))throw new Error('Invalid forest model: '+key);
-  clayMaterials(gltf.scene);clayModel(w,gltf.scene);retainModel(w,gltf.scene);
+  const orangeSource={mushroom:.933,heroMushroom:.851,springPad:.996}[key]||0;
+  clayMaterials(gltf.scene,{orangeSource});clayModel(w,gltf.scene);retainModel(w,gltf.scene);
   w.forestAssets??={};w.forestAssets[key]={scene:gltf.scene,box,size,center};
 }
 export async function loadForestAssets(w,onProgress){
