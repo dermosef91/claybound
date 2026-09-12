@@ -86,6 +86,18 @@
     <div id="fade" aria-hidden="true"></div>
     <section id="error" class="error hidden" role="alert"><h1>A little hiccup.</h1><p id="error-text">This world needs WebGL. Try updating your browser or enabling hardware acceleration.</p><button class="primary" onclick="location.reload()">Try again</button><button id="error-home" class="quiet-button">Back to title</button></section>
   </main>
-  <script type="module" src="./app.js"></script>
+  <style>
+  #game-shell > :not(#loading) {display:none!important}
+  #loading {display:flex!important;opacity:1!important}
+</style><script type="module">
+  import {applyUIPalette} from './palette.js';
+  applyUIPalette(document.documentElement);
+  const chapter=new URLSearchParams(location.search).get('chapter');
+  if(chapter){
+    document.getElementById('loading-progress').classList.add('determinate');
+    document.getElementById('loading-fill').style.width='64%';
+    document.getElementById('loading-status').textContent='Loading the '+chapter+' · 64%';
+  }
+</script>
 </body>
 </html>
