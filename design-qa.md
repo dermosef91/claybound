@@ -62,3 +62,40 @@ P3: exact cloud/letter contours and the collectible/gear icon silhouettes differ
 - [x] Repeated combined visual comparisons and fixes.
 - [x] Desktop, portrait phone, landscape phone and tablet verification.
 - [x] Regression checks and final static preview left running.
+
+## Square-format follow-up — 2026-09-12
+
+final result: passed
+
+The follow-up checks logo distortion and button shapes in square and near-square windows. Source: `docs/title-rebuild/reference.png` (1672 × 941). The source has no square layout, so the square composition is an adaptation; artwork and button proportions are compared directly. Captures use CSS viewport dimensions at density 1, without browser chrome.
+
+Findings and corrections:
+
+- P1, fixed: at 1000 × 900, the logo was stretched into 460 × 216.9 pixels, a 2.12:1 ratio instead of its native 3.509:1. Replaced viewport-height sizing and `object-fit:fill` with the native aspect ratio and `contain`. Evidence: `near-square-before.png` and `near-square-final.png`.
+- P2, fixed: at 900 × 900, buttons flattened to roughly 7.9:1 / 8.7:1. Play now uses 4.31:1 and secondary buttons 5.06:1, with icon/type sizing tied to the control column. One composition spans 2:3 through 4:3, and the scene uses the same compact breakpoint. Evidence: `square-before.png` and `square-final.png`.
+- P2, fixed: landscape-phone regression testing found 2.3 px of tagline overlap. Raised the compact landscape brand and constrained the control-column width to retain proportional shapes within the viewport. Final clearance is 11.4 px at 844 × 390; evidence: `landscape-phone-proportions-final.png`.
+
+Combined comparison: `docs/title-rebuild/square-layout-comparison.png` shows the reference, square (900 × 900), and near-square (1000 × 900) layouts, each scaled uniformly. Focused comparison: `square-button-comparison.png` normalizes both control stacks to equal width without stretching their heights. Both comparisons were inspected.
+
+Additional final captures: `square-480.png`, `square-600.png`, `square-1024.png`, `tablet-proportions-final.png`, `phone-proportions-final.png`, `landscape-phone-proportions-final.png`, and `wide-proportions-final.png`, all in `docs/title-rebuild/`.
+
+| CSS viewport | Logo ratio | Play ratio | Secondary ratio | Tagline clearance |
+| --- | --- | --- | --- | --- |
+| 480 × 480 | 3.509:1 | 4.31:1 | 4.79:1 | 7.0 px |
+| 600 × 600 | 3.509:1 | 4.31:1 | 5.06:1 | 10.5 px |
+| 900 × 900 | 3.509:1 | 4.31:1 | 5.06:1 | 15.8 px |
+| 1024 × 1024 | 3.509:1 | 4.31:1 | 5.06:1 | 21.7 px |
+| 1000 × 900 | 3.509:1 | 4.31:1 | 5.06:1 | 15.6 px |
+| 768 × 1024 | 3.509:1 | 4.31:1 | 5.06:1 | 26.0 px |
+| 390 × 844 | 3.509:1 | 4.31:1 | 5.06:1 | 57.9 px |
+| 844 × 390 | 3.509:1 | 4.31:1 | 5.06:1 | 11.4 px |
+| 1672 × 941 | 3.509:1 | 4.31:1 | 5.06:1 | 36.2 px |
+
+Fidelity review: original artwork keeps its proportions. Clay Sans hierarchy, aligned labels/icons, cream/orange materials, shared palette filters, textures and menu copy remain consistent with the reference rebuild. Buttons retain the reference shape; the smallest square permits slightly taller secondary buttons to preserve 44 px targets. Layout spacing keeps the title clear and the character visible. Existing asset/icon differences documented above remain accepted.
+
+Validation: all labels and controls fit at all nine measured viewports; every target is at least 44 px high, tagline clearance is positive, and logo ratios stay within 0.001 of the artwork. Raw measurements: `docs/title-rebuild/square-layout-verification.json`. Settings opened and closed correctly at 1024 × 1024. No console errors in the final QA tab. Title-menu and title-scene regression tests passed; diff whitespace check passed.
+
+- [x] Square and near-square before/after evidence.
+- [x] Native logo proportions and reference-shaped buttons.
+- [x] Tablet, phone, landscape-phone and widescreen regressions checked.
+- [x] Combined full-view and focused reference comparisons inspected.
