@@ -99,3 +99,11 @@ Validation: all labels and controls fit at all nine measured viewports; every ta
 - [x] Native logo proportions and reference-shaped buttons.
 - [x] Tablet, phone, landscape-phone and widescreen regressions checked.
 - [x] Combined full-view and focused reference comparisons inspected.
+
+## Title flag wind — 2026-09-12
+
+final result: passed
+
+Added two slow traveling ripples to the supplied flag cloth using relative position/normal morph targets. The 154 cloth vertices beyond the sewn edge move; the pole, cactus and mesa remain fixed. Source geometry, UVs and texture maps remain intact. The title owns its morph weights, and reduced motion freezes the current pose. Built-in morph rendering applies to shadow passes too.
+
+Browser verification at 1280 × 720: `docs/title-rebuild/flag-wind-full-a.png` and `flag-wind-full-b.png`; paired detail evidence: `flag-wind-comparison.png`. The paired captures show subtle cloth/surface changes with a stable pole. A four-second geometry sweep measures at most 3.54 px displacement from rest at this viewport. No rendering errors were recorded. Title-scene tests pass for isolated cloth movement, bounded amplitudes, finite normals, independent source pose and reduced-motion freezing. Existing title-menu and checkpoint checks pass. No UI layout, copy, typography or palette changes were made for this animation.
