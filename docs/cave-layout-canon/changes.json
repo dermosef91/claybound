@@ -1,0 +1,378 @@
+{
+  "source": "claybound-chapter-3.json",
+  "previousVersion": 5,
+  "canonicalVersion": 6,
+  "counts": {
+    "platforms": {
+      "before": 53,
+      "after": 65
+    },
+    "coins": {
+      "before": 94,
+      "after": 67
+    },
+    "stamps": {
+      "before": 3,
+      "after": 4
+    },
+    "enemies": {
+      "before": 5,
+      "after": 6
+    },
+    "hazards": {
+      "before": 6,
+      "after": 6
+    },
+    "winds": {
+      "before": 0,
+      "after": 0
+    },
+    "crushers": {
+      "before": 2,
+      "after": 2
+    }
+  },
+  "removed": [
+    {
+      "x": 18.5,
+      "y": 5.5,
+      "w": 4.5,
+      "id": "spark-turn",
+      "kind": "ledge",
+      "section": 0
+    },
+    {
+      "x": 25,
+      "y": 7.3,
+      "w": 10,
+      "id": "spark-balcony",
+      "landmark": "beacon",
+      "kind": "ledge",
+      "section": 0
+    },
+    {
+      "x": 30.5,
+      "y": 2.25,
+      "w": 4,
+      "id": "spark-return-low",
+      "kind": "ledge",
+      "section": 0
+    },
+    {
+      "x": 12.5,
+      "y": 7.2,
+      "w": 3.5,
+      "id": "spark-flower",
+      "optional": true,
+      "kind": "ledge",
+      "section": 0
+    },
+    {
+      "x": 73.5,
+      "y": 2.2,
+      "w": 2.5,
+      "id": "ferry-niche",
+      "optional": true,
+      "kind": "ledge",
+      "section": 1
+    },
+    {
+      "x": 79.5,
+      "y": 4.1,
+      "w": 4.5,
+      "id": "ferry-loft",
+      "optional": true,
+      "kind": "ledge",
+      "section": 1
+    },
+    {
+      "x": 80.8,
+      "y": 4.23,
+      "w": 1.8,
+      "duration": 12,
+      "id": "press-switch",
+      "channel": "press-a",
+      "optional": true,
+      "kind": "switch",
+      "section": 1
+    },
+    {
+      "x": 84.5,
+      "y": 6,
+      "w": 2.5,
+      "id": "press-bridge",
+      "channel": "press-a",
+      "optional": true,
+      "kind": "timed",
+      "section": 1
+    }
+  ],
+  "added": [
+    {
+      "x": 19.75,
+      "y": 5.5,
+      "w": 2,
+      "delay": 0.35,
+      "id": "clay-1",
+      "kind": "crumble",
+      "section": 0
+    },
+    {
+      "x": 14.75,
+      "y": 7,
+      "w": 2,
+      "delay": 0.35,
+      "id": "clay-1-copy-1",
+      "kind": "crumble",
+      "section": 0
+    },
+    {
+      "x": 9.5,
+      "y": 8.5,
+      "w": 2,
+      "delay": 0.35,
+      "id": "clay-1-copy-2",
+      "kind": "crumble",
+      "section": 0
+    },
+    {
+      "x": 31.5,
+      "y": 2,
+      "w": 2,
+      "delay": 0.35,
+      "id": "clay-1-copy-3",
+      "kind": "crumble",
+      "section": 0
+    },
+    {
+      "x": 44.5,
+      "y": 0.5,
+      "w": 2.25,
+      "delay": 0.35,
+      "id": "clay-2",
+      "kind": "crumble",
+      "section": 0
+    },
+    {
+      "x": 49,
+      "y": -0.5,
+      "w": 2.25,
+      "delay": 0.35,
+      "id": "clay-2-copy-1",
+      "kind": "crumble",
+      "section": 0
+    },
+    {
+      "x": 52.25,
+      "y": -2.5,
+      "w": 2.25,
+      "delay": 0.35,
+      "id": "clay-2-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 0
+    },
+    {
+      "x": 31.5,
+      "y": 7.25,
+      "w": 3,
+      "id": "spark-balcony-copy-1",
+      "landmark": "beacon",
+      "kind": "ledge",
+      "section": 0
+    },
+    {
+      "x": 25.25,
+      "y": 7.25,
+      "w": 2,
+      "delay": 0.35,
+      "id": "clay-1-copy-4",
+      "kind": "crumble",
+      "section": 0
+    },
+    {
+      "x": 56.25,
+      "y": -1.75,
+      "w": 2.25,
+      "delay": 0.35,
+      "id": "clay-2-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 0
+    },
+    {
+      "x": 79.75,
+      "y": 2.5,
+      "w": 2,
+      "delay": 0.45,
+      "id": "clay-3",
+      "kind": "crumble",
+      "section": 1
+    },
+    {
+      "x": 84,
+      "y": 4.75,
+      "w": 2,
+      "delay": 0.35,
+      "id": "clay-3-copy-1",
+      "kind": "crumble",
+      "section": 1
+    },
+    {
+      "x": 79,
+      "y": 7,
+      "w": 2,
+      "delay": 0.35,
+      "id": "clay-3-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 1
+    },
+    {
+      "x": 72.75,
+      "y": 7.25,
+      "w": 2,
+      "delay": 0.35,
+      "id": "clay-3-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 1
+    },
+    {
+      "x": 67.25,
+      "y": 6.5,
+      "w": 2,
+      "delay": 0.35,
+      "id": "clay-3-copy-1-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 1
+    },
+    {
+      "x": 102,
+      "y": 1,
+      "w": 2.25,
+      "moveY": 1.2,
+      "period": 5,
+      "id": "clay-4",
+      "kind": "lift",
+      "section": 1
+    },
+    {
+      "x": 106,
+      "y": 3.75,
+      "w": 2.25,
+      "delay": 0.45,
+      "id": "clay-5",
+      "kind": "crumble",
+      "section": 1
+    },
+    {
+      "x": 109.25,
+      "y": 5.75,
+      "w": 2.25,
+      "delay": 0.45,
+      "id": "clay-5-copy-1",
+      "kind": "crumble",
+      "section": 1
+    },
+    {
+      "x": 105.75,
+      "y": 8,
+      "w": 2.25,
+      "delay": 0.45,
+      "id": "clay-5-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 1
+    },
+    {
+      "x": 110.25,
+      "y": 10.25,
+      "w": 2.25,
+      "delay": 0.45,
+      "id": "clay-5-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 1
+    }
+  ],
+  "adjusted": [
+    {
+      "before": {
+        "x": 18,
+        "y": 0,
+        "w": 39,
+        "id": "spark-hub",
+        "kind": "stone",
+        "section": 0
+      },
+      "after": {
+        "x": 18,
+        "y": 0,
+        "w": 24,
+        "id": "spark-hub",
+        "kind": "stone",
+        "section": 0
+      }
+    },
+    {
+      "before": {
+        "x": 47,
+        "y": 13,
+        "w": 1.6,
+        "h": 13,
+        "id": "spark-gate",
+        "channel": "spark-lock",
+        "kind": "gate",
+        "section": 0
+      },
+      "after": {
+        "x": 38.75,
+        "y": 7,
+        "w": 1.35,
+        "h": 7,
+        "id": "spark-gate",
+        "channel": "spark-lock",
+        "kind": "gate",
+        "section": 0
+      }
+    },
+    {
+      "before": {
+        "x": 57,
+        "y": 0,
+        "w": 10,
+        "checkpoint": 62,
+        "id": "ferry-dock",
+        "landmark": "kiln",
+        "kind": "stone",
+        "section": 1
+      },
+      "after": {
+        "x": 59.75,
+        "y": 0,
+        "w": 7.25,
+        "checkpoint": 62,
+        "id": "ferry-dock",
+        "landmark": "kiln",
+        "kind": "stone",
+        "section": 1
+      }
+    },
+    {
+      "before": {
+        "x": 96,
+        "y": 0,
+        "w": 16,
+        "id": "ferry-exit",
+        "landmark": "beacon",
+        "kind": "stone",
+        "section": 1
+      },
+      "after": {
+        "x": 96,
+        "y": 0,
+        "w": 4.5,
+        "checkpoint": 98.25,
+        "id": "ferry-exit",
+        "landmark": "beacon",
+        "kind": "stone",
+        "section": 1
+      }
+    }
+  ]
+}

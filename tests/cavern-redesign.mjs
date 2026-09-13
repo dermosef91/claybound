@@ -10,7 +10,7 @@ const cave=()=>{const g=new Game();g.start(2);return g;};
 {
  const g=cave();g.level.enemies=[];
  const gate=g.level.platforms.find(s=>s.id==='spark-gate'),floor=g.level.platforms.find(s=>s.id==='spark-hub');
- stand(g,floor,45);tick(g,180,{right:true,jumpPressed:true,jumpHeld:true});
+ stand(g,floor,gate.x-2);tick(g,180,{right:true,jumpPressed:true,jumpHeld:true});
  assert(g.player.x<gate.x,'a jump cannot bypass the unsolved gate');
  g.activate('spark-lock',32,7.43);tick(g,130,{right:true});assert(g.player.x>gate.x+gate.w);
  const cp=g.level.platforms.find(s=>s.id==='ferry-dock');stand(g,cp,cp.checkpoint);g.tick(dt);

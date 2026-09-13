@@ -143,7 +143,7 @@ export class Game {
     }else if(input.stompPressed&&!p.groundId&&!p.stomping&&p.y>-.5) {
       p.stomping=true;p.springing=false;p.stompWindup=.05;p.vy=1;p.vx*=.6;this.event('stomp',{x:p.x,y:p.y});
     }
-    const prevY=p.y;
+    const prevY=p.y,prevX=p.x;
     const apex=!windY&&!p.springing&&!p.stomping&&input.jumpHeld&&Math.abs(p.vy)<2 ? .72 : 1;
     p.vy-=RULES.gravity*dt*(p.vy>0&&!input.jumpHeld&&!p.springing?2.05:(!p.springing&&p.vy<0?1.08:apex));
     if(!p.groundId&&!p.stomping)p.vy+=windY*dt;
@@ -151,6 +151,23 @@ export class Game {
     p.vy=Math.max(-26,p.vy);
     p.x=Math.max(-6,p.x+p.vx*dt);p.y+=p.vy*dt;
     p.groundId=null;
+    // Wall blocks occupy their full rectangle. Resolve horizontal travel
+    // against the previous height, then stop rising heads at the underside.
+    // Swept edges also catch narrow blocks at high movement speeds.
+    for(const s of L.platforms)if(s.kind==='wall'&&solidWall(s)){
+      const bottom=s.y-solidDepth(s),left=s.x-RULES.radius,right=s.x+s.w+RULES.radius;
+      if(prevY<s.y-1e-7&&prevY+RULES.height>bottom+1e-7){
+        if(prevX<=left&&p.x>left){p.x=left;p.vx=Math.min(0,p.vx);}
+        else if(prevX>=right&&p.x<right){p.x=right;p.vx=Math.max(0,p.vx);}
+        else if(p.x>left&&p.x<right){
+          p.x=prevX<(left+right)/2?left:right;p.vx=0;
+        }
+      }
+    }
+    for(const s of L.platforms)if(s.kind==='wall'&&solidWall(s)&&p.x+RULES.radius>s.x&&p.x-RULES.radius<s.x+s.w){
+      const bottom=s.y-solidDepth(s);
+      if(p.vy>0&&prevY+RULES.height<=bottom+1e-7&&p.y+RULES.height>=bottom){p.y=bottom-RULES.height;p.vy=0;p.springing=false;}
+    }
     if((oldGround?.kind==='balance'||oldGround?.kind==='bridge'||oldGround?.shape)&&p.vy<=0&&p.x>oldGround.x&&p.x<oldGround.x+oldGround.w)p.y=(oldGround.shape||oldGround.kind==='bridge')?surfaceAt(oldGround,p.x):Math.min(p.y,surfaceAt(oldGround,p.x));
     const candidates=L.platforms.filter(s=>s.active&&!s.broken&&!(p.dropTimer>0&&p.dropThrough===s.id)&&p.x+RULES.radius>s.x&&p.x-RULES.radius<s.x+s.w&&prevY>=surfaceAt(s,p.x,true)-(s.kind==='spring'&&oldGround ? .55 : .14)&&p.y<=surfaceAt(s,p.x)+.03&&p.vy<=Math.max(0,(surfaceAt(s,p.x)-surfaceAt(s,p.x,true))/dt)).sort((a,b)=>surfaceAt(b,p.x)-surfaceAt(a,p.x));
     if(candidates.length) {
@@ -179,7 +196,7 @@ export class Game {
     }
     if(p.groundId&&Math.abs(p.vx)>.8){p.stride+=Math.abs(p.vx)*dt;if(p.stride>.86){p.stride=0;this.event('step',{x:p.x-p.facing*.13,y:p.y});}}
     // Tall solid towers have sides; ledges and rope decks can be jumped through.
-    for(const s of L.platforms)if((solidWall(s)||s.shape)&&p.y<(s.shape?surfaceAt(s,p.x):s.y)-.12&&p.y+RULES.height>s.y-(s.shape?s.h:solidDepth(s))){
+    for(const s of L.platforms)if(s.kind!=='wall'&&(solidWall(s)||s.shape)&&p.y<(s.shape?surfaceAt(s,p.x):s.y)-.12&&p.y+RULES.height>s.y-(s.shape?s.h:solidDepth(s))){
       const bounds=s.shape?clayWallBounds(s,p.y+RULES.height):{left:s.x,right:s.x+s.w};
       if(p.x+RULES.radius>bounds.left&&p.x-RULES.radius<bounds.right){
         const mid=(bounds.left+bounds.right)/2;

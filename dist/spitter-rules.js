@@ -22,7 +22,7 @@ export function shotWall(x,y,nx,ny,platforms,r=SPITTER.shotRadius){
   let nearest=Infinity;
   for(const s of platforms){
     if(s.active===false||s.broken||s.kind==='switch'||s.kind==='spring')continue;
-    const depth=s.kind==='stone'?11:s.kind==='gate'?(s.h||10):.42;
+    const depth=s.kind==='stone'?11:s.kind==='wall'?(s.h??4):s.kind==='gate'?(s.h||10):.42;
     const t=segmentBox(x,y,nx,ny,s.x-r,s.y-depth-r,s.x+s.w+r,s.y+r);
     if(t!==null)nearest=Math.min(nearest,t);
   }

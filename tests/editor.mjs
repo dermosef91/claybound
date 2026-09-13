@@ -13,6 +13,12 @@ const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
  assert.equal(LEVELS[1].layoutVersion,6);assert(!LEVELS[1].custom);
  for(const key of ['spawn',...LISTS])assert.deepEqual(canonical[key],draft[key],`canonical forest ${key} matches the approved export`);
 }
+{
+ const exported=JSON.parse(readFileSync(new URL('../docs/cave-layout-canon/editor-backup.json',import.meta.url),'utf8'));
+ const canonical=validateDraft(LEVELS[2],LEVELS[2]),draft=validateDraft(exported.level,LEVELS[2]);
+ assert.equal(LEVELS[2].layoutVersion,6);assert(!LEVELS[2].custom);
+ for(const key of ['spawn',...LISTS])assert.deepEqual(canonical[key],draft[key],`canonical cave ${key} matches the recovered export`);
+}
 for(let index=0;index<4;index++){
  const normalized=validateDraft(LEVELS[index],LEVELS[index]);
  assert.equal(normalized.platforms.length,LEVELS[index].platforms.length);assert.equal(normalized.winds.filter(w=>w.spores).length,LEVELS[index].winds.filter(w=>w.spores).length);

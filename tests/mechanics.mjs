@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import {Game,FIXED_DT as dt,RULES} from '../dist/simulation.js';
+import {pressRelayLevel} from './press-relay-fixture.mjs';
 
 let checks=0;
 function check(name,fn){fn();checks++;console.log(`PASS ${name}`);}
-function game(index=0){const g=new Game();g.start(index);g.level.enemies=[];g.level.crushers=[];g.level.hazards=[];return g;}
+function game(index=0,level){const g=new Game();g.start(index,level);g.level.enemies=[];g.level.crushers=[];g.level.hazards=[];return g;}
 function step(g,t,input={}){for(let i=0;i<Math.round(t/dt);i++){g.tick(dt,{...input,jumpPressed:!!input.jumpPressed&&i===0,stompPressed:!!input.stompPressed&&i===0});}}
 function at(g,id,offset=.5){const s=g.level.platforms.find(s=>s.id===id);Object.assign(g.player,{x:s.x+offset,y:s.y,vx:0,vy:0,groundId:s.id,coyote:.1});return s;}
 
@@ -17,7 +18,7 @@ check('rope lifts carry the character without slipping',()=>{const g=game();g.ti
 check('running onto a spring launches the character',()=>{const g=game(1);Object.assign(g.player,{x:7.6,vx:6.4});let max=0;for(let i=0;i<160;i++){g.tick(dt,{right:i<30,jumpHeld:true});max=Math.max(max,g.player.y);}assert(max>5.8);});
 check('springs remain usable without holding jump',()=>{const g=game(1);Object.assign(g.player,{x:7.6,vx:6.4});let max=0;for(let i=0;i<160;i++){g.tick(dt,{right:i<30});max=Math.max(max,g.player.y);}assert(max>5.7);});
 check('air stomp breaks cracked floors',()=>{const g=game(1);const s=g.level.platforms.find(s=>s.id==='tree-seal');Object.assign(g.player,{x:s.x+s.w/2,y:s.y+1.5,groundId:null,coyote:0});step(g,.18,{stompPressed:true});assert(s.broken);assert(g.player.y<s.y);});
-check('a cream switch opens and then closes its bridge',()=>{const g=game(2);at(g,'press-switch');step(g,.1,{});assert(g.channels['press-a']>11.9);assert(g.level.platforms.find(s=>s.id==='press-bridge').active);at(g,'start');step(g,12.2,{});assert.equal(g.channels['press-a'],0);assert.equal(g.level.platforms.find(s=>s.id==='press-bridge').active,false);});
+check('a cream switch opens and then closes its bridge',()=>{const g=game(2,pressRelayLevel);at(g,'press-switch');step(g,.1,{});assert(g.channels['press-a']>11.9);assert(g.level.platforms.find(s=>s.id==='press-bridge').active);at(g,'start');step(g,12.2,{});assert.equal(g.channels['press-a'],0);assert.equal(g.level.platforms.find(s=>s.id==='press-bridge').active,false);});
 check('crumbling platforms disappear and regrow',()=>{const g=game(1);const s=at(g,'crumb1',1);step(g,1.1,{});assert(!s.active);at(g,'canopy-rest');step(g,3.3,{});assert(s.active);assert.equal(s.timer,0);});
 check('tower sides cannot be walked through',()=>{const g=game();Object.assign(g.player,{x:17.4,y:1,vx:6.4,groundId:null});step(g,.12,{right:true});assert(g.player.x<=17.68+.001);});
 check('coins count once',()=>{const g=game();g.level.coins=[{x:1.5,y:.7,taken:false}];step(g,.2,{});assert.equal(g.coins,1);});

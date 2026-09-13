@@ -1,0 +1,16 @@
+[
+  {
+    "index": 2,
+    "seconds": 99.85833333335887,
+    "frames": 11983,
+    "coins": 50,
+    "flowers": 0,
+    "checkpoint": "gallery-out",
+    "latched": {
+      "spark-lock": true,
+      "heart-lock": true,
+      "sluice-lock": true,
+      "last-light": true
+    }
+  }
+]

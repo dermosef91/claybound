@@ -25,5 +25,5 @@ export function updateCavernMachine(s,p,time,dt,channels){
   }
 }
 
-export const solidDepth=s=>s.kind==='gate'?(s.h||10):11;
-export const solidWall=s=>s.active!==false&&!s.broken&&(s.kind==='stone'||s.kind==='gate');
+export const solidDepth=s=>s.kind==='wall'?(s.h??4):s.kind==='gate'?(s.h||10):11;
+export const solidWall=s=>s.active!==false&&!s.broken&&['stone','gate','wall'].includes(s.kind);

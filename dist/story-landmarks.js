@@ -22,7 +22,7 @@ export function dryBasin(w,parent){
 
 export function caveStory(w,s,parent){
   const role={
-    'spark-balcony':'echo','ferry-exit':'cooling','heart-entry':'bearing',
+    'spark-balcony-copy-1':'echo','ferry-exit':'cooling','heart-entry':'bearing',
     'heart-balcony':'bearing','vault-entry':'survey','sluice-balcony':'survey',
     'gallery-entry':'geode'
   }[s.id];

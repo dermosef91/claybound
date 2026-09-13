@@ -1,7 +1,7 @@
 import {BAT} from './enemy-rules.js';
 import {DRIFTER} from './drifter-rules.js';
 export const DRAFT_KEY='claybound-editor-v1';
-export const KINDS={stone:'Solid cliff',ledge:'Thin ledge',bridge:'Rope bridge',lift:'Rope lift',spring:'Spring / mushroom',crumble:'Crumbling ledge',break:'Breakable seal',switch:'Switch',timed:'Switched bridge',pulse:'Pulse ledge',balance:'Counterweight',counter:'Counter lift',gate:'Relay grate',ferry:'Weight ferry',orbit:'Orbit cradle'};
+export const KINDS={stone:'Solid cliff',wall:'Wall block',ledge:'Thin ledge',bridge:'Rope bridge',lift:'Rope lift',spring:'Spring / mushroom',crumble:'Crumbling ledge',break:'Breakable seal',switch:'Switch',timed:'Switched bridge',pulse:'Pulse ledge',balance:'Counterweight',counter:'Counter lift',gate:'Relay grate',ferry:'Weight ferry',orbit:'Orbit cradle'};
 export const LISTS=['platforms','coins','stamps','enemies','hazards','winds','crushers'];
 const clone=value=>structuredClone(value);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -51,6 +51,7 @@ export function validateDraft(source,base){
         clean.kind=item.kind;finite(clean.w,.6,80,'Platform width');
         if(clean.kind==='lift')clean.period??=5;
         if(clean.kind==='gate')clean.h??=10;
+        if(clean.kind==='wall')clean.h??=4;
         if(clean.kind==='ferry'){clean.travel??=24;clean.speed??=3.2;}
         if(clean.kind==='orbit'){clean.moveX??=4;clean.moveY??=4;clean.period??=12;}
         if(clean.kind==='counter')clean.rise??=3;
@@ -146,6 +147,7 @@ export class DraftSession{
         if(value==='lift'){obj.period??=5;obj.moveY??=1.2;}
         if(value==='counter')obj.rise??=3;
         if(value==='gate'){obj.h??=10;obj.channel??='new-circuit';}
+        if(value==='wall')obj.h??=4;
         if(value==='ferry'){obj.travel??=24;obj.speed??=3.2;}
         if(value==='orbit'){obj.moveX??=4;obj.moveY??=4;obj.period??=12;}
         if(value==='pulse'){obj.period??=4.8;obj.duty??=.76;}
@@ -157,7 +159,7 @@ export class DraftSession{
     const id=prefix=>{let i=1;while(this.level.platforms.some(p=>p.id===`${prefix}-${i}`)||this.level.winds.some(p=>p.id===`${prefix}-${i}`))i++;return `${prefix}-${i}`;};
     this.change(level=>{
       let list,obj;
-      if(KINDS[type]){list='platforms';obj={id:id('clay'),x:x-2,y,w:4,kind:type};if(type==='gate')Object.assign(obj,{h:10,channel:'new-circuit'});if(type==='ferry')Object.assign(obj,{travel:24,speed:3.2});if(type==='orbit')Object.assign(obj,{moveX:4,moveY:4,period:12});if(type==='lift')Object.assign(obj,{period:5,moveY:1.2});if(type==='pulse')Object.assign(obj,{period:4.8,duty:.76});if(type==='switch')Object.assign(obj,{w:1.8,channel:'new-circuit',duration:10});if(type==='timed'||type==='counter')Object.assign(obj,{channel:'new-circuit',...(type==='counter'?{rise:3}:{})});}
+      if(KINDS[type]){list='platforms';obj={id:id('clay'),x:x-2,y,w:4,kind:type};if(type==='wall')Object.assign(obj,{y:y+2,h:4});if(type==='gate')Object.assign(obj,{h:10,channel:'new-circuit'});if(type==='ferry')Object.assign(obj,{travel:24,speed:3.2});if(type==='orbit')Object.assign(obj,{moveX:4,moveY:4,period:12});if(type==='lift')Object.assign(obj,{period:5,moveY:1.2});if(type==='pulse')Object.assign(obj,{period:4.8,duty:.76});if(type==='switch')Object.assign(obj,{w:1.8,channel:'new-circuit',duration:10});if(type==='timed'||type==='counter')Object.assign(obj,{channel:'new-circuit',...(type==='counter'?{rise:3}:{})});}
       else{list=['bat','drifter','spore','spitter'].includes(type)?'enemies':type;obj={x,y};if(type==='spitter')Object.assign(obj,{kind:'spitter',min:x-2,max:x+2,speed:.38});if(type==='spore')Object.assign(obj,{kind:'spore',min:x-1,max:x+1,speed:.5});if(type==='bat')Object.assign(obj,{kind:'bat',min:x-1.6,max:x+1.6,speed:BAT.patrolSpeed,bob:BAT.bob,period:BAT.period});if(type==='drifter')Object.assign(obj,{kind:'drifter',min:x-1.5,max:x+1.5,speed:DRIFTER.patrolSpeed,bob:DRIFTER.bob,period:DRIFTER.period});if(type==='hazards')Object.assign(obj,{x:x-2,w:4});if(type==='enemies')Object.assign(obj,{min:x-1.5,max:x+1.5,speed:1.5});if(type==='winds')Object.assign(obj,{id:id('wind'),x:x-2,w:4,h:7,fx:0,fy:18});if(type==='crushers')Object.assign(obj,{w:1.8,range:3,period:5});}
       if(!LISTS.includes(list))throw new Error('Unsupported object type.');
       level[list].push(obj);this.selection={list,index:level[list].length-1};

@@ -192,7 +192,10 @@ export class World {
     if(this.biome==='desert'&&s.kind==='lift')return makeCanyonLift(this,s,g);
     if(s.kind==='balance')return balanceDeck(this,s,g);
     let ropes=[],springPad,fracture;
-    if(s.kind==='stone'){
+    if(s.kind==='wall'){
+      const height=s.h??4;
+      this.box(s.w,height,2,'terrain',g,s.w/2,-height/2,0,Math.min(.14,s.w/8,height/8));
+    } else if(s.kind==='stone'){
       buildTerrain(this,s,g);
       landmark(this,s,g);
     } else if(s.kind==='lift'){

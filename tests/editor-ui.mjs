@@ -53,7 +53,7 @@ const pointer=(id,x,y)=>({pointerId:id,clientX:x,clientY:y,button:0,preventDefau
 // Title navigation is available before the expensive WebGL scene loads.
 assert($('loading').classList.contains('hidden'));assert(!$('menu').inert);
 assert.equal($('play-label').textContent,'Play');assert(!$('menu').textContent.toLowerCase().includes('handmade'));
-await click('#collectibles');assert($('dialog-content').textContent.includes('0 / 11 secret flowers'));assert.equal(document.querySelectorAll('.collection-chapter').length,4);assert($('menu').inert);
+await click('#collectibles');assert($('dialog-content').textContent.includes('0 / 12 secret flowers'));assert.equal(document.querySelectorAll('.collection-chapter').length,4);assert($('menu').inert);
 await click('[data-action="close"]');assert(!$('menu').inert);
 await click('#settings');assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'true');
 await click('[data-action="settings-sound"]');assert.equal(app.saved.sound,false);assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'false');assert.equal($('menu-sound').getAttribute('aria-label'),'Enable sound');
@@ -98,6 +98,38 @@ app.game.status='complete';app.onEvent({type:'complete',index:0,time:108,coins:2
 await click('[data-action="chapters"]');assert(!$('dialog').classList.contains('is-completion'));await click('[data-action="close"]');assert($('dialog').classList.contains('is-completion'));assert($('dialog-content').textContent.includes('New best!'));
 await click('[data-action="restart"]');assert.equal(app.game.status,'playing');assert(!document.body.classList.contains('is-complete'));assert(!$('hud').inert);
 console.log('PASS app/DOM integration: touch select/drag/resize, properties, undo/redo, palette, modal focus, mobile pinch/pan, test/return, saved custom play and completion actions');
+
+// Wall blocks are selectable through their full body and resize on both axes.
+await editor.open(0);editor.mode='select';editor.camera.x=500;editor.camera.y=10;editor.draw();
+await click('[data-edit="add"]');await click('[data-type="wall"]');
+const wallIndex=editor.session.selection.index,wallBefore=structuredClone(editor.session.level.platforms[wallIndex]);
+assert.equal(wallBefore.kind,'wall');assert.equal(wallBefore.h,4);
+assert.equal($('editor-inspector').querySelectorAll('[data-field="h"]').length,1);
+assert($('editor-inspector').textContent.includes('Wall height'));
+assert.deepEqual(editor.hit(editor.toScreen(wallBefore.x+2,wallBefore.y-2)),{list:'platforms',index:wallIndex});
+const wallUnit=surface.height/editor.camera.viewH;
+for(const [side,dy] of [['bottom',wallUnit],['top',-wallUnit]]){
+ const block=editor.session.level.platforms[wallIndex],edge=editor.toScreen(block.x+block.w/2,block.y-(side==='bottom'?block.h:0));
+ editor.pointerDown(pointer(81,edge.x,edge.y));assert.equal(editor.gesture.handle,side);
+ editor.pointerMove(pointer(81,edge.x,edge.y+dy));
+ assert.equal(editor.game.level.platforms[wallIndex].h,block.h+1,'live preview follows vertical resize');
+ editor.pointerUp(pointer(81,edge.x,edge.y+dy));
+}
+assert.equal(editor.session.level.platforms[wallIndex].h,6);assert.equal(editor.session.level.platforms[wallIndex].y,wallBefore.y+1);
+const wallWidth=$('editor-inspector').querySelector('[data-field="w"]');wallWidth.value='8';wallWidth.dispatchEvent(new window.Event('change',{bubbles:true}));
+const wallHeight=$('editor-inspector').querySelector('[data-field="h"]');wallHeight.value='9';wallHeight.dispatchEvent(new window.Event('change',{bubbles:true}));
+assert.equal(editor.session.level.platforms[wallIndex].h,9);await click('[data-edit="undo"]');assert.equal(editor.session.level.platforms[wallIndex].h,6);await click('[data-edit="redo"]');
+editor.focus(true);editor.draw();assert.equal(editor.camera.y,editor.session.level.platforms[wallIndex].y-4.5);
+const wallBody=editor.toScreen(editor.session.level.platforms[wallIndex].x+4,editor.session.level.platforms[wallIndex].y-4.5),wallDragUnit=surface.height/editor.camera.viewH;
+editor.pointerDown(pointer(82,wallBody.x,wallBody.y));editor.pointerMove(pointer(82,wallBody.x+wallDragUnit,wallBody.y));editor.pointerUp(pointer(82,wallBody.x+wallDragUnit,wallBody.y));
+assert.equal(editor.session.level.platforms[wallIndex].x,wallBefore.x+1);
+const wallDraft=JSON.stringify(editor.session.level.platforms[wallIndex]);
+await click('[data-edit="test-here"]');assert.equal(app.game.player.groundId,editor.session.level.platforms[wallIndex].id);assert.equal(app.game.level.platforms[wallIndex].h,9);
+app.game.tick(1/120,{});assert.equal(app.game.player.y,editor.session.level.platforms[wallIndex].y);
+await click('#return-editor');assert.equal(JSON.stringify(editor.session.level.platforms[wallIndex]),wallDraft);
+await click('[data-edit="duplicate"]');assert.equal(editor.session.level.platforms.at(-1).h,9);await click('[data-edit="delete"]');
+await click('[data-edit="exit"]');await app.begin(0);assert.equal(app.game.level.platforms[wallIndex].h,9);
+console.log('PASS wall editor: palette, body selection/drag, top/bottom handles, live resize, properties, undo/redo, framing, test/return, duplicate/delete and saved play');
 
 // Actual app wiring: steering and jumping with separate fingers, keyboard
 // precedence, and interruptions. Pointer capture is emulated, not browser QA.

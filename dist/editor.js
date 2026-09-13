@@ -79,9 +79,9 @@ export class LevelEditor{
     for(const p of this.game.level.platforms){p.active=true;if(p.channel)this.game.channels[p.channel]=10;}
     const spawn=this.session.level.spawn,ground=this.game.level.platforms.find(p=>spawn.x>=p.x&&spawn.x<=p.x+p.w&&Math.abs(spawn.y-p.y)<.2);
     Object.assign(this.game.player,spawn,{vx:0,vy:0,groundId:ground?.id??null});
-    if(rebuild){this.world.refreshEditor(this.game.level,this.camera.x);this.widths=new Map(this.game.level.platforms.map(p=>[p.id,p.w]));}
+    if(rebuild){this.world.refreshEditor(this.game.level,this.camera.x);this.widths=new Map(this.game.level.platforms.map(p=>[p.id,p.w]));this.heights=new Map(this.game.level.platforms.filter(p=>p.kind==='wall').map(p=>[p.id,p.h]));}
     else{
-      for(const p of this.game.level.platforms){const v=this.world.platforms.get(p.id);if(v)v.root.scale.x=p.w/(this.widths?.get(p.id)||p.w);}
+      for(const p of this.game.level.platforms){const v=this.world.platforms.get(p.id);if(v){v.root.scale.x=p.w/(this.widths?.get(p.id)||p.w);if(p.kind==='wall')v.root.scale.y=p.h/(this.heights?.get(p.id)||p.h);}}
       for(const list of ['coins','stamps'])this.game.level[list].forEach((p,i)=>{const v=(list==='coins'?this.world.coinViews:this.world.stampViews)[i];if(v)v.position.x=p.x;});
       for(const [list,prefix]of [['hazards','h:'],['crushers','r:'],['winds','w:']])this.game.level[list].forEach((p,i)=>{const v=this.world.streamViews.get(prefix+(list==='winds'?p.id:i));if(v)v.root.position.set(p.x,p.y,0);});
     }
@@ -103,9 +103,9 @@ export class LevelEditor{
     else{
       if(sel.list==='platforms')html+=`<label class="editor-field editor-wide"><span>Platform type</span><select data-field="kind">${Object.entries(KINDS).map(([v,l])=>option(v,l,p.kind)).join('')}</select></label>`;
       if(sel.list==='enemies')html+=`<label class="editor-field editor-wide"><span>Enemy type</span><select data-field="kind">${this.session.level.biome==='cave'||p.kind==='bat'?option('bat','Flying bat',p.kind):''}${this.session.level.biome==='cave'||p.kind==='spitter'?option('spitter','Echo Spitter',p.kind):''}${this.session.level.biome==='desert'||p.kind==='drifter'?option('drifter','Dust Drifter',p.kind):''}${this.session.level.biome==='forest'||p.kind==='spore'?option('spore','Spore Puff',p.kind):''}${option('clayling','Clayling',p.kind||'clayling')}</select></label>`;
-      html+=`<div class="editor-fields">${field('x','Position X',p.x)}${field('y','Height Y',p.y,.25,-40,160)}`;
+      html+=`<div class="editor-fields">${field('x','Position X',p.x)}${field('y',p.kind==='wall'?'Top Y':'Height Y',p.y,.25,-40,160)}`;
       if(p.w!==undefined)html+=field('w','Width',p.w,.25,p.goal?2.5:.6,80);
-      if(p.h!==undefined)html+=field('h','Area height',p.h,.25,.6,80);
+      if(p.h!==undefined&&p.kind!=='gate')html+=field('h',p.kind==='wall'?'Wall height':'Area height',p.h,.25,.6,80);
       if(p.kind==='gate')html+=field('h','Grate height',p.h||10,.25,2,30);
       if(p.kind==='ferry')html+=field('travel','Rail length',p.travel||24,.5,1,30)+field('speed','Travel speed',p.speed||3.2,.1,.1,8);
       if(p.kind==='lift'||p.kind==='orbit')html+=field('moveX','Horizontal travel',p.moveX,.25,-30,30)+field('moveY','Vertical travel',p.moveY,.25,-30,30)+field('period','Cycle (seconds)',p.period||5,.1,.5,60)+field('phase','Starting phase',p.phase,.1,-20,20);
@@ -125,6 +125,7 @@ export class LevelEditor{
         const channels=[...new Set(this.session.level.platforms.flatMap(p=>[p.channel,p.releases]).filter(Boolean))];
         html+=`<label class="editor-field editor-wide"><span>${channelKey==='releases'?'Releases circuit':channelKey==='holdChannel'?'Hold up with circuit':'Circuit name'}</span><input type="text" data-field="${channelKey}" value="${esc(p[channelKey]||'')}" maxlength="70" list="editor-channels" placeholder="e.g. wind-a" autocapitalize="none" spellcheck="false"><datalist id="editor-channels">${channels.map(c=>option(c,c,'')).join('')}</datalist><small>Matching names connect switches, bridges and winds.</small></label>`;
       }
+      if(p.kind==='wall')html+='<p>Solid on all sides. Top Y sets the upper edge; height extends downward. Drag the top and bottom handles to resize vertically.</p>';
       if(p.kind==='switch')html+=checkbox('latch','Stay active after pressing',p.latch);
       if(sel.list==='platforms')html+=checkbox('checkpoint','Checkpoint on this platform',p.checkpoint!==undefined);
       if(sel.list==='winds')html+=checkbox('gust','Pulsing gust',p.gust)+checkbox('spores','Show spores',p.spores);
@@ -193,7 +194,7 @@ export class LevelEditor{
   toScreen(x,y){const {w,h}=this.size||this.dimensions(),unit=h/this.camera.viewH;return {x:w/2+(x-this.camera.x)*unit,y:h/2-(y-this.camera.y)*unit};}
   round(n){return this.snap?Math.round(n/this.snap)*this.snap:Math.round(n*100)/100;}
   zoom(factor,point){const {w,h}=this.dimensions();point??={x:w/2,y:h/2};const before=this.toWorld(point);this.camera.viewH=clamp(this.camera.viewH*factor,7,65);const after=this.toWorld(point);this.camera.x+=before.x-after.x;this.camera.y+=before.y-after.y;}
-  focus(fit=false){const p=selectedObject(this.session.level,this.session.selection)||this.session.level.spawn,{w,h}=this.dimensions();if(fit)this.camera.viewH=clamp(((p.w||4)+7)*h/w,12,55);this.camera.x=p.x+(p.w||0)/2;this.camera.y=p.y+1;}
+  focus(fit=false){const p=selectedObject(this.session.level,this.session.selection)||this.session.level.spawn,{w,h}=this.dimensions();if(fit)this.camera.viewH=clamp(Math.max(((p.w||4)+7)*h/w,p.kind==='wall'?p.h+7:0),12,p.kind==='wall'?65:55);this.camera.x=p.x+(p.w||0)/2;this.camera.y=p.kind==='wall'?p.y-p.h/2:p.y+1;}
   nudge(dir,large=false){if(!this.session.selection)return;const d=large?1:this.snap||.1;this.session.startChange();this.session.move(dir==='left'?-d:dir==='right'?d:0,dir==='down'?-d:dir==='up'?d:0,this.carry);this.session.commit();this.changed();}
   key(e){
     if(!this.active)return;
@@ -220,6 +221,7 @@ export class LevelEditor{
         const x=clamp(this.toWorld(point).x,p.x,p.x+p.w),deck=this.toScreen(x,deckHeight(p,x)),thickness=.4*this.dimensions().h/this.camera.viewH;
         distance=Math.hypot(Math.max(a.x-point.x,0,point.x-a.x-width),Math.max(deck.y-point.y,0,point.y-deck.y-thickness));
       }
+      else if(list==='platforms'&&p.kind==='wall'){const b=this.toScreen(p.x+p.w,p.y-p.h);distance=Math.hypot(Math.max(a.x-point.x,0,point.x-b.x),Math.max(a.y-point.y,0,point.y-b.y));}
       else if(list==='platforms'||list==='hazards')distance=Math.hypot(Math.max(a.x-point.x,0,point.x-a.x-width),Math.abs(point.y-a.y));
       else if(list==='winds'){const b=this.toScreen(p.x+p.w,p.y+p.h);distance=Math.min(Math.hypot(Math.max(a.x-point.x,0,point.x-b.x),Math.abs(point.y-a.y)),Math.hypot(Math.abs(point.x-a.x),Math.max(b.y-point.y,0,point.y-a.y)));}
       else distance=Math.hypot(point.x-a.x,point.y-(a.y-(list==='enemies'&&!airborne(p)?16:0)));
@@ -234,6 +236,7 @@ export class LevelEditor{
     const p=selectedObject(this.session.level,this.session.selection);
     let handle=null;
     if(this.mode==='select'&&!this.spacePan&&p?.w&&this.session.selection.list!=='crushers')for(const side of ['left','right']){const h=this.toScreen(p.x+(side==='right'?p.w:0),p.y);if(Math.hypot(point.x-h.x,point.y-h.y)<23)handle=side;}
+    if(this.mode==='select'&&!this.spacePan&&p?.kind==='wall')for(const side of ['top','bottom']){const h=this.toScreen(p.x+p.w/2,p.y-(side==='bottom'?p.h:0));if(Math.hypot(point.x-h.x,point.y-h.y)<23)handle=side;}
     const hit=this.mode==='select'&&!this.spacePan?this.hit(point):null;
     if(handle||hit){if(!handle)this.select(hit);this.session.startChange();this.gesture={type:handle?'resize':'move',handle,start:point,world:this.toWorld(point)};}
     else this.gesture={type:'pan',start:point,camera:{...this.camera}};
@@ -247,7 +250,7 @@ export class LevelEditor{
     if(!g.moved&&Math.hypot(point.x-g.start.x,point.y-g.start.y)<4)return;g.moved=true;
     const at=this.toWorld(point),before=selectedObject(this.session.pending.level,this.session.selection),dx=this.round(before.x+at.x-g.world.x)-before.x,dy=this.round(before.y+at.y-g.world.y)-before.y;
     if(g.type==='move')this.session.move(dx,dy,this.carry);
-    else{this.session.level=clone(this.session.pending.level);const obj=selectedObject(this.session.level,this.session.selection),min=obj.goal?2.5:.6;if(g.handle==='right')obj.w=clamp(this.round(before.w+at.x-g.world.x),min,80);else{obj.w=clamp(this.round(before.w-dx),min,80);obj.x=before.x+before.w-obj.w;}repairDraft(this.session.level);}
+    else{this.session.level=clone(this.session.pending.level);const obj=selectedObject(this.session.level,this.session.selection),min=obj.goal?2.5:.6;if(g.handle==='top'){obj.h=clamp(this.round(before.h+dy),Math.max(.6,-40-before.y+before.h),Math.min(80,160-before.y+before.h));obj.y=before.y+obj.h-before.h;}else if(g.handle==='bottom')obj.h=clamp(this.round(before.h-dy),.6,80);else if(g.handle==='right')obj.w=clamp(this.round(before.w+at.x-g.world.x),min,80);else{obj.w=clamp(this.round(before.w-dx),min,80);obj.x=before.x+before.w-obj.w;}repairDraft(this.session.level);}
     this.preview();
   }
   pointerUp(e,cancel=false){
@@ -264,7 +267,7 @@ export class LevelEditor{
     ctx.lineWidth=1;ctx.strokeStyle='#fff5d713';ctx.beginPath();for(let x=Math.ceil(left/grid)*grid;x<=right;x+=grid){const a=this.toScreen(x,0);ctx.moveTo(a.x,0);ctx.lineTo(a.x,h);}for(let y=Math.ceil(bottom/grid)*grid;y<=top;y+=grid){const a=this.toScreen(0,y);ctx.moveTo(0,a.y);ctx.lineTo(w,a.y);}ctx.stroke();
     const L=this.session.level;
     for(const list of LISTS)for(const [index,p]of L[list].entries()){
-      const a=this.toScreen(p.x,hoverHeight(p));if(a.x+(p.w||1)*units<0||a.x>w||a.y<-150||a.y>h+150)continue;
+      const a=this.toScreen(p.x,hoverHeight(p));if(a.x+(p.w||1)*units<0||a.x>w||a.y+(p.kind==='wall'?p.h*units:0)<-150||a.y>h+150)continue;
       const selected=this.session.selection?.list===list&&this.session.selection.index===index;ctx.strokeStyle=selected?'#ffe9a6':list==='hazards'||list==='crushers'?'#fa957c99':list==='winds'?'#a0ede887':'#fff7df5a';ctx.lineWidth=selected?2.5:1;
       if(list==='platforms'&&p.kind==='bridge'){
         ctx.beginPath();
@@ -273,8 +276,9 @@ export class LevelEditor{
         ctx.closePath();ctx.stroke();
         if(selected){ctx.fillStyle='#ffe9a613';ctx.fill();for(const x of [a.x,a.x+p.w*units]){ctx.beginPath();ctx.arc(x,a.y,8,0,Math.PI*2);ctx.fillStyle='#fff0be';ctx.fill();ctx.strokeStyle='#3e4c4e';ctx.stroke();}}
       }else if(p.w&&list!=='crushers'){
-        const height=list==='winds'?p.h*units:list==='hazards'?-.8*units:.3*units,ay=list==='winds'?a.y-height:a.y;ctx.strokeRect(a.x,ay,p.w*units,Math.abs(height));
+        const height=list==='winds'?p.h*units:list==='hazards'?-.8*units:p.kind==='wall'?p.h*units:.3*units,ay=list==='winds'?a.y-height:a.y;ctx.strokeRect(a.x,ay,p.w*units,Math.abs(height));
         if(selected){ctx.fillStyle='#ffe9a613';ctx.fillRect(a.x,ay,p.w*units,Math.abs(height));for(const x of [a.x,a.x+p.w*units]){ctx.beginPath();ctx.arc(x,a.y,8,0,Math.PI*2);ctx.fillStyle='#fff0be';ctx.fill();ctx.strokeStyle='#3e4c4e';ctx.stroke();}}
+        if(selected&&p.kind==='wall')for(const y of [a.y,a.y+p.h*units]){ctx.beginPath();ctx.arc(a.x+p.w*units/2,y,8,0,Math.PI*2);ctx.fillStyle='#fff0be';ctx.fill();ctx.strokeStyle='#3e4c4e';ctx.stroke();}
       }else{ctx.beginPath();ctx.arc(a.x,a.y-(list==='enemies'&&!airborne(p)?16:0),selected?15:9,0,Math.PI*2);ctx.stroke();}
     }
     const spawn=this.toScreen(L.spawn.x,L.spawn.y);ctx.strokeStyle='#a1efe8';ctx.lineWidth=2;ctx.strokeRect(spawn.x-10,spawn.y-38,20,38);ctx.fillStyle='#b8f6ed';ctx.font='bold 11px Arial';ctx.fillText('START',spawn.x-17,spawn.y-45);
@@ -291,7 +295,7 @@ export class LevelEditor{
   }
   drawMap(){
     const r=this.map.getBoundingClientRect();if(!r.width)return;const dpr=Math.min(devicePixelRatio||1,1.5);if(this.map.width!==Math.round(r.width*dpr)||this.map.height!==Math.round(r.height*dpr)){this.map.width=Math.round(r.width*dpr);this.map.height=Math.round(r.height*dpr);}
-    const c=this.mapCtx;c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,r.width,r.height);const L=this.session.level,min=Math.min(-8,...L.platforms.map(p=>p.x)),max=Math.max(L.end+8,...L.platforms.map(p=>p.x+p.w)),lo=Math.min(-2,...L.platforms.map(p=>p.y)),hi=Math.max(6,...L.platforms.map(p=>p.y+2));this.mapBounds={min,max};const x=n=>(n-min)/(max-min)*r.width,y=n=>r.height-5-(n-lo)/(hi-lo)*(r.height-10);
-    c.strokeStyle='#efd6a7b3';c.lineWidth=2;for(const p of L.platforms){c.beginPath();c.moveTo(x(p.x),y(p.y));c.lineTo(x(p.x+p.w),y(p.y));c.stroke();}const span=this.camera.viewH*this.size.w/this.size.h;c.fillStyle='#a9efe724';c.fillRect(x(this.camera.x-span/2),0,span/(max-min)*r.width,r.height);c.strokeStyle='#b7f6e6';c.strokeRect(x(this.camera.x-span/2),1,span/(max-min)*r.width,r.height-2);
+    const c=this.mapCtx;c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,r.width,r.height);const L=this.session.level,min=Math.min(-8,...L.platforms.map(p=>p.x)),max=Math.max(L.end+8,...L.platforms.map(p=>p.x+p.w)),lo=Math.min(-2,...L.platforms.map(p=>p.y-(p.kind==='wall'?p.h:0))),hi=Math.max(6,...L.platforms.map(p=>p.y+2));this.mapBounds={min,max};const x=n=>(n-min)/(max-min)*r.width,y=n=>r.height-5-(n-lo)/(hi-lo)*(r.height-10);
+    c.strokeStyle='#efd6a7b3';c.lineWidth=2;for(const p of L.platforms){if(p.kind==='wall'){c.strokeRect(x(p.x),y(p.y),x(p.x+p.w)-x(p.x),y(p.y-p.h)-y(p.y));continue;}c.beginPath();c.moveTo(x(p.x),y(p.y));c.lineTo(x(p.x+p.w),y(p.y));c.stroke();}const span=this.camera.viewH*this.size.w/this.size.h;c.fillStyle='#a9efe724';c.fillRect(x(this.camera.x-span/2),0,span/(max-min)*r.width,r.height);c.strokeStyle='#b7f6e6';c.strokeRect(x(this.camera.x-span/2),1,span/(max-min)*r.width,r.height-2);
   }
 }

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {Game,FIXED_DT as dt,surfaceAt,RULES} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
 import {cameraFraming,cameraTarget} from '../dist/camera.js';
+import {pressRelayLevel} from './press-relay-fixture.mjs';
 const at=(g,s)=>Object.assign(g.player,{x:s.x+s.w/2,y:surfaceAt(s,s.x+s.w/2),vx:0,vy:0,groundId:s.id,coyote:.13});
 const tick=(g,n,input={})=>{for(let i=0;i<n;i++)g.tick(dt,{...input,stompPressed:input.stompPressed&&i===0});};
 let checkpoints=0;
@@ -36,7 +37,7 @@ console.log('PASS',checkpoints,'checkpoints restore health, collectibles and sol
  console.log('PASS a weighted beam raises the connected ropeway; the raised route remains available after stepping off');
 }
 {
- const g=new Game();g.start(2);const c=g.level.crushers[0],sw=g.level.platforms.find(s=>s.channel===c.holdChannel&&s.kind==='switch');
+ const g=new Game();g.start(2,pressRelayLevel);const c=g.level.crushers[0],sw=g.level.platforms.find(s=>s.channel===c.holdChannel&&s.kind==='switch');
  at(g,sw);tick(g,55);assert(g.channels[c.holdChannel]>11);assert.equal(c.y,c.baseY);assert(c.held);assert(g.level.platforms.find(s=>s.id==='press-bridge').active);
  const timer=g.channels[c.holdChannel];g.pause();g.tick(2,{});assert.equal(g.channels[c.holdChannel],timer);g.resume();at(g,g.level.platforms[0]);tick(g,1500);assert.equal(g.channels[c.holdChannel],0);assert(!c.held);
  const pulse=g.level.platforms.find(s=>s.kind==='pulse');g.time=(.64-pulse.phase)*pulse.period;g.tick(dt,{});assert(pulse.active&&pulse.warning);g.time=(.8-pulse.phase)*pulse.period;g.tick(dt,{});assert(!pulse.active);

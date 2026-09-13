@@ -5,6 +5,7 @@ Open **Level editor** on the title screen, or **Edit this chapter** from pause. 
 ## Design controls
 
 - Tap an object, then drag it. Round handles resize platforms horizontally.
+- **Add → Wall block** places a solid block in any chapter. Set Width and Wall height in Properties, or use the edge handles. Top Y is the upper edge; height extends downward. Walls block movement from both sides and below, support landing on top, and stop Echo Spitter shots. Use them for barriers, room boundaries and ceilings.
 - Drag empty space or use Pan to move the camera. Pinch with two fingers, scroll a mouse wheel, or use the zoom buttons.
 - Drag the chapter overview or select a passage to travel through a level. Browse objects provides a non-canvas selection path, including the player start.
 - Properties expose coordinates, platform width, moving-platform travel, timing, switches, counterweights, wind forces, enemy patrols and presses.

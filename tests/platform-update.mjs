@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import {Game,RULES,FIXED_DT as dt} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
 import {PRESS,pressTouches} from '../dist/presses.js';
+import {pressRelayLevel} from './press-relay-fixture.mjs';
 const ticks=(g,n,input={})=>{for(let i=0;i<n;i++)g.tick(dt,input);};
 const stand=(g,p)=>Object.assign(g.player,{x:p.x+p.w/2,y:p.y,vx:0,vy:0,groundId:p.id,invuln:0});
 for(let index=0;index<2;index++){
-  const events=[],g=new Game(e=>events.push(e));g.start(2);g.level.enemies=[];g.level.hazards=[];
+  const events=[],g=new Game(e=>events.push(e));g.start(2,pressRelayLevel);g.level.enemies=[];g.level.hazards=[];
   const c=g.level.crushers[index];
   let floor=g.level.platforms.find(p=>p.id===c.supportId);
   if(!floor){floor={id:'press-test-deck',x:c.x-2,y:c.floorY,w:4,kind:'ledge',baseX:c.x-2,baseY:c.floorY,prevX:c.x-2,prevY:c.floorY,active:true};g.level.platforms.push(floor);}
