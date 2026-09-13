@@ -17,3 +17,8 @@ PASS textured canyon tent, grounded placement, retained source mesh, streaming/e
 PASS supplied distant grotto arches, stronger cave fog, bounded light handoffs, and direct cavern draw coverage in portrait/landscape through climbs and backtracking
 PASS Breathing Tree spring/pod contact, opened vine and checkpoint resume, pause/reduced motion, and forest coverage through portrait/landscape climbs
 PASS all four Dust Drifter models remain loaded and in view after forest-to-canyon changes, streaming and portrait/landscape framing
+PASS anchored moving presses, visible spring targets, single front flag/larger cottage, fractured slabs, bounded debris, pause and recovery
+PASS laundry bounds, grounding, face budget, shared assets, streaming/editor rebuild and unchanged collision data
+PASS cave and city storytelling fits both broad decks and narrow balconies
+PASS cradle deck/axle transforms, visible opening grates, projectile shape, paused visuals and effect cleanup
+PASS Great Arch model/maps, cavity shade, clear play lane, fixed rope anchors, streaming, editor moves and chapter reuse
