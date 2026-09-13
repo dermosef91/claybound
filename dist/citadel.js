@@ -4,6 +4,7 @@ import {cottageModel} from './cottage.js';
 import {sculptClay} from './clay.js';
 import {cloudModel} from './clouds.js';
 import {cityStory} from './story-landmarks.js';
+import {makeMovingPlatform} from './moving-platform.js';
 const rand=n=>{const v=Math.sin(n*123.21+47.5)*43758.5453;return v-Math.floor(v);};
 const group=(parent,x=0,y=0,z=0)=>{const g=new THREE.Group();g.position.set(x,y,z);parent.add(g);return g;};
 
@@ -112,18 +113,7 @@ export function buildCitadelTerrain(w,s,g){
 }
 
 export function makeCitadelLift(w,s,g){
-  block(w,g,s.w,.54,1.66,'top',s.w/2,-.22,0,.21);
-  block(w,g,s.w-.13,.095,1.48,'orangeLight',s.w/2,-.03,0,.035);
-  const ropes=[];
-  for(const [i,x] of [.48,s.w-.48].entries()){
-    w.rope([x,.04,-.21],[x,15,-.21],g,.083,true);
-    const tie=w.mesh(new THREE.TorusGeometry(.14,.065,10,24),'rope',g,x,.19,-.21);tie.rotation.x=Math.PI/2;tie.scale.x=1.1;
-    const wheel=w.cylinder(.49,.20,'top',g,x,i===0?3.83:2.94,-.1);wheel.rotation.x=Math.PI/2;
-    const rim=w.cylinder(.44,.22,'orange',g,x,i===0?3.83:2.94,-.075);rim.rotation.x=Math.PI/2;
-    const axle=w.ball(.17,.17,.12,'top',g,x,i===0?3.83:2.94,.08);
-    ropes.push(tie,wheel,rim,axle);
-  }
-  return {root:g,ropes,bounce:0};
+  return makeMovingPlatform(w,s,g);
 }
 
 function cloud(w,parent,x,y,z,scale){

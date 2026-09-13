@@ -1,0 +1,24 @@
+{
+  "errors": [],
+  "requests": [],
+  "stats": {
+    "calls": 509,
+    "triangles": 1240988,
+    "layoutVersion": "editor-5-dl1ln5"
+  },
+  "ride": {
+    "deaths": 0,
+    "ground": "arch-lift",
+    "health": 3,
+    "ceiling": [
+      21.24,
+      21.24
+    ]
+  },
+  "editor": [
+    "select Great Arch section",
+    "resize shelf",
+    "undo",
+    "retain enclosure"
+  ]
+}

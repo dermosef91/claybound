@@ -3,6 +3,7 @@ import { RoundedBoxGeometry } from './lib/RoundedBoxGeometry.js';
 import {createHero,loadHero,animateHero,heroEvent} from './hero.js';
 import {applyEnvironment,buildBackdrop,buildTerrain,animateEnvironment} from './environments.js';
 import {makeCitadelLift} from './citadel.js';
+import {makeMovingPlatform} from './moving-platform.js';
 import {renderCitadelDepth} from './citadel-depth.js';
 import {loadEnemies,createEnemyView,animateEnemy,releaseEnemyViews} from './enemies.js';
 import {loadCastle} from './castle.js';
@@ -23,6 +24,7 @@ import {loadSpitterAssets} from './spitter-asset.js';
 import {loadCavernAssets} from './cavern-asset.js';
 import {createCaveLights} from './cave-lighting.js';
 import {makeCanyonLift} from './canyon.js';
+import {greatArchLedge} from './great-arch.js';
 import {makeRopeBridge} from './rope-bridge.js';
 import {bridgeOffset} from './bridge-surface.js';
 import {animateCircuit} from './mechanism-views.js';
@@ -38,6 +40,7 @@ import {syncShots} from './spitter.js';
 import {loadCityLaundry} from './city-laundry.js';
 import {createClayView,updateClayView} from './shaping-views.js';
 import {CLAY_PALETTE} from './palette.js';
+import {createGoal} from './goal.js';
 
 const C={blue:0x315e96,blueLight:0x3d6da5,blueDark:0x244c7b,orange:CLAY_PALETTE.orange,orangeLight:CLAY_PALETTE.orangeLight,cream:0xf1d8a3,rope:0xdcb985,dark:0x172b3f,gold:0xf8ce75};
 const fract=n=>n-Math.floor(n);
@@ -172,13 +175,7 @@ export class World {
     if(L.biome==='cave'||L.enemies.some(e=>e.kind==='bat'))await loadBats(this,onProgress);
   }
   makeBell(parent,x,y) {
-    const g=new THREE.Group();g.name='Chapter goal';g.position.set(x,y,-.65);parent.add(g);
-    for(const side of [-1,1])this.box(.3,3.4,.4,'bark',g,side*.94,1.7,0,.14);
-    this.box(2.28,.37,.54,'barkLight',g,0,3.24,0,.16);
-    this.rope([0,3.1,0],[0,2.7,0],g,.035,false);
-    const points=[new THREE.Vector2(.5,0),new THREE.Vector2(.5,.1),new THREE.Vector2(.36,.18),new THREE.Vector2(.31,.55),new THREE.Vector2(.14,.69),new THREE.Vector2(0,.71)];
-    const bell=this.mesh(new THREE.LatheGeometry(points,28),'gold',g,0,1.96,0);this.ball(.1,.13,.1,'orange',g,0,1.92,0);
-    bell.name='Finish bell';this.bell=bell;this.flag(x+2.1,y,parent,.95);
+    return createGoal(this,parent,x,y);
   }
   makePlatform(s) {
     const g=new THREE.Group();g.position.set(s.x,s.y,0);this.levelRoot.add(g);
@@ -198,15 +195,7 @@ export class World {
       buildTerrain(this,s,g);
       landmark(this,s,g);
     } else if(s.kind==='lift'){
-      for(let i=0;i<4;i++){const log=this.cylinder(.205,s.w,'bark',g,s.w/2,-.16,(i-1.5)*.42);log.rotation.z=Math.PI/2;this.ball(.07,.14,.14,'barkLight',g,.01,-.16,(i-1.5)*.42);}
-      this.box(s.w-.12,.095,1.55,'barkLight',g,s.w/2,-.024,0,.04);
-      for(const x of [.25,s.w-.25]) {
-        this.rope([x,.02,-.55],[x,.43,-.55],g,.055,false);
-        this.ball(.16,.08,.13,'rope',g,x,.33,-.55);
-        const rope=this.rope([x,.35,-.55],[x,14,-.55],g,.055,true);ropes.push(rope);
-        const wheel=this.cylinder(.38,.16,'orange',g,x,5.2,-.35);wheel.rotation.x=Math.PI/2;
-        const button=this.cylinder(.13,.2,'orangeLight',g,x,5.2,-.24);button.rotation.x=Math.PI/2;
-      }
+      ropes=makeMovingPlatform(this,s,g).ropes;
     } else if(s.kind==='spring'&&this.biome==='forest'){
       springPad=createSpringPad(this,s,g);
     } else if(s.kind==='spring'){
@@ -245,6 +234,7 @@ export class World {
       if(s.checkpoint){const flag=this.flag(s.checkpoint-s.x,.08,g,.83,s.id);if(this.biome==='forest'&&s.id==='tree-heart')flag.position.z=.72;}
       if(s.goal)this.makeBell(g,s.bellX??s.w-3,.1);
     }
+    if(s.kind==='ledge')greatArchLedge(this,s,g);
     return {root:g,ropes,bounce:0,springPad,fracture};
   }
   buildBackground(L) { buildBackdrop(this,L); }
@@ -361,6 +351,7 @@ export class World {
     animateHero(this,game,dt);
     for(const s of L.platforms){
       const view=this.platforms.get(s.id);if(!view)continue;view.root.position.set(s.x,s.y,0);view.root.visible=!s.broken;
+      for(const rope of view.ropes||[]){const anchor=rope.userData.ceiling;if(anchor)rope.scale.y=Math.max(.1,anchor.y-s.y-(anchor.offset??.25))/anchor.rest;}
       for(const guide of view.guides||[])guide.visible=!s.broken&&s.active!==false;
       updateClayView(view,s);
       if(view.balance){view.balance.rotation.z=s.angle;view.meter?.forEach((m,i)=>m.scale.setScalar(game.latched[s.channel]||s.charge>(i+1)/4?1:.45));}

@@ -2,6 +2,8 @@ import * as THREE from './lib/three.module.js';
 import {canyonModel} from './canyon-assets.js';
 import {cloudModel} from './clouds.js';
 import {clayMaterial,clayBox} from './clay.js';
+import {archLiftCeiling} from './great-arch.js';
+import {makeMovingPlatform} from './moving-platform.js';
 
 const random=n=>{const f=Math.sin(n*127.1+47.7)*43758.5453;return f-Math.floor(f);};
 const group=parent=>{const g=new THREE.Group();parent.add(g);return g;};
@@ -89,7 +91,8 @@ export function buildCanyonTerrain(w,s,g){
     cactus(w,g,s.w-1.2,.02,s.rest?2:1.55,-1.14,(random(s.x)-.5)*.22);
     if(s.w>7.8)cactus(w,g,1,.01,.75,-1.2,-.16);
   }
-  for(let i=0;i<2;i++)rock(w,g,.75+random(s.x+i*4)*(s.w-1.5),.015,-1.0,.55+random(i+s.x)*.8,i+s.x,'top');
+  if(s.id==='last-rest')rock(w,g,s.checkpoint-s.x,.015,-.75,.9,s.x,'top');
+  else if(!s.goal)for(let i=0;i<2;i++)rock(w,g,.75+random(s.x+i*4)*(s.w-1.5),.015,-1.0,.55+random(i+s.x)*.8,i+s.x,'top');
   // Small plants and fallen rocks give the vertical cliff faces a sense of scale.
   if(s.w>4){rock(w,g,s.w*.22,-4.2,1.9,1.4,s.x);cactus(w,g,s.w*.22,-4.1,.5,1.7,.2);}
   if(s.checkpoint)w.flag(s.checkpoint-s.x,.035,g,.83,s.id);
@@ -98,7 +101,8 @@ export function buildCanyonTerrain(w,s,g){
 
 export function buildCanyonBackdrop(w){
   const far=group(w.backRoot),middle=group(w.backRoot),low=group(w.backRoot),clouds=group(w.backRoot);
-  w.parallax.push({group:far,factor:.17,heightFollow:1},{group:middle,factor:.36,heightFollow:1},{group:low,factor:.62,heightFollow:1},{group:clouds,factor:.1,heightFollow:1});
+  const anchors=(w.currentLevel?.platforms||[]).filter(s=>s.id==='arch-drop'&&s.kind==='bridge').map(s=>({x:s.x+s.w*.38,y:s.y+.72,scale:4.1/(w.cloudAsset?.width||1)}));
+  w.parallax.push({group:far,factor:.17,heightFollow:1},{group:middle,factor:.36,heightFollow:1},{group:low,factor:.62,heightFollow:1},{group:clouds,factor:.1,heightFollow:1,anchors});
   for(let i=-2;i<10;i++){
     const x=i*16;
     canyonModel(w,'summit',far,x+5,-3.7,-53,3.2+random(i+3)*1.2,(random(i+9)-.5)*.3);
@@ -134,20 +138,5 @@ export function buildCanyonBackdrop(w){
 }
 
 export function makeCanyonLift(w,s,g){
-  g.name='Canyon pulley lift';const ropes=[];
-  // A single stout log presents a clean landing silhouette.
-  w.box(s.w,.37,1.58,'bark',g,s.w/2,-.19,0,.16);
-  w.box(s.w-.12,.075,1.4,'barkLight',g,s.w/2,-.018,0,.035);
-  for(const x of [.14,s.w-.14]){
-    const end=w.cylinder(.23,.10,'barkLight',g,x,-.19,.81);end.rotation.x=Math.PI/2;
-  }
-  for(const x of [.3,s.w-.3]){
-    w.rope([x,.03,-.45],[x,.32,-.45],g,.058,false);w.ball(.13,.075,.12,'rope',g,x,.28,-.45);
-    ropes.push(w.rope([x,.25,-.45],[x,14,-.45],g,.043,true));
-    const wheel=w.cylinder(.33,.14,'orange',g,x,2.65,-.24);wheel.rotation.x=Math.PI/2;
-    const shape=new THREE.Shape();
-    for(let i=0;i<10;i++){const a=i*Math.PI/5+Math.PI/2,r=i%2?.105:.195,px=Math.cos(a)*r,py=Math.sin(a)*r;i?shape.lineTo(px,py):shape.moveTo(px,py);}shape.closePath();
-    w.mesh(new THREE.ExtrudeGeometry(shape,{depth:.055,bevelEnabled:true,bevelThickness:.018,bevelSize:.015,bevelSegments:2,steps:1}),'gold',g,x,2.65,-.14);
-  }
-  return {root:g,ropes,bounce:0};
+  return makeMovingPlatform(w,s,g,{ceiling:archLiftCeiling(w,s)});
 }

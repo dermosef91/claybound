@@ -1,0 +1,21 @@
+{
+  "geometryAndUVBuffersIdentical": true,
+  "sourceAndShippedHashesMatch": true,
+  "sourceBytes": 5031236,
+  "shippedBytes": 1119600,
+  "triangles": 10440,
+  "textures": [
+    [
+      2048,
+      2048
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ]
+}

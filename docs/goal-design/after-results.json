@@ -1,0 +1,15 @@
+{
+  "errors": [],
+  "requests": [],
+  "stats": {
+    "calls": 306,
+    "triangles": 436336,
+    "goalMeshes": 59,
+    "goalTriangles": 47344,
+    "completion": {
+      "status": "complete",
+      "x": 246.0000000000001,
+      "bellRotation": 0.298035525371106
+    }
+  }
+}

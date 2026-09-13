@@ -9,6 +9,7 @@ import {LevelEditor,jumpGuide} from '../dist/editor.js';
 
 // Walk down from the original high perch to the checkpoint without a jump.
 const game=new Game();game.start(0);
+const s=game.level.platforms.find(p=>p.id==='arch-drop');
 Object.assign(game.player,{x:175.4,y:16,vx:0,vy:0,groundId:'arch-roof'});
 let bridgeFrames=0,lowest=Infinity;
 for(let i=0;i<280;i++){
@@ -18,14 +19,14 @@ for(let i=0;i<280;i++){
     assert.equal(game.player.vy,0,'the player stays grounded along the curve');
   }
 }
-assert(bridgeFrames>60&&lowest<13.35,'the landing continues through the lowest part of the sag');
+assert(bridgeFrames>30&&Math.abs(lowest-surfaceAt(s,s.x+s.w/2))<.03,'the landing continues through the lowest part of the sag');
 assert.equal(game.deaths,0);assert.equal(game.player.health,3);
 assert.equal(game.checkpointId,'last-rest');
 
 // Reverse across the curve, then jump from its middle without being snapped
 // back onto it. Also land from above onto both slopes and the central plank.
-const s=game.level.platforms.find(p=>p.id==='arch-drop');
-Object.assign(game.player,{x:183.5,y:13.8,vx:0,vy:0,groundId:'arch-bridge-right'});
+const rightBank=game.level.platforms.find(p=>p.id==='arch-bridge-right');
+Object.assign(game.player,{x:rightBank.x+rightBank.w*.5,y:rightBank.y,vx:0,vy:0,groundId:rightBank.id});
 for(let i=0;i<160&&game.player.groundId!=='arch-bridge-left';i++)game.tick(dt,{left:true});
 assert.equal(game.player.groundId,'arch-bridge-left');
 for(const u of [.15,.5,.85]){

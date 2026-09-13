@@ -259,6 +259,12 @@ for(let index=0;index<LEVELS.length;index++){
   const checkGoal=()=>{
     const goals=[],bells=[];w.levelRoot.traverse(o=>{if(o.name==='Chapter goal')goals.push(o);if(o.name==='Finish bell')bells.push(o);});
     assert.equal(goals.length,1);assert.equal(bells.length,1);assert.equal(w.bell,bells[0]);
+    const bell=bells[0],cup=bell.getObjectByName('Golden bell cup'),clapper=bell.getObjectByName('Bell clapper');
+    assert(cup&&clapper,'cup and clapper are attached to the ringing suspension');
+    assert(cup.position.y<0&&clapper.position.y<cup.position.y,'the bell swings from its top');
+    const flag=goals[0].getObjectByName('Star finish flag cloth');
+    assert(w.flags.includes(flag)&&flag.getObjectByName('Raised golden star'),'the decorated flag keeps its wind animation');
+    goals[0].traverse(o=>{if(o.isMesh)for(const key of ['position','normal'])assert(o.geometry.attributes[key].array.every(Number.isFinite),'finish geometry remains valid after rebuilds');});
     const platform=g.level.platforms.find(s=>s.goal),view=w.platforms.get(platform.id).root;
     assert(!view.getObjectByName('Landmark: bellgate'),'no second decorative bell or frame at the finish');
     assert(Math.abs(goals[0].getWorldPosition(new THREE.Vector3()).x-g.level.end)<1e-6);
@@ -503,3 +509,48 @@ console.log('PASS cave and city storytelling fits both broad decks and narrow ba
   g.pause();const position=shot.position.clone();w.render(g,.1);assert(shot.position.equals(position));g.resume();g.respawn();w.render(g,0);assert.equal(w.shotViews.size,0);
 }
 console.log('PASS cradle deck/axle transforms, visible opening grates, projectile shape, paused visuals and effect cleanup');
+
+// The Great Arch is scenery with fixed ceiling attachments: it must not alter
+// the route, hide the play lane, or dispose its source when streamed out.
+{
+  const g=new Game();g.start(0);const original=JSON.stringify(g.level);
+  w.build(g.level,0,160);
+  const inspect=()=>{
+    w.scene.updateMatrixWorld(true);
+    const room=w.levelRoot.getObjectByName('Inside the Great Arch: canyon cave');assert(room);
+    const shell=room.getObjectByName('Supplied sandstone cave');assert(shell);
+    const box=new THREE.Box3().setFromObject(shell,true);
+    assert(box.max.z<-2.59,'all supplied cave stone stays behind the play lane');
+    assert(box.min.x<150&&box.max.x>176&&box.max.y>24,'the enclosure covers both banks and the flower route');
+    let triangles=0;shell.traverse(o=>{if(o.isMesh){
+      triangles+=o.geometry.index.count/3;
+      assert(w.assetGeometry.has(o.geometry)&&w.assetMaterials.has(o.material));
+      assert(o.material.map&&o.material.normalMap&&o.material.roughnessMap);
+      assert(o.material.vertexColors&&o.material.userData.clay,'cavity shade survives clay load order');
+      assert(o.geometry.attributes.color.array.every(n=>Number.isFinite(n)&&n>=.37&&n<=1));
+    }});assert.equal(triangles,10440);
+    const rear=room.getObjectByName('Recessed sandstone wall with sky windows');assert(rear.material.bumpMap===w.clay.detail);
+    assert(new THREE.Box3().setFromObject(rear,true).max.z<box.min.z,'recess never masks the supplied sculpted wall');
+    for(const id of ['arch-shelf','arch-balcony','arch-return','arch-flower'])assert(w.platforms.get(id).root.getObjectByName('Sandstone ledge root'));
+    return box;
+  };
+  const initial=inspect();assert.equal(JSON.stringify(g.level),original,'scenery leaves the authored physics and collectibles unchanged');
+  const lift=g.level.platforms.find(s=>s.id==='arch-lift'),startY=lift.y;
+  const endpoints=[];
+  for(const y of [startY,startY+2.2,startY-2.2]){
+    lift.y=y;Object.assign(g.player,{x:160,y,groundId:lift.id});w.render(g,0);w.scene.updateMatrixWorld(true);
+    endpoints.push(w.platforms.get(lift.id).ropes.map(rope=>rope.localToWorld(new THREE.Vector3(0,rope.userData.ceiling.rest,0)).y));
+  }
+  for(const end of endpoints)for(let i=0;i<end.length;i++)assert(Math.abs(end[i]-endpoints[0][i])<1e-6,'lift motion never moves the ceiling end of its ropes');
+  lift.y=startY;
+  w.syncVisible(g.level,10,true);assert(!w.levelRoot.getObjectByName('Inside the Great Arch: canyon cave'));
+  w.syncVisible(g.level,160,true);inspect();w.refreshEditor(g.level,160);inspect();
+  const roomCount=()=>w.levelRoot.children.filter(o=>o.name==='Inside the Great Arch: canyon cave').length;assert.equal(roomCount(),1);
+  for(const s of g.level.platforms.filter(s=>s.id.startsWith('arch-'))){s.x+=12;s.baseX+=12;s.y+=3;s.baseY+=3;}
+  w.refreshEditor(g.level,172);w.scene.updateMatrixWorld(true);
+  const moved=new THREE.Box3().setFromObject(w.levelRoot.getObjectByName('Supplied sandstone cave'),true);
+  assert(Math.abs(moved.min.x-initial.min.x-12)<1e-5&&Math.abs(moved.min.y-initial.min.y-3)<1e-5,'moving the section in the editor moves its enclosure');
+  const forest=new Game();forest.start(1);w.build(forest.level,1,118);assert(!w.levelRoot.getObjectByName('Inside the Great Arch: canyon cave'));
+  g.start(0);w.build(g.level,0,160);inspect();assert.equal(sharedDisposals,0);
+}
+console.log('PASS Great Arch model/maps, cavity shade, clear play lane, fixed rope anchors, streaming, editor moves and chapter reuse');

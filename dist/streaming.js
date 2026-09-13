@@ -5,6 +5,7 @@ import {circuitView,guideView} from './mechanism-views.js';
 import {syncDepthScenery} from './depth-scenery.js';
 import {createPressView} from './press-views.js';
 import {createBead} from './beads.js';
+import {greatArchLayout,buildGreatArch} from './great-arch.js';
 
 const attached=(o,root)=>{for(let p=o;p;p=p.parent)if(p===root)return true;return false;};
 export function disposeBranch(w,root){
@@ -40,6 +41,8 @@ export function syncStream(w,L,center,force=false){
   const add=(key,make,remove)=>{
     wanted.add(key);if(!w.streamViews.has(key)){const root=make();w.streamViews.set(key,{root,remove});}
   };
+  const arch=greatArchLayout(L);
+  if(arch&&near(arch.left,arch.width))add('scenery:great-arch',()=>buildGreatArch(w,arch),()=>{});
   for(const s of L.platforms)if(near(s.baseX??s.x,s.w,Math.max(Math.abs(s.moveX||0),s.travel||0)))add('p:'+s.id,()=>{
     const v=w.makePlatform(s);v.guides=(L.guides||[]).filter(guide=>guide.platformId===s.id).map(guide=>guideView(w,guide,s,v));
     for(const guide of v.guides)guide.visible=!s.broken&&s.active!==false;

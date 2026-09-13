@@ -1,0 +1,10 @@
+{
+  "errors": [],
+  "requests": [],
+  "stats": {
+    "calls": 281,
+    "triangles": 381268,
+    "goalMeshes": 59,
+    "goalTriangles": 47344
+  }
+}
