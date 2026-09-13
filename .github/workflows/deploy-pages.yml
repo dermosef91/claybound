@@ -9,7 +9,6 @@ on:
   push:
     branches:
       - main
-      - claude/deploy-game-share-link-5wivwm
   workflow_dispatch:
 
 permissions:
@@ -35,7 +34,9 @@ jobs:
       - name: Turn on Pages
         uses: actions/configure-pages@v5
         with:
-          # Enables Pages on first run so no manual repository setup is needed.
+          # No-op once Pages is on. Creating it from here needs rights the
+          # workflow token does not have, so Pages is switched on once by
+          # hand under Settings; see LOCAL-DEPLOYMENT.md.
           enablement: true
 
       - name: Package dist/ as the site

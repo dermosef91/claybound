@@ -46,12 +46,15 @@ every push to `main`, and can also be started by hand from the Actions tab.
 The job uploads the directory verbatim, so the hosted site is the same game
 the local static server serves. There is no build step to keep in sync.
 
-The first run turns Pages on by itself, so no manual repository setup is
-needed. Once it finishes, the Actions summary links the published address,
-which is also shown under Settings then Pages.
+Pages has to be switched on once, by hand, before the first deploy: open
+Settings, then Pages, and set the source to GitHub Actions. A workflow
+cannot do this for itself, because creating a Pages site needs rights the
+built-in workflow token is not granted. After that the workflow runs
+unattended, and the published address appears both in the run summary and
+under Settings then Pages.
 
-Publishing Pages from a private repository requires a paid GitHub plan. On
-the free plan the workflow fails at the "Turn on Pages" step; making the
-repository public also resolves it. A Pages site is reachable by anyone with
-the address even when the repository stays private, so treat the address as
-public once the game is live.
+Two things to know before switching it on. Publishing from a private
+repository requires a paid GitHub plan; making the repository public also
+works. And a Pages site is reachable by anyone who has the address even
+while the repository stays private, so treat the address as public once the
+game is live.
