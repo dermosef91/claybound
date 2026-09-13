@@ -64,6 +64,11 @@ export function makeMovingPlatform(w,s,g,{ceiling=null}={}){
   // sculptural at close range without turning the board into striped planks.
   // Build the grain directly on the kneaded beam's face, using ray hits so
   // every channel follows its rounded edges and surface dents.
+  w.movingPlatformGrain??=new WeakMap();w.assetGeometry??=new Set();
+  const timberGeometry=beam.geometry;
+  let grains=w.movingPlatformGrain.get(timberGeometry);
+  if(!grains){
+  grains=[];
   const probe=new THREE.Mesh(beam.geometry,m.wood);probe.position.copy(beam.position);probe.updateMatrixWorld(true);
   const ray=new THREE.Raycaster();
   const surface=(x,y)=>{
@@ -82,6 +87,17 @@ export function makeMovingPlatform(w,s,g,{ceiling=null}={}){
       if(i<90){const a=i*2;indices.push(a,a+2,a+1,a+1,a+2,a+3);}
     }
     const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.setIndex(indices);geometry.computeVertexNormals();
+    grains.push(geometry);w.assetGeometry.add(geometry);
+  }
+  w.movingPlatformGrain.set(timberGeometry,grains);
+  // The grain cache follows the timber cache's lifetime, including eviction
+  // after editor resizing. Visible copies retain the shared timber geometry.
+  timberGeometry.addEventListener('dispose',()=>{
+    for(const geometry of grains){w.assetGeometry.delete(geometry);geometry.dispose();}
+    w.movingPlatformGrain.delete(timberGeometry);
+  });
+  }
+  for(const geometry of grains){
     // Already conforms to sculpted geometry; do not sculpt the inset twice.
     const groove=new THREE.Mesh(geometry,m.grain);groove.name='Inset flowing wood grain';groove.receiveShadow=true;g.add(groove);
   }
