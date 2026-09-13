@@ -88,10 +88,10 @@ export function buildTerrain(w,s,g){
     const foundry=['ferry-dock','ferry-exit','heart-entry'].includes(s.id);
     const survey=['vault-entry','sluice-floor'].includes(s.id);
     if(!foundry&&!survey)caveCrystals(w,g,width-1.2,.07,-1.38,s.id==='gallery-entry'?.5:.64);
-    if(s.id==='start'||s.checkpoint||s.goal)torch(w,g,s.id==='start'?8.1:width*.4,.05);
+    if(s.id==='start'||s.checkpoint||s.goal)torch(w,g,s.id==='start'?8.1:s.goal?Math.max(.7,(s.bellX??width-3.5)-2.75):width*.4,.05);
     if(width>8&&!survey)caveMushrooms(w,g,foundry?width-2.2:2,.03,-1.4,foundry?.86:.6);
     for(let i=0;i<3;i++)w.ball(.47,.35,.15,'terrain',g,.8+rand(i+s.x)*Math.max(1,width-1.6),-1.3-i*2.1,1.64);
-    if(s.goal){const chest=group(g,width-6.3,.18,-.72);w.box(1.28,.67,.77,'bark',chest,0,.33,0,.17);w.box(1.3,.39,.82,'barkLight',chest,0,.74,0,.18);for(const x of [-.42,.42])w.box(.14,.96,.85,'gold',chest,x,.49,0,.04);w.box(.24,.27,.1,'gold',chest,0,.51,.47,.04);}
+    if(s.goal){const chest=group(g,Math.min(width-.85,(s.bellX??width-3.5)+4.2),.18,-.72);w.box(1.28,.67,.77,'bark',chest,0,.33,0,.17);w.box(1.3,.39,.82,'barkLight',chest,0,.74,0,.18);for(const x of [-.42,.42])w.box(.14,.96,.85,'gold',chest,x,.49,0,.04);w.box(.24,.27,.1,'gold',chest,0,.51,.47,.04);}
   }
   if(s.checkpoint)w.flag(s.checkpoint-s.x,.05,g,.83,s.id);
   if(s.goal)w.makeBell(g,s.bellX??width-3.5,.1);
@@ -108,12 +108,22 @@ export function animateEnvironment(w,dt){
   const t=w.time;
   for(const layer of w.parallax){
     if(!layer.items){
-      layer.items=layer.group.children.map(o=>({o,x:o.position.x}));
+      layer.items=layer.group.children.map(o=>({o,x:o.position.x,y:o.position.y,scale:o.scale.clone()}));
       const xs=layer.items.map(i=>i.x);layer.span=layer.repeat??Math.max(100,Math.max(...xs)-Math.min(...xs)+25);
     }
     layer.group.position.x=w.cameraX*(1-layer.factor);
     layer.group.position.y=Math.max(0,w.cameraY-1.1)*(layer.heightFollow??1-layer.factor*.35);
     for(const item of layer.items)item.o.position.x=item.x+Math.round((w.cameraX*layer.factor-item.x)/layer.span)*layer.span;
+    if(layer.anchors?.length){
+      for(const item of layer.items){item.o.position.y=item.y;item.o.scale.copy(item.scale);}
+      // Authored landmarks can compose one existing cloud at a fixed world
+      // position while the rest of the sky keeps its normal parallax.
+      const anchor=layer.anchors.find(a=>Math.abs(w.cameraX-a.x)<20);
+      if(anchor&&layer.items.length){
+        const item=layer.items.reduce((best,item)=>Math.abs(item.o.position.x+layer.group.position.x-anchor.x)<Math.abs(best.o.position.x+layer.group.position.x-anchor.x)?item:best);
+        item.o.position.set(anchor.x-layer.group.position.x,anchor.y-layer.group.position.y,item.o.position.z);item.o.scale.setScalar(anchor.scale);
+      }
+    }
   }
   for(const a of w.ambient){
     if(a.leaf){

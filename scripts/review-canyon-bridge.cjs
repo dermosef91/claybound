@@ -21,7 +21,7 @@ const root=path.resolve(__dirname,'..'),out=path.resolve(root,process.env.REVIEW
     const prefix=process.env.BRIDGE_BASELINE?'before':'after';
     await page.evaluate(()=>{
       const w=playtest.world,g=playtest.game;Object.assign(g.player,{x:173,y:16,vx:0,vy:0,groundId:'arch-roof'});
-      g.sectionId=3;w.setEditorCamera({x:178.85,y:13.15,viewH:10.5});playtest.draw();
+      g.sectionId=3;w.setEditorCamera({x:178.85,y:13.34,viewH:10.5});playtest.draw();
       // Composition crop uses the level editor's straight-on camera, as in the reference.
       w.character.root.visible=false;w.renderer.render(w.scene,w.camera);
       document.getElementById('hud').style.visibility='hidden';
@@ -31,7 +31,7 @@ const root=path.resolve(__dirname,'..'),out=path.resolve(root,process.env.REVIEW
       await page.evaluate(()=>{
         const w=playtest.world,g=playtest.game;w.character.root.visible=true;
         document.getElementById('hud').style.visibility='visible';
-        Object.assign(g.player,{x:180,y:13.3,vx:0,vy:0,groundId:'arch-drop'});
+        const s=g.level.platforms.find(p=>p.id==='arch-drop');Object.assign(g.player,{x:s.x+s.w/2,y:s.y-Math.min(.6,s.w*.086),vx:0,vy:0,groundId:s.id});
         w.setEditorCamera(null);for(let i=0;i<90;i++)w.render(g,.05);playtest.draw();
       });
       await page.screenshot({path:out+'/gameplay-desktop.png'});
@@ -39,7 +39,7 @@ const root=path.resolve(__dirname,'..'),out=path.resolve(root,process.env.REVIEW
       const crossing=await page.evaluate(()=>({x:playtest.game.player.x,y:playtest.game.player.y,health:playtest.game.player.health,deaths:playtest.game.deaths,checkpoint:playtest.game.checkpointId}));
       assert(crossing.x>187&&crossing.deaths===0&&crossing.checkpoint==='last-rest','keyboard crossing reaches the checkpoint');
       await page.setViewportSize({width:390,height:844});
-      await page.evaluate(()=>{const w=playtest.world,g=playtest.game;Object.assign(g.player,{x:180,y:13.3,vx:0,vy:0,groundId:'arch-drop'});for(let i=0;i<90;i++)w.render(g,.05);playtest.draw();});
+      await page.evaluate(()=>{const w=playtest.world,g=playtest.game,s=g.level.platforms.find(p=>p.id==='arch-drop');Object.assign(g.player,{x:s.x+s.w/2,y:s.y-Math.min(.6,s.w*.086),vx:0,vy:0,groundId:s.id});for(let i=0;i<90;i++)w.render(g,.05);playtest.draw();});
       await page.screenshot({path:out+'/gameplay-portrait.png'});
       const stats=await page.evaluate(()=>{playtest.world.render(playtest.game,0);return {calls:playtest.world.renderer.info.render.calls,triangles:playtest.world.renderer.info.render.triangles,layoutVersion:playtest.game.level.layoutVersion};});
       await page.setViewportSize({width:1672,height:941});
@@ -54,11 +54,11 @@ const root=path.resolve(__dirname,'..'),out=path.resolve(root,process.env.REVIEW
       await page.locator('input[data-field="w"]').fill('7.1');await page.locator('input[data-field="w"]').press('Tab');
       assert.equal(await page.evaluate(()=>playtest.game.level.platforms.find(s=>s.id==='arch-drop').w),7.1);
       await page.locator('[data-edit="undo"]').click();
-      assert.equal(await page.evaluate(()=>playtest.game.level.platforms.find(s=>s.id==='arch-drop').w),6.3);
+      assert.equal(await page.evaluate(()=>playtest.game.level.platforms.find(s=>s.id==='arch-drop').w),5.65);
       const plank=await page.evaluate(()=>{
         const editor=playtest.editor;editor.select(null);editor.camera.viewH=8;
         playtest.world.render(playtest.game,0);editor.draw();
-        const point=editor.toScreen(180,13.15),rect=editor.canvas.getBoundingClientRect();return {x:point.x+rect.left,y:point.y+rect.top};
+        const s=playtest.game.level.platforms.find(p=>p.id==='arch-drop'),point=editor.toScreen(s.x+s.w/2,s.y-.65),rect=editor.canvas.getBoundingClientRect();return {x:point.x+rect.left,y:point.y+rect.top};
       });
       await page.mouse.click(plank.x,plank.y);
       assert.equal(await page.locator('select[data-field="kind"]').inputValue(),'bridge');

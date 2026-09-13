@@ -44,7 +44,6 @@ function nearScenery(w,g,variant){
   }else if(w.biome==='desert'){
     terrace(w,g,4.4,'terrain2');boulder(w,g,-.65,0,.2,1.32);boulder(w,g,.65,0,.3,.64);
     canyonModel(w,'cactus',g,1.55,0,-.15,1.75,-.28);
-    canyonModel(w,'cactus',g,-1.7,0,.5,.63,.22);
     w.ball(.47,.2,.43,'top',g,-.3,.12,1.0);
   }else if(w.biome==='forest'){
     forestUnderstory(w,g);
