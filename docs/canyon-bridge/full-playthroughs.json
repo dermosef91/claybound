@@ -1,9 +1,9 @@
 [
   {
     "index": 0,
-    "seconds": 55.366666666664166,
-    "frames": 6644,
-    "coins": 42,
+    "seconds": 55.3499999999975,
+    "frames": 6642,
+    "coins": 43,
     "flowers": 0,
     "checkpoint": "sky-rest",
     "latched": {
@@ -15,7 +15,7 @@
     "index": 1,
     "seconds": 64.44166666666402,
     "frames": 7733,
-    "coins": 39,
+    "coins": 37,
     "flowers": 1,
     "checkpoint": "bloom-root",
     "latched": {

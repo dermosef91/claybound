@@ -1,0 +1,1142 @@
+{
+  "layoutVersion": 3,
+  "winds": [
+    {
+      "id": "well-a",
+      "x": 50,
+      "w": 12,
+      "y": 3.5,
+      "h": 10,
+      "fx": 0,
+      "fy": 19,
+      "channel": "wind-a"
+    },
+    {
+      "id": "tailwind",
+      "x": 124,
+      "w": 11,
+      "y": 8,
+      "h": 7,
+      "fx": 8,
+      "fy": 0
+    },
+    {
+      "id": "well-b",
+      "x": 197,
+      "w": 19,
+      "y": 11,
+      "h": 11,
+      "fx": 3,
+      "fy": 18,
+      "channel": "wind-b"
+    }
+  ],
+  "crushers": [],
+  "circuits": [
+    {
+      "source": "valve1",
+      "channel": "wind-a",
+      "targets": [
+        "wind-step",
+        "wind-crown"
+      ],
+      "kind": "wind"
+    },
+    {
+      "source": "valve2",
+      "channel": "wind-b",
+      "targets": [
+        "sky1",
+        "sky2"
+      ],
+      "kind": "wind"
+    }
+  ],
+  "guides": [
+    {
+      "platformId": "wind-crown",
+      "offset": 0.55,
+      "dir": -1
+    },
+    {
+      "platformId": "arch-balcony",
+      "offset": 0.55,
+      "dir": -1
+    },
+    {
+      "platformId": "arch-balcony",
+      "offset": 3.4,
+      "dir": 1
+    }
+  ],
+  "detours": [
+    [
+      {
+        "from": "wind-crown",
+        "to": "wind-turn",
+        "mode": "jump"
+      },
+      {
+        "from": "wind-turn",
+        "to": "well-flower",
+        "mode": "jump"
+      },
+      {
+        "from": "well-flower",
+        "to": "wind-turn",
+        "mode": "jump"
+      },
+      {
+        "from": "wind-turn",
+        "to": "wind-crown",
+        "mode": "jump"
+      },
+      {
+        "from": "wind-crown",
+        "to": "wind-exit",
+        "mode": "jump"
+      }
+    ],
+    [
+      {
+        "from": "sand2",
+        "to": "sand-catch",
+        "mode": "fall"
+      },
+      {
+        "from": "sand-catch",
+        "to": "basin-flower",
+        "mode": "fall"
+      },
+      {
+        "from": "basin-flower",
+        "to": "sand-catch",
+        "mode": "jump"
+      },
+      {
+        "from": "sand-catch",
+        "to": "sand-return",
+        "mode": "jump"
+      },
+      {
+        "from": "sand-return",
+        "to": "sand-rest",
+        "mode": "jump"
+      }
+    ],
+    [
+      {
+        "from": "arch-balcony",
+        "to": "arch-return",
+        "mode": "jump"
+      },
+      {
+        "from": "arch-return",
+        "to": "arch-flower",
+        "mode": "jump"
+      },
+      {
+        "from": "arch-flower",
+        "to": "arch-roof",
+        "mode": "jump"
+      }
+    ]
+  ],
+  "recoveries": [
+    [
+      {
+        "from": "sand-catch",
+        "to": "sand-return",
+        "mode": "jump"
+      },
+      {
+        "from": "sand-return",
+        "to": "sand-rest",
+        "mode": "jump"
+      }
+    ]
+  ],
+  "name": "The Sunbaked Canyon",
+  "short": "Sunbaked Canyon",
+  "label": "Windwells & ropeways",
+  "biome": "desert",
+  "intro": "Wake the windwells. Ride the sandstone sky to the caravan bell.",
+  "sky": "#80afe0",
+  "fog": "#f1bba0",
+  "spawn": {
+    "x": 1.5,
+    "y": 0
+  },
+  "end": 246,
+  "previousDistance": 815,
+  "cameraY": 2,
+  "sections": [
+    {
+      "x": -8,
+      "name": "The Caravan Steps",
+      "landmark": "arch",
+      "id": 0,
+      "end": 43
+    },
+    {
+      "x": 43,
+      "name": "Wake the Windwell",
+      "landmark": "windmill",
+      "id": 1,
+      "end": 91
+    },
+    {
+      "x": 91,
+      "name": "The Sinking Shortcut",
+      "landmark": "sandwheel",
+      "id": 2,
+      "end": 143
+    },
+    {
+      "x": 143,
+      "name": "Inside the Great Arch",
+      "landmark": "arch",
+      "quiet": true,
+      "id": 3,
+      "end": 191
+    },
+    {
+      "x": 191,
+      "name": "The Sky-Sand Run",
+      "landmark": "windmill",
+      "id": 4,
+      "end": 254
+    }
+  ],
+  "platforms": [
+    {
+      "id": "start",
+      "x": -8,
+      "w": 18,
+      "y": 0,
+      "kind": "stone",
+      "section": 0
+    },
+    {
+      "id": "lift1",
+      "x": 12,
+      "w": 4,
+      "y": 0.9,
+      "kind": "lift",
+      "moveY": 0.85,
+      "period": 4.8,
+      "phase": -1.57,
+      "section": 0
+    },
+    {
+      "id": "arrival",
+      "x": 18,
+      "w": 6,
+      "y": 2,
+      "kind": "stone",
+      "section": 0
+    },
+    {
+      "id": "notch",
+      "x": 26,
+      "w": 3.8,
+      "y": 3.2,
+      "kind": "ledge",
+      "section": 0
+    },
+    {
+      "id": "rope-cross",
+      "x": 32,
+      "w": 4,
+      "y": 3.7,
+      "kind": "lift",
+      "moveX": 1.1,
+      "period": 5.2,
+      "section": 0
+    },
+    {
+      "id": "lookout",
+      "x": 38,
+      "w": 5,
+      "y": 4.3,
+      "kind": "stone",
+      "section": 0
+    },
+    {
+      "id": "windwell",
+      "x": 43,
+      "w": 7,
+      "y": 4.3,
+      "kind": "stone",
+      "checkpoint": 45,
+      "landmark": "windmill",
+      "rest": true,
+      "section": 1
+    },
+    {
+      "id": "valve1",
+      "x": 47,
+      "w": 1.8,
+      "y": 4.43,
+      "kind": "switch",
+      "channel": "wind-a",
+      "latch": true,
+      "section": 1
+    },
+    {
+      "id": "wind-step",
+      "x": 52,
+      "w": 4,
+      "y": 5.6,
+      "kind": "ledge",
+      "section": 1
+    },
+    {
+      "id": "wind-crown",
+      "x": 57,
+      "w": 4,
+      "y": 10.1,
+      "kind": "ledge",
+      "section": 1
+    },
+    {
+      "id": "wind-turn",
+      "x": 53.5,
+      "w": 3.2,
+      "y": 11.8,
+      "kind": "ledge",
+      "section": 1
+    },
+    {
+      "id": "wind-exit",
+      "x": 62,
+      "w": 6,
+      "y": 11.5,
+      "kind": "stone",
+      "section": 1
+    },
+    {
+      "id": "downstep",
+      "x": 70,
+      "w": 3.6,
+      "y": 10,
+      "kind": "ledge",
+      "section": 1
+    },
+    {
+      "id": "wind-gondola",
+      "x": 76,
+      "w": 4,
+      "y": 9.6,
+      "kind": "lift",
+      "moveX": 1.15,
+      "moveY": 0.55,
+      "period": 5,
+      "section": 1
+    },
+    {
+      "id": "oasis",
+      "x": 83,
+      "w": 8,
+      "y": 9.2,
+      "kind": "stone",
+      "landmark": "oasis",
+      "rest": true,
+      "section": 1
+    },
+    {
+      "id": "basin",
+      "x": 91,
+      "w": 7,
+      "y": 9.2,
+      "kind": "stone",
+      "checkpoint": 93,
+      "landmark": "sandwheel",
+      "section": 2
+    },
+    {
+      "id": "sand1",
+      "x": 100,
+      "w": 3.8,
+      "y": 9.6,
+      "kind": "crumble",
+      "delay": 1.2,
+      "section": 2
+    },
+    {
+      "id": "sand2",
+      "x": 106,
+      "w": 3.6,
+      "y": 10.3,
+      "kind": "crumble",
+      "delay": 1,
+      "section": 2
+    },
+    {
+      "id": "sand3",
+      "x": 112,
+      "w": 3.8,
+      "y": 10.1,
+      "kind": "crumble",
+      "delay": 0.9,
+      "section": 2
+    },
+    {
+      "id": "sand-rest",
+      "x": 118,
+      "w": 5,
+      "y": 10.8,
+      "kind": "stone",
+      "section": 2
+    },
+    {
+      "id": "sand4",
+      "x": 125,
+      "w": 3.6,
+      "y": 11.4,
+      "kind": "crumble",
+      "delay": 1,
+      "section": 2
+    },
+    {
+      "id": "sand5",
+      "x": 131,
+      "w": 3.8,
+      "y": 10.6,
+      "kind": "crumble",
+      "delay": 0.9,
+      "section": 2
+    },
+    {
+      "id": "sand-catch",
+      "x": 100,
+      "w": 17,
+      "y": 6.9,
+      "kind": "ledge",
+      "recovery": true,
+      "section": 2
+    },
+    {
+      "id": "sand-return",
+      "x": 117,
+      "w": 4,
+      "y": 8.8,
+      "kind": "ledge",
+      "recovery": true,
+      "section": 2
+    },
+    {
+      "id": "arch-entry",
+      "x": 137,
+      "w": 13,
+      "y": 9.4,
+      "kind": "stone",
+      "checkpoint": 145,
+      "landmark": "arch",
+      "rest": true,
+      "section": 2
+    },
+    {
+      "id": "arch-shelf",
+      "x": 152,
+      "w": 4,
+      "y": 10.6,
+      "kind": "ledge",
+      "section": 3
+    },
+    {
+      "id": "arch-lift",
+      "x": 158,
+      "w": 4,
+      "y": 12.2,
+      "kind": "lift",
+      "moveY": 2.2,
+      "period": 5.8,
+      "phase": -1.57,
+      "section": 3
+    },
+    {
+      "id": "arch-balcony",
+      "x": 164,
+      "w": 4,
+      "y": 15,
+      "kind": "ledge",
+      "section": 3
+    },
+    {
+      "id": "arch-return",
+      "x": 159,
+      "w": 3.4,
+      "y": 16.7,
+      "kind": "ledge",
+      "section": 3
+    },
+    {
+      "id": "arch-roof",
+      "x": 170,
+      "w": 6,
+      "y": 16,
+      "kind": "stone",
+      "section": 3
+    },
+    {
+      "id": "arch-drop",
+      "x": 178,
+      "w": 4,
+      "y": 13.8,
+      "kind": "ledge",
+      "section": 3
+    },
+    {
+      "id": "last-rest",
+      "x": 184,
+      "w": 7,
+      "y": 12,
+      "kind": "stone",
+      "checkpoint": 187,
+      "landmark": "oasis",
+      "rest": true,
+      "section": 3
+    },
+    {
+      "id": "last-well",
+      "x": 191,
+      "w": 6,
+      "y": 12,
+      "kind": "stone",
+      "landmark": "windmill",
+      "section": 4
+    },
+    {
+      "id": "valve2",
+      "x": 194,
+      "w": 1.8,
+      "y": 12.13,
+      "kind": "switch",
+      "channel": "wind-b",
+      "latch": true,
+      "section": 4
+    },
+    {
+      "id": "sky1",
+      "x": 199,
+      "w": 4,
+      "y": 13.5,
+      "kind": "ledge",
+      "section": 4
+    },
+    {
+      "id": "sky-lift",
+      "x": 205,
+      "w": 4,
+      "y": 16,
+      "kind": "lift",
+      "moveY": 1,
+      "period": 5.2,
+      "phase": -0.8,
+      "section": 4
+    },
+    {
+      "id": "sky2",
+      "x": 212,
+      "w": 4,
+      "y": 19.4,
+      "kind": "ledge",
+      "section": 4
+    },
+    {
+      "id": "sky-rest",
+      "x": 218,
+      "w": 5,
+      "y": 20,
+      "kind": "stone",
+      "checkpoint": 220,
+      "section": 4
+    },
+    {
+      "id": "sky-sand",
+      "x": 225,
+      "w": 3.7,
+      "y": 20.7,
+      "kind": "crumble",
+      "delay": 1,
+      "section": 4
+    },
+    {
+      "id": "sky-rope",
+      "x": 231,
+      "w": 4,
+      "y": 21.5,
+      "kind": "lift",
+      "moveX": 0.7,
+      "moveY": 0.65,
+      "period": 4.8,
+      "section": 4
+    },
+    {
+      "id": "bell-roof",
+      "x": 238,
+      "w": 15,
+      "y": 22,
+      "kind": "stone",
+      "goal": true,
+      "landmark": "bellgate",
+      "section": 4,
+      "bellX": 8
+    },
+    {
+      "id": "well-flower",
+      "x": 50,
+      "w": 3.2,
+      "y": 13.5,
+      "kind": "ledge",
+      "optional": true,
+      "section": 1
+    },
+    {
+      "id": "basin-flower",
+      "x": 109,
+      "w": 3.2,
+      "y": 5.1,
+      "kind": "ledge",
+      "optional": true,
+      "section": 2
+    },
+    {
+      "id": "arch-flower",
+      "x": 162.5,
+      "w": 3.2,
+      "y": 18.3,
+      "kind": "ledge",
+      "optional": true,
+      "section": 3
+    }
+  ],
+  "coins": [
+    {
+      "x": 4,
+      "y": 1
+    },
+    {
+      "x": 5.1,
+      "y": 1
+    },
+    {
+      "x": 6.2,
+      "y": 1
+    },
+    {
+      "x": 10.666666666666666,
+      "y": 2.183333333333333
+    },
+    {
+      "x": 12.333333333333332,
+      "y": 3.138909853100212
+    },
+    {
+      "x": 14,
+      "y": 3.7
+    },
+    {
+      "x": 15.666666666666666,
+      "y": 3.8055765197668787
+    },
+    {
+      "x": 17.333333333333336,
+      "y": 3.5166666666666666
+    },
+    {
+      "x": 27,
+      "y": 4.3
+    },
+    {
+      "x": 28.1,
+      "y": 4.3
+    },
+    {
+      "x": 44,
+      "y": 5.3
+    },
+    {
+      "x": 45.1,
+      "y": 5.3
+    },
+    {
+      "x": 53.833333333333336,
+      "y": 7.633333333333333
+    },
+    {
+      "x": 54.666666666666664,
+      "y": 8.599679368558885
+    },
+    {
+      "x": 55.5,
+      "y": 9.45
+    },
+    {
+      "x": 56.333333333333336,
+      "y": 10.166346035225551
+    },
+    {
+      "x": 57.166666666666664,
+      "y": 10.766666666666666
+    },
+    {
+      "x": 71,
+      "y": 11
+    },
+    {
+      "x": 72.1,
+      "y": 11
+    },
+    {
+      "x": 84,
+      "y": 10.2
+    },
+    {
+      "x": 85.1,
+      "y": 10.2
+    },
+    {
+      "x": 86.2,
+      "y": 10.2
+    },
+    {
+      "x": 101,
+      "y": 10.7
+    },
+    {
+      "x": 102.1,
+      "y": 10.7
+    },
+    {
+      "x": 107,
+      "y": 11.3
+    },
+    {
+      "x": 108.1,
+      "y": 11.3
+    },
+    {
+      "x": 113,
+      "y": 11.1
+    },
+    {
+      "x": 114.1,
+      "y": 11.1
+    },
+    {
+      "x": 126,
+      "y": 12.4
+    },
+    {
+      "x": 127.1,
+      "y": 12.4
+    },
+    {
+      "x": 144,
+      "y": 10.4
+    },
+    {
+      "x": 145.1,
+      "y": 10.4
+    },
+    {
+      "x": 146.2,
+      "y": 10.4
+    },
+    {
+      "x": 160,
+      "y": 14.016666666666666
+    },
+    {
+      "x": 161,
+      "y": 14.899358737117772
+    },
+    {
+      "x": 162,
+      "y": 15.55
+    },
+    {
+      "x": 163,
+      "y": 15.932692070451106
+    },
+    {
+      "x": 164,
+      "y": 16.083333333333332
+    },
+    {
+      "x": 185,
+      "y": 13
+    },
+    {
+      "x": 186.1,
+      "y": 13
+    },
+    {
+      "x": 187.2,
+      "y": 13
+    },
+    {
+      "x": 201.625,
+      "y": 16.07018343236509
+    },
+    {
+      "x": 203.25,
+      "y": 17.082106781186546
+    },
+    {
+      "x": 204.875,
+      "y": 17.986379532511286
+    },
+    {
+      "x": 206.5,
+      "y": 18.75
+    },
+    {
+      "x": 208.125,
+      "y": 19.361379532511286
+    },
+    {
+      "x": 209.75,
+      "y": 19.832106781186546
+    },
+    {
+      "x": 211.375,
+      "y": 20.19518343236509
+    },
+    {
+      "x": 219,
+      "y": 21
+    },
+    {
+      "x": 220.1,
+      "y": 21
+    },
+    {
+      "x": 239,
+      "y": 23
+    },
+    {
+      "x": 240.1,
+      "y": 23
+    },
+    {
+      "x": 241.2,
+      "y": 23
+    },
+    {
+      "x": 242.3,
+      "y": 23
+    },
+    {
+      "x": 243.4,
+      "y": 23
+    }
+  ],
+  "stamps": [
+    {
+      "x": 51.6,
+      "y": 14.5
+    },
+    {
+      "x": 110.6,
+      "y": 6.1
+    },
+    {
+      "x": 164,
+      "y": 19.3
+    }
+  ],
+  "enemies": [
+    {
+      "kind": "drifter",
+      "x": 21,
+      "y": 3.15,
+      "min": 19.2,
+      "max": 22.8,
+      "speed": 0.85,
+      "bob": 0.16,
+      "period": 5.2,
+      "phase": 0
+    },
+    {
+      "kind": "drifter",
+      "x": 121,
+      "y": 11.95,
+      "min": 119.1,
+      "max": 122.1,
+      "speed": 0.95,
+      "bob": 0.18,
+      "period": 4.8,
+      "phase": 1.1
+    },
+    {
+      "kind": "drifter",
+      "x": 173,
+      "y": 17.15,
+      "min": 171,
+      "max": 175,
+      "speed": 1.05,
+      "bob": 0.2,
+      "period": 4.5,
+      "phase": 2.2
+    },
+    {
+      "kind": "drifter",
+      "x": 59,
+      "y": 11.3,
+      "min": 57.8,
+      "max": 60.2,
+      "speed": 0.8,
+      "bob": 0.15,
+      "period": 5.6,
+      "phase": 0.8
+    }
+  ],
+  "hazards": [
+    {
+      "x": 10,
+      "w": 8,
+      "y": -4
+    },
+    {
+      "x": 24,
+      "w": 14,
+      "y": -2
+    },
+    {
+      "x": 68,
+      "w": 15,
+      "y": 4.8
+    },
+    {
+      "x": 98,
+      "w": 39,
+      "y": 2
+    },
+    {
+      "x": 150,
+      "w": 20,
+      "y": 6
+    },
+    {
+      "x": 176,
+      "w": 8,
+      "y": 7.5
+    },
+    {
+      "x": 197,
+      "w": 21,
+      "y": 7.5
+    },
+    {
+      "x": 223,
+      "w": 15,
+      "y": 15
+    }
+  ],
+  "hints": [
+    {
+      "x": 0,
+      "end": 9,
+      "title": "Find your stride",
+      "text": "Move with A / D or arrows. Hold jump to leap farther."
+    },
+    {
+      "x": 43,
+      "end": 51,
+      "title": "Wake the windwell",
+      "text": "Step on the cream valve. The rising ribbons lift your jumps."
+    },
+    {
+      "x": 91,
+      "end": 100,
+      "title": "Light on the sand",
+      "text": "Pale ledges sink after landing. Keep your rhythm; lower shelves catch a slip."
+    }
+  ],
+  "routeLinks": [
+    {
+      "from": "start",
+      "to": "lift1",
+      "mode": "jump"
+    },
+    {
+      "from": "lift1",
+      "to": "arrival",
+      "mode": "jump"
+    },
+    {
+      "from": "arrival",
+      "to": "notch",
+      "mode": "jump"
+    },
+    {
+      "from": "notch",
+      "to": "rope-cross",
+      "mode": "jump"
+    },
+    {
+      "from": "rope-cross",
+      "to": "lookout",
+      "mode": "jump"
+    },
+    {
+      "from": "lookout",
+      "to": "windwell",
+      "mode": "walk"
+    },
+    {
+      "from": "windwell",
+      "to": "valve1",
+      "mode": "walk"
+    },
+    {
+      "from": "valve1",
+      "to": "wind-step",
+      "mode": "jump"
+    },
+    {
+      "from": "wind-step",
+      "to": "wind-crown",
+      "mode": "jump"
+    },
+    {
+      "from": "wind-crown",
+      "to": "wind-exit",
+      "mode": "jump"
+    },
+    {
+      "from": "wind-exit",
+      "to": "downstep",
+      "mode": "jump"
+    },
+    {
+      "from": "downstep",
+      "to": "wind-gondola",
+      "mode": "jump"
+    },
+    {
+      "from": "wind-gondola",
+      "to": "oasis",
+      "mode": "jump"
+    },
+    {
+      "from": "oasis",
+      "to": "basin",
+      "mode": "walk"
+    },
+    {
+      "from": "basin",
+      "to": "sand1",
+      "mode": "jump"
+    },
+    {
+      "from": "sand1",
+      "to": "sand2",
+      "mode": "jump"
+    },
+    {
+      "from": "sand2",
+      "to": "sand3",
+      "mode": "jump"
+    },
+    {
+      "from": "sand3",
+      "to": "sand-rest",
+      "mode": "jump"
+    },
+    {
+      "from": "sand-rest",
+      "to": "sand4",
+      "mode": "jump"
+    },
+    {
+      "from": "sand4",
+      "to": "sand5",
+      "mode": "jump"
+    },
+    {
+      "from": "sand5",
+      "to": "arch-entry",
+      "mode": "jump"
+    },
+    {
+      "from": "arch-entry",
+      "to": "arch-shelf",
+      "mode": "jump"
+    },
+    {
+      "from": "arch-shelf",
+      "to": "arch-lift",
+      "mode": "jump"
+    },
+    {
+      "from": "arch-lift",
+      "to": "arch-balcony",
+      "mode": "jump"
+    },
+    {
+      "from": "arch-balcony",
+      "to": "arch-roof",
+      "mode": "jump"
+    },
+    {
+      "from": "arch-roof",
+      "to": "arch-drop",
+      "mode": "jump"
+    },
+    {
+      "from": "arch-drop",
+      "to": "last-rest",
+      "mode": "jump"
+    },
+    {
+      "from": "last-rest",
+      "to": "last-well",
+      "mode": "walk"
+    },
+    {
+      "from": "last-well",
+      "to": "valve2",
+      "mode": "walk"
+    },
+    {
+      "from": "valve2",
+      "to": "sky1",
+      "mode": "jump"
+    },
+    {
+      "from": "sky1",
+      "to": "sky-lift",
+      "mode": "jump"
+    },
+    {
+      "from": "sky-lift",
+      "to": "sky2",
+      "mode": "jump"
+    },
+    {
+      "from": "sky2",
+      "to": "sky-rest",
+      "mode": "jump"
+    },
+    {
+      "from": "sky-rest",
+      "to": "sky-sand",
+      "mode": "jump"
+    },
+    {
+      "from": "sky-sand",
+      "to": "sky-rope",
+      "mode": "jump"
+    },
+    {
+      "from": "sky-rope",
+      "to": "bell-roof",
+      "mode": "jump"
+    }
+  ],
+  "originalDistance": 81.5
+}

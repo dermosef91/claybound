@@ -53,6 +53,11 @@ function fence(w,parent,x,y,count=3){
 
 export function buildCanyonTerrain(w,s,g){
   g.name='Canyon cliff '+s.id;
+  if(s.id==='arch-bridge-left'||s.id==='arch-bridge-right'){
+    // The reference banks are slender, continuous fingers of sandstone.
+    block(w,g,s.w+.1,10.5,3.42,s.w/2,-5.25,-.06,'terrain',s.x*7);
+    return;
+  }
   const columns=Math.max(2,Math.ceil(s.w/2.9)),cw=s.w/columns;
   for(let i=0;i<columns;i++){
     const seed=Math.floor(s.x*3)+i*11,split=2.5+random(seed)*1.05;
@@ -71,6 +76,12 @@ export function buildCanyonTerrain(w,s,g){
       const seed=i*9+j+Math.floor(s.x),x=i*capW+(j+.5)*capW/3;
       const chip=w.box(.42+random(seed)*.3,.19+random(seed+3)*.14,.3,material,g,x,-.39-random(seed+1)*.07,1.68,.115);chip.rotation.z=(random(seed+5)-.5)*.25;
     }
+  }
+  if(s.w<2.2){
+    // Narrow abutments leave room for the bridge posts and their rope wraps.
+    if(s.checkpoint)w.flag(s.checkpoint-s.x,.035,g,.83,s.id);
+    if(s.goal)w.makeBell(g,s.bellX??s.w-3.5,.1);
+    return;
   }
   if(s.id==='start'){
     cactus(w,g,4,.02,2.7,-1.35,.08);cactus(w,g,11.5,.02,1.1,-1.12,-.1);fence(w,g,6.3,.01,3);w.flag(8.25,.01,g,.77);

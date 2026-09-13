@@ -7,11 +7,12 @@ import {updateCavernMachine,solidWall,solidDepth} from './cavern-machines.js';
 import {resetSpitter,contactSpitter,updateShots} from './spitter-rules.js';
 
 import {claySurface,clayWallBounds,updateShaping,stompClay} from './shaping.js';
+import {bridgeOffset} from './bridge-surface.js';
 
 export const FIXED_DT=1/120;
 export const RULES={speed:6.7,jump:11.8,gravity:27,radius:.32,height:1.7,maxHealth:3};
 const approach=(v,t,d)=>v<t?Math.min(t,v+d):Math.max(t,v-d);
-export const surfaceAt=(s,x,previous=false)=>s.shape?claySurface(s,x,previous):(previous?s.prevY:s.y)+(s.kind==='balance'?Math.sin(previous?s.prevAngle:s.angle)*(x-(previous?s.prevX:s.x)-s.w/2):0);
+export const surfaceAt=(s,x,previous=false)=>s.shape?claySurface(s,x,previous):(previous?s.prevY:s.y)+(s.kind==='bridge'?bridgeOffset(s,x-(previous?s.prevX:s.x)):s.kind==='balance'?Math.sin(previous?s.prevAngle:s.angle)*(x-(previous?s.prevX:s.x)-s.w/2):0);
 
 export class Game {
   constructor(onEvent=()=>{}) {this.onEvent=onEvent;this.status='menu';this.load(0);this.status='menu';}
@@ -150,7 +151,7 @@ export class Game {
     p.vy=Math.max(-26,p.vy);
     p.x=Math.max(-6,p.x+p.vx*dt);p.y+=p.vy*dt;
     p.groundId=null;
-    if((oldGround?.kind==='balance'||oldGround?.shape)&&p.vy<=0&&p.x>oldGround.x&&p.x<oldGround.x+oldGround.w)p.y=oldGround.shape?surfaceAt(oldGround,p.x):Math.min(p.y,surfaceAt(oldGround,p.x));
+    if((oldGround?.kind==='balance'||oldGround?.kind==='bridge'||oldGround?.shape)&&p.vy<=0&&p.x>oldGround.x&&p.x<oldGround.x+oldGround.w)p.y=(oldGround.shape||oldGround.kind==='bridge')?surfaceAt(oldGround,p.x):Math.min(p.y,surfaceAt(oldGround,p.x));
     const candidates=L.platforms.filter(s=>s.active&&!s.broken&&!(p.dropTimer>0&&p.dropThrough===s.id)&&p.x+RULES.radius>s.x&&p.x-RULES.radius<s.x+s.w&&prevY>=surfaceAt(s,p.x,true)-(s.kind==='spring'&&oldGround ? .55 : .14)&&p.y<=surfaceAt(s,p.x)+.03&&p.vy<=Math.max(0,(surfaceAt(s,p.x)-surfaceAt(s,p.x,true))/dt)).sort((a,b)=>surfaceAt(b,p.x)-surfaceAt(a,p.x));
     if(candidates.length) {
       const s=candidates[0],impact=p.vy;

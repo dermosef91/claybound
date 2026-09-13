@@ -1,0 +1,14 @@
+[
+  {
+    "index": 0,
+    "seconds": 55.3499999999975,
+    "frames": 6642,
+    "coins": 43,
+    "flowers": 0,
+    "checkpoint": "sky-rest",
+    "latched": {
+      "wind-a": true,
+      "wind-b": true
+    }
+  }
+]

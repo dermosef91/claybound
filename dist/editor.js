@@ -3,6 +3,8 @@ import {instantiateLevel} from './levels.js';
 import {Game,FIXED_DT,RULES} from './simulation.js';
 import {BAT,batPatrolBounds} from './enemy-rules.js';
 import {DRIFTER} from './drifter-rules.js';
+import {bridgeOffset} from './bridge-surface.js';
+const deckHeight=(p,x)=>p.y+(p.kind==='bridge'?bridgeOffset(p,x-p.x):0);
 const airborne=p=>['bat','drifter'].includes(p.kind);
 const hoverHeight=p=>p.y+(airborne(p)?Math.sin(p.phase||0)*(p.bob??(p.kind==='bat'?BAT:DRIFTER).bob)+(p.kind==='bat'?BAT.modelOffsetY:0):0);
 
@@ -16,8 +18,8 @@ const checkbox=(key,label,value)=>`<label class="editor-check"><input data-field
 
 export function jumpGuide(level,index,platform,direction){
   const g=new Game();g.start(index,level);const x=platform.x+platform.w/2;
-  Object.assign(g.player,{x,y:platform.y,groundId:platform.id,vx:direction*RULES.speed,facing:direction});
-  const points=[{x,y:platform.y}];let airborne=false;
+  Object.assign(g.player,{x,y:deckHeight(platform,x),groundId:platform.id,vx:direction*RULES.speed,facing:direction});
+  const points=[{x,y:g.player.y}];let airborne=false;
   for(let i=0;i<190;i++){
     g.tick(FIXED_DT,{moveAxis:direction,jumpPressed:i===0,jumpHeld:true});
     if(i%4===0)points.push({x:g.player.x,y:g.player.y});
@@ -178,7 +180,7 @@ export class LevelEditor{
     }catch(err){this.notice(err.message,true);}
   }
   playtest(here=false){
-    this.cancelGesture();const obj=selectedObject(this.session.level,this.session.selection);const spawn=here&&this.session.selection?.list==='platforms'?{x:obj.x+obj.w/2,y:obj.y,groundId:obj.id}:null;
+    this.cancelGesture();const obj=selectedObject(this.session.level,this.session.selection);const spawn=here&&this.session.selection?.list==='platforms'?{x:obj.x+obj.w/2,y:deckHeight(obj,obj.x+obj.w/2),groundId:obj.id}:null;
     this.testing=true;this.active=false;this.root.classList.add('hidden');this.world.setEditorCamera(null);document.body.classList.remove('is-editing');document.body.classList.add('is-editor-test');this.onTest(this.session.index,clone(this.session.level),spawn);
   }
   returnToEditor(){return this.open(this.session.index);}
@@ -214,7 +216,11 @@ export class LevelEditor{
     for(const list of [...LISTS,'spawn'])for(const [index,p]of (list==='spawn'?[L.spawn]:L[list]).entries()){
       const a=this.toScreen(p.x,hoverHeight(p)),width=(p.w||0)*this.dimensions().h/this.camera.viewH;
       let distance;
-      if(list==='platforms'||list==='hazards')distance=Math.hypot(Math.max(a.x-point.x,0,point.x-a.x-width),Math.abs(point.y-a.y));
+      if(list==='platforms'&&p.kind==='bridge'){
+        const x=clamp(this.toWorld(point).x,p.x,p.x+p.w),deck=this.toScreen(x,deckHeight(p,x)),thickness=.4*this.dimensions().h/this.camera.viewH;
+        distance=Math.hypot(Math.max(a.x-point.x,0,point.x-a.x-width),Math.max(deck.y-point.y,0,point.y-deck.y-thickness));
+      }
+      else if(list==='platforms'||list==='hazards')distance=Math.hypot(Math.max(a.x-point.x,0,point.x-a.x-width),Math.abs(point.y-a.y));
       else if(list==='winds'){const b=this.toScreen(p.x+p.w,p.y+p.h);distance=Math.min(Math.hypot(Math.max(a.x-point.x,0,point.x-b.x),Math.abs(point.y-a.y)),Math.hypot(Math.abs(point.x-a.x),Math.max(b.y-point.y,0,point.y-a.y)));}
       else distance=Math.hypot(point.x-a.x,point.y-(a.y-(list==='enemies'&&!airborne(p)?16:0)));
       if(distance<24)candidates.push({list,index,distance:distance+(list==='platforms'?3:0)});
@@ -260,7 +266,13 @@ export class LevelEditor{
     for(const list of LISTS)for(const [index,p]of L[list].entries()){
       const a=this.toScreen(p.x,hoverHeight(p));if(a.x+(p.w||1)*units<0||a.x>w||a.y<-150||a.y>h+150)continue;
       const selected=this.session.selection?.list===list&&this.session.selection.index===index;ctx.strokeStyle=selected?'#ffe9a6':list==='hazards'||list==='crushers'?'#fa957c99':list==='winds'?'#a0ede887':'#fff7df5a';ctx.lineWidth=selected?2.5:1;
-      if(p.w&&list!=='crushers'){
+      if(list==='platforms'&&p.kind==='bridge'){
+        ctx.beginPath();
+        for(let i=0;i<=24;i++){const x=p.x+p.w*i/24,b=this.toScreen(x,deckHeight(p,x));if(i)ctx.lineTo(b.x,b.y);else ctx.moveTo(b.x,b.y);}
+        for(let i=24;i>=0;i--){const x=p.x+p.w*i/24,b=this.toScreen(x,deckHeight(p,x)-.4);ctx.lineTo(b.x,b.y);}
+        ctx.closePath();ctx.stroke();
+        if(selected){ctx.fillStyle='#ffe9a613';ctx.fill();for(const x of [a.x,a.x+p.w*units]){ctx.beginPath();ctx.arc(x,a.y,8,0,Math.PI*2);ctx.fillStyle='#fff0be';ctx.fill();ctx.strokeStyle='#3e4c4e';ctx.stroke();}}
+      }else if(p.w&&list!=='crushers'){
         const height=list==='winds'?p.h*units:list==='hazards'?-.8*units:.3*units,ay=list==='winds'?a.y-height:a.y;ctx.strokeRect(a.x,ay,p.w*units,Math.abs(height));
         if(selected){ctx.fillStyle='#ffe9a613';ctx.fillRect(a.x,ay,p.w*units,Math.abs(height));for(const x of [a.x,a.x+p.w*units]){ctx.beginPath();ctx.arc(x,a.y,8,0,Math.PI*2);ctx.fillStyle='#fff0be';ctx.fill();ctx.strokeStyle='#3e4c4e';ctx.stroke();}}
       }else{ctx.beginPath();ctx.arc(a.x,a.y-(list==='enemies'&&!airborne(p)?16:0),selected?15:9,0,Math.PI*2);ctx.stroke();}

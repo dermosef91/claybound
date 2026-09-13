@@ -1,0 +1,20 @@
+{
+  "source": "docs/canyon-canon/editor-backup.json",
+  "unchanged": [
+    "all existing platforms except arch-drop",
+    "coins",
+    "stamps",
+    "enemies",
+    "hazards",
+    "winds",
+    "crushers",
+    "spawn"
+  ],
+  "changed": [
+    "arch-drop: rope bridge",
+    "arch-bridge-left: added support",
+    "arch-bridge-right: added support",
+    "main route links through the banks",
+    "layout version 5"
+  ]
+}

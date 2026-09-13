@@ -1,0 +1,30 @@
+{
+  "source": "Meshy_AI_Desert_Cave_Arch_0913091257_texture.glb",
+  "provenance": "User-supplied Meshy model for the Great Arch redesign",
+  "sourceSha256": "5e91e714fc0b3eb0f3c547b3110e7fe8c652dde88cc6a4727606064cc1a2fcf9",
+  "shippedSha256": "a6db1835e4b4682bf6eedb3d5ddf20737b51b3612cf52503a8b44a216beba30c",
+  "sourceBytes": 5031236,
+  "shippedBytes": 1119600,
+  "textures": [
+    [
+      2048,
+      2048
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "triangles": 10440,
+  "geometryBufferSha256": [
+    "db79a36c63e176f97e824e47e73cf3efb0e24b84f263a7d5883779c2eb916e6d",
+    "ef978d5f1cd6be56affc548cd7677afdf860bd667679773db1e36c48db5b5bb1",
+    "b800cae35c07982ab252e79aaf26625af9d70672c922285bcc9c4e81f8aae515",
+    "7e76fc748d53195101c767515a701c9d2d46394754e014022a5197b83dc1107e"
+  ],
+  "geometryUnchanged": true
+}

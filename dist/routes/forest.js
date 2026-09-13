@@ -1,5 +1,6 @@
 import {chapter,p,row,arc,path} from '../route-authoring.js';
 export default chapter({
+  layoutVersion:4,
   name:'The Wildwood',short:'Wildwood',label:'Bounce, burrow & bloom',biome:'forest',
   intro:'Climb the living tree. Break its sealed roots and let the forest breathe.',
   sky:'#b2d2b7',fog:'#b7d2bc',spawn:{x:1.5,y:0},end:264,previousDistance:875,cameraY:3,
@@ -32,7 +33,7 @@ export default chapter({
   recoveries:[path(['canopy-catch','canopy-return','canopy-rest'])],
   winds:[{id:'root-breath',x:60,w:6,y:0,h:7,fx:0,fy:16,channel:'root-a',spores:true},{id:'heart-breath',x:126,w:14,y:13,h:11,fx:0,fy:19,channel:'tree-spores',spores:true},{id:'bloom-breath',x:231,w:14,y:23,h:12,fx:0,fy:19,channel:'bloom-spores',spores:true}],
   circuits:[{source:'crack1',channel:'root-a',targets:['root-floor'],kind:'spore'},{source:'tree-seal',channel:'tree-spores',targets:['spore1','spore2'],kind:'spore'},{source:'bloom-seal',channel:'bloom-spores',targets:['bloom-rise','bloom-cloud'],kind:'spore'}],
-  coins:[...row(4,1,3),...arc(9,1,7,4.5,5,1),...row(23,6.7,2),...arc(37,4.4,7,4.6,4,1),...arc(59,7,0,-3,3,0),...row(62,3.6,3),...row(70,4.5,2),...arc(78,5,7,4.5,4,.8),...row(97,9.1,3),...arc(104,9.5,6,4.5,4,1),...row(104,15.4,2),...arc(105,16,7,4.2,4,1),...arc(121.3,17.9,2.4,-.2,3,.5),...arc(129,17,6,4.5,5,.7),...row(149,21,4),...row(166,21.8,2),...row(171,22.6,2),...row(183,23.5,2),...arc(212,26.3,7,4.6,5,1),...row(226,25.5,3),...arc(234,27.5,7,4.5,5,.8),...row(258,34.4,5)],
+  coins:[...row(4,1,3),{x:9.5,y:4},{x:11,y:5.5},{x:13,y:6.5},{x:14.833333333333334,y:5.25},...row(23,6.7,2),...arc(37,4.4,7,4.6,4,1),...arc(59,7,0,-3,3,0),...row(62,3.6,3),...row(70,4.5,2),...arc(78,5,7,4.5,4,.8),...row(97,9.1,3),...arc(104,9.5,6,4.5,4,1),...row(104,15.4,2),...arc(105,16,7,4.2,4,1),...arc(121.3,17.9,2.4,-.2,3,.5),...arc(129,17,6,4.5,5,.7),...row(149,21,4),...row(166,21.8,2),...row(171,22.6,2),...row(183,23.5,2),...arc(212,26.3,7,4.6,5,1),...row(226,25.5,3),...arc(234,27.5,7,4.5,5,.8),...row(258,34.4,5)],
   stamps:[{x:25.5,y:9.4},{x:62.6,y:1.8},{x:115,y:22}],
   enemies:[
     {kind:'spore',x:30,y:6.6,min:28.8,max:31.25,speed:.45},

@@ -1,0 +1,23 @@
+{
+  "errors": [],
+  "requests": [],
+  "crossing": {
+    "x": 188.07250000000084,
+    "y": 12,
+    "health": 3,
+    "deaths": 0,
+    "checkpoint": "last-rest"
+  },
+  "stats": {
+    "calls": 635,
+    "triangles": 951278,
+    "layoutVersion": 5
+  },
+  "editor": [
+    "browse rope bridge",
+    "resize",
+    "undo",
+    "click curved planks",
+    "rebuild"
+  ]
+}

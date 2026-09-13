@@ -1,7 +1,7 @@
 import {BAT} from './enemy-rules.js';
 import {DRIFTER} from './drifter-rules.js';
 export const DRAFT_KEY='claybound-editor-v1';
-export const KINDS={stone:'Solid cliff',ledge:'Thin ledge',lift:'Rope lift',spring:'Spring / mushroom',crumble:'Crumbling ledge',break:'Breakable seal',switch:'Switch',timed:'Switched bridge',pulse:'Pulse ledge',balance:'Counterweight',counter:'Counter lift',gate:'Relay grate',ferry:'Weight ferry',orbit:'Orbit cradle'};
+export const KINDS={stone:'Solid cliff',ledge:'Thin ledge',bridge:'Rope bridge',lift:'Rope lift',spring:'Spring / mushroom',crumble:'Crumbling ledge',break:'Breakable seal',switch:'Switch',timed:'Switched bridge',pulse:'Pulse ledge',balance:'Counterweight',counter:'Counter lift',gate:'Relay grate',ferry:'Weight ferry',orbit:'Orbit cradle'};
 export const LISTS=['platforms','coins','stamps','enemies','hazards','winds','crushers'];
 const clone=value=>structuredClone(value);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));

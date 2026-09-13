@@ -23,6 +23,8 @@ import {loadSpitterAssets} from './spitter-asset.js';
 import {loadCavernAssets} from './cavern-asset.js';
 import {createCaveLights} from './cave-lighting.js';
 import {makeCanyonLift} from './canyon.js';
+import {makeRopeBridge} from './rope-bridge.js';
+import {bridgeOffset} from './bridge-surface.js';
 import {animateCircuit} from './mechanism-views.js';
 import {forestBranch,forestSeal,forestMushroom,animateForest} from './forest-details.js';
 import {caveLedgeDetails} from './cavern.js';
@@ -181,6 +183,12 @@ export class World {
   makePlatform(s) {
     const g=new THREE.Group();g.position.set(s.x,s.y,0);this.levelRoot.add(g);
     if(s.shape)return createClayView(this,s,g);
+    if(s.kind==='bridge'){
+      const view=makeRopeBridge(this,s,g);
+      if(s.checkpoint)this.flag(s.checkpoint-s.x,.08+bridgeOffset(s,s.checkpoint-s.x),g,.83,s.id);
+      if(s.goal){const x=s.bellX??s.w-3;this.makeBell(g,x,.1+bridgeOffset(s,x));}
+      return view;
+    }
     if(['gate','ferry','orbit'].includes(s.kind))return createCavernMachine(this,s,g);
     if(this.biome==='citadel'&&(s.kind==='lift'||s.kind==='counter'))return makeCitadelLift(this,s,g);
     if(this.biome==='desert'&&s.kind==='lift')return makeCanyonLift(this,s,g);

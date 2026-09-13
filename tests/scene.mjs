@@ -220,6 +220,20 @@ assert.equal(sharedDisposals,0);
 console.log('PASS canyon formations in the direct draw pass, chapter return, no canyon cottages, two functional windmills, sandstone basin, stable rotor hubs and pause');
 
 {
+  const g=new Game();g.start(0);w.build(g.level,0,180);
+  const bridge=()=>w.platforms.get('arch-drop')?.root;
+  assert.equal(bridge().name,'Clay rope bridge');
+  assert(bridge().getObjectByName('Bridge rope knot'));
+  const uniqueGeometry=new Set();bridge().traverse(o=>{if(o.geometry&&!w.assetGeometry.has(o.geometry)&&!w.baseGeometry.has(o.geometry))uniqueGeometry.add(o.geometry);});
+  let disposed=0;for(const geometry of uniqueGeometry)geometry.addEventListener('dispose',()=>disposed++);
+  w.syncVisible(g.level,10,true);assert(!bridge());assert.equal(disposed,uniqueGeometry.size,'streamed rope tubes are released');
+  w.syncVisible(g.level,180,true);assert.equal(bridge().name,'Clay rope bridge');
+  w.refreshEditor(g.level,180);assert(bridge().getObjectByName('Bridge anchor post'));
+  assert.equal(sharedDisposals,0,'bridge streaming retains shared clay assets');
+}
+console.log('PASS rope bridge streaming, geometry disposal, return and editor rebuild');
+
+{
   const g=new Game();g.start(0);const before=JSON.stringify(g.level);
   w.build(g.level,0,145);
   const platform=g.level.platforms.find(s=>s.id==='arch-entry');
