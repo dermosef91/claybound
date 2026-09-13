@@ -1,6 +1,6 @@
 import {chapter,p,row,arc,path} from '../route-authoring.js';
 export default chapter({
-  layoutVersion:4,
+  layoutVersion:5,
   name:'The Ember Caverns',short:'Ember Caverns',label:'Wake the heart of the mountain',biome:'cave',
   intro:'Follow the light cables. The way forward sometimes begins above — or below.',
   sky:'#253c57',fog:'#496d91',spawn:{x:1.5,y:0},end:291,previousDistance:965,cameraY:3,
@@ -16,11 +16,11 @@ export default chapter({
     // The gate is visible from the hub. Climb LEFT, cross its upper relay,
     // then descend a different side of the same room to the unlocked exit.
     p('start',-8,26,0,'stone',{landmark:'beacon'}),
-    p('spark-hub',18,39,0,'stone',{checkpoint:27}),
-    p('spark-step',18,4.5,1.9,'ledge'),p('spark-rise',24.5,4.5,3.7,'ledge'),
+    p('spark-hub',18,39,0,'stone'),
+    p('spark-rise',24.5,4.5,3.7,'ledge'),
     p('spark-turn',18.5,4.5,5.5,'ledge'),p('spark-balcony',25,10,7.3,'ledge',{landmark:'beacon'}),
     p('spark-relay',32,1.8,7.43,'switch',{channel:'spark-lock',latch:true}),
-    p('spark-return',37,5,4.5,'ledge'),p('spark-return-low',33.5,4,2,'ledge'),
+    p('spark-return-low',30.5,4,2.25,'ledge'),
     p('spark-gate',47,1.6,13,'gate',{h:13,channel:'spark-lock'}),
     p('spark-flower',12.5,3.5,7.2,'ledge',{optional:true}),
     // Lean towards an end of the ferry to drive; its centre is a brake.
@@ -30,10 +30,8 @@ export default chapter({
     p('ferry-niche',73.5,2.5,2.2,'ledge',{optional:true}),
     p('ferry-loft',79.5,4.5,4.1,'ledge',{optional:true}),
     p('press-switch',80.8,1.8,4.23,'switch',{channel:'press-a',duration:12,optional:true}),
-    p('press-bridge',86,4,3.1,'timed',{channel:'press-a',optional:true}),
-    p('ferry-flower',85,3.5,6,'ledge',{optional:true}),
-    p('ferry-return',91,4,2,'ledge',{optional:true}),
-    p('ferry-exit',96,16,0,'stone',{checkpoint:103,landmark:'beacon'}),
+    p('press-bridge',84.5,2.5,6,'timed',{channel:'press-a',optional:true}),
+    p('ferry-exit',96,16,0,'stone',{landmark:'beacon'}),
     // Two suspended cradles circle a common axle. Ride upwards and step off
     // at the high balcony; the relay opens the gate back at floor level.
     p('heart-entry',112,11,0,'stone',{checkpoint:118,landmark:'pulsedrum'}),
@@ -76,8 +74,8 @@ export default chapter({
     p('ember-bell',287,12,0,'stone',{goal:true,landmark:'bellgate'})
   ],
   route:[
-    'start',['spark-hub','walk'],'spark-step','spark-rise','spark-turn','spark-balcony',['spark-relay','walk'],
-    ['spark-return','fall'],['spark-return-low','fall'],['spark-hub','fall'],['ferry-dock','walk'],
+    'start',['spark-hub','walk'],'spark-return-low','spark-rise','spark-turn','spark-balcony',['spark-relay','walk'],
+    ['spark-balcony','walk'],['spark-return-low','fall'],['spark-hub','fall'],['ferry-dock','walk'],
     ['furnace-ferry','walk'],['ferry-exit','ride'],['heart-entry','walk'],'heart-boarding',['heart-paddle','board'],['heart-balcony','ride'],
     ['heart-relay','walk'],['heart-descent','fall'],['heart-return','fall'],['heart-floor','fall'],['vault-entry','walk'],
     ['sluice-hatch','walk'],['sluice-relay','fall'],['sluice-bottom','walk'],['sluice-lift','board'],['sluice-balcony','ride'],
@@ -87,7 +85,7 @@ export default chapter({
   ],
   detours:[
     path(['spark-turn','spark-flower',['spark-turn','fall']]),
-    path(['furnace-ferry','ferry-niche','ferry-loft',['press-switch','walk'],'ferry-flower',['press-bridge','fall'],'ferry-return','ferry-exit']),
+    path(['furnace-ferry','ferry-niche','press-switch','press-bridge','press-switch','ferry-niche',['furnace-ferry','board'],['ferry-exit','ride']]),
     path(['sluice-balcony','sluice-branch','sluice-flower',['sluice-branch','fall'],['sluice-balcony','fall']])
   ],
   recoveries:[path(['heart-catch','heart-reboard','heart-boarding']),path(['sluice-catch','sluice-lift',['sluice-balcony','ride']])],
@@ -103,7 +101,7 @@ export default chapter({
     {x:88,y:5.2,floorY:0,range:4.55,period:5.4,w:2,phase:Math.PI,holdChannel:'press-a'}
   ],
   coins:[
-    ...row(4,1,5),...row(19,2.9,2),...row(25.3,4.7,2),...row(19.3,6.5,2),...row(27,8.3,4),
+    ...row(4,1,5),...row(25.3,4.7,2),...row(19.3,6.5,2),...row(27,8.3,4),
     ...arc(34,7.9,5,-3,3,.4),...row(42,1,4),...row(59,1,3),...row(70,1,7,3.4),
     ...row(75,3.2,2),...row(80,5.1,3),...row(98,1,4),...row(114,1,3),
     ...arc(129,1.6,10,8,5,1),...row(142,10.7,4),...row(151,1,4),
@@ -111,9 +109,9 @@ export default chapter({
     ...row(223,1,3),...row(230,2.8,2),...row(235,2.8,2),...row(241,2.8,4),
     ...row(254,4.8,2),...row(260,6.6,3),...row(274,2.4,2),...row(280,1.8,2),...row(288,1,5)
   ],
-  stamps:[{x:14,y:8.2},{x:86.7,y:7},{x:180.7,y:9.4}],
+  stamps:[{x:14,y:8.2},{x:85.5,y:7.25},{x:180.7,y:9.4}],
   enemies:[
-    {kind:'spitter',x:40.5,y:0,min:38,max:43,speed:.38},
+    {kind:'spitter',x:29,y:0,min:26.5,max:31.5,speed:.38},
     {kind:'bat',x:144,y:10.7,min:141.5,max:144.8,speed:1.1,bob:.3,period:5.5,phase:1},
     {kind:'spitter',x:198,y:5,min:192,max:198,speed:.38},
     {kind:'spitter',x:245,y:1.8,min:241,max:247,speed:.38},
@@ -128,11 +126,11 @@ export default chapter({
     {x:58,end:67,title:'Steer with your weight',text:'Stand near an end to drive the ferry. Its centre brakes. Watch the press lamps.'},
     {x:124,end:132,title:'Ride the turning heart',text:'Board a cradle, stay near its centre, and step off at the upper balcony.'},
     {x:170,end:180,title:'Something below',text:'Stomp on the thin shelf to drop through. The lift will bring you back.'},
-    {x:34,end:43,y:0,title:'Cheeks mean trouble',text:'A swelling mouth warns of a shot. Use stone cover, then jump onto the spitter.'}
+    {x:20,end:24,y:0,title:'Cheeks mean trouble',text:'A swelling mouth warns of a shot. Use stone cover, then jump onto the spitter.'}
   ],
   guides:[
     {platformId:'spark-rise',offset:1,dir:-1},{platformId:'spark-balcony',offset:1,dir:1},
-    {platformId:'spark-return',offset:2,dir:0},{platformId:'heart-balcony',offset:7,dir:1},
+    {platformId:'heart-balcony',offset:7,dir:1},
     {platformId:'heart-return',offset:2,dir:0},{platformId:'sluice-hatch',offset:3,dir:0},
     {platformId:'sluice-branch',offset:1,dir:-1},{platformId:'last-step',offset:1,dir:-1}
   ]

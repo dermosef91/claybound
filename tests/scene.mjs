@@ -74,7 +74,10 @@ for(let index=0;index<LEVELS.length;index++){
     assert(o.material.userData.clay,'solid material must use the supplied clay');
     assert(!o.geometry.userData.claySource,'retired cube atlas is not used');
     if(o.geometry.userData.clayRelief)sculptedBlocks++;
-    assert(o.material.bumpMap===w.clay.detail);
+    if(o.material.userData.clay.type==='authored'){
+      assert(w.assetMaterials.has(o.material),'authored surfaces retain their supplied material');
+      assert(o.material.map?.isTexture,'authored surfaces retain their supplied color map');
+    }else assert(o.material.bumpMap===w.clay.detail);
     solidSurfaces++;
   });
   // Imported cottages replace several of the former source-cube hut blocks;

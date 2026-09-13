@@ -1,0 +1,168 @@
+{
+  "baseVersion": 4,
+  "draftVersion": "editor-4-10otl6g",
+  "spawn": "unchanged",
+  "lists": {
+    "platforms": {
+      "removed": [
+        {
+          "x": 18,
+          "y": 1.9,
+          "w": 4.5,
+          "id": "spark-step",
+          "kind": "ledge",
+          "section": 0
+        },
+        {
+          "x": 37,
+          "y": 4.5,
+          "w": 5,
+          "id": "spark-return",
+          "kind": "ledge",
+          "section": 0
+        },
+        {
+          "x": 85,
+          "y": 6,
+          "w": 3.5,
+          "id": "ferry-flower",
+          "optional": true,
+          "kind": "ledge",
+          "section": 1
+        },
+        {
+          "x": 91,
+          "y": 2,
+          "w": 4,
+          "id": "ferry-return",
+          "optional": true,
+          "kind": "ledge",
+          "section": 1
+        }
+      ],
+      "added": [],
+      "changed": [
+        {
+          "id": "spark-hub",
+          "fields": {
+            "checkpoint": {
+              "before": 27,
+              "after": null
+            }
+          }
+        },
+        {
+          "id": "spark-return-low",
+          "fields": {
+            "x": {
+              "before": 33.5,
+              "after": 30.5
+            },
+            "y": {
+              "before": 2,
+              "after": 2.25
+            }
+          }
+        },
+        {
+          "id": "press-bridge",
+          "fields": {
+            "x": {
+              "before": 86,
+              "after": 84.5
+            },
+            "y": {
+              "before": 3.1,
+              "after": 6
+            },
+            "w": {
+              "before": 4,
+              "after": 2.5
+            }
+          }
+        },
+        {
+          "id": "ferry-exit",
+          "fields": {
+            "checkpoint": {
+              "before": 103,
+              "after": null
+            }
+          }
+        }
+      ]
+    },
+    "coins": {
+      "before": 96,
+      "after": 94,
+      "removed": [
+        {
+          "x": 19,
+          "y": 2.9
+        },
+        {
+          "x": 20.1,
+          "y": 2.9
+        }
+      ],
+      "added": []
+    },
+    "stamps": {
+      "before": 3,
+      "after": 3,
+      "removed": [
+        {
+          "x": 86.7,
+          "y": 7
+        }
+      ],
+      "added": [
+        {
+          "x": 85.5,
+          "y": 7.25
+        }
+      ]
+    },
+    "enemies": {
+      "before": 5,
+      "after": 5,
+      "removed": [
+        {
+          "x": 40.5,
+          "y": 0,
+          "speed": 0.38,
+          "min": 38,
+          "max": 43,
+          "kind": "spitter"
+        }
+      ],
+      "added": [
+        {
+          "x": 29,
+          "y": 0,
+          "speed": 0.38,
+          "min": 26.5,
+          "max": 31.5,
+          "kind": "spitter"
+        }
+      ]
+    },
+    "hazards": {
+      "before": 6,
+      "after": 6,
+      "removed": [],
+      "added": []
+    },
+    "winds": {
+      "removed": [],
+      "added": [],
+      "changed": []
+    },
+    "crushers": {
+      "before": 2,
+      "after": 2,
+      "removed": [],
+      "added": []
+    }
+  }
+}

@@ -14,10 +14,10 @@ function attempt(original,link,{offset,wait,hold}){
  const dir=Math.sign(b.x+b.w/2-a.x-a.w/2)||1,overlap=a.x<b.x+b.w&&a.x+a.w>b.x,drop=link.mode==='drop',fall=link.mode==='fall',walk=link.mode==='walk';
  const controls=[];let launched=!g.player.groundId&&g.player.springing,jumpAge=0,waiting=wait,stomped=false;
  for(let f=0;f<1080;f++){
-  const p=g.player;let jumpPressed=false,stompPressed=false,aim=b.x+b.w/2;
+  const p=g.player;let jumpPressed=false,stompPressed=false,aim=fall&&overlap?b.x+Math.min(offset,b.w/2):b.x+b.w/2;
   if(a.kind==='balance'&&a.channel&&!g.latched[a.channel])aim=a.x+a.w-.7;
   else if(!launched&&!walk&&!fall){
-   const takeoff=drop?Math.max(a.x+.4,Math.min(a.x+a.w-.4,b.x+b.w/2)):dir>0?a.x+a.w-offset:a.x+offset;
+   const takeoff=drop?Math.max(a.x+.4,Math.min(a.x+a.w-.4,b.x+b.w/2)):overlap&&b.y>a.y?Math.max(a.x+.4,Math.min(a.x+a.w-.4,b.x+b.w/2-dir*offset)):dir>0?a.x+a.w-offset:a.x+offset;
    aim=takeoff;
    if(a.kind==='spring'&&!p.groundId){launched=true;aim=b.x+b.w/2;}
    else if(p.groundId===a.id&&Math.abs(p.x-takeoff)<.14){
@@ -81,4 +81,4 @@ for(const [i,L]of LEVELS.entries()){
  traces.push({index:i,seconds:g.elapsed,frames:controls.length,coins:g.coins,flowers:g.stamps,checkpoint:g.checkpointId,latched:g.latched});
  console.log('COMPLETE',L.short,g.elapsed.toFixed(1)+'s',g.coins,'beads;',g.stamps,'flowers; no resets or state edits');
 }
-if(!process.exitCode)await writeFile(new URL(process.env.FLOWERS?'./flower-playthrough-results.json':'./playthrough-results.json',import.meta.url),JSON.stringify(traces,null,2)+'\n');
+if(!process.exitCode)await writeFile(new URL(process.env.RESULTS_PATH||(process.env.FLOWERS?'./flower-playthrough-results.json':'./playthrough-results.json'),import.meta.url),JSON.stringify(traces,null,2)+'\n');

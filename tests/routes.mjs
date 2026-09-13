@@ -12,14 +12,18 @@ export function crossing(index,link){
     const a=g.level.platforms.find(s=>s.id===link.from),b=g.level.platforms.find(s=>s.id===link.to);assert(a&&b);
     const dir=Math.sign(b.x+b.w/2-a.x-a.w/2)||1,overlap=a.x<b.x+b.w&&a.x+a.w>b.x,fall=link.mode==='fall',drop=link.mode==='drop',walk=link.mode==='walk';
     let x=dir>0?a.x+a.w-offset:a.x+offset;
+    // A ledge over a broad floor can be approached from underneath. Dropping
+    // onto its left portion can also avoid a raised switch over its centre.
+    const landingX=fall&&overlap?b.x+Math.min(offset,b.w/2):b.x+b.w/2;
+    if(overlap&&b.y>a.y&&!walk&&!fall&&!drop&&a.kind!=='spring')x=Math.max(a.x+.35,Math.min(a.x+a.w-.35,landingX-dir*offset));
     if(walk&&overlap)x=Math.max(a.x+.35,Math.min(a.x+a.w-.35,b.x+(dir>0?-1:b.w+1)));
-    if((drop||fall)&&overlap)x=Math.max(a.x+.35,Math.min(a.x+a.w-.35,b.x+b.w/2));
+    if((drop||fall)&&overlap)x=Math.max(a.x+.35,Math.min(a.x+a.w-.35,landingX));
     if(a.kind==='spring')x=a.x+a.w/2;
     Object.assign(g.player,{x,y:surfaceAt(a,x),vx:drop||a.kind==='spring'?0:dir*6.7,vy:0,groundId:a.id,coyote:a.kind==='spring'?0:.13});g.checkpoint={x,y:Math.min(a.y,b.y)};
     if(a.kind==='ferry'||(link.mode==='ride'||link.mode==='board')){const r=machineTransfer(g,link);if(r)return {phase,offset,frames:r.controls.length};continue;}
     let landedSpring=false;g.onEvent=e=>{if(e.type==='spring'&&b.kind==='spring'&&Math.abs(e.y-b.y)<.2&&e.x>b.x-.3&&e.x<b.x+b.w+.3)landedSpring=true;};
     for(let frame=0;frame<600;frame++){
-      const aim=b.x+b.w/2;
+      const aim=landingX;
       g.tick(dt,{moveAxis:steer(g,aim),jumpPressed:frame===0&&a.kind!=='spring'&&!walk&&!fall,jumpHeld:true,stompPressed:(drop&&frame===15)||(fall&&overlap&&a.kind==='ledge'&&frame===0)});
       if(g.player.groundId===b.id||landedSpring)return {phase,offset,frames:frame+1};
       if(g.respawnTimer>0||g.player.y<Math.min(a.y,b.y)-7)break;
