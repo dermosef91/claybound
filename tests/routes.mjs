@@ -8,6 +8,7 @@ export function crossing(index,link){
   for(const phase of [0,.5,1,1.5,2,2.5,3,3.5,4,4.5,5,5.5])for(const offset of [.35,.85,1.4,2.1]){
     const g=new Game();g.start(index);g.level.enemies=[];g.level.crushers=[];g.level.hazards=[];g.level.coins=[];g.level.stamps=[];
     for(const s of g.level.platforms){if(s.channel){g.channels[s.channel]=100;g.latched[s.channel]=true;}if(s.releases){g.channels[s.releases]=1;g.latched[s.releases]=true;}if(s.kind==='counter')s.y=s.prevY=s.baseY+s.rise;}
+    for(const station of g.level.shaping||[]){station.target=1;station.amount=1;station.announced=true;}
     g.time=phase;g.tick(dt,{});
     const a=g.level.platforms.find(s=>s.id===link.from),b=g.level.platforms.find(s=>s.id===link.to);assert(a&&b);
     const dir=Math.sign(b.x+b.w/2-a.x-a.w/2)||1,overlap=a.x<b.x+b.w&&a.x+a.w>b.x,fall=link.mode==='fall',drop=link.mode==='drop',walk=link.mode==='walk';

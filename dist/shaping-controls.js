@@ -43,10 +43,17 @@ export class ShapingControls {
     const end=e=>{if(e.pointerId===this.drag?.id){this.drag=null;input.shapeId=null;input.shapeAmount=null;}};
     for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,end);
   }
-  enabled(){return this.game.level.playground&&this.game.status==='playing';}
-  clear(){this.drag=null;this.held=null;this.input.shapeHeld=false;this.input.shapeId=null;this.input.shapeAmount=null;}
-  reset(){if(!this.enabled())return;const station=nearbyStation(this.game);if(station){this.clear();visitStation(this.game,station.id,{reset:true});}}
+  enabled(){return !!this.game.level.shaping?.length&&this.game.status==='playing';}
+  clear(){this.drag=null;this.held=null;this.input.shapeHeld=false;this.input.shapeId=null;this.input.shapeAmount=null;this.input.shapeReset=false;}
+  // In the playground R also returns the player to the station's own spawn.
+  // A chapter only softens the clay again, wherever the player is standing.
+  reset(){
+    if(!this.enabled())return;const station=nearbyStation(this.game);if(!station)return;
+    this.clear();
+    if(this.game.level.playground)visitStation(this.game,station.id,{reset:true});else this.pendingReset=true;
+  }
   update(){
+    this.input.shapeReset=!!this.pendingReset;this.pendingReset=false;
     const station=this.enabled()?nearbyStation(this.game):null;
     this.root.classList.toggle('hidden',!station);
     if(!station){this.clear();return;}

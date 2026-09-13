@@ -33,7 +33,7 @@ export class Game {
     if(this.latched[channel])return;
     this.latched[channel]=true;this.channels[channel]=1;this.event('activate',{channel,x,y,message});
   }
-  snapshot(){return {version:this.level.layoutVersion,index:this.index,checkpointId:this.checkpointId,activatedCheckpoints:[...this.activatedCheckpoints],elapsed:this.elapsed,deaths:this.deaths,latched:Object.keys(this.latched).filter(c=>this.latched[c]),broken:this.level.platforms.filter(s=>s.broken).map(s=>s.id),coins:this.level.coins.filter(c=>c.taken).map(c=>c.id),stamps:this.level.stamps.filter(c=>c.taken).map(c=>c.id)};}
+  snapshot(){return {version:this.level.layoutVersion,index:this.index,checkpointId:this.checkpointId,activatedCheckpoints:[...this.activatedCheckpoints],elapsed:this.elapsed,deaths:this.deaths,latched:Object.keys(this.latched).filter(c=>this.latched[c]),broken:this.level.platforms.filter(s=>s.broken).map(s=>s.id),shaped:(this.level.shaping||[]).filter(s=>s.amount>.995).map(s=>s.id),coins:this.level.coins.filter(c=>c.taken).map(c=>c.id),stamps:this.level.stamps.filter(c=>c.taken).map(c=>c.id)};}
   restore(save){
     if(!save||save.version!==this.level.layoutVersion||save.index!==this.index)return false;
     const checkpoint=this.level.platforms.find(s=>s.id===save.checkpointId&&s.checkpoint);if(!checkpoint)return false;
@@ -42,6 +42,11 @@ export class Game {
     this.activatedCheckpoints=new Set(this.level.platforms.filter(s=>s.checkpoint&&visited.has(s.id)).map(s=>s.id));
     this.elapsed=Math.max(0,Number(save.elapsed)||0);this.deaths=Math.max(0,Number(save.deaths)||0);
     for(const name of ['coins','stamps']){const ids=new Set(Array.isArray(save[name])?save[name]:[]);this.level[name].forEach(c=>c.taken=ids.has(c.id));this[name]=this.level[name].filter(c=>c.taken).length;}
+    // Clay the player already finished stays finished: a checkpoint past a
+    // kneaded ramp must never resume in front of an unshaped one.
+    const shaped=new Set(Array.isArray(save.shaped)?save.shaped:[]);
+    for(const station of this.level.shaping||[])if(shaped.has(station.id)){station.target=1;station.amount=1;station.announced=true;}
+    updateShaping(this,0,{});
     const allowed=new Set(this.level.platforms.flatMap(s=>s.releases?[s.releases]:(s.latch||s.kind==='balance')&&s.channel?[s.channel]:[]));
     for(const c of Array.isArray(save.latched)?save.latched:[])if(allowed.has(c)){this.latched[c]=true;this.channels[c]=1;}
     for(const s of this.level.platforms){
