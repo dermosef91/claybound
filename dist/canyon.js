@@ -86,15 +86,14 @@ export function buildCanyonTerrain(w,s,g){
     return;
   }
   if(s.id==='start'){
-    cactus(w,g,4,.02,2.7,-1.35,.08);cactus(w,g,11.5,.02,1.1,-1.12,-.1);fence(w,g,6.3,.01,3);w.flag(8.25,.01,g,.77);
+    cactus(w,g,4,.02,2.7,-1.35,.08);fence(w,g,6.3,.01,3);w.flag(8.25,.01,g,.77);
   }else{
     cactus(w,g,s.w-1.2,.02,s.rest?2:1.55,-1.14,(random(s.x)-.5)*.22);
-    if(s.w>7.8)cactus(w,g,1,.01,.75,-1.2,-.16);
   }
   if(s.id==='last-rest')rock(w,g,s.checkpoint-s.x,.015,-.75,.9,s.x,'top');
   else if(!s.goal)for(let i=0;i<2;i++)rock(w,g,.75+random(s.x+i*4)*(s.w-1.5),.015,-1.0,.55+random(i+s.x)*.8,i+s.x,'top');
-  // Small plants and fallen rocks give the vertical cliff faces a sense of scale.
-  if(s.w>4){rock(w,g,s.w*.22,-4.2,1.9,1.4,s.x);cactus(w,g,s.w*.22,-4.1,.5,1.7,.2);}
+  // Fallen rocks give the vertical cliff faces a sense of scale.
+  if(s.w>4)rock(w,g,s.w*.22,-4.2,1.9,1.4,s.x);
   if(s.checkpoint)w.flag(s.checkpoint-s.x,.035,g,.83,s.id);
   if(s.goal)w.makeBell(g,s.bellX??s.w-3.5,.1);
 }
@@ -120,12 +119,6 @@ export function buildCanyonBackdrop(w){
         const h=3.1+random(i*9+j)*3.5;
         block(w,middle,2.2-j*.35,h,3,x-4+j*2.05,-3.8-h/2,-27,'back2',i*13+j);
       }
-    }
-    if(arch?.children.length){
-      arch.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(arch,true);
-      const origin=new THREE.Vector3(bounds.min.x+(bounds.max.x-bounds.min.x)*.23,bounds.max.y+1,-32);
-      const hit=new THREE.Raycaster(origin,new THREE.Vector3(0,-1,0)).intersectObject(arch,true)[0];
-      if(hit)cactus(w,middle,hit.point.x,hit.point.y,.6,hit.point.z,.04);
     }
   }
   for(let i=-2;i<14;i++){

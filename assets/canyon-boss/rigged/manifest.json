@@ -1,0 +1,45 @@
+{
+  "source": "assets/canyon-boss/tripo-out/reference-7e9e7ebc/model.fbx",
+  "sourceSha256": "d4cab23fbff1efbbf03d2b68838a4027aa65e65de2e2cac24c9b3e311a6e232e",
+  "sourceExtents": [
+    0.99951171875,
+    0.94775390625,
+    0.94091796875
+  ],
+  "sourceFaces": 12887,
+  "sourceQuads": 9811,
+  "removedDisplayBaseFaces": 2,
+  "riggedFaces": 12885,
+  "riggedQuads": 9810,
+  "triangles": 22695,
+  "vertices": 11593,
+  "dimensions": [
+    11.472548002075765,
+    10.8,
+    10.878463933575507
+  ],
+  "rig": "local rigid mechanical skin",
+  "bones": {
+    "root": 0,
+    "hull": 4614,
+    "leg_fl": 882,
+    "leg_fr": 1196,
+    "leg_bl": 512,
+    "leg_br": 1181,
+    "pulley": 117,
+    "counterweight": 305,
+    "cockpit": 2275,
+    "flag": 511
+  },
+  "clips": [
+    "idle",
+    "stomp",
+    "sweep",
+    "defeated"
+  ],
+  "textureMaxSize": 2048,
+  "orientation": "Tripo +X rotated to glTF +Z",
+  "topology": "quads preserved in .blend and source FBX; runtime GLB triangulated",
+  "outputBytes": 4564824,
+  "outputSha256": "3d8f0680ddc9ebcf58ed6f5dd48681bbbf3899b9b816a2179d352ea12b1949de"
+}

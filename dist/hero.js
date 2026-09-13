@@ -1,6 +1,7 @@
 import * as THREE from './lib/three.module.js';
 import {GLTFLoader} from './lib/GLTFLoader.js';
 import {clayModel} from './clay.js';
+import {assetURL} from './model-assets.js';
 
 const clamp=THREE.MathUtils.clamp;
 const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
@@ -19,11 +20,10 @@ export function createHero(w){
 }
 
 export async function loadHero(w,onProgress){
-  const base=new URL('./assets/',import.meta.url);
   const [gltf,motion,idle]=await Promise.all([
-    new GLTFLoader().loadAsync(new URL('player.glb',base).href,e=>onProgress?.(e.total?e.loaded/e.total:null)),
-    fetch(new URL('player-motion.json',base)).then(r=>{if(!r.ok)throw new Error('Character motion data could not load.');return r.json();}),
-    fetch(new URL('player-idle.json',base)).then(r=>{if(!r.ok)throw new Error('The new idle animation could not load.');return r.json();})
+    new GLTFLoader().loadAsync(assetURL('player.glb'),e=>onProgress?.(e.total?e.loaded/e.total:null)),
+    fetch(assetURL('player-motion.json')).then(r=>{if(!r.ok)throw new Error('Character motion data could not load.');return r.json();}),
+    fetch(assetURL('player-idle.json')).then(r=>{if(!r.ok)throw new Error('The new idle animation could not load.');return r.json();})
   ]);
   attachHero(w,gltf,motion,idle);onProgress?.(1);
   return w.character;

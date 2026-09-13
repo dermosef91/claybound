@@ -1,0 +1,20 @@
+{
+  "name": "canyon-walking-settlement",
+  "provider": "Tripo",
+  "input": "assets/canyon-boss/source/reference.png",
+  "model": "tripo-p2",
+  "parameters": {
+    "face_limit": 10000,
+    "quad": true,
+    "texture": true,
+    "pbr": true,
+    "texture_quality": "detailed"
+  },
+  "output_parent": "assets/canyon-boss",
+  "intent": "Preserve the attached orange clay walking settlement with four stubby legs, wooden beams, ropes, flags, cacti, stone counterweight and tiny harmless hooded pilot. Mechanical boss for a side-view canyon platformer; independently animated machinery and climbable surfaces.",
+  "topology_note": "P2 native low-poly with quad topology. P2 does not accept the separate smart_low_poly parameter. Preserve source FBX quads; triangulate a copy for the GLB game runtime.",
+  "rigging": "Local mechanical skeleton, purpose-built stomp, sweep, idle and defeated poses; rigid machinery weights instead of organic deformation.",
+  "estimated_credits": 125,
+  "proposed_credit_ceiling": 135,
+  "paid_rerolls": 0
+}

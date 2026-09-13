@@ -1,13 +1,13 @@
 // Deterministic, actual WebGL captures using the shipped game and an isolated save.
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'/Users/moritzgrassy/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const root=path.resolve(__dirname,'..'),out=root+'/docs/goal-design';
+const project=path.resolve(__dirname,'..'),root=process.env.REVIEW_SOURCE_ROOT||project,out=project+'/docs/goal-design';
 (async()=>{
   fs.mkdirSync(out,{recursive:true});
   const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--no-sandbox']});
   try{
     const page=await browser.newPage({viewport:{width:1672,height:941}}),errors=[],requests=[];
-    page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+    page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE ERROR',e.message);});page.on('console',m=>{if(m.type()==='error'){errors.push(m.text());console.error('CONSOLE ERROR',m.text());}});
     page.on('response',r=>{if(r.status()>=400)requests.push({url:r.url(),status:r.status()});});
     await page.route('**/app.js',async route=>{
       let body=fs.readFileSync(root+'/dist/app.js','utf8');
@@ -53,7 +53,7 @@ const root=path.resolve(__dirname,'..'),out=root+'/docs/goal-design';
       for(const index of [1,2,3]){
         await page.evaluate(async index=>{
           await playtest.begin(index,true,'original');const w=playtest.world,g=playtest.game,s=g.level.platforms.find(s=>s.goal);
-          Object.assign(g.player,{x:g.level.end-5.9,y:s.y,vx:0,vy:0,facing:1,groundId:s.id});g.sectionId=s.section;
+          Object.assign(g.player,{x:Math.max(s.x+.6,g.level.end-5.9),y:s.y,vx:0,vy:0,facing:1,groundId:s.id});g.sectionId=s.section;
           w.setEditorCamera({x:g.level.end-1.2,y:s.y+2.25,viewH:7.6});playtest.draw();
           document.getElementById('hud').style.visibility='hidden';
           w.camera.position.y=w.cameraY+(w.theme.cameraElevation??1.25);w.camera.lookAt(w.cameraX,w.cameraY,0);w.renderer.render(w.scene,w.camera);
