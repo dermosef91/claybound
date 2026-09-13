@@ -33,7 +33,7 @@ export function crossing(index,link){
 if(process.argv[1]?.endsWith('routes.mjs')){
  let count=0;const failures=[];
  for(const [i,L]of LEVELS.entries()){
-  assert(Math.abs((L.end-L.spawn.x)/L.previousDistance-.3)<.005);assert.equal(L.stamps.length,[3,2,4,3][i]);
+  assert(Math.abs((L.end-L.spawn.x)/L.previousDistance-.3)<.005);assert.equal(L.stamps.length,[3,2,5,3][i]);
   assert.equal(new Set(L.platforms.map(s=>s.id)).size,L.platforms.length);assert.equal(L.platforms.filter(s=>s.goal).length,1);
   assert(Math.abs(L.platforms.find(s=>s.goal).x+L.platforms.find(s=>s.goal).bellX-L.end)<1e-6);
   for(const link of [...L.routeLinks,...L.detours.flat(),...L.recoveries.flat()]){

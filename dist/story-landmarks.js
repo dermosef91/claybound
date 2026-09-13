@@ -28,6 +28,7 @@ export function caveStory(w,s,parent){
   }[s.id];
   if(!role)return false;
   const g=group(parent,'Cavern story: '+role);g.position.set(s.w*.66,0,-1.18);
+  if(role==='cooling')g.position.x=s.w*.5;
   // Narrow balconies get a shallow arrangement that still fits their deck.
   if(s.kind==='ledge'){g.position.z=-.58;g.scale.z=.55;}
   if(role==='echo'){

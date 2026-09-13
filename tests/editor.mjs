@@ -16,7 +16,7 @@ const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
 {
  const exported=JSON.parse(readFileSync(new URL('../docs/cave-layout-canon/editor-backup.json',import.meta.url),'utf8'));
  const canonical=validateDraft(LEVELS[2],LEVELS[2]),draft=validateDraft(exported.level,LEVELS[2]);
- assert.equal(LEVELS[2].layoutVersion,6);assert(!LEVELS[2].custom);
+ assert.equal(LEVELS[2].layoutVersion,7);assert(!LEVELS[2].custom);
  for(const key of ['spawn',...LISTS])assert.deepEqual(canonical[key],draft[key],`canonical cave ${key} matches the recovered export`);
 }
 for(let index=0;index<4;index++){

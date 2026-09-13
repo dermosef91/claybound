@@ -10,6 +10,6 @@ saved.runs[0].version='older-layout';assert.equal(chapterCollections(level,0,sav
 saved.customBest[0]={version:level.layoutVersion,stamps:3,coins:100000};
 const custom={...level,custom:true};assert.equal(chapterCollections(custom,0,saved).stamps,3);assert.equal(chapterCollections(custom,0,saved).coins,level.coins.length);
 assert.equal(chapterCollections(level,0,saved).stamps,0,'Edited designs must not change original totals');
-assert(collectiblesMarkup(LEVELS,{}).includes('0 / 12 secret flowers'));
+assert(collectiblesMarkup(LEVELS,{}).includes('0 / 13 secret flowers'));
 assert.equal((collectiblesMarkup(LEVELS,{}).match(/class="collection-chapter"/g)||[]).length,4);
 console.log('PASS title collectibles: checkpoint IDs, no duplicate finds, best/checkpoint overlap, old-layout exclusion and edited score isolation');

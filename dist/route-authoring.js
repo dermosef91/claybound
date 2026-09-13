@@ -5,7 +5,10 @@ export const arc=(x,y,dx,dy,n=5,height=1.2)=>Array.from({length:n},(_,i)=>{const
 export const path=ids=>ids.slice(1).map((entry,i)=>({from:Array.isArray(ids[i])?ids[i][0]:ids[i],to:Array.isArray(entry)?entry[0]:entry,mode:Array.isArray(entry)?entry[1]:'jump'}));
 export function chapter(data){
   const L={layoutVersion:3,winds:[],crushers:[],circuits:[],guides:[],detours:[],recoveries:[],...data};
-  L.routeLinks=path(L.route);delete L.route;
+  // Editor exports retain explicit links after platforms are moved or removed.
+  // Preserve those links verbatim when supplied; authored route arrays still
+  // use the compact path helper below.
+  L.routeLinks=L.routeLinks?structuredClone(L.routeLinks):path(L.route||[]);delete L.route;
   L.sections.forEach((s,i)=>{s.id=i;s.end=L.sections[i+1]?.x??L.end+8;});
   for(const p of L.platforms)p.section=L.sections.findLast(s=>p.x>=s.x)?.id??0;
   const goal=L.platforms.find(p=>p.goal);goal.bellX=L.end-goal.x;

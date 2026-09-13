@@ -1,0 +1,1063 @@
+{
+  "source": "claybound-chapter-3.json",
+  "previousVersion": 6,
+  "canonicalVersion": 7,
+  "counts": {
+    "platforms": {
+      "before": 65,
+      "after": 103
+    },
+    "coins": {
+      "before": 67,
+      "after": 38
+    },
+    "stamps": {
+      "before": 4,
+      "after": 5
+    },
+    "enemies": {
+      "before": 6,
+      "after": 7
+    },
+    "hazards": {
+      "before": 6,
+      "after": 6
+    },
+    "winds": {
+      "before": 0,
+      "after": 0
+    },
+    "crushers": {
+      "before": 2,
+      "after": 3
+    }
+  },
+  "removed": [
+    {
+      "x": 147,
+      "y": 2.7,
+      "w": 4,
+      "id": "heart-return",
+      "kind": "ledge",
+      "section": 2
+    },
+    {
+      "x": 124,
+      "y": -2.6,
+      "w": 17,
+      "id": "heart-catch",
+      "recovery": true,
+      "kind": "ledge",
+      "section": 2
+    },
+    {
+      "x": 123.5,
+      "y": -1,
+      "w": 3.5,
+      "id": "heart-reboard",
+      "recovery": true,
+      "kind": "ledge",
+      "section": 2
+    },
+    {
+      "x": 175,
+      "y": -3.2,
+      "w": 10,
+      "id": "sluice-bottom",
+      "landmark": "beacon",
+      "kind": "ledge",
+      "section": 3
+    },
+    {
+      "x": 201,
+      "y": 2.2,
+      "w": 4,
+      "id": "sluice-step",
+      "kind": "ledge",
+      "section": 3
+    },
+    {
+      "x": 184,
+      "y": -3.2,
+      "w": 17,
+      "id": "sluice-catch",
+      "recovery": true,
+      "kind": "ledge",
+      "section": 3
+    },
+    {
+      "x": 229,
+      "y": 1.8,
+      "w": 3,
+      "id": "gallery-cover",
+      "kind": "stone",
+      "section": 4
+    },
+    {
+      "x": 52.25,
+      "y": -2.5,
+      "w": 2.25,
+      "delay": 0.35,
+      "id": "clay-2-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 0
+    },
+    {
+      "x": 67.25,
+      "y": 6.5,
+      "w": 2,
+      "delay": 0.35,
+      "id": "clay-3-copy-1-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 1
+    }
+  ],
+  "added": [
+    {
+      "x": 106,
+      "y": 12.75,
+      "w": 2.25,
+      "delay": 0.45,
+      "id": "clay-5-copy-1-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 1
+    },
+    {
+      "x": 110.25,
+      "y": 15,
+      "w": 2.25,
+      "delay": 0.45,
+      "id": "clay-5-copy-1-copy-1-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 1
+    },
+    {
+      "x": 102.25,
+      "y": 23,
+      "w": 13,
+      "h": 4,
+      "id": "clay-6",
+      "kind": "wall",
+      "section": 1
+    },
+    {
+      "x": 94.75,
+      "y": 19,
+      "w": 11,
+      "h": 4,
+      "id": "clay-6-copy-1",
+      "kind": "wall",
+      "section": 1
+    },
+    {
+      "x": 23.75,
+      "y": 19.75,
+      "w": 15,
+      "h": 7.75,
+      "id": "clay-7",
+      "kind": "wall",
+      "section": 0
+    },
+    {
+      "x": 37.25,
+      "y": 19.75,
+      "w": 30,
+      "h": 11.25,
+      "id": "clay-7-copy-1",
+      "kind": "wall",
+      "section": 0
+    },
+    {
+      "x": -8.5,
+      "y": 14,
+      "w": 18,
+      "id": "clay-8",
+      "kind": "stone",
+      "section": 0
+    },
+    {
+      "x": 157.5,
+      "y": 10,
+      "w": 4,
+      "h": 10.25,
+      "id": "clay-9",
+      "kind": "wall",
+      "section": 2
+    },
+    {
+      "x": 112.5,
+      "y": 20,
+      "w": 13,
+      "h": 15.75,
+      "id": "clay-10",
+      "kind": "wall",
+      "section": 2
+    },
+    {
+      "x": 146.5,
+      "y": 11.25,
+      "w": 3.5,
+      "id": "clay-11-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 2
+    },
+    {
+      "x": 141.25,
+      "y": 9.5,
+      "w": 3,
+      "id": "clay-12",
+      "kind": "stone",
+      "section": 2
+    },
+    {
+      "x": 157.5,
+      "y": 26.75,
+      "w": 4,
+      "h": 10,
+      "id": "clay-11",
+      "kind": "wall",
+      "section": 2
+    },
+    {
+      "x": 134.5,
+      "y": 15,
+      "w": 6.25,
+      "id": "clay-13",
+      "kind": "ledge",
+      "section": 2
+    },
+    {
+      "x": 143.75,
+      "y": 16,
+      "w": 2.5,
+      "id": "clay-11-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 2
+    },
+    {
+      "x": 142.75,
+      "y": 13,
+      "w": 2.5,
+      "id": "clay-11-copy-1-copy-1-copy-2",
+      "kind": "crumble",
+      "section": 2
+    },
+    {
+      "x": 148.75,
+      "y": 15.5,
+      "w": 2.5,
+      "id": "clay-11-copy-1-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 2
+    },
+    {
+      "x": 161.5,
+      "y": 10,
+      "w": 1.25,
+      "delay": 0.15,
+      "id": "clay-14",
+      "kind": "crumble",
+      "section": 2
+    },
+    {
+      "x": 161.25,
+      "y": 7.5,
+      "w": 3,
+      "delay": 0.15,
+      "id": "clay-14-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 2
+    },
+    {
+      "x": 161.5,
+      "y": 4.75,
+      "w": 4.75,
+      "delay": 0.15,
+      "id": "clay-14-copy-1-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 2
+    },
+    {
+      "x": 161.5,
+      "y": 1.75,
+      "w": 6.5,
+      "id": "clay-15",
+      "kind": "stone",
+      "section": 2
+    },
+    {
+      "x": 175.75,
+      "y": -1.5,
+      "w": 3.5,
+      "delay": 0.15,
+      "id": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 3
+    },
+    {
+      "x": 178,
+      "y": -3,
+      "w": 3.5,
+      "delay": 0.15,
+      "id": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 3
+    },
+    {
+      "x": 180.75,
+      "y": -4.5,
+      "w": 3.5,
+      "delay": 0.15,
+      "id": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 3
+    },
+    {
+      "x": 176,
+      "y": 8,
+      "w": 3.5,
+      "delay": 0.25,
+      "id": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-2",
+      "kind": "crumble",
+      "section": 3
+    },
+    {
+      "x": 200.5,
+      "y": 7.25,
+      "w": 2.75,
+      "period": 4.8,
+      "duty": 0.76,
+      "id": "clay-16",
+      "kind": "pulse",
+      "section": 3
+    },
+    {
+      "x": 196.75,
+      "y": 9,
+      "w": 2.75,
+      "delay": 0.25,
+      "id": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-2-copy-1",
+      "kind": "crumble",
+      "section": 3
+    },
+    {
+      "x": 200.5,
+      "y": 10.75,
+      "w": 2.75,
+      "period": 4.8,
+      "duty": 0.76,
+      "id": "clay-16-copy-1",
+      "kind": "pulse",
+      "section": 3
+    },
+    {
+      "x": 208.5,
+      "y": 10.75,
+      "w": 2.75,
+      "id": "clay-17",
+      "kind": "stone",
+      "section": 3
+    },
+    {
+      "x": 211.25,
+      "y": 10.75,
+      "w": 2.75,
+      "delay": 0.15,
+      "id": "clay-14-copy-1",
+      "kind": "crumble",
+      "section": 3
+    },
+    {
+      "x": 211.25,
+      "y": 7.5,
+      "w": 7.25,
+      "delay": 0.15,
+      "id": "clay-14-copy-1-copy-2",
+      "kind": "crumble",
+      "section": 3
+    },
+    {
+      "x": 211.25,
+      "y": 8.75,
+      "w": 6.25,
+      "delay": 0.15,
+      "id": "clay-14-copy-1-copy-2-copy-1",
+      "kind": "crumble",
+      "section": 3
+    },
+    {
+      "x": 211.25,
+      "y": 9.75,
+      "w": 4.25,
+      "delay": 0.15,
+      "id": "clay-14-copy-1-copy-2-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 3
+    },
+    {
+      "x": 211.25,
+      "y": 6.25,
+      "w": 8.25,
+      "delay": 0.15,
+      "id": "clay-14-copy-1-copy-2-copy-2",
+      "kind": "crumble",
+      "section": 3
+    },
+    {
+      "x": 271.5,
+      "y": 10.5,
+      "w": 4,
+      "period": 4.8,
+      "phase": 0.15,
+      "duty": 0.78,
+      "id": "last-pulse-copy-1",
+      "kind": "pulse",
+      "section": 5
+    },
+    {
+      "x": 265.5,
+      "y": 10,
+      "w": 4,
+      "delay": 0.35,
+      "id": "clay-19",
+      "kind": "crumble",
+      "section": 5
+    },
+    {
+      "x": 280,
+      "y": 10.5,
+      "w": 2.75,
+      "delay": 0.35,
+      "id": "clay-19-copy-1",
+      "kind": "crumble",
+      "section": 5
+    },
+    {
+      "x": 280.75,
+      "y": 8.5,
+      "w": 3.25,
+      "delay": 0.35,
+      "id": "clay-19-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 5
+    },
+    {
+      "x": 282,
+      "y": 6.5,
+      "w": 3.5,
+      "delay": 0.35,
+      "id": "clay-19-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 5
+    },
+    {
+      "x": 283.25,
+      "y": 4.5,
+      "w": 3.75,
+      "delay": 0.35,
+      "id": "clay-19-copy-1-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 5
+    },
+    {
+      "x": 284.5,
+      "y": 2.75,
+      "w": 3.75,
+      "delay": 0.35,
+      "id": "clay-19-copy-1-copy-1-copy-1-copy-1-copy-1",
+      "kind": "crumble",
+      "section": 5
+    },
+    {
+      "x": 273.75,
+      "y": 5.25,
+      "w": 2.25,
+      "id": "clay-18",
+      "kind": "stone",
+      "section": 5
+    },
+    {
+      "x": 281,
+      "y": 15.5,
+      "w": 2.25,
+      "delay": 0.35,
+      "id": "clay-19-copy-2",
+      "kind": "crumble",
+      "section": 5
+    },
+    {
+      "x": 284,
+      "y": 17,
+      "w": 2.5,
+      "period": 4.8,
+      "phase": 0.15,
+      "duty": 0.78,
+      "id": "last-pulse-copy-1-copy-1",
+      "kind": "pulse",
+      "section": 5
+    },
+    {
+      "x": 284,
+      "y": 20.5,
+      "w": 2.25,
+      "delay": 0.35,
+      "id": "clay-19-copy-2-copy-1",
+      "kind": "crumble",
+      "section": 5
+    },
+    {
+      "x": 281,
+      "y": 18.75,
+      "w": 2.25,
+      "delay": 0.35,
+      "id": "clay-19-copy-2-copy-2",
+      "kind": "crumble",
+      "section": 5
+    },
+    {
+      "x": 283,
+      "y": 13,
+      "w": 3,
+      "delay": 0.35,
+      "id": "clay-19-copy-2-copy-3",
+      "kind": "crumble",
+      "section": 5
+    },
+    {
+      "x": 277.75,
+      "y": 10.5,
+      "w": 2.25,
+      "checkpoint": 278.875,
+      "id": "clay-20",
+      "kind": "ledge",
+      "section": 5
+    }
+  ],
+  "adjusted": [
+    {
+      "before": {
+        "x": 38.75,
+        "y": 7,
+        "w": 1.35,
+        "h": 7,
+        "id": "spark-gate",
+        "channel": "spark-lock",
+        "kind": "gate",
+        "section": 0
+      },
+      "after": {
+        "x": 37.75,
+        "y": 8,
+        "w": 1.75,
+        "h": 8,
+        "id": "spark-gate",
+        "channel": "spark-lock",
+        "kind": "gate",
+        "section": 0
+      }
+    },
+    {
+      "before": {
+        "x": 96,
+        "y": 0,
+        "w": 4.5,
+        "checkpoint": 98.25,
+        "id": "ferry-exit",
+        "landmark": "beacon",
+        "kind": "stone",
+        "section": 1
+      },
+      "after": {
+        "x": 97,
+        "y": 0,
+        "w": 3.5,
+        "checkpoint": 98.25,
+        "id": "ferry-exit",
+        "landmark": "beacon",
+        "kind": "stone",
+        "section": 1
+      }
+    },
+    {
+      "before": {
+        "x": 112,
+        "y": 0,
+        "w": 11,
+        "checkpoint": 118,
+        "id": "heart-entry",
+        "landmark": "pulsedrum",
+        "kind": "stone",
+        "section": 2
+      },
+      "after": {
+        "x": 110,
+        "y": 0,
+        "w": 13,
+        "checkpoint": 118,
+        "id": "heart-entry",
+        "landmark": "pulsedrum",
+        "kind": "stone",
+        "section": 1
+      }
+    },
+    {
+      "before": {
+        "x": 125,
+        "y": 0.8,
+        "w": 4,
+        "id": "heart-boarding",
+        "kind": "ledge",
+        "section": 2
+      },
+      "after": {
+        "x": 124.75,
+        "y": 0.75,
+        "w": 4,
+        "id": "heart-boarding",
+        "kind": "ledge",
+        "section": 2
+      }
+    },
+    {
+      "before": {
+        "x": 140.5,
+        "y": 9.7,
+        "w": 10,
+        "checkpoint": 146,
+        "id": "heart-balcony",
+        "landmark": "beacon",
+        "kind": "ledge",
+        "section": 2
+      },
+      "after": {
+        "x": 152,
+        "y": 10,
+        "w": 5.5,
+        "id": "heart-balcony",
+        "landmark": "beacon",
+        "kind": "ledge",
+        "section": 2
+      }
+    },
+    {
+      "before": {
+        "x": 147.5,
+        "y": 9.83,
+        "w": 1.8,
+        "id": "heart-relay",
+        "channel": "heart-lock",
+        "latch": true,
+        "kind": "switch",
+        "section": 2
+      },
+      "after": {
+        "x": 154.25,
+        "y": 16,
+        "w": 1.8,
+        "id": "heart-relay",
+        "channel": "heart-lock",
+        "latch": true,
+        "kind": "switch",
+        "section": 2
+      }
+    },
+    {
+      "before": {
+        "x": 152,
+        "y": 6,
+        "w": 4,
+        "id": "heart-descent",
+        "kind": "ledge",
+        "section": 2
+      },
+      "after": {
+        "x": 153.25,
+        "y": 15.75,
+        "w": 3.25,
+        "id": "heart-descent",
+        "kind": "ledge",
+        "section": 2
+      }
+    },
+    {
+      "before": {
+        "x": 142,
+        "y": 0,
+        "w": 21,
+        "checkpoint": 153,
+        "id": "heart-floor",
+        "kind": "stone",
+        "section": 2
+      },
+      "after": {
+        "x": 157.75,
+        "y": 0,
+        "w": 5.25,
+        "id": "heart-floor",
+        "kind": "stone",
+        "section": 2
+      }
+    },
+    {
+      "before": {
+        "x": 158,
+        "y": 17,
+        "w": 1.6,
+        "h": 17,
+        "id": "heart-gate",
+        "channel": "heart-lock",
+        "kind": "gate",
+        "section": 2
+      },
+      "after": {
+        "x": 158.1,
+        "y": 16.25,
+        "w": 2.75,
+        "h": 6,
+        "id": "heart-gate",
+        "channel": "heart-lock",
+        "kind": "gate",
+        "section": 2
+      }
+    },
+    {
+      "before": {
+        "x": 163,
+        "y": 0,
+        "w": 11,
+        "checkpoint": 168,
+        "id": "vault-entry",
+        "landmark": "crystal",
+        "rest": true,
+        "kind": "stone",
+        "section": 3
+      },
+      "after": {
+        "x": 163,
+        "y": 0,
+        "w": 11,
+        "id": "vault-entry",
+        "landmark": "crystal",
+        "rest": true,
+        "kind": "stone",
+        "section": 3
+      }
+    },
+    {
+      "before": {
+        "x": 174,
+        "y": 0,
+        "w": 6,
+        "id": "sluice-hatch",
+        "kind": "ledge",
+        "section": 3
+      },
+      "after": {
+        "x": 174,
+        "y": 0,
+        "w": 2.25,
+        "checkpoint": 175.125,
+        "id": "sluice-hatch",
+        "kind": "ledge",
+        "section": 3
+      }
+    },
+    {
+      "before": {
+        "x": 177.5,
+        "y": -3.07,
+        "w": 1.8,
+        "id": "sluice-relay",
+        "channel": "sluice-lock",
+        "latch": true,
+        "kind": "switch",
+        "section": 3
+      },
+      "after": {
+        "x": 204,
+        "y": 12.75,
+        "w": 2.75,
+        "id": "sluice-relay",
+        "channel": "sluice-lock",
+        "latch": true,
+        "kind": "switch",
+        "section": 3
+      }
+    },
+    {
+      "before": {
+        "x": 185,
+        "y": 1.5,
+        "w": 4,
+        "moveY": 4.7,
+        "period": 6.5,
+        "phase": -1.5707963267948966,
+        "id": "sluice-lift",
+        "kind": "lift",
+        "section": 3
+      },
+      "after": {
+        "x": 186,
+        "y": 1.5,
+        "w": 4,
+        "moveY": 4.7,
+        "period": 6.5,
+        "phase": -1.5707963267948966,
+        "id": "sluice-lift",
+        "kind": "lift",
+        "section": 3
+      }
+    },
+    {
+      "before": {
+        "x": 185,
+        "y": 6.6,
+        "w": 4,
+        "id": "sluice-branch",
+        "optional": true,
+        "kind": "ledge",
+        "section": 3
+      },
+      "after": {
+        "x": 181.25,
+        "y": 6.75,
+        "w": 4,
+        "id": "sluice-branch",
+        "optional": true,
+        "kind": "ledge",
+        "section": 3
+      }
+    },
+    {
+      "before": {
+        "x": 179,
+        "y": 8.4,
+        "w": 3.5,
+        "id": "sluice-flower",
+        "optional": true,
+        "kind": "ledge",
+        "section": 3
+      },
+      "after": {
+        "x": 171,
+        "y": 9.75,
+        "w": 3.5,
+        "id": "sluice-flower",
+        "optional": true,
+        "kind": "ledge",
+        "section": 3
+      }
+    },
+    {
+      "before": {
+        "x": 205,
+        "y": 0,
+        "w": 16,
+        "checkpoint": 214,
+        "id": "sluice-floor",
+        "kind": "stone",
+        "section": 3
+      },
+      "after": {
+        "x": 210.75,
+        "y": 4.75,
+        "w": 10,
+        "id": "sluice-floor",
+        "kind": "stone",
+        "section": 3
+      }
+    },
+    {
+      "before": {
+        "x": 209,
+        "y": 16,
+        "w": 1.6,
+        "h": 16,
+        "id": "sluice-gate",
+        "channel": "sluice-lock",
+        "kind": "gate",
+        "section": 3
+      },
+      "after": {
+        "x": 209,
+        "y": 16,
+        "w": 1.6,
+        "h": 5,
+        "id": "sluice-gate",
+        "channel": "sluice-lock",
+        "kind": "gate",
+        "section": 3
+      }
+    },
+    {
+      "before": {
+        "x": 221,
+        "y": 0,
+        "w": 10,
+        "checkpoint": 226,
+        "id": "gallery-entry",
+        "landmark": "crystal",
+        "kind": "stone",
+        "section": 4
+      },
+      "after": {
+        "x": 221,
+        "y": 3,
+        "w": 10,
+        "checkpoint": 226,
+        "id": "gallery-entry",
+        "landmark": "crystal",
+        "kind": "stone",
+        "section": 4
+      }
+    },
+    {
+      "before": {
+        "x": 259,
+        "y": 5.6,
+        "w": 7,
+        "id": "last-relay-floor",
+        "landmark": "beacon",
+        "kind": "ledge",
+        "section": 5
+      },
+      "after": {
+        "x": 259,
+        "y": 5.6,
+        "w": 6.5,
+        "id": "last-relay-floor",
+        "landmark": "beacon",
+        "kind": "ledge",
+        "section": 5
+      }
+    },
+    {
+      "before": {
+        "x": 263,
+        "y": 5.73,
+        "w": 1.8,
+        "id": "last-relay",
+        "channel": "last-light",
+        "latch": true,
+        "kind": "switch",
+        "section": 5
+      },
+      "after": {
+        "x": 274,
+        "y": 5.5,
+        "w": 1.8,
+        "id": "last-relay",
+        "channel": "last-light",
+        "latch": true,
+        "kind": "switch",
+        "section": 5
+      }
+    },
+    {
+      "before": {
+        "x": 268,
+        "y": 2.8,
+        "w": 4,
+        "id": "last-return",
+        "kind": "ledge",
+        "section": 5
+      },
+      "after": {
+        "x": 268,
+        "y": 4,
+        "w": 5.75,
+        "id": "last-return",
+        "kind": "ledge",
+        "section": 5
+      }
+    },
+    {
+      "before": {
+        "x": 273,
+        "y": 1.4,
+        "w": 4,
+        "id": "last-bridge",
+        "channel": "last-light",
+        "kind": "timed",
+        "section": 5
+      },
+      "after": {
+        "x": 253.75,
+        "y": 7.25,
+        "w": 3.75,
+        "id": "last-bridge",
+        "channel": "last-light",
+        "kind": "timed",
+        "section": 5
+      }
+    },
+    {
+      "before": {
+        "x": 279,
+        "y": 0.8,
+        "w": 4,
+        "period": 4.8,
+        "phase": 0.15,
+        "duty": 0.78,
+        "id": "last-pulse",
+        "kind": "pulse",
+        "section": 5
+      },
+      "after": {
+        "x": 259,
+        "y": 9.25,
+        "w": 4,
+        "period": 4.8,
+        "phase": 0.15,
+        "duty": 0.78,
+        "id": "last-pulse",
+        "kind": "pulse",
+        "section": 5
+      }
+    },
+    {
+      "before": {
+        "x": 287,
+        "y": 0,
+        "w": 12,
+        "bellX": 4,
+        "id": "ember-bell",
+        "landmark": "bellgate",
+        "goal": true,
+        "kind": "stone",
+        "section": 5
+      },
+      "after": {
+        "x": 288,
+        "y": 0,
+        "w": 12,
+        "bellX": 4,
+        "id": "ember-bell",
+        "landmark": "bellgate",
+        "goal": true,
+        "kind": "stone",
+        "section": 5
+      }
+    },
+    {
+      "before": {
+        "x": 72.75,
+        "y": 7.25,
+        "w": 2,
+        "delay": 0.35,
+        "id": "clay-3-copy-1-copy-1-copy-1",
+        "kind": "crumble",
+        "section": 1
+      },
+      "after": {
+        "x": 69,
+        "y": 7.25,
+        "w": 5.75,
+        "delay": 0.55,
+        "id": "clay-3-copy-1-copy-1-copy-1",
+        "kind": "crumble",
+        "section": 1
+      }
+    }
+  ]
+}
