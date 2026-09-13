@@ -29,6 +29,6 @@ export default chapter({
   stamps:[{x:74.5,y:10.2},{x:131,y:21.7},{x:229.5,y:25.8}],
   enemies:[{x:21,y:3.9,min:19,max:22.3,speed:1.5},{x:41,y:6.4,min:38,max:42.1,speed:1.6},{x:142,y:19.4,min:139.7,max:144.2,speed:1.7},{x:206,y:19,min:203.8,max:208.2,speed:1.7}],
   hazards:[{x:10,w:4.55,y:-2.65},{x:23.05,w:12.95,y:.6},{x:55,w:16,y:-.7},{x:77,w:21,y:3},{x:108,w:8,y:7},{x:124,w:15,y:9},{x:145,w:20,y:10},{x:172,w:8,y:12},{x:188,w:15,y:11.5},{x:209,w:16,y:14},{x:231,w:8,y:14},{x:247,w:18,y:14},{x:270,w:15,y:20},{x:290,w:7.5,y:24}],
-  hints:[{x:55,end:67,title:'Counterweight',text:'Stand on the right end of the beam until the lift locks high.'},{x:181,end:203,title:'Gondolas',text:'The two gondolas move together. Jump across when the gap closes.'}],
+  hints:[{x:55,end:67,icon:'beam',title:'Counterweight',text:'Stand on the right end of the beam until the lift locks high.'},{x:181,end:203,icon:'gondola',title:'Gondolas',text:'The two gondolas move together. Jump across when the gap closes.'}],
   guides:[{platformId:'laundry2',offset:.5,dir:-1},{platformId:'laundry-back',offset:1.5,dir:1},{platformId:'bell-balcony',offset:1,dir:-1},{platformId:'bell-back',offset:1.5,dir:1}]
 });

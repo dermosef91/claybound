@@ -43,6 +43,6 @@ export default chapter({
     {kind:'drifter',x:59,y:11.3,min:57.8,max:60.2,speed:.8,bob:.15,period:5.6,phase:.8}
   ],
   hazards:[{x:10,w:8,y:-4},{x:24,w:14,y:-2},{x:68,w:15,y:4.8},{x:98,w:39,y:2},{x:150,w:20,y:6},{x:176,w:8,y:7.5},{x:197,w:21,y:7.5},{x:223,w:15,y:15}],
-  hints:[{x:0,end:9,title:'Move and jump',text:'A / D or arrows to move. Hold jump to leap farther.'},{x:43,end:51,title:'Windwell',text:'Step on the cream valve. The rising wind lifts your jumps.'},{x:91,end:100,title:'Sinking ledges',text:'Pale ledges sink once you land. Keep moving.'}],
+  hints:[{x:0,end:9,icon:'walk',title:'Move and jump',text:'A / D or arrows to move. Hold jump to leap farther.'},{x:43,end:51,icon:'updraft',title:'Windwell',text:'Step on the cream valve. The rising wind lifts your jumps.'},{x:91,end:100,icon:'sink',title:'Sinking ledges',text:'Pale ledges sink once you land. Keep moving.'}],
   guides:[{platformId:'wind-crown',offset:.55,dir:-1},{platformId:'arch-balcony',offset:.55,dir:-1},{platformId:'arch-balcony',offset:3.4,dir:1}]
 });

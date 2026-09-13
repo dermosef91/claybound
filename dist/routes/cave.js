@@ -1503,24 +1503,28 @@ export default chapter({
   {
     "x": 24,
     "end": 32,
+    "icon": "relay",
     "title": "Relay",
     "text": "The relay above opens the grate below. Go up, then come back."
   },
   {
     "x": 58,
     "end": 67,
+    "icon": "ferry",
     "title": "Steer the ferry",
     "text": "Stand at an end to move, at the centre to stop. Watch the press lamps."
   },
   {
     "x": 124,
     "end": 132,
+    "icon": "wheel",
     "title": "Turning heart",
     "text": "Board a cradle, stay near its centre, step off at the upper balcony."
   },
   {
     "x": 170,
     "end": 180,
+    "icon": "drop",
     "title": "Drop through",
     "text": "Stomp on the thin shelf to drop through. The lift brings you back."
   },
@@ -1528,6 +1532,7 @@ export default chapter({
     "x": 110,
     "end": 114,
     "y": 0,
+    "icon": "spitter",
     "title": "Spitter",
     "text": "A swelling mouth means a shot is coming. Take cover, then jump on it."
   }
