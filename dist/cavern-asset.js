@@ -30,6 +30,10 @@ export async function loadCavernAssets(w,onProgress){
 export function cavernModel(w,key,parent,x,y,z,width,turn=0,{lights=true}={}){
   const a=w.cavernAssets?.[key];if(!a)throw new Error('Load the cavern models before building the cave.');
   const root=new THREE.Group(),model=a.scene.clone(true);root.name=key==='grotto'?'Supplied glowing grotto':'Supplied crystalcap cavern';root.position.set(x,y,z);root.rotation.y=turn;root.scale.setScalar(width/a.size.x);
+  // Instances of the supplied models share one copy of their geometry and
+  // maps. Backdrop merging must leave them intact rather than duplicating
+  // every vertex per placement.
+  root.userData.sharedModel=true;
   model.position.set(-a.center.x,-a.box.min.y,-a.center.z);root.add(model);parent.add(root);
   for(const lamp of a.lamps){
     const anchor=new THREE.Object3D();anchor.name=lamp.kind+' light anchor';anchor.position.set(lamp.x,lamp.y,lamp.z);model.add(anchor);

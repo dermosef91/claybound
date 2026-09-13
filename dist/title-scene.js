@@ -13,7 +13,7 @@ export class TitleScene {
     const w=this.view=Object.create(world);
     w.scene=new THREE.Scene();w.scene.background=new THREE.Color('#3dabe7');
     w.scene.fog=new THREE.Fog('#a8cae0',38,105);
-    w.clay=world.clay?{...world.clay,boxes:new Map(),sculpted:new WeakMap()}:null;
+    w.clay=world.clay?{...world.clay,boxes:new Map(),sculpted:new WeakMap(),bytes:0}:null;
     w.assetGeometry=new Set(world.assetGeometry);w.assetMaterials=new Set(world.assetMaterials);
     w.mat={};
     for(const [name,base]of Object.entries(world.mat)){

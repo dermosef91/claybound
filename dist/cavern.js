@@ -41,6 +41,7 @@ function backdropMaterials(w){
   }
 }
 const rand=n=>{const r=Math.sin(n*117.17+51.61)*43758.5453;return r-Math.floor(r);};
+const MERGE_BLOCK=8;
 
 // Rounded rock volumes with irregular, overlapping facets, rather than extruded
 // flat silhouettes. Local coordinates keep the shared clay field attached.
@@ -192,10 +193,76 @@ export function buildCaveBackdrop(w){
   // and its wrapping cells need local matrix composition each frame.
   w.backRoot.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
   for(const layer of w.parallax)for(const cell of layer.group.children){
+    mergeCaveCell(w,cell);
     cell.traverse(o=>{if(o!==cell){o.updateMatrix();o.matrixAutoUpdate=false;}});
     cell.updateWorldMatrix(true,true);
     cell.userData.caveBounds=new THREE.Box3().setFromObject(cell).applyMatrix4(new THREE.Matrix4().copy(cell.matrixWorld).invert()).getBoundingSphere(new THREE.Sphere());
   }
+}
+
+// A backdrop cell never moves inside itself: the whole cell slides as one
+// parallax unit. Bake its constructed rock, moss and mushroom meshes into one
+// mesh per material and block of space, exactly where they already sit, so a
+// cell costs a handful of draw calls and world matrices instead of dozens.
+// Every vertex keeps its sculpted position, so the composition is unchanged.
+//
+// Two kinds of mesh stay on their own. Instances of the supplied grotto models
+// share a single copy of their geometry between placements, and merging would
+// duplicate it per instance. Meshes registered as light fixtures are held by
+// `w.torches`, which samples their world position every frame.
+function mergeCaveCell(w,cell){
+  const fixtures=new Set(w.torches.map(t=>t.flame));
+  const byMaterial=new Map(),matrix=new THREE.Matrix4(),inverse=new THREE.Matrix4();
+  cell.updateWorldMatrix(true,true);inverse.copy(cell.matrixWorld).invert();
+  const collect=o=>{
+    for(const child of [...o.children]){
+      if(child.userData.sharedModel)continue;
+      collect(child);
+      if(!child.isMesh||fixtures.has(child))continue;
+      // Merging needs one material and one identical attribute set. Anything
+      // unusual keeps its own mesh rather than risking a dropped form.
+      if(Array.isArray(child.material))continue;
+      if(Object.keys(child.geometry.attributes).sort().join(',')!=='normal,position,uv')continue;
+      matrix.multiplyMatrices(inverse,child.matrixWorld);
+      const baked=child.geometry.clone().applyMatrix4(matrix);
+      if(!baked.index)baked.setIndex([...Array(baked.attributes.position.count).keys()]);
+      // Group by material and by a coarse block of space. A cell is both wider
+      // and far taller than the view, so keeping blocks apart lets the parts
+      // that sit off to the side or above the screen stay frustum-culled
+      // instead of riding along with the part being looked at.
+      baked.computeBoundingSphere();
+      const c=baked.boundingSphere.center;
+      const key=`${child.material.uuid}@${Math.round(c.x/MERGE_BLOCK)}:${Math.round(c.y/MERGE_BLOCK)}`;
+      const bucket=byMaterial.get(key)||{material:child.material,list:[]};
+      bucket.list.push(baked);byMaterial.set(key,bucket);
+      if(w.assetGeometry&&!w.assetGeometry.has(child.geometry))child.geometry.dispose();
+      child.removeFromParent();
+    }
+  };
+  collect(cell);
+  const attach=(geo,material)=>{
+    geo.userData.clayRelief=true;geo.computeBoundingBox();geo.computeBoundingSphere();
+    const mesh=new THREE.Mesh(geo,material);
+    mesh.name='Merged cavern backdrop';mesh.castShadow=false;mesh.receiveShadow=false;cell.add(mesh);
+  };
+  for(const {material,list}of byMaterial.values()){
+    const merged=list.length>1?mergeGeometries(list):null;
+    // Keep every form even if a merge is ever rejected: fall back to the
+    // separate baked meshes rather than losing part of the cave.
+    if(merged){list.forEach(g=>g.dispose());attach(merged,material);}
+    else for(const geo of list)attach(geo,material);
+  }
+  // Groups emptied by the merge no longer draw or transform anything. Supplied
+  // model instances are left whole: they carry their own light anchors, which
+  // hold no geometry and must survive.
+  const prune=o=>{
+    for(const child of [...o.children]){
+      if(child.userData.sharedModel)continue;
+      prune(child);
+      if(!child.isMesh&&!child.isLight&&child.children.length===0&&!fixtures.has(child))child.removeFromParent();
+    }
+  };
+  prune(cell);
 }
 
 const caveFrustum=new THREE.Frustum(),caveProjection=new THREE.Matrix4(),caveSphere=new THREE.Sphere();

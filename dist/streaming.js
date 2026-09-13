@@ -6,6 +6,7 @@ import {syncDepthScenery} from './depth-scenery.js';
 import {createPressView} from './press-views.js';
 import {createBead} from './beads.js';
 import {greatArchLayout,buildGreatArch} from './great-arch.js';
+import {clayCacheOverBudget,trimClayShapes} from './clay.js';
 
 const attached=(o,root)=>{for(let p=o;p;p=p.parent)if(p===root)return true;return false;};
 export function disposeBranch(w,root){
@@ -62,8 +63,8 @@ export function syncStream(w,L,center,force=false){
   w.flags=w.flags.filter(f=>attached(f,w.levelRoot));w.torches=w.torches.filter(t=>attached(t.flame,w.levelRoot)||attached(t.flame,w.backRoot));
   if(w.bell&&!attached(w.bell,w.levelRoot))w.bell=null;
   // Cache eviction never disposes meshes or materials used by a live region.
-  if(w.clay?.boxes.size>200){
+  if(clayCacheOverBudget(w)){
     const live=new Set();w.scene.traverse(o=>{if(o.geometry)live.add(o.geometry);});
-    for(const [key,g]of w.clay.boxes)if(w.clay.boxes.size>180&&!live.has(g)){w.clay.boxes.delete(key);w.assetGeometry.delete(g);g.dispose();}
+    trimClayShapes(w,live);
   }
 }
