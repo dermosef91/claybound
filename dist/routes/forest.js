@@ -75,6 +75,6 @@ export default chapter({
     {kind:'spore',x:196.5,y:20.5,min:195.1,max:197.3,speed:.55}
   ],
   hazards:[{"x":11,"y":-4,"w":22},{"x":67,"y":-1,"w":8},{"x":80,"y":3,"w":16},{"x":104,"y":3.8,"w":12},{"x":231,"y":19,"w":26.5}],
-  hints:[{x:0,end:11,title:'Play the mushroom',text:'Run onto the orange target. Hold jump for the highest bounce.'},{x:115,end:126,y:13,title:'Let the tree breathe',text:'Stomp the golden spore balloon above. Released spores carry the next climb.'}],
+  hints:[{x:0,end:11,title:'Mushroom bounce',text:'Land on the orange target. Hold jump to bounce higher.'},{x:115,end:126,y:13,title:'Spore balloon',text:'Stomp the golden balloon above. The spores lift you up.'}],
   guides:[{platformId:'tree-east',offset:1,dir:-1},{platformId:'tree-west',offset:2.7,dir:1},{platformId:'tree-top',offset:4.5,dir:1}]
 });
