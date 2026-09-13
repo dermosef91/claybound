@@ -1,0 +1,48 @@
+# Publishes the playable game to GitHub Pages.
+#
+# dist/ is the authored, ready-to-serve game: no build step, no bundler.
+# The job uploads that directory verbatim, so the hosted site matches what
+# LOCAL-DEPLOYMENT.md serves from a local static server.
+name: Deploy game
+
+on:
+  push:
+    branches:
+      - main
+      - claude/deploy-game-share-link-5wivwm
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish; queue newer pushes behind it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out the game
+        uses: actions/checkout@v4
+
+      - name: Turn on Pages
+        uses: actions/configure-pages@v5
+        with:
+          # Enables Pages on first run so no manual repository setup is needed.
+          enablement: true
+
+      - name: Package dist/ as the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v4

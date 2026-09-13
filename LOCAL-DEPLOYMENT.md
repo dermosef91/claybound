@@ -38,3 +38,20 @@ Browser-local saved progress and editor drafts are not project files and
 are not part of this repository backup. Export any custom editor drafts
 from the game separately. Asset preparation scripts may reference original
 uploads outside this project; the playable, prepared assets are included.
+
+## Hosted deployment
+
+`.github/workflows/deploy-pages.yml` publishes `dist/` to GitHub Pages on
+every push to `main`, and can also be started by hand from the Actions tab.
+The job uploads the directory verbatim, so the hosted site is the same game
+the local static server serves. There is no build step to keep in sync.
+
+The first run turns Pages on by itself, so no manual repository setup is
+needed. Once it finishes, the Actions summary links the published address,
+which is also shown under Settings then Pages.
+
+Publishing Pages from a private repository requires a paid GitHub plan. On
+the free plan the workflow fails at the "Turn on Pages" step; making the
+repository public also resolves it. A Pages site is reachable by anyone with
+the address even when the repository stays private, so treat the address as
+public once the game is live.
