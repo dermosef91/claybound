@@ -373,7 +373,7 @@ console.log('PASS supplied distant grotto arches, stronger cave fog, bounded lig
     assert(Math.abs(box.min.x-s.x)<.01&&Math.abs(box.max.x-s.x-s.w)<.01);
     const support=g.level.platforms.filter(p=>p.id!==s.id&&['stone','ledge'].includes(p.kind)&&s.x+s.w/2>=p.x&&s.x+s.w/2<=p.x+p.w&&p.y<s.y).sort((a,b)=>b.y-a.y)[0];
     assert(box.min.y>=support.y-.01,'the entire target pad remains above its supporting deck');
-    assert(box.max.y-box.min.y>.39,'the spring has a readable above-ground profile');
+    assert(box.max.y-box.min.y>Math.min(.39,(s.y-support.y)*.95),'the spring has a readable profile within its authored deck clearance');
     mushroom.traverse(o=>{if(o.isMesh)assert(o.material.map&&o.material.normalMap&&o.material.roughnessMap,'the target retains its source maps');});
   }
   w.syncVisible(g.level,118,true);w.scene.updateMatrixWorld(true);

@@ -41,6 +41,7 @@ import {loadCityLaundry} from './city-laundry.js';
 import {createClayView,updateClayView} from './shaping-views.js';
 import {CLAY_PALETTE} from './palette.js';
 import {createGoal} from './goal.js';
+import {burstSporePod,updateSporeParticle,disposeSporeParticle} from './spore-effects.js';
 
 const C={blue:0x315e96,blueLight:0x3d6da5,blueDark:0x244c7b,orange:CLAY_PALETTE.orange,orangeLight:CLAY_PALETTE.orangeLight,cream:0xf1d8a3,rope:0xdcb985,dark:0x172b3f,gold:0xf8ce75};
 const fract=n=>n-Math.floor(n);
@@ -295,7 +296,7 @@ export class World {
     if(e.type==='press-impact'&&Math.abs(this.cameraX-e.x)>this.viewW*.8)return;
     heroEvent(this.character,e);
     if(e.type==='checkpoint')raiseCheckpoint(this,e);
-    else if(e.type==='break'&&e.spore){this.burst(e.x,e.y-.4,'gold',14,.9);this.burst(e.x,e.y-.7,'cream',16,.8);this.burst(e.x,e.y-.5,'foliage',7,.6);}
+    else if(e.type==='break'&&e.spore)burstSporePod(this,e);
     else if(e.type==='crumble-collapse')clayFragments(this,e.x,e.y,e.w,24,1.1);
     else if(e.type==='press-impact'){clayFragments(this,e.x,e.y,e.w+1,14,.85);if(!this.reducedMotion&&Math.abs(this.cameraX-e.x)<this.viewW*.6)this.shake=.06;}
     else if(e.type==='squish'&&e.kind==='spore')this.burst(e.x,e.y,'spore',16,.75);
@@ -313,7 +314,8 @@ export class World {
     if(dt<=0)return;
     for(let i=this.particles.length-1;i>=0;i--){
       const q=this.particles[i];q.life-=dt;
-      if(q.kind==='drifter-leaf'){
+      if(q.kind==='spore-shell'||q.kind==='spore-bloom')updateSporeParticle(q,dt);
+      else if(q.kind==='drifter-leaf'){
         const age=q.maxLife-q.life,drag=Math.exp(-dt*1.8);
         q.vx*=drag;q.vz*=drag;q.vy-=3*dt;
         q.mesh.position.x+=(q.vx+Math.sin(age*13+q.phase)*.28)*dt;
@@ -322,7 +324,7 @@ export class World {
         q.mesh.scale.multiplyScalar(Math.exp(-dt*(q.life<.22?12:.45)));
       }else{q.vy-=9*dt;q.mesh.position.x+=q.vx*dt;q.mesh.scale.multiplyScalar(1-dt*.65);if(q.kind==='clay-chip'){q.mesh.rotation.x+=q.spinX*dt;q.mesh.rotation.z+=q.spinZ*dt;}}
       q.mesh.position.y+=q.vy*dt;q.mesh.position.z+=q.vz*dt;
-      if(q.life<=0){this.fxRoot.remove(q.mesh);this.particles.splice(i,1);}
+      if(q.life<=0){this.fxRoot.remove(q.mesh);disposeSporeParticle(q);this.particles.splice(i,1);}
     }
   }
   render(game,dt,menu=false) {
@@ -377,9 +379,9 @@ export class World {
     L.coins.forEach((c,i)=>{const g=this.coinViews[i];if(!g)return;g.visible=!c.taken;g.position.y=c.y+Math.sin(t*2.5+i*.5)*.09;g.rotation.y=Math.sin(t*1.3+i*.7)*.48;g.rotation.z=Math.sin(t*.6+i)*.08;});
     L.stamps.forEach((c,i)=>{const g=this.stampViews[i];if(!g)return;g.visible=!c.taken;g.position.y=c.y+Math.sin(t*2+i)*.13;g.rotation.y=Math.sin(t*1.8)*.28;g.rotation.z=t*.35;});
     L.crushers?.forEach((c,i)=>animatePressView(this.crusherViews[i],c));
-    for(const view of this.circuitViews.values())animateCircuit(view,game);
+    for(const view of this.circuitViews.values())animateCircuit(view,game,this.reducedMotion);
     animateForest(this,game);
-    for(const view of this.windViews.values())animateWind(view,game.time);
+    for(const view of this.windViews.values())animateWind(view,game.time,this.reducedMotion);
     for(const view of this.platforms.values())view.root.traverse(o=>{if(o.userData.spin)o.rotation.z=game.time*.7;});
     animateCheckpoints(this,game,dt);
     this.clouds.forEach((g,i)=>g.position.x+=dt*(.045+rand(i)*.03));

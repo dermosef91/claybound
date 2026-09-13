@@ -1,0 +1,1087 @@
+{
+  "format": "claybound-level",
+  "version": 1,
+  "chapter": 1,
+  "baseVersion": 5,
+  "level": {
+    "layoutVersion": "editor-5-gns96z",
+    "winds": [
+      {
+        "x": 60,
+        "y": 0,
+        "w": 6,
+        "h": 7,
+        "fx": 0,
+        "fy": 16,
+        "id": "root-breath",
+        "channel": "root-a",
+        "spores": true
+      },
+      {
+        "x": 126,
+        "y": 13,
+        "w": 14,
+        "h": 11,
+        "fx": 0,
+        "fy": 19,
+        "id": "heart-breath",
+        "channel": "tree-spores",
+        "spores": true
+      },
+      {
+        "x": 231,
+        "y": 23,
+        "w": 14,
+        "h": 12,
+        "fx": 0,
+        "fy": 19,
+        "id": "bloom-breath",
+        "channel": "bloom-spores",
+        "spores": true
+      }
+    ],
+    "crushers": [],
+    "circuits": [
+      {
+        "source": "tree-seal",
+        "channel": "tree-spores",
+        "targets": [
+          "spore1",
+          "spore2"
+        ],
+        "kind": "spore"
+      },
+      {
+        "source": "bloom-seal",
+        "channel": "bloom-spores",
+        "targets": [
+          "bloom-rise",
+          "bloom-cloud"
+        ],
+        "kind": "spore"
+      }
+    ],
+    "guides": [
+      {
+        "platformId": "tree-east",
+        "offset": 1,
+        "dir": -1
+      },
+      {
+        "platformId": "tree-west",
+        "offset": 2.7,
+        "dir": 1
+      },
+      {
+        "platformId": "tree-top",
+        "offset": 4.5,
+        "dir": 1
+      }
+    ],
+    "detours": [],
+    "recoveries": [
+      [
+        {
+          "from": "bloom-root",
+          "to": "clay-4",
+          "mode": "jump"
+        },
+        {
+          "from": "clay-4",
+          "to": "bloom1",
+          "mode": "jump"
+        }
+      ]
+    ],
+    "name": "The Wildwood",
+    "short": "Wildwood",
+    "label": "Bounce, burrow & bloom",
+    "biome": "forest",
+    "intro": "Climb the living tree. Break its sealed roots and let the forest breathe.",
+    "sky": "#b2d2b7",
+    "fog": "#b7d2bc",
+    "spawn": {
+      "x": 1.5,
+      "y": 0
+    },
+    "end": 264,
+    "previousDistance": 875,
+    "cameraY": 3,
+    "sections": [
+      {
+        "x": -8,
+        "name": "Mushroom Choir",
+        "landmark": "mushroom",
+        "id": 0,
+        "end": 48
+      },
+      {
+        "x": 48,
+        "name": "Under the Roots",
+        "landmark": "rootarch",
+        "id": 1,
+        "end": 99
+      },
+      {
+        "x": 99,
+        "name": "The Breathing Tree",
+        "landmark": "sporepod",
+        "id": 2,
+        "end": 157
+      },
+      {
+        "x": 157,
+        "name": "Brittle Canopy",
+        "landmark": "birdhouse",
+        "id": 3,
+        "end": 213
+      },
+      {
+        "x": 213,
+        "name": "Heartwood Bloom",
+        "landmark": "mushroom",
+        "id": 4,
+        "end": 272
+      }
+    ],
+    "platforms": [
+      {
+        "x": -8,
+        "y": 0,
+        "w": 19,
+        "id": "start",
+        "kind": "stone",
+        "section": 0
+      },
+      {
+        "x": 8,
+        "y": 0.44,
+        "w": 1.8,
+        "id": "spring1",
+        "kind": "spring",
+        "section": 0
+      },
+      {
+        "x": 14,
+        "y": 4.5,
+        "w": 6,
+        "id": "first-bough",
+        "kind": "ledge",
+        "section": 0
+      },
+      {
+        "x": 22,
+        "y": 5.7,
+        "w": 3.5,
+        "id": "choir-step",
+        "kind": "ledge",
+        "section": 0
+      },
+      {
+        "x": 27,
+        "y": 6.6,
+        "w": 5,
+        "id": "choir-perch",
+        "kind": "ledge",
+        "section": 0
+      },
+      {
+        "x": 33,
+        "y": 3.1,
+        "w": 6,
+        "id": "choir-base",
+        "landmark": "mushroom",
+        "kind": "stone",
+        "section": 0
+      },
+      {
+        "x": 36.5,
+        "y": 3.54,
+        "w": 1.8,
+        "id": "choir-spring",
+        "kind": "spring",
+        "section": 0
+      },
+      {
+        "x": 42,
+        "y": 7.8,
+        "w": 6,
+        "id": "choir-crown",
+        "kind": "ledge",
+        "section": 0
+      },
+      {
+        "x": 48,
+        "y": 7.8,
+        "w": 7,
+        "checkpoint": 51,
+        "id": "root-entry",
+        "landmark": "rootarch",
+        "kind": "ledge",
+        "section": 1
+      },
+      {
+        "x": 55,
+        "y": 2.6,
+        "w": 12,
+        "checkpoint": 64,
+        "id": "root-floor",
+        "landmark": "sporepod",
+        "kind": "ledge",
+        "section": 1
+      },
+      {
+        "x": 69,
+        "y": 3.5,
+        "w": 4,
+        "id": "root-bridge",
+        "kind": "ledge",
+        "section": 1
+      },
+      {
+        "x": 75,
+        "y": 3.8,
+        "w": 5,
+        "id": "root-spring-base",
+        "kind": "stone",
+        "section": 1
+      },
+      {
+        "x": 77,
+        "y": 4.24,
+        "w": 1.8,
+        "id": "root-spring",
+        "kind": "spring",
+        "section": 1
+      },
+      {
+        "x": 83,
+        "y": 8.5,
+        "w": 5,
+        "id": "root-upper",
+        "kind": "ledge",
+        "section": 1
+      },
+      {
+        "x": 90,
+        "y": 9.3,
+        "w": 3.8,
+        "delay": 0.95,
+        "id": "root-crumble",
+        "kind": "crumble",
+        "section": 1
+      },
+      {
+        "x": 96,
+        "y": 8.1,
+        "w": 8,
+        "checkpoint": 101,
+        "id": "tree-foot",
+        "landmark": "rootarch",
+        "kind": "stone",
+        "section": 1
+      },
+      {
+        "x": 102,
+        "y": 8.54,
+        "w": 1.8,
+        "id": "tree-spring",
+        "kind": "spring",
+        "section": 2
+      },
+      {
+        "x": 108,
+        "y": 12.8,
+        "w": 4.5,
+        "id": "tree-east",
+        "kind": "ledge",
+        "section": 2
+      },
+      {
+        "x": 103.25,
+        "y": 15.25,
+        "w": 3.3,
+        "id": "tree-west",
+        "kind": "ledge",
+        "section": 2
+      },
+      {
+        "x": 104,
+        "y": 15.75,
+        "w": 1.8,
+        "id": "tree-west-spring",
+        "kind": "spring",
+        "section": 2
+      },
+      {
+        "x": 110,
+        "y": 19.2,
+        "w": 5,
+        "id": "tree-top",
+        "kind": "ledge",
+        "section": 2
+      },
+      {
+        "x": 119.15,
+        "y": 19.75,
+        "w": 1.7,
+        "id": "tree-seal",
+        "releases": "tree-spores",
+        "kind": "break",
+        "section": 2
+      },
+      {
+        "x": 116,
+        "y": 14,
+        "w": 10,
+        "checkpoint": 124.2,
+        "id": "tree-heart",
+        "landmark": "sporepod",
+        "kind": "ledge",
+        "section": 2
+      },
+      {
+        "x": 128,
+        "y": 15.6,
+        "w": 4,
+        "id": "spore1",
+        "kind": "ledge",
+        "section": 2
+      },
+      {
+        "x": 134,
+        "y": 20.2,
+        "w": 4,
+        "id": "spore2",
+        "kind": "ledge",
+        "section": 2
+      },
+      {
+        "x": 140,
+        "y": 22,
+        "w": 5,
+        "id": "spore-crown",
+        "kind": "ledge",
+        "section": 2
+      },
+      {
+        "x": 147,
+        "y": 20,
+        "w": 10,
+        "checkpoint": 151,
+        "id": "bird-rest",
+        "landmark": "birdhouse",
+        "rest": true,
+        "kind": "ledge",
+        "section": 2
+      },
+      {
+        "x": 157,
+        "y": 20,
+        "w": 6,
+        "id": "canopy-entry",
+        "landmark": "rootarch",
+        "kind": "ledge",
+        "section": 3
+      },
+      {
+        "x": 165,
+        "y": 20.8,
+        "w": 3.5,
+        "delay": 1,
+        "id": "crumb1",
+        "kind": "crumble",
+        "section": 3
+      },
+      {
+        "x": 170.5,
+        "y": 21.6,
+        "w": 3.5,
+        "delay": 0.9,
+        "id": "crumb2",
+        "kind": "crumble",
+        "section": 3
+      },
+      {
+        "x": 176,
+        "y": 22,
+        "w": 4.5,
+        "id": "canopy-rest",
+        "kind": "ledge",
+        "section": 3
+      },
+      {
+        "x": 182.5,
+        "y": 22.5,
+        "w": 3.5,
+        "delay": 0.85,
+        "id": "crumb3",
+        "kind": "crumble",
+        "section": 3
+      },
+      {
+        "x": 188,
+        "y": 21.7,
+        "w": 3.5,
+        "delay": 0.9,
+        "id": "crumb4",
+        "kind": "crumble",
+        "section": 3
+      },
+      {
+        "x": 194,
+        "y": 20.5,
+        "w": 6,
+        "id": "canopy-nest",
+        "landmark": "birdhouse",
+        "kind": "ledge",
+        "section": 3
+      },
+      {
+        "x": 198,
+        "y": 20.94,
+        "w": 1.8,
+        "id": "nest-spring",
+        "kind": "spring",
+        "section": 3
+      },
+      {
+        "x": 204,
+        "y": 25,
+        "w": 9,
+        "checkpoint": 208,
+        "id": "bloom-entry",
+        "landmark": "mushroom",
+        "kind": "ledge",
+        "section": 3
+      },
+      {
+        "x": 211,
+        "y": 25.44,
+        "w": 1.8,
+        "id": "bloom-spring",
+        "kind": "spring",
+        "section": 3
+      },
+      {
+        "x": 217,
+        "y": 29.8,
+        "w": 4.2,
+        "id": "bloom1",
+        "kind": "ledge",
+        "section": 4
+      },
+      {
+        "x": 223.2,
+        "y": 29.8,
+        "w": 4,
+        "id": "bloom-seal",
+        "releases": "bloom-spores",
+        "kind": "break",
+        "section": 4
+      },
+      {
+        "x": 223,
+        "y": 24.5,
+        "w": 8,
+        "checkpoint": 229,
+        "id": "bloom-root",
+        "landmark": "sporepod",
+        "kind": "ledge",
+        "section": 4
+      },
+      {
+        "x": 233,
+        "y": 26.3,
+        "w": 4,
+        "id": "bloom-rise",
+        "kind": "ledge",
+        "section": 4
+      },
+      {
+        "x": 239,
+        "y": 30.8,
+        "w": 4,
+        "delay": 1.2,
+        "id": "bloom-cloud",
+        "kind": "crumble",
+        "section": 4
+      },
+      {
+        "x": 245,
+        "y": 32.3,
+        "w": 5,
+        "id": "bloom-perch",
+        "kind": "ledge",
+        "section": 4
+      },
+      {
+        "x": 252,
+        "y": 33.4,
+        "w": 3.5,
+        "id": "bloom-last",
+        "kind": "ledge",
+        "section": 4
+      },
+      {
+        "x": 257.5,
+        "y": 33.4,
+        "w": 14,
+        "bellX": 6.5,
+        "id": "heart-bell",
+        "landmark": "bellgate",
+        "goal": true,
+        "kind": "ledge",
+        "section": 4
+      },
+      {
+        "x": 112.5,
+        "y": 19.5,
+        "w": 2,
+        "id": "clay-1",
+        "kind": "spring",
+        "section": 2
+      },
+      {
+        "x": 116.5,
+        "y": 14.5,
+        "w": 2,
+        "id": "clay-2",
+        "kind": "spring",
+        "section": 2
+      },
+      {
+        "x": 219,
+        "y": 26,
+        "w": 3.25,
+        "id": "clay-3",
+        "kind": "ledge",
+        "section": 4
+      },
+      {
+        "x": 219.5,
+        "y": 26.5,
+        "w": 2,
+        "id": "clay-4",
+        "kind": "spring",
+        "section": 4
+      },
+      {
+        "x": 210.5,
+        "y": 32,
+        "w": 2.5,
+        "delay": 0.35,
+        "id": "clay-5",
+        "kind": "crumble",
+        "section": 3
+      },
+      {
+        "x": 205.25,
+        "y": 33,
+        "w": 2.25,
+        "delay": 0.35,
+        "id": "clay-6",
+        "kind": "crumble",
+        "section": 3
+      },
+      {
+        "x": 199.75,
+        "y": 34.75,
+        "w": 2.5,
+        "delay": 0.35,
+        "id": "clay-7",
+        "kind": "crumble",
+        "section": 3
+      },
+      {
+        "x": 194.5,
+        "y": 36.5,
+        "w": 3,
+        "id": "clay-8",
+        "kind": "ledge",
+        "section": 3
+      },
+      {
+        "x": 194.75,
+        "y": 37,
+        "w": 2.25,
+        "id": "clay-9",
+        "kind": "spring",
+        "section": 3
+      }
+    ],
+    "coins": [
+      {
+        "x": 10,
+        "y": 5
+      },
+      {
+        "x": 12.5,
+        "y": 6.5
+      },
+      {
+        "x": 14.833333333333334,
+        "y": 5.25
+      },
+      {
+        "x": 23,
+        "y": 6.7
+      },
+      {
+        "x": 24.1,
+        "y": 6.7
+      },
+      {
+        "x": 37.75,
+        "y": 6
+      },
+      {
+        "x": 39,
+        "y": 8.25
+      },
+      {
+        "x": 41,
+        "y": 9.75
+      },
+      {
+        "x": 42.6,
+        "y": 8.667785252292473
+      },
+      {
+        "x": 78.25,
+        "y": 6.75
+      },
+      {
+        "x": 79.5,
+        "y": 9
+      },
+      {
+        "x": 82,
+        "y": 10.25
+      },
+      {
+        "x": 83.6,
+        "y": 9.070228201833979
+      },
+      {
+        "x": 103.25,
+        "y": 11
+      },
+      {
+        "x": 104.75,
+        "y": 13.25
+      },
+      {
+        "x": 107.6,
+        "y": 13.151056516295153
+      },
+      {
+        "x": 106.25,
+        "y": 14.25
+      },
+      {
+        "x": 105.5,
+        "y": 17.75
+      },
+      {
+        "x": 106.75,
+        "y": 20.75
+      },
+      {
+        "x": 109,
+        "y": 21.5
+      },
+      {
+        "x": 111,
+        "y": 20
+      },
+      {
+        "x": 120,
+        "y": 20.5
+      },
+      {
+        "x": 131,
+        "y": 19.106217782649107
+      },
+      {
+        "x": 134,
+        "y": 21.1
+      },
+      {
+        "x": 166.75,
+        "y": 22
+      },
+      {
+        "x": 172.25,
+        "y": 23
+      },
+      {
+        "x": 184.1,
+        "y": 23.5
+      },
+      {
+        "x": 212.25,
+        "y": 28
+      },
+      {
+        "x": 215,
+        "y": 31
+      },
+      {
+        "x": 217.83333333333334,
+        "y": 30.633333333333333
+      },
+      {
+        "x": 225.25,
+        "y": 30.75
+      },
+      {
+        "x": 235.75,
+        "y": 29.5
+      },
+      {
+        "x": 237.25,
+        "y": 31.5
+      },
+      {
+        "x": 238.75,
+        "y": 33
+      },
+      {
+        "x": 258,
+        "y": 34.4
+      },
+      {
+        "x": 259.1,
+        "y": 34.4
+      },
+      {
+        "x": 260.2,
+        "y": 34.4
+      },
+      {
+        "x": 261.3,
+        "y": 34.4
+      },
+      {
+        "x": 262.4,
+        "y": 34.4
+      }
+    ],
+    "stamps": [
+      {
+        "x": 115.75,
+        "y": 25
+      },
+      {
+        "x": 195.75,
+        "y": 43
+      }
+    ],
+    "enemies": [
+      {
+        "x": 30,
+        "y": 6.6,
+        "speed": 0.45,
+        "min": 28.8,
+        "max": 31.25,
+        "kind": "spore"
+      },
+      {
+        "x": 86,
+        "y": 8.5,
+        "speed": 0.5,
+        "min": 84.2,
+        "max": 87.2,
+        "kind": "spore"
+      },
+      {
+        "x": 155,
+        "y": 20,
+        "speed": 0.5,
+        "min": 154,
+        "max": 156.2,
+        "kind": "spore"
+      },
+      {
+        "x": 196.5,
+        "y": 20.5,
+        "speed": 0.55,
+        "min": 195.1,
+        "max": 197.3,
+        "kind": "spore"
+      }
+    ],
+    "hazards": [
+      {
+        "x": 11,
+        "y": -4,
+        "w": 22
+      },
+      {
+        "x": 67,
+        "y": -1,
+        "w": 8
+      },
+      {
+        "x": 80,
+        "y": 3,
+        "w": 16
+      },
+      {
+        "x": 104,
+        "y": 3.8,
+        "w": 12
+      },
+      {
+        "x": 231,
+        "y": 19,
+        "w": 26.5
+      }
+    ],
+    "hints": [
+      {
+        "x": 0,
+        "end": 11,
+        "title": "Play the mushroom",
+        "text": "Run onto the orange target. Hold jump for the highest bounce."
+      },
+      {
+        "x": 115,
+        "end": 126,
+        "y": 13,
+        "title": "Let the tree breathe",
+        "text": "Stomp the golden spore balloon above. Released spores carry the next climb."
+      }
+    ],
+    "routeLinks": [
+      {
+        "from": "start",
+        "to": "spring1",
+        "mode": "walk"
+      },
+      {
+        "from": "spring1",
+        "to": "first-bough",
+        "mode": "jump"
+      },
+      {
+        "from": "first-bough",
+        "to": "choir-step",
+        "mode": "jump"
+      },
+      {
+        "from": "choir-step",
+        "to": "choir-perch",
+        "mode": "jump"
+      },
+      {
+        "from": "choir-perch",
+        "to": "choir-base",
+        "mode": "fall"
+      },
+      {
+        "from": "choir-base",
+        "to": "choir-spring",
+        "mode": "walk"
+      },
+      {
+        "from": "choir-spring",
+        "to": "choir-crown",
+        "mode": "jump"
+      },
+      {
+        "from": "choir-crown",
+        "to": "root-entry",
+        "mode": "walk"
+      },
+      {
+        "from": "root-entry",
+        "to": "root-floor",
+        "mode": "fall"
+      },
+      {
+        "from": "root-floor",
+        "to": "root-bridge",
+        "mode": "jump"
+      },
+      {
+        "from": "root-bridge",
+        "to": "root-spring-base",
+        "mode": "jump"
+      },
+      {
+        "from": "root-spring-base",
+        "to": "root-spring",
+        "mode": "walk"
+      },
+      {
+        "from": "root-spring",
+        "to": "root-upper",
+        "mode": "jump"
+      },
+      {
+        "from": "root-upper",
+        "to": "root-crumble",
+        "mode": "jump"
+      },
+      {
+        "from": "root-crumble",
+        "to": "tree-foot",
+        "mode": "jump"
+      },
+      {
+        "from": "tree-foot",
+        "to": "tree-spring",
+        "mode": "walk"
+      },
+      {
+        "from": "tree-spring",
+        "to": "tree-east",
+        "mode": "jump"
+      },
+      {
+        "from": "tree-east",
+        "to": "tree-west",
+        "mode": "jump"
+      },
+      {
+        "from": "tree-west",
+        "to": "tree-west-spring",
+        "mode": "walk"
+      },
+      {
+        "from": "tree-west-spring",
+        "to": "tree-top",
+        "mode": "jump"
+      },
+      {
+        "from": "tree-top",
+        "to": "clay-1",
+        "mode": "walk"
+      },
+      {
+        "from": "clay-1",
+        "to": "tree-seal",
+        "mode": "jump"
+      },
+      {
+        "from": "tree-seal",
+        "to": "tree-heart",
+        "mode": "drop"
+      },
+      {
+        "from": "tree-heart",
+        "to": "spore1",
+        "mode": "jump"
+      },
+      {
+        "from": "spore1",
+        "to": "spore2",
+        "mode": "jump"
+      },
+      {
+        "from": "spore2",
+        "to": "spore-crown",
+        "mode": "jump"
+      },
+      {
+        "from": "spore-crown",
+        "to": "bird-rest",
+        "mode": "jump"
+      },
+      {
+        "from": "bird-rest",
+        "to": "canopy-entry",
+        "mode": "walk"
+      },
+      {
+        "from": "canopy-entry",
+        "to": "crumb1",
+        "mode": "jump"
+      },
+      {
+        "from": "crumb1",
+        "to": "crumb2",
+        "mode": "jump"
+      },
+      {
+        "from": "crumb2",
+        "to": "canopy-rest",
+        "mode": "jump"
+      },
+      {
+        "from": "canopy-rest",
+        "to": "crumb3",
+        "mode": "jump"
+      },
+      {
+        "from": "crumb3",
+        "to": "crumb4",
+        "mode": "jump"
+      },
+      {
+        "from": "crumb4",
+        "to": "canopy-nest",
+        "mode": "jump"
+      },
+      {
+        "from": "canopy-nest",
+        "to": "nest-spring",
+        "mode": "walk"
+      },
+      {
+        "from": "nest-spring",
+        "to": "bloom-entry",
+        "mode": "jump"
+      },
+      {
+        "from": "bloom-entry",
+        "to": "bloom-spring",
+        "mode": "walk"
+      },
+      {
+        "from": "bloom-spring",
+        "to": "bloom1",
+        "mode": "jump"
+      },
+      {
+        "from": "bloom1",
+        "to": "bloom-seal",
+        "mode": "jump"
+      },
+      {
+        "from": "bloom-seal",
+        "to": "bloom-root",
+        "mode": "drop"
+      },
+      {
+        "from": "bloom-root",
+        "to": "bloom-rise",
+        "mode": "jump"
+      },
+      {
+        "from": "bloom-rise",
+        "to": "bloom-cloud",
+        "mode": "jump"
+      },
+      {
+        "from": "bloom-cloud",
+        "to": "bloom-perch",
+        "mode": "jump"
+      },
+      {
+        "from": "bloom-perch",
+        "to": "bloom-last",
+        "mode": "jump"
+      },
+      {
+        "from": "bloom-last",
+        "to": "heart-bell",
+        "mode": "jump"
+      }
+    ],
+    "originalDistance": 87.5,
+    "custom": true
+  }
+}

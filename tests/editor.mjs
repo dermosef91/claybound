@@ -1,10 +1,18 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {LEVELS} from '../dist/levels.js';
 import {Game,FIXED_DT} from '../dist/simulation.js';
-import {DraftLibrary,DraftSession,validateDraft,selectedObject,DRAFT_KEY,KINDS} from '../dist/editor-model.js';
+import {DraftLibrary,DraftSession,validateDraft,selectedObject,DRAFT_KEY,KINDS,LISTS} from '../dist/editor-model.js';
 import {jumpGuide} from '../dist/editor.js';
 const memory=new Map(),storage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)};
 const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
+// The incognito export is the source of truth, including deliberate deletions.
+{
+ const exported=JSON.parse(readFileSync(new URL('../docs/forest-canopy-canon/editor-backup.json',import.meta.url),'utf8'));
+ const canonical=validateDraft(LEVELS[1],LEVELS[1]),draft=validateDraft(exported.level,LEVELS[1]);
+ assert.equal(LEVELS[1].layoutVersion,6);assert(!LEVELS[1].custom);
+ for(const key of ['spawn',...LISTS])assert.deepEqual(canonical[key],draft[key],`canonical forest ${key} matches the approved export`);
+}
 for(let index=0;index<4;index++){
  const normalized=validateDraft(LEVELS[index],LEVELS[index]);
  assert.equal(normalized.platforms.length,LEVELS[index].platforms.length);assert.equal(normalized.winds.filter(w=>w.spores).length,LEVELS[index].winds.filter(w=>w.spores).length);

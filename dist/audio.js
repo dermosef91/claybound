@@ -83,7 +83,14 @@ export class Sound {
     }
   }
   tone(freq,duration=.12,type='sine',volume=.04,slide=1,music=false){if(!this.enabled||!this.foreground||!this.ctx)return;const now=this.ctx.currentTime;const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,now);o.frequency.exponentialRampToValueAtTime(Math.max(30,freq*slide),now+duration);g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(volume,now+.012);g.gain.exponentialRampToValueAtTime(.001,now+duration);o.connect(g);g.connect(music?this.motifGain:this.master);o.start(now);o.stop(now+duration+.02);}
-  effect(type){if(!this.enabled)return;
+  effect(type,event={}){if(!this.enabled)return;
+    if(type==='break'&&event.spore){
+      this.tone(115,.14,'sine',.075,.35);
+      this.tone(360,.27,'triangle',.045,2.3);
+      setTimeout(()=>this.tone(880,.38,'sine',.026,1.18),65);
+      setTimeout(()=>this.tone(1320,.42,'sine',.018,1.08),135);
+      return;
+    }
     if(type==='jump')this.tone(230,.18,'sine',.06,1.8);
     if(type==='coin'){const now=performance.now();this.coinRun=now-this.lastCoin<600?(this.coinRun+1)%5:0;this.lastCoin=now;this.tone([659,784,880,988,1175][this.coinRun],.23,'sine',.04,1.1);}
     if(type==='land')this.tone(110,.07,'sine',.03,.7);

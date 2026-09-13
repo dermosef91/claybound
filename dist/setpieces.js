@@ -4,6 +4,7 @@ import {canyonModel} from './canyon-assets.js';
 import {forestLandmark} from './forest-details.js';
 import {dryBasin,caveStory} from './story-landmarks.js';
 import {cityLaundry} from './city-laundry.js';
+import {createSporeWind,animateSporeWind} from './spore-effects.js';
 
 // Functional clay stand-ins. Their dimensions and pivots are documented in
 // ASSET_REQUESTS.md so supplied models can replace the art without changing play.
@@ -82,6 +83,7 @@ export function balanceDeck(w,s,g){
 
 export function windView(w,wind){
   const root=new THREE.Group();root.position.set(wind.x,wind.y,0);w.levelRoot.add(root);const bits=[];
+  if(wind.spores)return createSporeWind(w,wind,root);
   for(let i=0;i<24;i++){
     const m=w.ball(wind.spores?.045:.24,.035,.035,wind.spores?'accent':'cream',root,0,0,-.2);m.castShadow=false;
     bits.push(m);
@@ -92,7 +94,8 @@ export function windView(w,wind){
   }
   return {root,bits,wind};
 }
-export function animateWind(view,time){
+export function animateWind(view,time,reducedMotion=false){
+  if(view.spore){animateSporeWind(view,time,reducedMotion);return;}
   const {wind,bits}=view;
   for(let i=0;i<bits.length;i++){
     bits[i].visible=wind.active!==false;

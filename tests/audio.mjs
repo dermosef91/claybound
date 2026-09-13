@@ -90,3 +90,9 @@ assert(!switching.trackFailed&&!nextMedia.paused,'an abandoned title request can
 assert.equal(switching.trackGain._target,.26);
 nextMedia=null;const savedMute=new Sound();savedMute.enabled=false;savedMute.unlock();assert.equal(savedMute.track,null);
 console.log('PASS four supplied chapter songs, continuous title/Hanging Quarter playback, single streaming player, no duplicate motif, independent effects, pause/resume, mute, hidden-page silence, autoplay retry, per-track failure recovery and stale-request isolation');
+
+const pop=new Sound();pop.unlock();await settle();const initial=pop.ctx.oscillators.length;
+pop.effect('break',{spore:true});assert.equal(pop.ctx.oscillators.length,initial+2,'spore burst layers a low pop with a rising bloom');
+advance(150);assert.equal(pop.ctx.oscillators.length,initial+4,'two quiet sparkle notes follow the burst');
+pop.enabled=false;pop.effect('break',{spore:true});advance(150);assert.equal(pop.ctx.oscillators.length,initial+4,'muted bursts stay silent');
+console.log('PASS layered spore explosion sound and mute');

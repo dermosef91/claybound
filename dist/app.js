@@ -43,7 +43,7 @@ let world,game,editor,healthHUD,titleScene,worldError,worldRequested=false,asset
 function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2100);}
 function onEvent(e){
   if(e.type==='press-impact'&&world&&Math.abs(world.cameraX-e.x)>world.viewW*.8)return;
-  world?.event(e);sound.effect(e.type==='shape'?'activate':e.type);
+  world?.event(e);sound.effect(e.type==='shape'?'activate':e.type,e);
   if(e.type==='coin'||e.type==='stamp'){const el=$(e.type==='coin'?'coin-count':'stamp-count');el.animate?.([{transform:'scale(1)'},{transform:'scale(1.4)'},{transform:'scale(1)'}],{duration:190});}
   if(!world?.reducedMotion){if(e.type==='break'||e.type==='squish')hitStop=.035;if(e.type==='hurt')hitStop=.055;}
   if(e.type==='checkpoint')saveJourney();

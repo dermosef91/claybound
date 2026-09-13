@@ -1,6 +1,7 @@
 import * as THREE from './lib/three.module.js';
 import {clayMaterial} from './clay.js';
 import {forestLeaf} from './forest-details.js';
+import {sporeCloud,SPORE_COLORS} from './spore-effects.js';
 
 // Visible cause and effect: a clay cable and moving light link the control to
 // the thing it changes. All decoration is behind the collision plane.
@@ -20,19 +21,21 @@ export function circuitView(w,L,c){
     leaves.push(forestLeaf(w,root,p.x,p.y,p.z+.08,.22,Math.atan2(t.y,t.x)+(i%2?-.8:2.1)));
   }
   const material=new THREE.MeshStandardMaterial({color:c.kind==='relay'?0x9ee2d5:0xf7d28e,roughness:.9,emissive:c.kind==='relay'?0x4dc1b2:0xeb9e43,emissiveIntensity:.1});clayMaterial(w,material,.018);
-  const beads=[];for(let i=0;i<4;i++)beads.push(w.ball(.075,.075,.075,material,root));
+  const cloudMaterial=c.kind==='spore'?new THREE.MeshStandardMaterial({color:SPORE_COLORS.cream,roughness:1,transparent:true,opacity:.72,depthWrite:false}):null;
+  const beads=[],beadSize=c.kind==='spore'?.095:.075;for(let i=0;i<(c.kind==='spore'?6:4);i++)beads.push(cloudMaterial&&i%2===0?sporeCloud(w,root,cloudMaterial,.55):w.ball(beadSize,beadSize,beadSize,material,root));
   const lamp=w.ball(.16,.16,.13,material,root,points[0].x,points[0].y,-1.05);
   return {root,c,curve,beads,lamp,material,tethers,leaves,cable};
 }
-export function animateCircuit(v,game){
+export function animateCircuit(v,game,reducedMotion=false){
   for(const t of v.tethers){const bottom=t.platform.y-.18;t.mesh.scale.y=t.top-bottom;t.mesh.position.y=(t.top+bottom)/2;}
   const active=game.channels[v.c.channel]>0;v.material.emissiveIntensity=active?.55:.03;
   if(v.c.kind==='spore'){
     const broken=game.level.platforms.find(p=>p.id===v.c.source)?.broken;
     v.lamp.visible=!broken;v.cable.visible=!broken;for(const leaf of v.leaves)leaf.visible=!broken;
   }
-  for(let i=0;i<v.beads.length;i++){const p=((game.time*.25+i/4)%1);v.beads[i].position.copy(v.curve.getPoint(p));v.beads[i].visible=active;}
-  const size=active?1+Math.sin(game.time*3)*.1:.65;v.lamp.scale.set(.16*size,.16*size,.13*size);
+  const time=reducedMotion&&v.c.kind==='spore'?0:game.time;
+  for(let i=0;i<v.beads.length;i++){const p=((time*.25+i/v.beads.length)%1);v.beads[i].position.copy(v.curve.getPoint(p));v.beads[i].visible=active;}
+  const size=active?1+Math.sin(time*3)*.1:.65;v.lamp.scale.set(.16*size,.16*size,.13*size);
 }
 export function guideView(w,s,platform,view){
   // The post belongs to its supporting deck, including editor moves and lifts.

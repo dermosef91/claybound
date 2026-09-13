@@ -1,0 +1,14 @@
+[
+  {
+    "index": 1,
+    "seconds": 73.6750000000047,
+    "frames": 8841,
+    "coins": 26,
+    "flowers": 2,
+    "checkpoint": "bloom-root",
+    "latched": {
+      "tree-spores": true,
+      "bloom-spores": true
+    }
+  }
+]

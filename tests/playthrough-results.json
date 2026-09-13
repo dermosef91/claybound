@@ -13,13 +13,12 @@
   },
   {
     "index": 1,
-    "seconds": 64.44166666666402,
-    "frames": 7733,
-    "coins": 39,
+    "seconds": 64.69999999999756,
+    "frames": 7764,
+    "coins": 26,
     "flowers": 1,
     "checkpoint": "bloom-root",
     "latched": {
-      "root-a": true,
       "tree-spores": true,
       "bloom-spores": true
     }
@@ -40,8 +39,8 @@
   },
   {
     "index": 3,
-    "seconds": 64.21666666666384,
-    "frames": 7706,
+    "seconds": 64.19999999999716,
+    "frames": 7704,
     "coins": 67,
     "flowers": 0,
     "checkpoint": "bell-roof2",

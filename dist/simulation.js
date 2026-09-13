@@ -156,7 +156,7 @@ export class Game {
     if(candidates.length) {
       const s=candidates[0],impact=p.vy;
       if(s.kind==='break'&&p.stomping) {
-        s.broken=true;s.active=false;this.event('break',{x:p.x,y:s.y,spore:L.biome==='forest'});p.vy=-14;p.stomping=false;
+        s.broken=true;s.active=false;this.event('break',{platformId:s.id,w:s.w,x:p.x,y:s.y,spore:L.biome==='forest'});p.vy=-14;p.stomping=false;
         if(s.releases)this.activate(s.releases,p.x,s.y,'The roots are breathing · follow the rising spores');
       } else {
         if(s.shape&&p.stomping)stompClay(this,s);

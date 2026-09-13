@@ -1,5 +1,6 @@
 import * as THREE from './lib/three.module.js';
 import {forestModel} from './forest.js';
+import {createSporeBall,animateSporeBall} from './spore-ball.js';
 
 export function forestBloom(w,parent,x,y,z,width=.9,turn=0){
   const g=forestModel(w,'bloom',parent,x,y,z,width,turn);g.name='Flowering clay leaves';return g;
@@ -52,18 +53,8 @@ export function forestLandmark(w,s,parent){
   }
   return g;
 }
-export function forestSeal(w,s,g){
-  g.name='Stompable spore balloon';
-  const radius=s.w*.5;
-  const material=new THREE.MeshStandardMaterial({color:0xffe2a0,roughness:.97});
-  const depth=Math.max(.66,radius*.78);
-  const pod=w.ball(radius,radius,depth,material,g,s.w/2,-radius,0);pod.name='Stompable seed';
-  for(let i=0;i<5;i++){
-    const a=i*Math.PI*2/5,leaf=w.ball(.115,.24,.025,material,g,s.w/2+Math.sin(a)*.21,-radius+Math.cos(a)*.21,depth-.04);
-    leaf.rotation.z=-a;
-  }
-  g.userData.pod=pod;
-}
+export const forestSeal=createSporeBall;
+
 export function forestUnderstory(w,g){
   w.box(4.7,.48,2.8,'barkLight',g,0,-.28,0,.22);
   forestCover(w,{w:4.7},g,2.8);
@@ -80,7 +71,10 @@ export function forestUnderstory(w,g){
 export function animateForest(w,game){
   if(w.biome!=='forest')return;
   const t=game.time;w.forestTime=t;
-  for(const view of w.platforms.values())for(const g of view.root.children)if(g.userData.breathing){
-    const amount=w.reducedMotion?0:Math.sin(t*1.3)*.012;g.scale.set(1+amount,1-amount*.5,1+amount);
+  for(const view of w.platforms.values()){
+    if(view.root.visible)animateSporeBall(view.root,t,w.reducedMotion);
+    for(const g of view.root.children)if(g.userData.breathing){
+      const amount=w.reducedMotion?0:Math.sin(t*1.3)*.012;g.scale.set(1+amount,1-amount*.5,1+amount);
+    }
   }
 }

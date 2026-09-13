@@ -19,8 +19,10 @@ function attempt(original,link,{offset,wait,hold}){
   else if(!launched&&!walk&&!fall){
    const takeoff=drop?Math.max(a.x+.4,Math.min(a.x+a.w-.4,b.x+b.w/2)):overlap&&b.y>a.y?Math.max(a.x+.4,Math.min(a.x+a.w-.4,b.x+b.w/2-dir*offset)):dir>0?a.x+a.w-offset:a.x+offset;
    aim=takeoff;
+   const gap=dir>0?b.x-(a.x+a.w):a.x-(b.x+b.w),running=!wait&&!drop&&gap>=3.5&&b.y>a.y+1.8;
+   if(running)aim=b.x+b.w/2;
    if(a.kind==='spring'&&!p.groundId){launched=true;aim=b.x+b.w/2;}
-   else if(p.groundId===a.id&&Math.abs(p.x-takeoff)<.14){
+   else if(p.groundId===a.id&&(running?(p.x-takeoff)*dir>=0:Math.abs(p.x-takeoff)<.14)){
     if(waiting>0)waiting--;else{jumpPressed=true;launched=true;aim=b.x+b.w/2;}
    }
   }
@@ -30,6 +32,10 @@ function attempt(original,link,{offset,wait,hold}){
   if(!launched&&p.groundId===a.id&&g.level.enemies.some(e=>e.alive&&['drifter','spitter'].includes(e.kind)&&
     Math.abs(e.x-p.x)<1.9&&(e.x-p.x)*(aim-p.x)>0&&e.y>=p.y-.1&&e.y<p.y+2.1))jumpPressed=true;
   if(drop&&launched&&jumpAge>12&&!stomped){stompPressed=true;stomped=true;}
+  // A flower directly over a spring needs the vertical part of the bounce
+  // before steering towards the next landing, especially on a return descent.
+  const flower=a.kind==='spring'&&g.level.stamps.find(s=>!s.taken&&s.y>a.y+2&&s.x>=a.x&&s.x<=a.x+a.w);
+  if(flower&&launched)aim=flower.x;
   const input={moveAxis:steer(g,aim),jumpPressed,jumpHeld:!launched||jumpAge<hold,stompPressed};controls.push(input);
   g.tick(dt,input);if(launched)jumpAge++;
   if(p.groundId===b.id||spring)return {g,controls};
