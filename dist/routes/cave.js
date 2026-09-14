@@ -1046,11 +1046,21 @@ export default chapter({
   },
   {
     "from": "sluice-relay",
-    "to": "sluice-floor",
+    "to": "clay-14-copy-1",
     "mode": "jump"
   },
   {
-    "from": "sluice-floor",
+    "from": "clay-14-copy-1",
+    "to": "clay-14-copy-1-copy-2-copy-1-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-14-copy-1-copy-2-copy-1-copy-1",
+    "to": "clay-14-copy-1-copy-2-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-14-copy-1-copy-2-copy-1",
     "to": "gallery-entry",
     "mode": "jump"
   },
@@ -1131,8 +1141,13 @@ export default chapter({
   },
   {
     "from": "clay-19-copy-1",
+    "to": "clay-19-copy-1-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-19-copy-1-copy-1",
     "to": "ember-bell",
-    "mode": "fall"
+    "mode": "jump"
   }
 ],
   detours:[
