@@ -33,7 +33,11 @@ export class ShapingControls {
       const d=this.drag;if(!d||e.pointerId!==d.id||!this.enabled())return;
       d.moved=Math.max(d.moved,Math.abs(e.clientX-d.x),Math.abs(e.clientY-d.y));
       const delta=d.station.gesture==='down'?e.clientY-d.y:(e.clientX-d.x)*(d.station.gesture==='out'?d.side:1);
-      input.shapeAmount=clampShape(d.start+delta/Math.max(90,Math.min(200,innerWidth*.18)));
+      // How far the thumb travels for a full press. The stroke is the primary
+      // verb, so it is sized to be finished comfortably inside one swipe:
+      // a short push already moves the clay visibly, rather than needing most
+      // of the screen before anything appears to happen.
+      input.shapeAmount=clampShape(d.start+delta/Math.max(64,Math.min(140,innerWidth*.12)));
     });
     const end=e=>{
       const d=this.drag;if(!d||e.pointerId!==d.id)return;
