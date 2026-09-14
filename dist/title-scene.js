@@ -146,7 +146,6 @@ export class TitleScene {
     if(!this.active)return;
     const rect=this.world.canvas.getBoundingClientRect();this.resize(Math.max(1,rect.width),Math.max(1,rect.height));this.update(dt);
     const r=this.world.renderer,scene=this.view.scene,background=scene.background,autoClear=r.autoClear;
-    r.toneMappingExposure=1.08;
     this.foreground.visible=false;r.setRenderTarget(this.backdropTarget);r.render(scene,this.camera);
     r.setRenderTarget(null);r.render(this.composite,this.compositeCamera);
     this.foreground.visible=true;this.backRoot.visible=false;scene.background=null;r.autoClear=false;r.clearDepth();r.render(scene,this.camera);

@@ -67,7 +67,7 @@ function makePart(w,parent,anchor,z,variant){
     const adapt=base=>{
       if(!materials.has(base)){
         const m=base.clone();m.onBeforeCompile=base.onBeforeCompile;m.customProgramCacheKey=base.customProgramCacheKey;
-        m.color.multiplyScalar(w.biome==='forest'?.8:.91);
+        m.color.multiplyScalar(.91);
         materials.set(base,m);
       }
       return materials.get(base);
