@@ -1,7 +1,24 @@
 // All decisions produce ordinary joystick/jump input. Look-ahead clones are
 // discarded; the returned trace can be replayed from a fresh, untouched game.
+import {PRESS} from '../dist/presses.js';
+import {RULES} from '../dist/simulation.js';
 const copy=g=>{const c=Object.assign(Object.create(Object.getPrototypeOf(g)),structuredClone({...g,onEvent:null}));c.onEvent=()=>{};return c;};
 const dt=1/120;
+const clamp01=n=>Math.max(0,Math.min(1,n));
+// Where a press head will be, t seconds from now, by the same curve the
+// simulation drives it with. Guessing at this is how a ferry pilot ends up
+// parked under a head: the danger window is a fifth of the cycle, not half.
+function headAt(c,t){
+  const phase=(((c.cycleTime+t)/(c.period||5)+(c.phase||0)/(Math.PI*2))%1+1)%1;
+  let travel=0;
+  if(phase<PRESS.slamStart)travel=0;
+  else if(phase<PRESS.impactStart)travel=clamp01((phase-PRESS.slamStart)/(PRESS.impactStart-PRESS.slamStart))**2;
+  else if(phase<PRESS.retractStart)travel=1;
+  else{const u=(phase-PRESS.retractStart)/(1-PRESS.retractStart);travel=1-u*u*(3-2*u);}
+  return c.baseY-(c.baseY-c.bottomY)*travel;
+}
+// The head is lethal to a rider once its underside drops below their head.
+const crushes=(c,t,y)=>headAt(c,t)-PRESS.halfHeight<y+RULES.height;
 const axis=(g,x)=>Math.max(-1,Math.min(1,(x-g.player.x)*7/6.7));
 function jumpTo(original,id){
   const g=copy(original),controls=[];let age=0;
@@ -22,13 +39,19 @@ export function machineTransfer(original,link){
     }
     let aim=a.x+a.w/2;
     if(a.kind==='ferry'){
-      const dir=Math.sign(b.x+b.w/2-p.x)||1;let stop=false;
+      const dir=Math.sign(b.x+b.w/2-p.x)||1,speed=a.speed||3.2;let stop=false;
       for(const c of g.level.crushers){
-        const distance=(c.x-p.x)*dir;
-        if(c.held||distance<-.5||distance>5.0)continue;
-        // Include the ferry's braking drift and player width in the approach margin.
-        // Commit only to a clear window long enough to cross the entire head.
-        for(let t=.15;t<1.75;t+=.1){const phase=(((c.cycleTime+t)/c.period+(c.phase||0)/(Math.PI*2))%1+1)%1;if(phase>.39&&phase<.94)stop=true;}
+        if(c.held)continue;
+        // The band a head can reach, widened for the rider's own width and for
+        // the drift a ferry carries while it brakes.
+        const half=c.w/2+RULES.radius*.82+.3;
+        const enter=(c.x-half-p.x)*dir,leave=(c.x+half-p.x)*dir;
+        // Behind us, too far ahead to plan for, or already overhead — in the
+        // last case the only wrong move is to stop and sit under it.
+        if(leave<0||enter>12||enter<0)continue;
+        // Commit only to a window clear for the whole passage: reaching the
+        // head, crossing it, and the braking slack at either end.
+        for(let t=Math.max(0,enter/speed-.3);t<=leave/speed+.6;t+=.04)if(crushes(c,t,p.y))stop=true;
       }
       if(!stop)aim+=dir*1.1;
     }
