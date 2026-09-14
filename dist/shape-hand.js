@@ -2,11 +2,11 @@ import * as THREE from './lib/three.module.js';
 import {MAGIC_CLAY} from './shaping-views.js';
 
 // A large clay hand over kneadable clay, miming the stroke that clay needs,
-// with a dashed arrow for the direction. This is the tutorial layer only: the
-// violet material and its breathing idle are what mark clay permanently, so the
-// hand retires once the player has finished a few stations. It comes back if
-// someone stands beside unworked clay for a while without touching it.
-const PERIOD=1.9,TAUGHT_AFTER=3,DWELL=7;
+// with a dashed run and a solid arrowhead for the direction. This is the
+// tutorial layer only: the violet material and its breathing idle are what mark
+// clay permanently, so the cue goes quiet on clay the player has already
+// solved, and returns if anyone hesitates in front of clay they have not.
+const PERIOD=1.9,DWELL=1.8;
 // Which way the mimed gesture travels, and how the hand is held to make it.
 // The pointing finger leads the way the clay has to go (it points -y at rest).
 const GESTURES={
@@ -29,13 +29,19 @@ function cueMaterial(w,name,color){
 function buildHand(w,materials,parent,flip=1){
   const hand=new THREE.Group();hand.scale.x=flip;parent.add(hand);
   const [skin,cuff]=materials;
-  // A pointing hand: fist, one extended finger leading the stroke, and a cuff.
-  // Sized so the cue reads at a glance — about two thirds of the player's height.
-  w.box(.66,.6,.36,skin,hand,0,-.04,0,.28);
-  w.box(.2,.62,.26,skin,hand,-.02,-.56,.04,.1);
-  for(let i=0;i<3;i++)w.ball(.1,.09,.12,skin,hand,.16+i*.005,-.3-i*.16,-.02);
-  w.box(.19,.3,.26,skin,hand,-.38,-.16,.1,.09).rotation.z=.66;
-  w.box(.56,.26,.38,cuff,hand,0,.32,0,.12);
+  // The reference hand: a soft rounded fist with one extended finger leading
+  // the stroke, built from balls and a capsule rather than boxes so the
+  // silhouette is mitten-round, and a chunky cuff at the wrist. About two
+  // thirds of the player's height across, to read at a glance.
+  w.ball(.4,.37,.22,skin,hand,0,-.06,0);
+  // Extended finger, capped so its tip is round.
+  const finger=w.cylinder(.115,.52,skin,hand,-.03,-.5,.06);finger.rotation.z=.06;
+  w.ball(.12,.12,.12,skin,hand,-.05,-.75,.06);
+  // Curled knuckles along the front of the fist.
+  for(let i=0;i<3;i++)w.ball(.115,.1,.12,skin,hand,.13+i*.02,-.3-i*.17,-.04);
+  // Thumb folded across.
+  const thumb=w.ball(.1,.17,.11,skin,hand,-.33,-.19,.09);thumb.rotation.z=.62;
+  w.ball(.33,.16,.24,cuff,hand,0,.28,0);
   return hand;
 }
 
@@ -57,14 +63,13 @@ export function createShapeHands(w,L){
     const marks=[];
     for(const dir of dirs){
       for(let i=0;i<4;i++){
-        const dash=w.box(.3,.13,.14,materials[0],carrier,0,0,0,.05);
+        const dash=w.box(.31,.14,.15,materials[0],carrier,0,0,0,.07);
         dash.userData={dir,step:.42+i*.29,dash:true};marks.push(dash);
       }
+      // A solid triangular head closes the run, as the reference draws it.
       const head=new THREE.Group();carrier.add(head);
-      for(const side of [-1,1]){
-        const arm=w.box(.42,.15,.16,materials[0],head,-.12,side*.13,0,.06);
-        arm.rotation.z=side*.7;
-      }
+      const tip=w.mesh(new THREE.ConeGeometry(.3,.46,3),materials[0],head,0,0,0);
+      tip.rotation.z=-Math.PI/2;tip.rotation.y=Math.PI/2;tip.scale.z=.5;
       head.userData={dir,step:1.82,arrow:true};marks.push(head);
     }
     views.push({root,carrier,hands,marks,materials,station,gesture,opacity:0,time:0,dwell:0,seen:0});
@@ -94,8 +99,11 @@ function anchor(view,L,player){
 
 export function animateShapeHands(w,game,dt,playing){
   const L=game.level,p=game.player;
-  // Stations the player has already finished, across the whole save.
-  const taught=w.clayTaught|0;
+  // Teaching is per piece of clay, not a global tally. A player who has shaped
+  // three ramps has learned ramps, not the stair wall they have never met — and
+  // counting globally is how a veteran ends up beside unfamiliar clay with no
+  // cue at all. Clay you have finished before stays quiet unless you hesitate.
+  const done=w.clayDone;
   for(const view of w.shapeHands||[]){
     const {station,gesture,root}=view;
     const spot=anchor(view,L,p);
@@ -106,7 +114,7 @@ export function animateShapeHands(w,game,dt,playing){
     if(!inStretch||!unworked||station.amount>(view.lastAmount??0)+1e-4)view.dwell=0;
     else view.dwell+=playing?dt:0;
     view.lastAmount=station.amount;
-    const teaching=taught<TAUGHT_AFTER||view.dwell>DWELL;
+    const teaching=!done?.has(station.id)||view.dwell>DWELL;
     const wanted=inStretch&&unworked&&teaching&&!w.editorCamera&&game.status!=='complete';
     view.opacity+=((wanted?1:0)-view.opacity)*(1-Math.exp(-dt*7));
     // The cue recedes as the clay takes shape: the player sees their own work.

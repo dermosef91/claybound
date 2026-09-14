@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import * as THREE from '../dist/lib/three.module.js';
 import {World} from '../dist/world.js';
 import {createClayView,updateClayView} from '../dist/shaping-views.js';
-import {Game,surfaceAt} from '../dist/simulation.js';
-import {clayWallBounds} from '../dist/shaping.js';
+import {Game,surfaceAt,FIXED_DT} from '../dist/simulation.js';
+import {clayWallBounds,nudgeClay,stompClay} from '../dist/shaping.js';
 import playground from '../dist/routes/clay-playground.js';
 import {createShapeHands,animateShapeHands,disposeShapeHands} from '../dist/shape-hand.js';
 import {animateClayView,MAGIC_CLAY,MAGIC_CLAY_LIGHT} from '../dist/shaping-views.js';
@@ -137,20 +137,48 @@ console.log('PASS all clay poses: finite geometry/normals, stable buffers, colli
   const dock=g.level.platforms.find(p=>p.id===station.spawn.groundId);
   Object.assign(g.player,{x:dock.x+dock.w/2,y:station.spawn.y,groundId:dock.id});
   const settle=(frames=150)=>{for(let i=0;i<frames;i++)animateShapeHands(hw,g,1/60,true);};
-  for(const [taught,expected]of [[0,true],[2,true],[3,false],[7,false]]){
-    hw.clayTaught=taught;view.opacity=0;view.dwell=0;settle();
-    assert.equal(view.root.visible,expected,`clayTaught ${taught}: the cue ${expected?'teaches':'has retired'}`);
-  }
-  // A player who has learned it but stalls beside unworked clay gets it back.
-  hw.clayTaught=7;view.opacity=0;view.dwell=0;settle(60);
-  assert(!view.root.visible,'no cue for an experienced player who just arrived');
-  settle(60*9);
-  assert(view.root.visible,'the cue returns after a long stall beside unworked clay');
+  // Teaching is per piece of clay. Clay you have never solved always asks;
+  // clay you have solved before stays quiet — a global tally is how a player
+  // who has shaped three ramps meets an unfamiliar stair wall with no cue.
+  hw.clayDone=new Set();view.opacity=0;view.dwell=0;settle();
+  assert(view.root.visible,'clay the player has never finished always shows its cue');
+  hw.clayDone=new Set(['some-other-station']);view.opacity=0;view.dwell=0;settle();
+  assert(view.root.visible,'finishing other clay does not retire this clay’s cue');
+  hw.clayDone=new Set([station.id]);view.opacity=0;view.dwell=0;settle(45);
+  assert(!view.root.visible,'clay this player has already solved stays quiet');
+  // Unless they hesitate in front of it, when it comes back quickly.
+  settle(60*3);
+  assert(view.root.visible,'the cue returns after a short stall beside unworked clay');
   // But it never nags someone who is already kneading.
   view.opacity=0;view.dwell=0;station.amount=0;
   for(let i=0;i<60*9;i++){station.amount=Math.min(.9,station.amount+.0008);animateShapeHands(hw,g,1/60,true);}
   assert(!view.root.visible,'kneading in progress keeps the cue away');
   assert.equal(view.materials[1].color.getHex(),MAGIC_CLAY,'the cue carries the clay colour');
+  assert(MAGIC_CLAY<MAGIC_CLAY_LIGHT,'the body tone is the darker of the pair');
   disposeShapeHands(hw);
-  console.log('PASS gesture cue retires after three stations, returns on a long stall, and never nags mid-knead');
+  console.log('PASS gesture cue: teaches unsolved clay, stays quiet on solved clay, returns on a stall, never nags mid-knead');
+}
+
+// Every way a player might touch clay has to move it. A drag is precise, but a
+// tap and a stomp are what people try first, and clay that ignores them reads
+// as clay that is not interactive — which is exactly how this went wrong.
+{
+  const g=new Game();g.start(3);
+  for(const station of g.level.shaping){
+    const fresh=()=>{const h=new Game();h.start(3);return [h,h.level.shaping.find(s=>s.id===station.id)];};
+    const [tapGame,tapStation]=fresh();
+    for(let tap=0;tap<4;tap++){
+      assert(nudgeClay(tapGame,station.id)||tapStation.target>=1,`${station.id}: a tap presses the clay`);
+      for(let i=0;i<60;i++)tapGame.tick(FIXED_DT,{});
+    }
+    assert.equal(tapStation.amount,1,`${station.id}: four taps finish the clay`);
+    assert(!nudgeClay(tapGame,station.id),`${station.id}: finished clay ignores further taps`);
+
+    // A stomp works clay of any gesture, not only press-down clay.
+    const [stompGame,stompStation]=fresh();
+    const part=stompGame.level.platforms.find(p=>p.id===station.parts[0]);
+    stompClay(stompGame,part);
+    assert(stompStation.target>=.49,`${station.id}: a stomp works this clay whichever way it goes`);
+  }
+  console.log('PASS every input moves clay: taps press it, stomps work any gesture, finished clay stops responding');
 }
