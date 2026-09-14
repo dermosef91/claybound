@@ -25,7 +25,7 @@ const icons=()=>window.lucide?.createIcons({attrs:{'stroke-width':1.7}});
 const show=(id,visible)=>$(id).classList.toggle('hidden',!visible);
 let draftStorage;try{draftStorage=localStorage;}catch{}
 const drafts=new DraftLibrary(LEVELS,draftStorage);
-let saved={last:0,best:{},runs:{},customBest:{},customRuns:{},sound:true};
+let saved={last:0,best:{},runs:{},customBest:{},customRuns:{},sound:true,clayTaught:0};
 try{const s=JSON.parse(localStorage.getItem('claybound-v1'));if(s&&typeof s==='object')saved={...saved,...s,best:s.best||{}};}catch{}
 const persist=()=>{try{localStorage.setItem('claybound-v1',JSON.stringify(saved));}catch{}};
 saved.runs??={};
@@ -50,6 +50,9 @@ function onEvent(e){
   if(e.type==='checkpoint')saveJourney();
   if(e.type==='stamp')saveJourney();
   if(e.type==='activate'){toast(e.message?.split(' · ')[0]||'Mechanism opened');saveJourney();}
+  // The hand cue is a tutorial, not furniture: once a few stations have been
+  // finished, the violet clay and its idle squash carry the message alone.
+  if(e.type==='shape'){saved.clayTaught=(saved.clayTaught|0)+1;if(world)world.clayTaught=saved.clayTaught;persist();saveJourney();}
   if(e.type==='pause')saveJourney();
   if(e.type==='fall'){$('fade').classList.add('active');}
   if(e.type==='respawn')$('fade').classList.remove('active');
@@ -142,7 +145,7 @@ async function begin(index=0,restart=false,sourceChoice,playgroundSource=null){
   game.start(index,nextLevel);if(restart&&!nextLevel.playground)delete runStore()[index];
   const resumed=!nextLevel.playground&&!restart&&game.restore(runStore()[index]);world.build(game.level,index,game.player.x);if(!nextLevel.playground)saved.last=index;
   if(choice&&!nextLevel.playground)saved.chapterSource[index]=choice;persist();
-  const L=game.level;warmCompletionAssets(L.biome);document.body.dataset.biome=L.biome;$('chapter-label').innerHTML=`0${index+1} <b>/</b> ${L.short.toUpperCase()}${L.custom?' · EDITED':''}`;
+  const L=game.level;world.clayTaught=saved.clayTaught|0;warmCompletionAssets(L.biome);document.body.dataset.biome=L.biome;$('chapter-label').innerHTML=`0${index+1} <b>/</b> ${L.short.toUpperCase()}${L.custom?' · EDITED':''}`;
   $('coin-total').textContent=L.coins.length;$('intro-number').textContent=['CHAPTER ONE','CHAPTER TWO','CHAPTER THREE','CHAPTER FOUR'][index];
   $('intro-name').textContent=resumed?game.level.sections[game.sectionId].name:L.name;$('intro-text').textContent=resumed?'Your checkpoint is safe. The journey continues.':L.intro;
   show('chapter-intro',false);introUntil=0;
@@ -170,7 +173,7 @@ function chapters(){
   openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">FOUR CHAPTERS & A CLAY PLAYGROUND</span><h2>Choose your path.</h2><div class="chapters-list">${choices}<button class="chapter-choice playground-choice" data-action="playground"><span>✦</span><div><strong>Clay playground</strong><small>Hanging Quarter copy · 5 shaping experiments</small></div>${icon('arrow-up-right')}</button></div><p>Original chapters include the latest updates. Your edits and their checkpoints are kept separately on this device.</p>`);
 }
 function help(){
-  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Hold E to knead orange clay</strong><span>Where a prompt appears, hold E, drag the clay, or stomp it to shape ramps, stairs and bridges. R resets.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
+  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Violet clay can be shaped</strong><span>Drag it, hold E, or stomp it — violet clay breathes when you are beside it and stretches into ramps, stairs and bridges. R softens it back.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
 }
 function collectibles(){openDialog(collectiblesMarkup(LEVELS.map((_,i)=>activeLevel(i)),saved));}
 function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active));}
