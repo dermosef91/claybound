@@ -10,6 +10,7 @@ import {prepareEnemyAsset,animateEnemy} from '../dist/enemies.js';
 import {prepareCastleAsset} from '../dist/castle.js';
 import {prepareCottageAsset} from '../dist/cottage.js';
 import {prepareCloudAsset} from '../dist/clouds.js';
+import {CASCADE} from '../dist/forest.js';
 import {readFile} from 'node:fs/promises';
 import {animateEnvironment} from '../dist/environments.js';
 import {Game} from '../dist/simulation.js';
@@ -184,6 +185,19 @@ assert.equal(signs,LEVELS.reduce((n,l)=>n+l.guides.length,0));console.log('PASS 
   w.renderer.render=()=>passes.push({side:w.depthRoot.visible,back:w.backRoot.visible,path:w.levelRoot.visible});
   w.render(g,1/60);w.renderer.render=render;
   assert.deepEqual(passes,[{side:false,back:true,path:false},{side:true,back:false,path:true}]);
+  {
+    // A driver whose offscreen target comes back empty must fall back to one
+    // direct pass, not to a composite quad over a blank sky.
+    const blind={...w.renderer,readRenderTargetPixels(t,x,y,dx,dy,out){out.fill(0);}};
+    const real=w.renderer,cached=w.depthCompositeOk;w.renderer=blind;delete w.depthCompositeOk;
+    const fallback=[];blind.render=()=>fallback.push({back:w.backRoot.visible,path:w.levelRoot.visible});
+    w.render(g,1/60);
+    // One probe pass with the backdrop alone, then the direct draw it fell back to.
+    assert.deepEqual(fallback,[{back:true,path:false},{back:true,path:true}],'an empty render target falls back to the direct draw');
+    assert.equal(w.depthCompositeOk[w.biome],false,'the verdict is remembered per chapter');
+    w.render(g,1/60);assert.equal(fallback.length,3,'the probe runs once, not every frame');
+    w.renderer=real;w.depthCompositeOk=cached;
+  }
   let disposed=0;for(const m of front.materials)m.addEventListener('dispose',()=>disposed++);
   w.syncVisible(g.level,g.level.end,true);assert.equal(disposed,front.materials.length);assert(!w.depthViews.has('start'));
   assert.equal(sharedDisposals,0);
@@ -288,10 +302,20 @@ for(const [index,stops]of [[1,[[4,0],[52,7.8],[101,8.1],[162,20],[260,33.4]]],[2
     if(index===1){
       assert(w.depthRoot.getObjectByName('Forest hills'),'supplied mossy bushes form the foreground');
       assert(w.backRoot.getObjectByName('Forest grove')&&w.backRoot.getObjectByName('Forest falls'));
+      assert(w.backRoot.getObjectByName('Ivory cloud'),'clay clouds fill the open sky');
       assert.equal(w.parallax.find(p=>p.group.name==='Skybridge Falls skyline').factor,.18);
+      // One cascade, fixed in world space so only Under the Roots looks at it.
+      const cascades=[];w.backRoot.traverse(o=>{if(o.name==='Forest waterfall')cascades.push(o);});
+      assert.equal(cascades.length,1,'the cascade is a single landmark, not a repeated band');
+      assert(!w.parallax.some(p=>p.group.children.includes(cascades[0])),'the cascade is not carried by a parallax band');
+      const falls=cascades[0].getWorldPosition(new THREE.Vector3());
+      assert(Math.abs(falls.x-CASCADE.x)<1e-6,'the cascade holds its authored x through camera moves');
       const depths=['Forest grove','Forest falls'].map(name=>w.backRoot.getObjectByName(name).getWorldPosition(new THREE.Vector3()).z);
       assert(depths[1]<depths[0]&&depths[0]<-5);
-      for(const [key,triangles]of [['hills',3126],['grove',10414],['falls',10254]]){
+      const bandDepth=name=>w.parallax.find(p=>p.group.name===name).group.children[0].position.z;
+      assert(depths[1]<falls.z&&falls.z<bandDepth('Hazy canopy bridges'),'cascade reads between the far islands and the canopy');
+      assert(bandDepth('Hazy canopy bridges')<bandDepth('Breathing forest trunks'),'the near trunks are the closest band');
+      for(const [key,triangles]of [['hills',3126],['grove',10414],['falls',10254],['waterfall',10274]]){
         let total=0;w.forestAssets[key].scene.traverse(o=>{if(o.isMesh){total+=o.geometry.index.count/3;assert(o.material.map&&o.material.normalMap&&o.material.roughnessMap);}});assert.equal(total,triangles);
       }
       assert(w.torchLights.every(l=>l.intensity===0),'cave illumination does not leak into the forest');

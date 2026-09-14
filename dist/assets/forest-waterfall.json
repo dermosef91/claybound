@@ -1,0 +1,28 @@
+{
+  "source": "171ccd56-Meshy_AI_Clay_Waterfall_0914163447_texture.glb",
+  "sourceSha256": "b42a1ff5673a673b52b933770f6fece5d2f9cf716d12b15efede36d942569cec",
+  "shippedSha256": "6f5f5ace1aeeeddc34b8744452085bffb7a81f196bd8ead8d91e3b97fc3e5191",
+  "sourceBytes": 6520900,
+  "shippedBytes": 928320,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryBufferSha256": [
+    "ac6bc02a2efb36cb08132d17d68780e5187c47dba56f3ec29bac8d3207666ba7",
+    "0876342aa59a7e6d3791008560f9172e210bf4f1001b4ea4d667668cd8a544d3",
+    "35928b309ce8db690ee9bc31a6f4931e64e6d3a764d4f11d76ed8036c0372e7e",
+    "6e72e4658a4eb9d4a24ea312fc8c609b3d5ee60d8ea0cc5cec60df9d79e7204b"
+  ],
+  "geometryUnchanged": true
+}

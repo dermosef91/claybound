@@ -48,6 +48,23 @@ const C={blue:0x315e96,blueLight:0x3d6da5,blueDark:0x244c7b,orange:CLAY_PALETTE.
 const fract=n=>n-Math.floor(n);
 const rand=n=>fract(Math.sin(n*127.1+311.7)*43758.5453);
 const geometries=new Map();
+const skyTextures=new Map();
+
+// A single-column ramp stretched over the background quad. Orthographic play
+// needs no dome: one gradient gives the open sky its height without geometry.
+function skyTexture(horizon,top){
+  const key=horizon+':'+top;
+  if(skyTextures.has(key))return skyTextures.get(key);
+  const rows=64,data=new Uint8Array(rows*4),low=new THREE.Color(horizon),high=new THREE.Color(top),mix=new THREE.Color(),rgb={};
+  for(let i=0;i<rows;i++){
+    // Row zero is the bottom of the frame, where the haze gathers.
+    mix.copy(low).lerp(high,Math.pow(i/(rows-1),.78)).getRGB(rgb,THREE.SRGBColorSpace);
+    data[i*4]=Math.round(rgb.r*255);data[i*4+1]=Math.round(rgb.g*255);data[i*4+2]=Math.round(rgb.b*255);data[i*4+3]=255;
+  }
+  const texture=new THREE.DataTexture(data,1,rows);
+  texture.colorSpace=THREE.SRGBColorSpace;texture.magFilter=THREE.LinearFilter;texture.minFilter=THREE.LinearFilter;
+  texture.needsUpdate=true;skyTextures.set(key,texture);return texture;
+}
 
 function clayGeo(w,h,d,r=.15) {
   const key=[w,h,d,r].map(v=>v.toFixed(3)).join(':');
@@ -242,6 +259,11 @@ export class World {
     if(s.kind==='ledge')greatArchLedge(this,s,g);
     return {root:g,ropes,bounce:0,springPad,fracture};
   }
+  setSky(L) {
+    if(L.skyTop){this.scene.background=skyTexture(L.sky,L.skyTop);return;}
+    if(!this.scene.background?.isColor)this.scene.background=new THREE.Color();
+    this.scene.background.set(L.sky);
+  }
   buildBackground(L) { buildBackdrop(this,L); }
   build(L,index,focusX=L.spawn.x) {
     this.currentLevel=L;
@@ -259,7 +281,7 @@ export class World {
     });
     oldGeometry.forEach(g=>g.dispose());oldMaterial.forEach(m=>m.dispose());
     this.levelRoot.clear();this.backRoot.clear();this.fxRoot.clear();this.depthRoot.clear();
-    this.scene.background.set(L.sky);this.scene.fog.color.set(L.fog);applyEnvironment(this,L);
+    this.setSky(L);this.scene.fog.color.set(L.fog);applyEnvironment(this,L);
     this.platforms=new Map();this.enemyViews=new Map();this.coinViews=[];this.stampViews=[];this.crusherViews=[];
     this.shotViews=new Map();
     this.buildBackground(L);

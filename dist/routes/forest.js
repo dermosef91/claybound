@@ -3,7 +3,7 @@ export default chapter({
   layoutVersion:6,
   name:'The Wildwood',short:'Wildwood',label:'Bounce, burrow & bloom',biome:'forest',
   intro:'Climb the living tree. Break its sealed roots and let the forest breathe.',
-  sky:'#b2d2b7',fog:'#b7d2bc',spawn:{x:1.5,y:0},end:264,previousDistance:875,cameraY:3,
+  sky:'#c2dfe6',skyTop:'#66a9d2',fog:'#b0cfc9',spawn:{x:1.5,y:0},end:264,previousDistance:875,cameraY:3,
   sections:[{x:-8,name:'Mushroom Choir',landmark:'mushroom'},{x:48,name:'Under the Roots',landmark:'rootarch'},{x:99,name:'The Breathing Tree',landmark:'sporepod'},{x:157,name:'Brittle Canopy',landmark:'birdhouse'},{x:213,name:'Heartwood Bloom',landmark:'mushroom'}],
   platforms:[
     p("start",-8,19,0,"stone"),
