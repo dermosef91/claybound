@@ -33,7 +33,7 @@ export function applyEnvironment(w,L){
   // Wildwood asks for less exposure; every other chapter keeps the default.
   w.renderer.toneMappingExposure=theme.exposure??1.08;
   w.torchLights.forEach(l=>l.intensity=0);w.caveLightState=null;
-  w.scene.fog.near=L.biome==='forest'?25:L.biome==='cave'?28:L.biome==='citadel'?34:32;w.scene.fog.far=L.biome==='forest'?82:L.biome==='cave'?108:L.biome==='citadel'?104:91;
+  w.scene.fog.near=L.biome==='forest'?25:L.biome==='cave'?28:L.biome==='citadel'?34:32;w.scene.fog.far=L.biome==='forest'?69:L.biome==='cave'?108:L.biome==='citadel'?104:91;
 }
 
 function group(parent,x=0,y=0,z=0,scale=1){const g=new THREE.Group();g.position.set(x,y,z);g.scale.setScalar(scale);parent.add(g);return g;}

@@ -185,6 +185,19 @@ assert.equal(signs,LEVELS.reduce((n,l)=>n+l.guides.length,0));console.log('PASS 
   w.renderer.render=()=>passes.push({side:w.depthRoot.visible,back:w.backRoot.visible,path:w.levelRoot.visible});
   w.render(g,1/60);w.renderer.render=render;
   assert.deepEqual(passes,[{side:false,back:true,path:false},{side:true,back:false,path:true}]);
+  {
+    // A driver whose offscreen target comes back empty must fall back to one
+    // direct pass, not to a composite quad over a blank sky.
+    const blind={...w.renderer,readRenderTargetPixels(t,x,y,dx,dy,out){out.fill(0);}};
+    const real=w.renderer,cached=w.depthCompositeOk;w.renderer=blind;delete w.depthCompositeOk;
+    const fallback=[];blind.render=()=>fallback.push({back:w.backRoot.visible,path:w.levelRoot.visible});
+    w.render(g,1/60);
+    // One probe pass with the backdrop alone, then the direct draw it fell back to.
+    assert.deepEqual(fallback,[{back:true,path:false},{back:true,path:true}],'an empty render target falls back to the direct draw');
+    assert.equal(w.depthCompositeOk[w.biome],false,'the verdict is remembered per chapter');
+    w.render(g,1/60);assert.equal(fallback.length,3,'the probe runs once, not every frame');
+    w.renderer=real;w.depthCompositeOk=cached;
+  }
   let disposed=0;for(const m of front.materials)m.addEventListener('dispose',()=>disposed++);
   w.syncVisible(g.level,g.level.end,true);assert.equal(disposed,front.materials.length);assert(!w.depthViews.has('start'));
   assert.equal(sharedDisposals,0);
