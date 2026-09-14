@@ -1,7 +1,7 @@
 import {BAT} from './enemy-rules.js';
 import {DRIFTER} from './drifter-rules.js';
 export const DRAFT_KEY='claybound-editor-v1';
-export const KINDS={stone:'Solid cliff',wall:'Wall block',ledge:'Thin ledge',bridge:'Rope bridge',lift:'Rope lift',spring:'Spring / mushroom',crumble:'Crumbling ledge',break:'Breakable seal',switch:'Switch',timed:'Switched bridge',pulse:'Pulse ledge',balance:'Counterweight',counter:'Counter lift',gate:'Relay grate',ferry:'Weight ferry',orbit:'Orbit cradle'};
+export const KINDS={stone:'Solid cliff',wall:'Wall block',ledge:'Thin ledge',bridge:'Rope bridge',lift:'Rope lift',spring:'Spring / mushroom',crumble:'Crumbling ledge',break:'Breakable seal',switch:'Switch',timed:'Switched bridge',pulse:'Pulse ledge',balance:'Counterweight',counter:'Counter lift',gate:'Relay grate',ferry:'Weight ferry',orbit:'Orbit cradle',clay:'Kneadable clay'};
 export const LISTS=['platforms','coins','stamps','enemies','hazards','winds','crushers'];
 const clone=value=>structuredClone(value);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -26,6 +26,10 @@ export function repairDraft(level){
     const kind=old.find(c=>c.source===source.id&&c.channel===channel)?.kind||(source.kind==='balance'?'weight':source.releases?(level.biome==='forest'?'spore':'wind'):source.latch?'wind':'relay');
     return targets.size?[{source:source.id,channel,targets:[...targets],kind}]:[];
   });
+  if(level.shaping){
+    const clay=new Set(level.platforms.filter(p=>p.shape).map(p=>p.id));
+    level.shaping=level.shaping.map(s=>({...s,parts:s.parts.filter(id=>clay.has(id))})).filter(s=>s.parts.length);
+  }
   level.routeLinks=(level.routeLinks||[]).filter(l=>ids.has(l.from)&&ids.has(l.to));
   for(const list of ['detours','recoveries'])level[list]=(level[list]||[]).map(links=>links.filter(l=>ids.has(l.from)&&ids.has(l.to)));
   return level;
@@ -44,6 +48,16 @@ export function validateDraft(source,base){
       const clean={};
       for(const key of ['x','y'])clean[key]=finite(item[key],...nums[key],`${list} ${i+1}: ${key}`);
       for(const [key,bounds]of Object.entries(nums))if(!['x','y'].includes(key)&&item[key]!==undefined)clean[key]=finite(item[key],...bounds,key);
+      if(list==='platforms'&&item.kind==='clay'){
+        const pose=(source,label)=>{
+          if(!source||typeof source!=='object')throw new Error(`Kneadable clay needs a ${label} shape.`);
+          const out={};
+          for(const key of ['x','y','w','h','slope'])if(source[key]!==undefined)out[key]=finite(source[key],key==='slope'?-30:nums[key][0],key==='slope'?30:nums[key][1],`${label} ${key}`);
+          return out;
+        };
+        clean.shape={from:pose(item.shape?.from,'unshaped'),to:pose(item.shape?.to,'shaped')};
+        for(const key of ['station','clayRole'])if(item[key]!==undefined){if(!idOK(item[key]))throw new Error(`Invalid ${key}.`);clean[key]=item[key];}
+      }
       for(const key of ['id','channel','releases','holdChannel','landmark'])if(item[key]!==undefined){if(!idOK(item[key]))throw new Error(`Invalid ${key}. Use letters, numbers and hyphens.`);clean[key]=item[key];}
       for(const key of ['goal','latch','gust','spores','arch','house','entrance','optional','recovery','rest'])if(item[key]!==undefined)clean[key]=!!item[key];
       if(list==='platforms'){
@@ -71,13 +85,39 @@ export function validateDraft(source,base){
       return clean;
     });
   }
+  // Shaping stations are data too: ids, a gesture, the clay they own and where
+  // the prompt applies. Never any behaviour, so an import stays inert.
+  if(source.shaping!==undefined){
+    if(!Array.isArray(source.shaping)||source.shaping.length>30)throw new Error('Invalid shaping list (maximum 30).');
+    const clay=new Set(out.platforms.filter(p=>p.shape).map(p=>p.id));
+    const text=(value,label,max=240)=>{if(typeof value!=='string'||!value.trim()||value.length>max)throw new Error(`Invalid station ${label}.`);return value;};
+    out.shaping=source.shaping.map(s=>{
+      if(!s||typeof s!=='object')throw new Error('Invalid shaping station.');
+      if(!idOK(s.id))throw new Error('Each shaping station needs an ID.');
+      if(!['down','right','out'].includes(s.gesture))throw new Error('A station gesture must be down, right or out.');
+      const parts=(Array.isArray(s.parts)?s.parts:[]).filter(id=>clay.has(id));
+      if(!parts.length)throw new Error(`Station ${s.id} has no kneadable clay.`);
+      const station={id:s.id,name:text(s.name,'name',80),verb:text(s.verb,'verb',40),gesture:s.gesture,parts,
+        x:finite(s.x,-100,2000,'station x'),end:finite(s.end,-100,2080,'station end'),
+        spawn:{x:finite(s.spawn?.x,-100,2000,'station spawn x'),y:finite(s.spawn?.y,-40,160,'station spawn height'),groundId:s.spawn?.groundId},
+        hint:text(s.hint,'hint')};
+      if(station.end<=station.x)throw new Error(`Station ${s.id} needs a forward range.`);
+      if(station.spawn.groundId!==undefined&&!idOK(station.spawn.groundId))throw new Error('Invalid station spawn platform.');
+      if(s.lift!==undefined){
+        if(!idOK(s.lift))throw new Error('Invalid station lift.');
+        Object.assign(station,{lift:s.lift,liftFrom:finite(s.liftFrom,-40,160,'lift start'),liftTo:finite(s.liftTo,-40,160,'lift end')});
+      }
+      return station;
+    });
+  }
   for(const list of ['platforms','winds'])if(new Set(out[list].map(p=>p.id)).size!==out[list].length)throw new Error(`Duplicate IDs in ${list}.`);
+  if(out.shaping&&new Set(out.shaping.map(s=>s.id)).size!==out.shaping.length)throw new Error('Duplicate IDs in shaping.');
   if(!out.platforms.some(p=>p.id==='start'))throw new Error('Keep the starting platform.');
   if(out.platforms.filter(p=>p.goal).length!==1)throw new Error('A chapter needs exactly one finish platform.');
   const goal=out.platforms.find(p=>p.goal);if(goal.w<2.5)throw new Error('The finish platform must be at least 2.5 units wide.');
   out.spawn={x:finite(source.spawn?.x,-100,2000,'Start X'),y:finite(source.spawn?.y,-40,160,'Start height')};
   out.custom=true;repairDraft(out);
-  const content=JSON.stringify([out.spawn,...LISTS.map(k=>out[k])]);out.layoutVersion=`editor-${base.layoutVersion}-${hash(content)}`;
+  const content=JSON.stringify([out.spawn,...LISTS.map(k=>out[k]),out.shaping??null]);out.layoutVersion=`editor-${base.layoutVersion}-${hash(content)}`;
   return out;
 }
 
@@ -159,7 +199,18 @@ export class DraftSession{
     const id=prefix=>{let i=1;while(this.level.platforms.some(p=>p.id===`${prefix}-${i}`)||this.level.winds.some(p=>p.id===`${prefix}-${i}`))i++;return `${prefix}-${i}`;};
     this.change(level=>{
       let list,obj;
-      if(KINDS[type]){list='platforms';obj={id:id('clay'),x:x-2,y,w:4,kind:type};if(type==='wall')Object.assign(obj,{y:y+2,h:4});if(type==='gate')Object.assign(obj,{h:10,channel:'new-circuit'});if(type==='ferry')Object.assign(obj,{travel:24,speed:3.2});if(type==='orbit')Object.assign(obj,{moveX:4,moveY:4,period:12});if(type==='lift')Object.assign(obj,{period:5,moveY:1.2});if(type==='pulse')Object.assign(obj,{period:4.8,duty:.76});if(type==='switch')Object.assign(obj,{w:1.8,channel:'new-circuit',duration:10});if(type==='timed'||type==='counter')Object.assign(obj,{channel:'new-circuit',...(type==='counter'?{rise:3}:{})});}
+      if(KINDS[type]){list='platforms';obj={id:id('clay'),x:x-2,y,w:4,kind:type};if(type==='wall')Object.assign(obj,{y:y+2,h:4});if(type==='gate')Object.assign(obj,{h:10,channel:'new-circuit'});if(type==='ferry')Object.assign(obj,{travel:24,speed:3.2});if(type==='orbit')Object.assign(obj,{moveX:4,moveY:4,period:12});if(type==='lift')Object.assign(obj,{period:5,moveY:1.2});if(type==='pulse')Object.assign(obj,{period:4.8,duty:.76});if(type==='switch')Object.assign(obj,{w:1.8,channel:'new-circuit',duration:10});if(type==='timed'||type==='counter')Object.assign(obj,{channel:'new-circuit',...(type==='counter'?{rise:3}:{})});
+        if(type==='clay'){
+          // Clay is placed as a plug that presses down into a bridge, and it
+          // arrives with the station that lets the player knead it.
+          const station=id('station');
+          Object.assign(obj,{x:x-1.2,w:2.4,y:y+3.4,h:4,clayRole:'bridge',station,
+            shape:{from:{x:x-1.2,w:2.4,y:y+3.4,h:4},to:{x:x-1.2,w:6.4,y,h:.65}}});
+          const dock=level.platforms.find(p=>!p.shape&&x>=p.x-2&&x<=p.x+p.w+2)||level.platforms[0];
+          (level.shaping??=[]).push({id:station,name:'Press a bridge',verb:'Press down',gesture:'down',parts:[obj.id],
+            x:x-10,end:x+10,spawn:{x:dock.x+dock.w/2,y:dock.y,groundId:dock.id},
+            hint:'Press the orange clay down — drag, hold E / KNEAD, or stomp it.'});
+        }}
       else{list=['bat','drifter','spore','spitter'].includes(type)?'enemies':type;obj={x,y};if(type==='spitter')Object.assign(obj,{kind:'spitter',min:x-2,max:x+2,speed:.38});if(type==='spore')Object.assign(obj,{kind:'spore',min:x-1,max:x+1,speed:.5});if(type==='bat')Object.assign(obj,{kind:'bat',min:x-1.6,max:x+1.6,speed:BAT.patrolSpeed,bob:BAT.bob,period:BAT.period});if(type==='drifter')Object.assign(obj,{kind:'drifter',min:x-1.5,max:x+1.5,speed:DRIFTER.patrolSpeed,bob:DRIFTER.bob,period:DRIFTER.period});if(type==='hazards')Object.assign(obj,{x:x-2,w:4});if(type==='enemies')Object.assign(obj,{min:x-1.5,max:x+1.5,speed:1.5});if(type==='winds')Object.assign(obj,{id:id('wind'),x:x-2,w:4,h:7,fx:0,fy:18});if(type==='crushers')Object.assign(obj,{w:1.8,range:3,period:5});}
       if(!LISTS.includes(list))throw new Error('Unsupported object type.');
       level[list].push(obj);this.selection={list,index:level[list].length-1};

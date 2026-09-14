@@ -2,6 +2,7 @@ import * as THREE from './lib/three.module.js';
 import {canyonModel} from './canyon-assets.js';
 import {forestModel} from './forest.js';
 import {forestUnderstory} from './forest-details.js';
+import {caveCrystals} from './cavern.js';
 
 const group=parent=>{const g=new THREE.Group();parent.add(g);return g;};
 // Guards already include a safety margin. Ignore grazing padded bounds so a
@@ -30,13 +31,11 @@ function mushrooms(w,g,x=0,size=1){
   w.ball(.65,.28,.6,'orange',m,0,1.04,0);
   for(const [x,y,z]of [[-.27,1.23,.21],[.22,1.25,.11],[.03,1.3,-.22]])w.ball(.1,.035,.09,'cream',m,x,y,z);
 }
+// One crystal silhouette for the whole cave: the supplied models set it, the
+// near props follow it, and the foreground parallax uses the same builder.
+// Foreground copies carry no light fixture — the cave keeps its four lights.
 function crystals(w,g,x=0,size=1){
-  const c=group(g);c.position.x=x;c.scale.setScalar(size);
-  for(let i=0;i<3;i++){
-    const m=w.mesh(new THREE.ConeGeometry(.2,1.32,6),'accent',c,(i-1)*.28,.75,.1+(i%2)*.25);
-    m.rotation.z=(i-1)*-.22;
-    w.box(.3,.53,.33,'foliage',c,(i-1)*.28,.3,.1+(i%2)*.25,.08);
-  }
+  caveCrystals(w,g,x,0,.1,size*1.15,{light:false});
 }
 function nearScenery(w,g,variant){
   if(w.biome==='citadel'){

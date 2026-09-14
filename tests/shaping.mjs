@@ -9,7 +9,9 @@ const boot=()=>{const g=new Game();g.start(3,playground);return g;};
 const step=(g,n,input={})=>{for(let i=0;i<n;i++)g.tick(dt,{...input,jumpPressed:i===0&&input.jumpPressed,stompPressed:i===0&&input.stompPressed});};
 assert.equal(LEVELS.length,4);
 assert.equal(new Set(playground.platforms.map(p=>p.id)).size,playground.platforms.length);
-assert.equal(playground.shaping.length,5);
+// Five workshop experiments, plus the three stations chapter four now owns and
+// the playground inherits with the rest of its copy of that chapter.
+assert.deepEqual(playground.shaping.map(s=>s.id),['lift','ramp','landing','stairs','bridge','roof-ramp','laundry-stairs','belfry-span']);
 for(const definition of playground.shaping){
   const g=boot();assert(visitStation(g,definition.id));
   assert.equal(nearbyStation(g).id,definition.id);
@@ -70,6 +72,6 @@ for(const link of g.level.routeLinks.slice(0,17)){
   assert(result,`workshop crossing ${link.from} → ${link.to}`);g=result.g;inputs.push(...result.inputs);
 }
 const replay=boot();for(const input of inputs)replay.tick(dt,input);
-assert.equal(replay.player.groundId,'start');assert.equal(replay.deaths,0);assert(replay.level.shaping.every(s=>s.amount===1));
+assert.equal(replay.player.groundId,'start');assert.equal(replay.deaths,0);assert(replay.level.shaping.slice(0,5).every(s=>s.amount===1));
 assert.equal(JSON.stringify(LEVELS),original);assert.equal(JSON.stringify(playground),source);
 console.log('PASS workshop playthrough:',inputs.length,'input frames, all 5 shapes, no deaths; original chapter and source untouched');
