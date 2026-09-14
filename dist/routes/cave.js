@@ -1006,11 +1006,16 @@ export default chapter({
   },
   {
     "from": "vault-entry",
-    "to": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
+    "to": "sluice-hatch",
+    "mode": "walk"
+  },
+  {
+    "from": "sluice-hatch",
+    "to": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
     "mode": "jump"
   },
   {
-    "from": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
+    "from": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
     "to": "sluice-lift",
     "mode": "board"
   },
