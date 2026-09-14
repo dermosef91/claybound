@@ -10,18 +10,18 @@ import {CLAY_PALETTE} from './palette.js';
 const rand=n=>{const v=Math.sin(n*127.1+87.3)*43758.5453;return v-Math.floor(v);};
 
 export const THEMES={
-  citadel:{sand:0x3f6ea6,clover:0x4775a2,terrain:0x315e96,terrain2:0x2d588c,top:CLAY_PALETTE.orange,bark:0x244973,barkLight:CLAY_PALETTE.orangeLight,foliage:0x4775a2,leafLight:0x638eb8,vine:0x3e6491,back:0x587fa8,back2:0x416e9d,accent:CLAY_PALETTE.orange,water:0x507d9f,rope:0xdfbc86,dust:0xe8cca0,skyLight:0xd3e3f0,groundLight:0x23466b,sun:0xffe3bd,sunPower:3.25,ambient:2.1,fill:0xb8d1e9,fillPower:.5},
-  desert:{sand:0xe0b681,clover:0x408559,terrain:CLAY_PALETTE.orange,terrain2:CLAY_PALETTE.orangeDark,top:CLAY_PALETTE.orangeLight,bark:0x8e4e27,barkLight:0xbe793d,foliage:0x408559,leafLight:0x5b9b62,vine:0x487c47,back:CLAY_PALETTE.orangeLight,back2:CLAY_PALETTE.orange,accent:0xffd568,water:0x7daaae,rope:0xe3b56f,dust:0xf1c798,skyLight:0xd3e5fa,groundLight:0xa35b35,sun:0xffdfb6,sunPower:3.3,ambient:2.1,fill:0xc7def7,fillPower:.7,cameraElevation:1.6},
-  forest:{sand:0xdfc08c,clover:0x63a544,terrain:0xab7446,terrain2:0x8e603c,top:0x6baa46,bark:0x764d30,barkLight:0xb3834a,foliage:0x56853f,leafLight:0x89b452,vine:0x4f8042,back:0x88a78d,back2:0xa5865c,accent:0xf4d592,water:0x86b7b3,rope:0x829656,dust:0xaec387,skyLight:0xdaeae7,groundLight:0x555e3c,sun:0xffeabc,sunPower:3.55,ambient:1.65,fill:0xbbdce6,fillPower:.54,cameraElevation:1.65,exposure:1.01},
-  cave:{sand:0x6b6a66,clover:0x378e94,terrain:0x474751,terrain2:0x363c48,top:0x777e8a,bark:0x654731,barkLight:0x9b7043,foliage:0x378e94,leafLight:0x7bbdc0,vine:0x4b7c78,back:0x1e2c39,back2:0x334756,accent:0x8acedd,water:0x244b59,rope:0x9d7d54,dust:0xa1acb1,skyLight:0xb0c5d9,groundLight:0x293444,sun:0xc6d2df,sunPower:2.35,ambient:1.55,fill:0x91c5e8,fillPower:1.1,cameraElevation:1.8}
+  citadel:{clover:0x4775a2,terrain:0x315e96,terrain2:0x2d588c,top:CLAY_PALETTE.orange,bark:0x244973,barkLight:CLAY_PALETTE.orangeLight,foliage:0x4775a2,leafLight:0x638eb8,vine:0x3e6491,back:0x587fa8,back2:0x416e9d,accent:CLAY_PALETTE.orange,water:0x507d9f,rope:0xdfbc86,dust:0xe8cca0,skyLight:0xd3e3f0,groundLight:0x23466b,sun:0xffe3bd,sunPower:3.25,ambient:2.1,fill:0xb8d1e9,fillPower:.5},
+  desert:{clover:0x408559,terrain:CLAY_PALETTE.orange,terrain2:CLAY_PALETTE.orangeDark,top:CLAY_PALETTE.orangeLight,bark:0x8e4e27,barkLight:0xbe793d,foliage:0x408559,leafLight:0x5b9b62,vine:0x487c47,back:CLAY_PALETTE.orangeLight,back2:CLAY_PALETTE.orange,accent:0xffd568,water:0x7daaae,rope:0xe3b56f,dust:0xf1c798,skyLight:0xd3e5fa,groundLight:0xa35b35,sun:0xffdfb6,sunPower:3.3,ambient:2.1,fill:0xc7def7,fillPower:.7,cameraElevation:1.6},
+  forest:{clover:0x63a544,terrain:0xab7446,terrain2:0x8e603c,top:0x6baa46,bark:0x764d30,barkLight:0xb3834a,foliage:0x56853f,leafLight:0x89b452,vine:0x4f8042,back:0x88a78d,back2:0xa5865c,accent:0xf4d592,water:0x86b7b3,rope:0x829656,dust:0xaec387,skyLight:0xdaeae7,groundLight:0x555e3c,sun:0xffeabc,sunPower:3.55,ambient:1.65,fill:0xbbdce6,fillPower:.54,cameraElevation:1.65,exposure:1.01},
+  cave:{clover:0x378e94,terrain:0x474751,terrain2:0x363c48,top:0x777e8a,bark:0x654731,barkLight:0x9b7043,foliage:0x378e94,leafLight:0x7bbdc0,vine:0x4b7c78,back:0x1e2c39,back2:0x334756,accent:0x8acedd,water:0x244b59,rope:0x9d7d54,dust:0xa1acb1,skyLight:0xb0c5d9,groundLight:0x293444,sun:0xc6d2df,sunPower:2.35,ambient:1.55,fill:0x91c5e8,fillPower:1.1,cameraElevation:1.8}
 };
 
 export function applyEnvironment(w,L){
   const theme=THEMES[L.biome];w.theme=theme;w.biome=L.biome;w.parallax=[];w.ambient=[];w.torches=[];w.water=null;
-  for(const name of ['terrain','terrain2','sand','clover','top','bark','barkLight','foliage','leafLight','vine','back','back2','accent','water','dust']){
+  for(const name of ['terrain','terrain2','clover','top','bark','barkLight','foliage','leafLight','vine','back','back2','accent','water','dust']){
     if(!w.mat[name])w.mat[name]=new THREE.MeshStandardMaterial({roughness:.98,metalness:0,bumpMap:w.bump,bumpScale:['terrain','terrain2','top'].includes(name)?.12:.065});
     w.mat[name].color.setHex(theme[name]);
-    w.mat[name].bumpScale={terrain:.075,terrain2:.075,sand:.07,top:.055,back:.03,back2:.035}[name]||.045;
+    w.mat[name].bumpScale={terrain:.075,terrain2:.075,top:.055,back:.03,back2:.035}[name]||.045;
     clayMaterial(w,w.mat[name],w.mat[name].bumpScale);
     if(name==='back'||name==='back2'){w.mat[name].emissive.copy(w.mat[name].color);w.mat[name].emissiveIntensity=L.biome==='citadel'?.12:0;}
   }
@@ -33,7 +33,7 @@ export function applyEnvironment(w,L){
   // Wildwood asks for less exposure; every other chapter keeps the default.
   w.renderer.toneMappingExposure=theme.exposure??1.08;
   w.torchLights.forEach(l=>l.intensity=0);w.caveLightState=null;
-  w.scene.fog.near=L.biome==='forest'?27:L.biome==='cave'?28:L.biome==='citadel'?34:32;w.scene.fog.far=L.biome==='forest'?92:L.biome==='cave'?108:L.biome==='citadel'?104:91;
+  w.scene.fog.near=L.biome==='forest'?25:L.biome==='cave'?28:L.biome==='citadel'?34:32;w.scene.fog.far=L.biome==='forest'?82:L.biome==='cave'?108:L.biome==='citadel'?104:91;
 }
 
 function group(parent,x=0,y=0,z=0,scale=1){const g=new THREE.Group();g.position.set(x,y,z);g.scale.setScalar(scale);parent.add(g);return g;}
@@ -70,7 +70,6 @@ export function buildTerrain(w,s,g){
     const rows=3,rowH=10.4/rows;
     for(let row=0;row<rows;row++)w.box(cw+.15,rowH+.20,depth+(row%2)*.06,(i+row)%3===1?'terrain2':'terrain',g,(i+.5)*cw,-.18-(row+.5)*rowH,-.03,.33);
   }
-  if(w.biome==='forest')w.box(width+.1,.62,3.52,'sand',g,width/2,-.72,0,.2);
   w.box(width+.14,.49,3.6,'top',g,width/2,-.18,0,.22);
   for(let i=0;i<Math.ceil(width/.93);i++){
     const x=.25+i*.93;

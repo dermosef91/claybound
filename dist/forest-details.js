@@ -25,6 +25,8 @@ function trailer(w,g,x,face,points,radius,material){
 export function forestTrailers(w,g,width,depth=3.6,seed=0){
   const face=depth/2-.06,slots=Math.max(2,Math.round(width/2.9));
   for(let i=0;i<slots;i++){
+    // Roughly three slots in ten carry anything: bare earth is the norm.
+    if(rand(i*17.3+seed+.5)>.3)continue;
     const x=Math.min(width-.5,Math.max(.5,(i+.5)*width/slots+(rand(i+seed)-.5)*.7));
     const lean=(rand(i*5.1+seed)-.5)*.8;
     if(rand(i*3.7+seed)<.5){
