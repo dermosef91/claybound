@@ -15,6 +15,7 @@ import playground from './routes/clay-playground.js';
 import {ShapingControls} from './shaping-controls.js';
 import {visitStation} from './shaping.js';
 import {applyUIPalette} from './palette.js';
+import {hintIcon} from './hint-icons.js';
 
 applyUIPalette(document.documentElement);
 
@@ -169,7 +170,7 @@ function chapters(){
   openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">FOUR CHAPTERS & A CLAY PLAYGROUND</span><h2>Choose your path.</h2><div class="chapters-list">${choices}<button class="chapter-choice playground-choice" data-action="playground"><span>✦</span><div><strong>Clay playground</strong><small>Hanging Quarter copy · 5 shaping experiments</small></div>${icon('arrow-up-right')}</button></div><p>Original chapters include the latest updates. Your edits and their checkpoints are kept separately on this device.</p>`);
 }
 function help(){
-  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">A FEW LITTLE THINGS</span><h2>Find your feet.</h2><div class="control-list"><div class="control-row">${icon('move-horizontal')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick gently for small steps or farther to run. Release to stop.</span></div></div><div class="control-row">${icon('arrow-up')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them.</span></div></div><div class="control-row">${icon('arrow-down-to-line')}<div><strong>S or ↓ to stomp in the air</strong><span>Break sealed caps to release spores. On a thin ledge, press down to drop through. Stomp a mushroom for an extra bounce.</span></div></div><div class="control-row">${icon('hand')}<div><strong>Hold E to knead orange clay</strong><span>Where a prompt appears, hold E (or drag the clay, or stomp it) to stretch ramps, stairs and bridges into place. R softens them back.</span></div></div><div class="control-row">${icon('flag')}<div><strong>Find the bell at the end of each chapter</strong><span>Orange flags save your place. Gather little beads and secret flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
+  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Hold E to knead orange clay</strong><span>Where a prompt appears, hold E, drag the clay, or stomp it to shape ramps, stairs and bridges. R resets.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
 }
 function collectibles(){openDialog(collectiblesMarkup(LEVELS.map((_,i)=>activeLevel(i)),saved));}
 function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active));}
@@ -249,7 +250,7 @@ window.addEventListener('contextmenu',e=>e.preventDefault());
 $('world').addEventListener('webglcontextlost',e=>{e.preventDefault();game.pause();clearInput();$('error-text').textContent='The graphics connection was interrupted. Reload to continue — your latest checkpoint is saved.';show('error',true);});
 function stationPicker(){
   if(!game.level.playground)return;
-  openDialog(`<button class="dialog-close" data-action="resume" aria-label="Resume game">${icon('x')}</button><span class="eyebrow">CLAY PLAYGROUND</span><h2>Try a different shape.</h2><p>Drag the orange clay, or hold E / KNEAD. R resets the current station. Shapes stay as you leave them until you restart the playground.</p><div class="chapters-list">${game.level.shaping.map((s,i)=>`<button class="chapter-choice" data-station="${s.id}"><span>0${i+1}</span><div><strong>${s.name}</strong><small>${s.verb} · ${Math.round(s.amount*100)}% shaped</small></div>${icon('arrow-up-right')}</button>`).join('')}</div>`);
+  openDialog(`<button class="dialog-close" data-action="resume" aria-label="Resume game">${icon('x')}</button><span class="eyebrow">CLAY PLAYGROUND</span><h2>Try a different shape.</h2><p>Drag the orange clay or hold E / KNEAD. R resets a station. Shapes stay until you restart the playground.</p><div class="chapters-list">${game.level.shaping.map((s,i)=>`<button class="chapter-choice" data-station="${s.id}"><span>0${i+1}</span><div><strong>${s.name}</strong><small>${s.verb} · ${Math.round(s.amount*100)}% shaped</small></div>${icon('arrow-up-right')}</button>`).join('')}</div>`);
 }
 shapingControls=new ShapingControls({game,world:()=>world,input,picker:stationPicker});
 function updateHUD(now){
@@ -266,7 +267,7 @@ function updateHUD(now){
   if(hintKey&&key!==hintKey)dismissed.add(hintKey);
   if(key&&key===hintKey&&now>=hintUntil)dismissed.add(key);
   const visible=!!hint&&!dismissed.has(key);show('hint',visible);
-  if(visible&&hintKey!==key){hintKey=key;hintUntil=now+6500;$('hint-title').textContent=hint.title;$('hint-text').textContent=matchMedia('(pointer:coarse), (max-width:850px)').matches?hint.text.replace('Move with A / D or arrows.','Drag the joystick gently to move, farther to run.').replace('↓ / S or STOMP','STOMP'):hint.text;}
+  if(visible&&hintKey!==key){hintKey=key;hintUntil=now+6500;$('hint-mark').innerHTML=hintIcon(hint.icon);$('hint-title').textContent=hint.title;$('hint-text').textContent=matchMedia('(pointer:coarse), (max-width:850px)').matches?hint.text.replace('A / D or arrows to move.','Drag the joystick to move, farther to run.').replace('↓ / S or STOMP','STOMP'):hint.text;}
 }
 let prev=performance.now(),accum=0,hudAccum=0;
 function frame(now){

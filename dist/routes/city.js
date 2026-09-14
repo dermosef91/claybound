@@ -169,15 +169,15 @@ export default chapter({
     {x:295.7,w:1.7,y:41}
   ],
   hints:[
-    {x:0,end:13.9,title:'Find your stride',text:'Move with A / D or arrows. Press Space, W or ↑ to jump — hold it to leap farther.'},
-    {x:14,end:31,title:'Your hands work clay',text:'Hold E (or drag the orange clay) to stretch a walkable ramp. Press R to undo it.'},
-    {x:50,end:66,title:'You are the counterweight',text:'Stand on the right end of the beam. Hold it down until the connected lift locks high.'},
-    {x:75,end:87,title:'Wake the draught',text:'Step on the cream valve. The rising air lifts your jumps, just like the canyon windwells.'},
-    {x:122,end:132,title:'Awnings throw you high',text:'Land on the taut awning and hold jump for the tallest bounce.'},
-    {x:138,end:152,title:'Knead the stairs',text:'Pull the tall clay wall right, or hold E, to raise three steps to the roof.'},
-    {x:199,end:210,title:'Lamp decks blink',text:'Lit decks fade on their own rhythm. Cross each one while it still glows.'},
-    {x:244,end:253,title:'Cheeks mean trouble',text:'The spitter fires straight ahead. Read its wind-up from the lower deck, then drop on it from above.'},
-    {x:266,end:288,title:'One last climb',text:'Open the belfry draught, cross the failing tiles, then press the clay plug into your own last bridge.'}
+    {x:0,end:13.9,icon:'walk',title:'Move and jump',text:'A / D or arrows to move. Hold jump to leap farther.'},
+    {x:14,end:31,icon:'knead',title:'Knead a ramp',text:'Hold E, or drag the orange clay, to stretch a ramp. R undoes it.'},
+    {x:50,end:66,icon:'beam',title:'Counterweight',text:'Stand on the right end of the beam until the lift locks high.'},
+    {x:75,end:87,icon:'updraft',title:'Draught',text:'Step on the cream valve. The rising air lifts your jumps.'},
+    {x:122,end:132,icon:'awning',title:'Awning bounce',text:'Land on the taut awning. Hold jump for the tallest bounce.'},
+    {x:138,end:152,icon:'stairs',title:'Knead the stairs',text:'Pull the tall clay wall right, or hold E, to raise three steps.'},
+    {x:199,end:210,icon:'lamp',title:'Blinking decks',text:'Lit decks fade on their own rhythm. Cross each one while it glows.'},
+    {x:244,end:253,icon:'spitter',title:'Spitter',text:'It fires straight ahead. Read the wind-up, then drop on it from above.'},
+    {x:266,end:288,icon:'bridge',title:'The last climb',text:'Open the belfry draught, cross the failing tiles, then press the clay plug into a bridge.'}
   ],
   guides:[
     {platformId:'draught-crown',offset:.55,dir:-1},{platformId:'draught-crown',offset:3.4,dir:1},

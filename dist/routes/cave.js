@@ -1503,33 +1503,38 @@ export default chapter({
   {
     "x": 24,
     "end": 32,
-    "title": "Follow the cable",
-    "text": "The relay above opens the grate below. Explore up, then return."
+    "icon": "relay",
+    "title": "Relay",
+    "text": "The relay above opens the grate below. Go up, then come back."
   },
   {
     "x": 58,
     "end": 67,
-    "title": "Steer with your weight",
-    "text": "Stand near an end to drive the ferry. Its centre brakes. Watch the press lamps."
+    "icon": "ferry",
+    "title": "Steer the ferry",
+    "text": "Stand at an end to move, at the centre to stop. Watch the press lamps."
   },
   {
     "x": 124,
     "end": 132,
-    "title": "Ride the turning heart",
-    "text": "Board a cradle, stay near its centre, and step off at the upper balcony."
+    "icon": "wheel",
+    "title": "Turning heart",
+    "text": "Board a cradle, stay near its centre, step off at the upper balcony."
   },
   {
     "x": 170,
     "end": 180,
-    "title": "Something below",
-    "text": "Stomp on the thin shelf to drop through. The lift will bring you back."
+    "icon": "drop",
+    "title": "Drop through",
+    "text": "Stomp on the thin shelf to drop through. The lift brings you back."
   },
   {
     "x": 110,
     "end": 114,
     "y": 0,
-    "title": "Cheeks mean trouble",
-    "text": "A swelling mouth warns of a shot. Use stone cover, then jump onto the spitter."
+    "icon": "spitter",
+    "title": "Spitter",
+    "text": "A swelling mouth means a shot is coming. Take cover, then jump on it."
   }
 ],guides:[
   {
