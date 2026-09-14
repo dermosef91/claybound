@@ -3,7 +3,7 @@ import {buildCitadelBackdrop,buildCitadelTerrain} from './citadel.js';
 import {clayMaterial} from './clay.js';
 import {buildCanyonBackdrop,buildCanyonTerrain} from './canyon.js';
 import {buildForestBackdrop} from './forest.js';
-import {forestCover,forestMushroom,forestClover} from './forest-details.js';
+import {forestCover,forestMushroom,forestTrailers} from './forest-details.js';
 import {buildCaveBackdrop,caveMushrooms,caveCrystals,caveLedgeDetails} from './cavern.js';
 import {animateCaveLights} from './cave-lighting.js';
 import {CLAY_PALETTE} from './palette.js';
@@ -12,7 +12,7 @@ const rand=n=>{const v=Math.sin(n*127.1+87.3)*43758.5453;return v-Math.floor(v);
 export const THEMES={
   citadel:{sand:0x3f6ea6,clover:0x4775a2,terrain:0x315e96,terrain2:0x2d588c,top:CLAY_PALETTE.orange,bark:0x244973,barkLight:CLAY_PALETTE.orangeLight,foliage:0x4775a2,leafLight:0x638eb8,vine:0x3e6491,back:0x587fa8,back2:0x416e9d,accent:CLAY_PALETTE.orange,water:0x507d9f,rope:0xdfbc86,dust:0xe8cca0,skyLight:0xd3e3f0,groundLight:0x23466b,sun:0xffe3bd,sunPower:3.25,ambient:2.1,fill:0xb8d1e9,fillPower:.5},
   desert:{sand:0xe0b681,clover:0x408559,terrain:CLAY_PALETTE.orange,terrain2:CLAY_PALETTE.orangeDark,top:CLAY_PALETTE.orangeLight,bark:0x8e4e27,barkLight:0xbe793d,foliage:0x408559,leafLight:0x5b9b62,vine:0x487c47,back:CLAY_PALETTE.orangeLight,back2:CLAY_PALETTE.orange,accent:0xffd568,water:0x7daaae,rope:0xe3b56f,dust:0xf1c798,skyLight:0xd3e5fa,groundLight:0xa35b35,sun:0xffdfb6,sunPower:3.3,ambient:2.1,fill:0xc7def7,fillPower:.7,cameraElevation:1.6},
-  forest:{sand:0xdcb475,clover:0x59a336,terrain:0xac6f3c,terrain2:0x8d5c33,top:0x6fae3c,bark:0x74492c,barkLight:0xb07c43,foliage:0x4a8636,leafLight:0x8bc04b,vine:0x468039,back:0x7ea489,back2:0xa5804f,accent:0xf4d592,water:0x86b7b3,rope:0x829656,dust:0xaec387,skyLight:0xcfe4f7,groundLight:0x4a5533,sun:0xffeec2,sunPower:3.9,ambient:1.2,fill:0xb2d8f0,fillPower:.38,cameraElevation:1.65,exposure:.94},
+  forest:{sand:0xdfc08c,clover:0x63a544,terrain:0xab7446,terrain2:0x8e603c,top:0x6baa46,bark:0x764d30,barkLight:0xb3834a,foliage:0x56853f,leafLight:0x89b452,vine:0x4f8042,back:0x88a78d,back2:0xa5865c,accent:0xf4d592,water:0x86b7b3,rope:0x829656,dust:0xaec387,skyLight:0xdaeae7,groundLight:0x555e3c,sun:0xffeabc,sunPower:3.55,ambient:1.65,fill:0xbbdce6,fillPower:.54,cameraElevation:1.65,exposure:1.01},
   cave:{sand:0x6b6a66,clover:0x378e94,terrain:0x474751,terrain2:0x363c48,top:0x777e8a,bark:0x654731,barkLight:0x9b7043,foliage:0x378e94,leafLight:0x7bbdc0,vine:0x4b7c78,back:0x1e2c39,back2:0x334756,accent:0x8acedd,water:0x244b59,rope:0x9d7d54,dust:0xa1acb1,skyLight:0xb0c5d9,groundLight:0x293444,sun:0xc6d2df,sunPower:2.35,ambient:1.55,fill:0x91c5e8,fillPower:1.1,cameraElevation:1.8}
 };
 
@@ -33,7 +33,7 @@ export function applyEnvironment(w,L){
   // Wildwood asks for less exposure; every other chapter keeps the default.
   w.renderer.toneMappingExposure=theme.exposure??1.08;
   w.torchLights.forEach(l=>l.intensity=0);w.caveLightState=null;
-  w.scene.fog.near=L.biome==='forest'?36:L.biome==='cave'?28:L.biome==='citadel'?34:32;w.scene.fog.far=L.biome==='forest'?160:L.biome==='cave'?108:L.biome==='citadel'?104:91;
+  w.scene.fog.near=L.biome==='forest'?27:L.biome==='cave'?28:L.biome==='citadel'?34:32;w.scene.fog.far=L.biome==='forest'?92:L.biome==='cave'?108:L.biome==='citadel'?104:91;
 }
 
 function group(parent,x=0,y=0,z=0,scale=1){const g=new THREE.Group();g.position.set(x,y,z);g.scale.setScalar(scale);parent.add(g);return g;}
@@ -79,12 +79,9 @@ export function buildTerrain(w,s,g){
   }
   if(w.biome==='forest'){
     forestCover(w,s,g,3.6);
-    forestClover(w,g,width,3.6);
+    forestTrailers(w,g,width,3.6,s.x);
     if(s.id==='start'||s.checkpoint||s.goal)tree(w,g,s.id==='start'?2.7:width-1.3,0,s.id==='start'?1.22:.95);
     forestMushroom(w,g,width-2.9,.02,-.9,.85,.1);forestMushroom(w,g,width-3.8,.02,-.8,.5,-.2);
-    const root=new THREE.CatmullRomCurve3([new THREE.Vector3(width*.6,-.33,1.73),new THREE.Vector3(width*.53,-2,1.78),new THREE.Vector3(width*.7,-3.8,1.7),new THREE.Vector3(width*.55,-6,1.68)]);
-    w.mesh(new THREE.TubeGeometry(root,24,.105,7,false),'barkLight',g);
-    for(let j=0;j<3;j++){const y=-1.3-j*1.7;w.ball(.42,.16,.11,'foliage',g,width*.54+Math.sin(j)*.6,y,1.78);}
   }else{
     caveLedgeDetails(w,s,g,3.6);
     // Let room function change the dressing: warm foundry, quiet survey

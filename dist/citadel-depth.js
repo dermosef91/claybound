@@ -5,9 +5,9 @@ import {cullCaveCells} from './cavern.js';
 // ropes and platforms stay sharp, like a small photographed clay set.
 export function renderCitadelDepth(w){
   // Draw canyon, cavern and Wildwood scenery together with the playfield. The
-  // offscreen blur/composite path can disappear on mobile, leaving only the
-  // clear color, and it flattened Wildwood's canopy into an indistinct haze.
-  // These environments already use depth-separated meshes and distance fog.
+  // offscreen blur/composite path can come back holding only the clear color,
+  // losing the whole backdrop; these environments separate their depth with
+  // distance fog and softened distant materials instead.
   if(w.biome==='desert'||w.biome==='cave'||w.biome==='forest'){
     if(w.biome==='cave')cullCaveCells(w);
     if(w.citadelDepth)w.citadelDepth.quad.visible=false;

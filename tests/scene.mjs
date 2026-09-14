@@ -10,6 +10,7 @@ import {prepareEnemyAsset,animateEnemy} from '../dist/enemies.js';
 import {prepareCastleAsset} from '../dist/castle.js';
 import {prepareCottageAsset} from '../dist/cottage.js';
 import {prepareCloudAsset} from '../dist/clouds.js';
+import {CASCADE} from '../dist/forest.js';
 import {readFile} from 'node:fs/promises';
 import {animateEnvironment} from '../dist/environments.js';
 import {Game} from '../dist/simulation.js';
@@ -288,15 +289,18 @@ for(const [index,stops]of [[1,[[4,0],[52,7.8],[101,8.1],[162,20],[260,33.4]]],[2
     if(index===1){
       assert(w.depthRoot.getObjectByName('Forest hills'),'supplied mossy bushes form the foreground');
       assert(w.backRoot.getObjectByName('Forest grove')&&w.backRoot.getObjectByName('Forest falls'));
-      assert(w.backRoot.getObjectByName('Forest waterfall'),'the supplied cascade is the chapter horizon');
       assert(w.backRoot.getObjectByName('Ivory cloud'),'clay clouds fill the open sky');
       assert.equal(w.parallax.find(p=>p.group.name==='Skybridge Falls skyline').factor,.18);
-      const cascade=w.parallax.find(p=>p.group.name==='Cascade terraces');
-      assert(cascade&&cascade.factor>.18&&cascade.factor<.38,'the cascade sits between the skyline and the canopy band');
-      const depths=['Forest grove','Forest falls','Forest waterfall'].map(name=>w.backRoot.getObjectByName(name).getWorldPosition(new THREE.Vector3()).z);
+      // One cascade, fixed in world space so only Under the Roots looks at it.
+      const cascades=[];w.backRoot.traverse(o=>{if(o.name==='Forest waterfall')cascades.push(o);});
+      assert.equal(cascades.length,1,'the cascade is a single landmark, not a repeated band');
+      assert(!w.parallax.some(p=>p.group.children.includes(cascades[0])),'the cascade is not carried by a parallax band');
+      const falls=cascades[0].getWorldPosition(new THREE.Vector3());
+      assert(Math.abs(falls.x-CASCADE.x)<1e-6,'the cascade holds its authored x through camera moves');
+      const depths=['Forest grove','Forest falls'].map(name=>w.backRoot.getObjectByName(name).getWorldPosition(new THREE.Vector3()).z);
       assert(depths[1]<depths[0]&&depths[0]<-5);
       const bandDepth=name=>w.parallax.find(p=>p.group.name===name).group.children[0].position.z;
-      assert(depths[1]<depths[2]&&depths[2]<bandDepth('Hazy canopy bridges'),'cascade reads between the far islands and the canopy');
+      assert(depths[1]<falls.z&&falls.z<bandDepth('Hazy canopy bridges'),'cascade reads between the far islands and the canopy');
       assert(bandDepth('Hazy canopy bridges')<bandDepth('Breathing forest trunks'),'the near trunks are the closest band');
       for(const [key,triangles]of [['hills',3126],['grove',10414],['falls',10254],['waterfall',10274]]){
         let total=0;w.forestAssets[key].scene.traverse(o=>{if(o.isMesh){total+=o.geometry.index.count/3;assert(o.material.map&&o.material.normalMap&&o.material.roughnessMap);}});assert.equal(total,triangles);

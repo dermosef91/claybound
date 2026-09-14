@@ -13,21 +13,36 @@ export function forestLeaf(w,parent,x,y,z,size=.28,angle=0){
   const leaf=w.ball(size*.48,size,size*.13,'foliage',g);leaf.rotation.y=.18;
   w.box(.025,size*1.3,.035,'leafLight',g,0,-size*.03,size*.11,.012);return g;
 }
-// Clover strands soften the cut earth under a deck, the way the reference's
-// dirt columns are never bare between the moss cap and the shadow below.
-export function forestClover(w,g,width,depth=3.6){
-  const face=depth/2-.06;
-  for(let i=0;i<Math.max(2,Math.round(width/2.4));i++){
-    const x=.55+i*(Math.max(1,width-1.1)/Math.max(1,Math.round(width/2.4))),drop=1.9+((i*37)%5)*.46,lean=((i%3)-1)*.34;
-    const curve=new THREE.CatmullRomCurve3([
-      new THREE.Vector3(x,-.55,face),
-      new THREE.Vector3(x+lean*.5,-.55-drop*.45,face-.03),
-      new THREE.Vector3(x+lean,-.55-drop,face-.05)]);
-    w.mesh(new THREE.TubeGeometry(curve,14,.036,5,false),'clover',g);
-    for(let j=0;j<3;j++){
-      const t=(j+1)/3.4,point=curve.getPoint(t);
-      for(const side of [-1,1])w.ball(.13,.055,.12,'clover',g,point.x+side*.11,point.y+.04,point.z+.03);
-      w.ball(.12,.05,.11,'clover',g,point.x,point.y+.12,point.z+.02);
+const rand=n=>{const v=Math.sin(n*127.1+87.3)*43758.5453;return v-Math.floor(v);};
+function trailer(w,g,x,face,points,radius,material){
+  const curve=new THREE.CatmullRomCurve3(points);
+  w.mesh(new THREE.TubeGeometry(curve,Math.max(12,points.length*8),radius,6,false),material,g);
+  return curve;
+}
+// One trailer per slot on the cut earth under a deck, never two in the same
+// place: a long hanging root or a clover strand, chosen per slot so the brown
+// and the green alternate along the face instead of growing through each other.
+export function forestTrailers(w,g,width,depth=3.6,seed=0){
+  const face=depth/2-.06,slots=Math.max(2,Math.round(width/2.9));
+  for(let i=0;i<slots;i++){
+    const x=Math.min(width-.5,Math.max(.5,(i+.5)*width/slots+(rand(i+seed)-.5)*.7));
+    const lean=(rand(i*5.1+seed)-.5)*.8;
+    if(rand(i*3.7+seed)<.5){
+      // Hanging root: long, thin, reaching well below the deck.
+      const drop=4.4+rand(i*9.3+seed)*1.8;
+      trailer(w,g,x,face,[new THREE.Vector3(x,-.33,face-.01),new THREE.Vector3(x+lean*.6,-drop*.35,face+.04),
+        new THREE.Vector3(x+lean*1.4,-drop*.7,face-.03),new THREE.Vector3(x+lean,-drop,face-.05)],.105,'barkLight');
+      for(let j=0;j<3;j++)w.ball(.42,.16,.11,'foliage',g,x+lean*(j+1)*.35+Math.sin(j+i)*.45,-1.3-j*1.7,face+.04);
+    }else{
+      // Clover strand: short, leafy, hugging the face.
+      const drop=1.9+rand(i*11.7+seed)*2.1;
+      const curve=trailer(w,g,x,face,[new THREE.Vector3(x,-.55,face),new THREE.Vector3(x+lean*.5,-.55-drop*.45,face-.03),
+        new THREE.Vector3(x+lean,-.55-drop,face-.05)],.036,'clover');
+      for(let j=0;j<3;j++){
+        const point=curve.getPoint((j+1)/3.4);
+        for(const side of [-1,1])w.ball(.13,.055,.12,'clover',g,point.x+side*.11,point.y+.04,point.z+.03);
+        w.ball(.12,.05,.11,'clover',g,point.x,point.y+.12,point.z+.02);
+      }
     }
   }
 }
