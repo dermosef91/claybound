@@ -85,7 +85,7 @@ export default chapter({
     p('bell-rest',283,4,38.4,'stone',{checkpoint:285}),
     p('belfry-step',288.5,3,39.4,'ledge'),
     p('belfry-crown',293,2.6,44.2,'ledge'),
-    part('belfry-span',{x:295.6,w:1.9,y:51.5,h:7.7},{x:295.6,w:1.9,y:44.2,h:.65},{station:'belfry-span',clayRole:'bridge'}),
+    part('belfry-span',{x:295.6,w:1.9,y:48.5,h:4.8},{x:295.6,w:1.9,y:44.2,h:.65},{station:'belfry-span',clayRole:'bridge'}),
     p('sky-bell',297.5,16,44.2,'stone',{goal:true,house:true,arch:true})
   ],
   route:[
@@ -119,7 +119,7 @@ export default chapter({
   ],
   winds:[
     {id:'court-draught',x:80,w:12,y:9,h:12,fx:0,fy:18,channel:'draught'},
-    {id:'belfry-draught',x:287.5,w:7.5,y:38,h:9,fx:0,fy:18,channel:'belfry'}
+    {id:'belfry-draught',x:287.5,w:5.1,y:38,h:9,fx:0,fy:18,channel:'belfry'}
   ],
   circuits:[
     {source:'weight1',channel:'weight-a',targets:['counter1'],kind:'weight'},
@@ -168,16 +168,13 @@ export default chapter({
     {x:272.6,w:1.8,y:31.5},{x:275.5,w:7.5,y:29},{x:287.1,w:1.3,y:36},{x:291.6,w:1.3,y:37.5},
     {x:295.7,w:1.7,y:41}
   ],
+  // Chapter four is the last chapter: it only explains what no earlier chapter
+  // has explained. Moving, jumping, valves and their rising air, bounce pads,
+  // sinking ledges and the Echo Spitter are all taught in chapters one to
+  // three, and the clay asks with a hand above it rather than a panel of text.
   hints:[
-    {x:0,end:13.9,icon:'walk',title:'Move and jump',text:'A / D or arrows to move. Hold jump to leap farther.'},
-    {x:14,end:31,icon:'knead',title:'Knead a ramp',text:'Hold E, or drag the orange clay, to stretch a ramp. R undoes it.'},
-    {x:50,end:66,icon:'beam',title:'Counterweight',text:'Stand on the right end of the beam until the lift locks high.'},
-    {x:75,end:87,icon:'updraft',title:'Draught',text:'Step on the cream valve. The rising air lifts your jumps.'},
-    {x:122,end:132,icon:'awning',title:'Awning bounce',text:'Land on the taut awning. Hold jump for the tallest bounce.'},
-    {x:138,end:152,icon:'stairs',title:'Knead the stairs',text:'Pull the tall clay wall right, or hold E, to raise three steps.'},
-    {x:199,end:210,icon:'lamp',title:'Blinking decks',text:'Lit decks fade on their own rhythm. Cross each one while it glows.'},
-    {x:244,end:253,icon:'spitter',title:'Spitter',text:'It fires straight ahead. Read the wind-up, then drop on it from above.'},
-    {x:266,end:288,icon:'bridge',title:'The last climb',text:'Open the belfry draught, cross the failing tiles, then press the clay plug into a bridge.'}
+    {x:50,end:66,title:'Counterweight',text:'Stand on the right end of the beam until the lift locks high.'},
+    {x:199,end:210,title:'Blinking decks',text:'Lit decks fade on their own rhythm. Cross each one while it glows.'}
   ],
   guides:[
     {platformId:'draught-crown',offset:.55,dir:-1},{platformId:'draught-crown',offset:3.4,dir:1},

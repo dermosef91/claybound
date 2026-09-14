@@ -17,6 +17,7 @@ import {loadClouds} from './clouds.js';
 import {cameraFraming,cameraTarget} from './camera.js';
 import {syncStream,disposeBranch} from './streaming.js';
 import {landmark,balanceDeck,animateWind} from './setpieces.js';
+import {createShapeHands,animateShapeHands,disposeShapeHands} from './shape-hand.js';
 import {loadCanyonAssets} from './canyon-assets.js';
 import {loadWindmills} from './windmill.js';
 import {loadForestAssets} from './forest.js';
@@ -266,6 +267,7 @@ export class World {
     syncStream(this,L,focusX,true);
     const ground=L.platforms.find(s=>s.checkpoint&&Math.abs(s.checkpoint-focusX)<.1);
     this.cameraX=focusX+this.viewW*.18;this.cameraY=(ground?.y??L.spawn.y)+this.viewH*.18;
+    disposeShapeHands(this);this.shapeHands=createShapeHands(this,L);
     this.lastPlayerX=focusX;this.cameraLook=0;this.shake=0;heroEvent(this.character,{type:'respawn'});
   }
   syncVisible(L,center,force=false){syncStream(this,L,center,force);}
@@ -386,6 +388,7 @@ export class World {
       if(s.kind==='switch')view.root.scale.y=game.channels[s.channel]>0?.5:1;
       animateCavernMachine(view,s,this);
     }
+    animateShapeHands(this,game,dt,game.status==='playing');
     L.enemies.forEach(e=>animateEnemy(this.enemyViews.get(e.id),e,dt,game.status));
     syncShots(this,game);
     L.coins.forEach((c,i)=>{const g=this.coinViews[i];if(!g)return;g.visible=!c.taken;g.position.y=c.y+Math.sin(t*2.5+i*.5)*.09;g.rotation.y=Math.sin(t*1.3+i*.7)*.48;g.rotation.z=Math.sin(t*.6+i)*.08;});
