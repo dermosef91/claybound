@@ -17,6 +17,8 @@ export function clayWallBounds(s,headY){
 export function initializeShaping(L){
   for(const station of L.shaping||[]){station.amount=0;station.target=0;station.announced=false;}
   for(const s of L.platforms)if(s.shape){Object.assign(s,s.shape.from);s.prevW=s.w;s.prevSlope=s.slope||0;}
+  // Stations own their clay; one whose parts are gone simply has nothing to do.
+  if(L.shaping)L.shaping=L.shaping.filter(station=>station.parts.some(id=>L.platforms.some(p=>p.id===id&&p.shape)));
 }
 export function nearbyStation(game){
   const p=game.player;
@@ -34,11 +36,12 @@ export function updateShaping(game,dt,input){
     // Smooth bounded poses, including intermediate collision shapes.
     const t=station.amount*station.amount*(3-2*station.amount);
     for(const id of station.parts){
-      const s=L.platforms.find(p=>p.id===id),{from,to}=s.shape;
+      const s=L.platforms.find(p=>p.id===id);if(!s?.shape)continue;
+      const {from,to}=s.shape;
       s.prevW=s.w;s.prevSlope=s.slope||0;
       for(const key of ['x','w','y','h','slope'])if(from[key]!==undefined||to[key]!==undefined)s[key]=lerp(from[key]||0,to[key]||0,t);
     }
-    if(station.lift){const lift=L.platforms.find(p=>p.id===station.lift);lift.y=lerp(station.liftFrom,station.liftTo,t);}
+    if(station.lift){const lift=L.platforms.find(p=>p.id===station.lift);if(lift)lift.y=lerp(station.liftFrom,station.liftTo,t);}
     if(station.amount>.995&&!station.announced){station.announced=true;game.event('shape',{id:station.id,x:p.x,y:p.y,message:station.name+' · shaped'});}
   }
 }

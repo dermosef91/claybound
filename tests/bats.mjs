@@ -88,13 +88,17 @@ for(const opts of [{x:.45,y:2,vy:0},{x:0,y:1,vy:5}]){
 }
 const edge=encounter({x:1.05,y:2,vy:0});edge.game.tick(dt,{});assert.equal(edge.game.player.health,RULES.maxHealth,'outer wing tips are harmless');
 const paused=encounter({bob:.6});paused.game.pause();const frozen=[paused.e.x,paused.e.y];paused.game.tick(1,{});assert.deepEqual([paused.e.x,paused.e.y],frozen);
-for(const e of LEVELS[2].enemies.filter(e=>e.kind==='bat')){
-  assert.equal(e.kind,'bat');const copy=structuredClone(e);initializeEnemy(copy,0);
+// Bats belong to the caves and to the Hanging Quarter's rooftops, where
+// chapter four recombines what the earlier chapters taught. Every chapter that
+// places one loads the bat model (world.prepareLevel), and the same flight and
+// checkpoint-clearance rules hold wherever they hang.
+for(const [index,L]of LEVELS.entries())for(const e of L.enemies.filter(e=>e.kind==='bat')){
+  const copy=structuredClone(e);initializeEnemy(copy,0);
   for(let i=1;i<1800;i++){moveEnemy(copy,dt,i*dt);assert(copy.y>=copy.baseY-copy.bob-1e-6&&copy.y<=copy.baseY+copy.bob+1e-6);assert(copy.x>=copy.min&&copy.x<=copy.max);}
-  for(const p of LEVELS[2].platforms.filter(p=>p.checkpoint))assert(Math.abs(p.checkpoint-e.x)>1.5||Math.abs(p.y-e.y)>3,'checkpoint arrivals remain clear');
+  for(const p of L.platforms.filter(p=>p.checkpoint))assert(Math.abs(p.checkpoint-e.x)>1.5||Math.abs(p.y-e.y)>3,`checkpoint arrivals remain clear (chapter ${index+1})`);
 }
-assert(LEVELS.filter((_,i)=>i!==2).every(l=>l.enemies.every(e=>e.kind!=='bat')));
-console.log('PASS bat jump/stomp kills, edge forgiveness, moving top contacts, side damage, cooldown, pause and cave-only placement');
+assert.deepEqual(LEVELS.map(l=>l.enemies.filter(e=>e.kind==='bat').length),[0,0,4,2]);
+console.log('PASS bat jump/stomp kills, edge forgiveness, moving top contacts, side damage, cooldown, pause, and cave plus rooftop placement');
 
 const storage={value:'',getItem(){return this.value},setItem(_,v){this.value=v}},library=new DraftLibrary(LEVELS,storage),session=new DraftSession(library,2);
 session.add('bat',45,8);const index=session.selection.index;session.set('bob',.8);session.set('period',6.5);session.set('phase',1.2);

@@ -4,9 +4,17 @@ import {clayMaterial} from './clay.js';
 import {cavernModel} from './cavern-asset.js';
 
 const group=(parent,x=0,y=0,z=0)=>{const g=new THREE.Group();g.position.set(x,y,z);parent.add(g);return g;};
+// Sampled from the supplied grotto/crystalcap albedo under their glow masks:
+// the lit crystal faces average #5fedf2 and the mushroom caps #f3982f, and the
+// models emit their own colour at intensity .7 (white emissive x glow map).
+// Built props now use those numbers so all three depth tiers agree.
+export const CAVE_CRYSTAL=0x5fedf2,CAVE_MUSHROOM=0xf3a147;
 function materials(w){
-  for(const [name,color,emissive,intensity]of [['caveMushroom',0xf3a147,0xff831e,.8],['caveCrystal',0x77cfee,0x27aaff,.85]]){
-    if(!w.mat[name]){w.mat[name]=new THREE.MeshStandardMaterial({color,emissive,emissiveIntensity:intensity,roughness:.85,metalness:0});clayMaterial(w,w.mat[name],.02);}
+  for(const [name,color,emissive,intensity,roughness]of [
+    ['caveMushroom',CAVE_MUSHROOM,0xff831e,.8,.85],
+    ['caveCrystal',CAVE_CRYSTAL,CAVE_CRYSTAL,.7,.62]
+  ]){
+    if(!w.mat[name]){w.mat[name]=new THREE.MeshStandardMaterial({color,emissive,emissiveIntensity:intensity,roughness,metalness:0});clayMaterial(w,w.mat[name],.02);}
   }
 }
 function lightMarker(w,mesh,kind,color,power){
@@ -22,12 +30,21 @@ export function caveMushrooms(w,parent,x,y,z=-1.2,size=1){
   }
   return g;
 }
-export function caveCrystals(w,parent,x,y,z=-1.15,size=1){
+// The supplied models grow their crystals as squat, many-faceted geode clumps:
+// measured height/width 0.9-1.4, eight-ish facets, blunt tips seated in rock.
+// The old build was a 3.4:1 six-sided spike, which both mismatched the models
+// and gave safe scenery the silhouette this game uses for hazards.
+const GEMS=[[-.42,.1,.3,.42,-.3],[-.04,.24,.4,.54,.04],[.4,.06,.27,.36,.28],[-.2,-.16,.2,.26,-.14],[.24,-.2,.17,.22,.18]];
+export function caveCrystals(w,parent,x,y,z=-1.15,size=1,{light=true}={}){
   materials(w);const g=group(parent,x,y,z);g.name='Blue crystal cluster';g.scale.setScalar(size);
-  for(let i=0;i<3;i++){
-    const gem=w.mesh(new THREE.ConeGeometry(.23,1.55+i*.15,6),'caveCrystal',g,(i-1)*.36,.82,.08+(i%2)*.2);gem.rotation.z=(i-1)*-.25;
-    w.box(.33,.44,.39,'terrain2',g,(i-1)*.36,.17,0,.12);
-    if(i===1)lightMarker(w,gem,'crystal',0x46bbff,42*size);
+  w.ball(.66,.2,.46,'terrain2',g,0,.1,0);
+  for(const [dx,dz,r,h,tilt]of GEMS){
+    const gem=w.mesh(new THREE.CylinderGeometry(r*.44,r,h,8,1),'caveCrystal',g,dx,.16+h/2,dz);
+    gem.rotation.z=tilt;
+    // A shallow cap keeps it reading as a crystal without a spike's point.
+    w.mesh(new THREE.ConeGeometry(r*.44,r*.52,8),'caveCrystal',gem,0,h/2+r*.26,0);
+    w.box(r*1.25,.3,r*1.3,'terrain2',g,dx,.13,dz,.1);
+    if(light&&r===.4)lightMarker(w,gem,'crystal',0x46bbff,42*size);
   }
   return g;
 }

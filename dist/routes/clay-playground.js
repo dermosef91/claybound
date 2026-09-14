@@ -8,6 +8,9 @@ L.label='Five ways to shape the world';L.intro='Pull, press and knead the roofto
 L.spawn={x:4.75,y:0};L.end+=offset;
 for(const s of L.platforms){s.x+=offset;if(s.checkpoint)s.checkpoint+=offset;}
 for(const list of [L.coins,L.stamps,L.enemies,L.hazards,L.hints,L.sections])for(const item of list){item.x+=offset;if(item.end!==undefined)item.end+=offset;if(item.min!==undefined)item.min+=offset;if(item.max!==undefined)item.max+=offset;}
+// Chapter four's own three stations move with the copied chapter and stay
+// playable, so the workshop still runs straight through to its bell.
+const inherited=(L.shaping||[]).map(s=>({...s,x:s.x+offset,end:s.end+offset,spawn:{...s.spawn,x:s.spawn.x+offset}}));
 const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,to},...extra});
 L.platforms.unshift(
   p('workshop-start',-8,18,0,'stone',{entrance:true}),
@@ -39,4 +42,7 @@ L.sections.unshift(...L.shaping.map(s=>({x:s.x===3?-8:s.x,name:s.name,landmark:'
 L.sections.forEach((s,i)=>{s.id=i;s.end=L.sections[i+1]?.x??L.end+8;});
 for(const s of L.platforms)s.section=L.sections.findLast(s0=>s.x>=s0.x)?.id??0;
 L.routeLinks.unshift(...path(['workshop-start','soft-support','kneaded-lift','lift-roof','ramp-dock','soft-ramp','ramp-roof','soft-landing','landing-roof','soft-stair-0','soft-stair-1','soft-stair-2','stair-roof','soft-bridge','bridge-roof',['workshop-down-1','fall'],['workshop-down-2','fall'],['start','fall']]));
+// Appended after the workshop's own prompts and section names are derived, so
+// the inherited chapter-four stations add clay without adding workshop signage.
+L.shaping.push(...inherited);
 export default L;

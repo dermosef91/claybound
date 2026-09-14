@@ -461,12 +461,13 @@ console.log('PASS anchored moving presses, visible spring targets, single front 
   const g=new Game();g.start(3);const before=JSON.stringify(g.level);
   const inspect=()=>{
     w.scene.updateMatrixWorld(true);
+    const deck=g.level.platforms.find(s=>s.id==='laundry-entry');
     const view=w.platforms.get('laundry-entry').root;
     const nook=view.getObjectByName('Rooftop laundry nook');assert(nook);
     const box=new THREE.Box3().setFromObject(nook,true);
     assert(Math.abs(box.max.x-box.min.x-3.8)<1e-5);
-    assert(box.min.x>116&&box.max.x<124&&box.min.z>-1.81&&box.max.z<-.4,'entire laundry prop rests behind the player on its deck');
-    assert(Math.abs(box.min.y-13.315)<1e-5,'plinth is grounded');
+    assert(box.min.x>deck.x&&box.max.x<deck.x+deck.w&&box.min.z>-1.81&&box.max.z<-.4,'entire laundry prop rests behind the player on its deck');
+    assert(Math.abs(box.min.y-(deck.y+.015))<1e-5,'plinth is grounded');
     let triangles=0;nook.traverse(o=>{if(o.isMesh){triangles+=o.geometry.index.count/3;assert(w.assetGeometry.has(o.geometry)&&w.assetMaterials.has(o.material));}});
     assert(triangles>0&&triangles<=6000);
   };

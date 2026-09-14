@@ -5,6 +5,7 @@ import {writeFile} from 'node:fs/promises';
 import {Game,FIXED_DT as dt} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
 import {cloneGame,steer} from './routes.mjs';
+import {nearbyStation} from '../dist/shaping.js';
 import {machineTransfer} from './machine-pilot.mjs';
 
 function attempt(original,link,{offset,wait,hold}){
@@ -15,6 +16,10 @@ function attempt(original,link,{offset,wait,hold}){
  const controls=[];let launched=!g.player.groundId&&g.player.springing,jumpAge=0,waiting=wait,stomped=false;
  for(let f=0;f<1080;f++){
   const p=g.player;let jumpPressed=false,stompPressed=false,aim=fall&&overlap?b.x+Math.min(offset,b.w/2):b.x+b.w/2;
+  // Kneadable clay blocks the way until it is shaped. Stand still and hold the
+  // knead input, like the station prompt asks, then carry on with the crossing.
+  const station=nearbyStation(g);
+  if(station&&station.amount<1&&p.groundId){const knead={moveAxis:0,shapeHeld:true};controls.push(knead);g.tick(dt,knead);continue;}
   if(a.kind==='balance'&&a.channel&&!g.latched[a.channel])aim=a.x+a.w-.7;
   else if(!launched&&!walk&&!fall){
    const takeoff=drop?Math.max(a.x+.4,Math.min(a.x+a.w-.4,b.x+b.w/2)):overlap&&b.y>a.y?Math.max(a.x+.4,Math.min(a.x+a.w-.4,b.x+b.w/2-dir*offset)):dir>0?a.x+a.w-offset:a.x+offset;

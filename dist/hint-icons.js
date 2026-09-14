@@ -22,6 +22,9 @@ const ICONS={
   wheel:`<circle cx="12" cy="12" r="7.3"/><path d="M6.8 6.8 17.2 17.2"/><path d="M17.2 6.8 6.8 17.2"/><circle cx="12" cy="12" r="1.9" ${solid}/>`,
   spitter:`<circle cx="9.6" cy="12" r="6.3"/><circle cx="8" cy="10.2" r="1.3" ${solid}/><path d="M15.9 12h2"/><circle cx="21" cy="12" r="1.7" ${solid}/>`,
   // Hanging Quarter.
+  knead:`<path d="M4 19.4a8 8 0 0 1 16 0Z" ${solid}/><path d="M2.6 11h4.4"/><path d="M5 8.6 7.6 11 5 13.4"/><path d="M21.4 11H17"/><path d="M19 8.6 16.4 11l2.6 2.4"/>`,
+  awning:`<path d="M3.4 16.2q8.6-7 17.2 0Z" ${solid}/><path d="M12 9.4V3.2"/><path d="M8.8 6 12 2.8 15.2 6"/>`,
+  lamp:`<path d="M4.4 18.6h15.2" stroke-width="3.4"/><circle cx="12" cy="10.2" r="3" ${solid}/><path d="M12 4v1.8"/><path d="M6.9 5.9 8.2 7.2"/><path d="M17.1 5.9 15.8 7.2"/>`,
   beam:`<path d="M4.2 9.2 19.8 13.2"/><path d="M12 11.4 8.6 19.2h6.8Z" ${solid}/><rect x="17.2" y="14.2" width="4.6" height="4.2" rx="1.3" ${solid}/>`,
   gondola:`<path d="M2.6 6.2h18.8"/><path d="M7.4 6.2v2.3"/><rect x="4" y="8.5" width="6.8" height="5" rx="1.6" ${solid}/><path d="M16.6 6.2v5.3"/><rect x="13.2" y="11.5" width="6.8" height="5" rx="1.6" ${solid}/>`,
   // Clay playground stations, one per gesture.
