@@ -996,11 +996,11 @@ export default chapter({
   },
   {
     "from": "heart-relay",
-    "to": "clay-14",
-    "mode": "fall"
+    "to": "clay-9",
+    "mode": "jump"
   },
   {
-    "from": "clay-14",
+    "from": "clay-9",
     "to": "vault-entry",
     "mode": "jump"
   },
@@ -1046,11 +1046,11 @@ export default chapter({
   },
   {
     "from": "sluice-relay",
-    "to": "clay-14-copy-1-copy-2",
+    "to": "sluice-floor",
     "mode": "jump"
   },
   {
-    "from": "clay-14-copy-1-copy-2",
+    "from": "sluice-floor",
     "to": "gallery-entry",
     "mode": "jump"
   },
