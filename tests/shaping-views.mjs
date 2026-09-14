@@ -6,6 +6,7 @@ import {Game,surfaceAt} from '../dist/simulation.js';
 import {clayWallBounds} from '../dist/shaping.js';
 import playground from '../dist/routes/clay-playground.js';
 import {createShapeHands,animateShapeHands,disposeShapeHands} from '../dist/shape-hand.js';
+import {animateClayView,MAGIC_CLAY,MAGIC_CLAY_LIGHT} from '../dist/shaping-views.js';
 const w=Object.create(World.prototype);w.mat={};for(const name of ['top','terrain','cream'])w.mat[name]=new THREE.MeshStandardMaterial();
 const game=new Game();game.start(3,playground);
 for(const s of game.level.platforms.filter(s=>s.shape)){
@@ -89,4 +90,67 @@ console.log('PASS all clay poses: finite geometry/normals, stable buffers, colli
   disposeShapeHands(hw);
   assert.equal(disposed,materials.length);assert.equal(hw.levelRoot.children.length,0);
   console.log('PASS clay gesture hands: placement, size, stroke direction, pause/reduced motion, completion fade and disposal');
+}
+
+// Magic clay marks itself: its own violet material, smoother and glossier than
+// the sculpted world, and a slow idle squash once the player is beside it. That
+// pairing is what replaced the instruction panel, so it has to hold on its own.
+{
+  const mw=Object.create(World.prototype);
+  mw.mat={};for(const name of ['cream','top','terrain'])mw.mat[name]=new THREE.MeshStandardMaterial({roughness:.98});
+  for(const method of ['mesh','box','ball','cylinder'])mw[method]=World.prototype[method];
+  const g=new Game();g.start(3);
+  for(const s of g.level.platforms.filter(p=>p.shape)){
+    const view=createClayView(mw,s,new THREE.Group()),seen=new Set();
+    view.root.traverse(o=>{if(o.isMesh&&o.material!==mw.mat.cream)seen.add(o.material);});
+    for(const m of seen){
+      assert([MAGIC_CLAY,MAGIC_CLAY_LIGHT].includes(m.color.getHex()),`${s.id}: kneadable clay wears the magic violet`);
+      assert(m.roughness<mw.mat.terrain.roughness-.3,`${s.id}: reads softer and glossier than ordinary terrain`);
+    }
+    // The idle breath is feel, not geometry: it never moves the collider by a
+    // margin the player could stand on, and it settles once they walk away.
+    let lo=1,hi=1;
+    for(let i=0;i<240;i++){animateClayView(view,s,1/60,{near:true});lo=Math.min(lo,view.root.scale.y);hi=Math.max(hi,view.root.scale.y);}
+    assert(lo<.995&&hi>1.005,`${s.id}: clay breathes when the player is near`);
+    assert(1-lo<.03&&hi-1<.03,`${s.id}: the breath stays under three per cent`);
+    assert(view.clay.marker.scale.x>1.05,`${s.id}: the grip mark swells with it`);
+    const still=view.clay.marker.scale.x;
+    animateClayView(view,s,1/60,{near:true,playing:false});
+    assert.equal(view.clay.marker.scale.x,still,`${s.id}: the breath freezes with the game`);
+    for(let i=0;i<400;i++)animateClayView(view,s,1/60,{near:false});
+    assert(Math.abs(view.root.scale.y-1)<1e-3&&Math.abs(view.root.position.x-s.x)<1e-3,`${s.id}: settles when the player leaves`);
+    for(let i=0;i<120;i++)animateClayView(view,s,1/60,{near:true,reducedMotion:true});
+    assert.equal(view.root.scale.y,1,`${s.id}: reduced motion holds the clay still`);
+  }
+  console.log('PASS magic clay: violet material, softer surface, bounded idle squash, grip swell, pause and reduced motion');
+}
+
+// The hand is the tutorial layer and retires; the material is permanent.
+{
+  const hw=Object.create(World.prototype);
+  hw.mat={};for(const name of ['cream','orange'])hw.mat[name]=new THREE.MeshStandardMaterial();
+  hw.levelRoot=new THREE.Group();hw.reducedMotion=false;
+  for(const method of ['mesh','box','ball','cylinder'])hw[method]=World.prototype[method];
+  const g=new Game();g.start(3);
+  hw.shapeHands=createShapeHands(hw,g.level);
+  const view=hw.shapeHands[0],station=view.station;
+  const dock=g.level.platforms.find(p=>p.id===station.spawn.groundId);
+  Object.assign(g.player,{x:dock.x+dock.w/2,y:station.spawn.y,groundId:dock.id});
+  const settle=(frames=150)=>{for(let i=0;i<frames;i++)animateShapeHands(hw,g,1/60,true);};
+  for(const [taught,expected]of [[0,true],[2,true],[3,false],[7,false]]){
+    hw.clayTaught=taught;view.opacity=0;view.dwell=0;settle();
+    assert.equal(view.root.visible,expected,`clayTaught ${taught}: the cue ${expected?'teaches':'has retired'}`);
+  }
+  // A player who has learned it but stalls beside unworked clay gets it back.
+  hw.clayTaught=7;view.opacity=0;view.dwell=0;settle(60);
+  assert(!view.root.visible,'no cue for an experienced player who just arrived');
+  settle(60*9);
+  assert(view.root.visible,'the cue returns after a long stall beside unworked clay');
+  // But it never nags someone who is already kneading.
+  view.opacity=0;view.dwell=0;station.amount=0;
+  for(let i=0;i<60*9;i++){station.amount=Math.min(.9,station.amount+.0008);animateShapeHands(hw,g,1/60,true);}
+  assert(!view.root.visible,'kneading in progress keeps the cue away');
+  assert.equal(view.materials[1].color.getHex(),MAGIC_CLAY,'the cue carries the clay colour');
+  disposeShapeHands(hw);
+  console.log('PASS gesture cue retires after three stations, returns on a long stall, and never nags mid-knead');
 }

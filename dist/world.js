@@ -39,7 +39,7 @@ import {checkpointFlag,raiseCheckpoint,animateCheckpoints} from './checkpoints.j
 import {createCavernMachine,animateCavernMachine} from './cavern-machine-views.js';
 import {syncShots} from './spitter.js';
 import {loadCityLaundry} from './city-laundry.js';
-import {createClayView,updateClayView} from './shaping-views.js';
+import {createClayView,updateClayView,animateClayView} from './shaping-views.js';
 import {CLAY_PALETTE} from './palette.js';
 import {createGoal} from './goal.js';
 import {burstSporePod,updateSporeParticle,disposeSporeParticle} from './spore-effects.js';
@@ -361,6 +361,11 @@ export class World {
       for(const rope of view.ropes||[]){const anchor=rope.userData.ceiling;if(anchor)rope.scale.y=Math.max(.1,anchor.y-s.y-(anchor.offset??.25))/anchor.rest;}
       for(const guide of view.guides||[])guide.visible=!s.broken&&s.active!==false;
       updateClayView(view,s);
+      if(view.clay){
+        const station=(L.shaping||[]).find(t=>t.parts.includes(s.id));
+        const near=!!station&&p.x>=station.x&&p.x<=station.end&&Math.abs(p.y-station.spawn.y)<10&&station.amount<.995;
+        animateClayView(view,s,dt,{near,playing:game.status==='playing',reducedMotion:this.reducedMotion});
+      }
       if(view.balance){view.balance.rotation.z=s.angle;view.meter?.forEach((m,i)=>m.scale.setScalar(game.latched[s.channel]||s.charge>(i+1)/4?1:.45));}
       if(s.kind==='timed'||s.kind==='pulse'){
         view.root.visible=true;
