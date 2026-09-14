@@ -21,6 +21,13 @@ function draw(light,binding,weight,live){
   light.distance=binding.range;light.intensity=binding.power*weight;
 }
 
+// Backdrop fixtures hang from baked, non-updating transforms, and the caller
+// resolves those parallax parents immediately before this runs. Reading the
+// resolved matrix avoids rebuilding the same chain once per fixture. Fixtures
+// built into platforms sit under transforms that compose themselves each
+// frame, so those still resolve their own chain.
+const settled=(node,root)=>{if(!root)return false;for(let p=node;p;p=p.parent)if(p===root)return true;return false;};
+
 export function animateCaveLights(w,dt=0){
   if(w.biome!=='cave'){w.torchLights.forEach(l=>l.intensity=0);w.caveLightState=null;return;}
   for(const tr of w.torches){
@@ -28,7 +35,9 @@ export function animateCaveLights(w,dt=0){
       tr.flame.scale.y=.42*(1+Math.sin(w.time*8.5+tr.phase)*.045);
       tr.flame.rotation.z=Math.sin(w.time*5+tr.phase)*.055;
     }
-    tr.flame.getWorldPosition(tr.position);tr.position.z+=1.1;
+    if(settled(tr.flame,w.backRoot))tr.position.setFromMatrixPosition(tr.flame.matrixWorld);
+    else tr.flame.getWorldPosition(tr.position);
+    tr.position.z+=1.1;
   }
   const live=new Set(w.torches),score=tr=>(tr.position.x-w.cameraX)**2+(tr.position.y-w.cameraY)**2;
   const near=w.torches.filter(tr=>Math.abs(tr.position.x-w.cameraX)<(w.viewW||18)*.7+5&&Math.abs(tr.position.y-w.cameraY)<(w.viewH||10)*.8+5).sort((a,b)=>score(a)-score(b));

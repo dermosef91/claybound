@@ -1,7 +1,7 @@
 import * as THREE from './lib/three.module.js';
 import {canyonModel} from './canyon-assets.js';
 import {cloudModel} from './clouds.js';
-import {clayMaterial,clayBox} from './clay.js';
+import {clayMaterial,clayBox,cachedClayShape,retainClayShape,positionGroups} from './clay.js';
 import {archLiftCeiling} from './great-arch.js';
 import {makeMovingPlatform} from './moving-platform.js';
 
@@ -13,7 +13,7 @@ const group=parent=>{const g=new THREE.Group();parent.add(g);return g;};
 function block(w,parent,width,height,depth,x,y,z,material,seed){
   if(!w.clay)return w.box(width,height,depth,material,parent,x,y,z,.25);
   const variant=Math.abs(Math.floor(seed))%7,key='canyon:'+ [width,height,depth,variant].map(v=>v.toFixed(3)).join(':');
-  let geo=w.clay.boxes.get(key);
+  let geo=cachedClayShape(w,key);
   if(!geo){
     geo=clayBox(w,width,height,depth,.28).clone();
     const p=geo.attributes.position;
@@ -25,14 +25,15 @@ function block(w,parent,width,height,depth,x,y,z,material,seed){
     geo.computeVertexNormals();
     // The rounded box contains duplicated triangle corners. Join their normals
     // after kneading so tessellation diagonals cannot become hard seams.
-    const normals=geo.attributes.normal,sums=new Map(),keys=[];
+    const normals=geo.attributes.normal,{group,groups}=positionGroups(p);
+    const sx=new Float64Array(groups),sy=new Float64Array(groups),sz=new Float64Array(groups);
+    for(let i=0;i<p.count;i++){const k=group[i];sx[k]+=normals.getX(i);sy[k]+=normals.getY(i);sz[k]+=normals.getZ(i);}
     for(let i=0;i<p.count;i++){
-      const key=[p.getX(i),p.getY(i),p.getZ(i)].map(v=>Math.round(v*10000)).join(':');keys.push(key);
-      const n=sums.get(key)||new THREE.Vector3();n.add(new THREE.Vector3().fromBufferAttribute(normals,i));sums.set(key,n);
+      const k=group[i],nx=sx[k],ny=sy[k],nz=sz[k],length=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
+      normals.setXYZ(i,nx/length,ny/length,nz/length);
     }
-    for(let i=0;i<p.count;i++){const n=sums.get(keys[i]).normalize();normals.setXYZ(i,n.x,n.y,n.z);}
     geo.computeBoundingBox();geo.computeBoundingSphere();geo.userData.clayRelief=true;
-    w.clay.boxes.set(key,geo);w.assetGeometry.add(geo);
+    retainClayShape(w,key,geo);
   }
   return w.mesh(geo,material,parent,x,y,z);
 }

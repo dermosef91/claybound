@@ -75,6 +75,11 @@ export function animateCrumble(w,view,s,dt){
   const fracture=view.fracture;if(!fracture)return;
   const delay=s.delay||.62,progress=s.active?clamp(s.timer/delay):1,age=Math.max(0,s.timer-delay);
   view.root.visible=!s.broken&&(s.active||age<.85);
+  // An untouched deck holds every fragment at its rest pose. Once the pieces
+  // are there, rewriting the same transforms each frame changes nothing.
+  const settled=s.active&&progress<=0;
+  if(settled&&fracture.settled)return;
+  fracture.settled=settled;
   for(const part of fracture.pieces){
     const {mesh,rest,seed}=part;mesh.position.copy(rest);mesh.rotation.set(0,0,0);
     if(!s.active){

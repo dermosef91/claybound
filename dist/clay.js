@@ -15,7 +15,7 @@ export async function loadClay(w,onProgress){
 export function prepareClay(w,profile,detail){
   if(profile.version!==3||profile.height.length!==profile.size**2)throw new Error('The clay ball surface is incomplete.');
   detail.colorSpace=THREE.NoColorSpace;detail.wrapS=detail.wrapT=THREE.RepeatWrapping;detail.anisotropy=4;
-  w.clay={detail,profile,boxes:new Map(),sculpted:new WeakMap()};
+  w.clay={detail,profile,boxes:new Map(),sculpted:new WeakMap(),bytes:0};
   w.assetGeometry??=new Set();w.assetMaterials??=new Set();
   for(const m of Object.values(w.mat))clayMaterial(w,m);
   w.bump?.dispose();w.bump=detail;
@@ -91,16 +91,53 @@ export function clayModel(w,root,{background=false}={}){
   root.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])clayMaterial(w,m,background?.035:.025);});
 }
 
+// Sculpted shapes are kept so a repeated block costs nothing to build again.
+// One wide deck can carry several megabytes of tessellated vertices while a
+// small column carries a few kilobytes, so the cache is budgeted by the memory
+// it actually holds rather than by a count. Eviction drops the least recently
+// used shapes first, which keeps the small shapes that repeat all over a
+// chapter and lets a player who turns around find the shapes just used.
+export const CLAY_CACHE_BYTES=48*1024*1024;
+const shapeBytes=geo=>{
+  let bytes=geo.index?geo.index.array.byteLength:0;
+  for(const attribute of Object.values(geo.attributes))bytes+=attribute.array.byteLength;
+  return bytes;
+};
+export function cachedClayShape(w,key){
+  const c=w.clay,geo=c?.boxes.get(key);
+  if(!geo)return null;
+  // Map iteration order is the recency list: reinserting marks this newest.
+  c.boxes.delete(key);c.boxes.set(key,geo);
+  return geo;
+}
+export function retainClayShape(w,key,geo){
+  const c=w.clay;if(!c)return geo;
+  geo.userData.clayBytes??=shapeBytes(geo);
+  c.bytes=(c.bytes||0)+geo.userData.clayBytes;
+  c.boxes.set(key,geo);w.assetGeometry.add(geo);
+  return geo;
+}
+export const clayCacheOverBudget=w=>(w.clay?.bytes||0)>CLAY_CACHE_BYTES;
+export function trimClayShapes(w,live){
+  const c=w.clay;if(!c)return;
+  for(const [key,geo]of c.boxes){
+    if(c.bytes<=CLAY_CACHE_BYTES*.8)break;
+    if(live.has(geo))continue;
+    c.boxes.delete(key);w.assetGeometry.delete(geo);
+    c.bytes-=geo.userData.clayBytes||0;geo.dispose();
+  }
+}
+
 export function clayBox(w,width,height,depth,radius,variant=0){
   const c=w.clay;if(!c)return null;
   const min=Math.min(width,height,depth),max=Math.max(width,height,depth);
   const key=[width,height,depth,radius].map(n=>n.toFixed(3)).join(':');
-  if(!c.boxes.has(key)){
-    const base=new RoundedBoxGeometry(width,height,depth,5,Math.min(radius,width/3,height/3,depth/3));
-    const g=sculptClay(w,base,{amplitude:Math.min(.065,min*.055),subdivide:max>3&&min>.15,maxEdge:Math.max(1.05,max/60)});
-    base.dispose();g.computeBoundingBox();g.computeBoundingSphere();c.boxes.set(key,g);w.assetGeometry.add(g);
-  }
-  return c.boxes.get(key);
+  const cached=cachedClayShape(w,key);
+  if(cached)return cached;
+  const base=new RoundedBoxGeometry(width,height,depth,5,Math.min(radius,width/3,height/3,depth/3));
+  const g=sculptClay(w,base,{amplitude:Math.min(.065,min*.055),subdivide:max>3&&min>.15,maxEdge:Math.max(1.05,max/60)});
+  base.dispose();g.computeBoundingBox();g.computeBoundingSphere();
+  return retainClayShape(w,key,g);
 }
 
 export function clayMeshMaterial(w,geometry,base){return clayMaterial(w,base);}
@@ -114,21 +151,77 @@ function heightAt(c,u,v){
   return ((h(ix,iy)*(1-fx)+h(ix+1,iy)*fx)*(1-fy)+(h(ix,iy+1)*(1-fx)+h(ix+1,iy+1)*fx)*fy)-.5;
 }
 
+// Vertices landing on the same point, to the same ten-thousandth, form one
+// welded group. A spatial hash over integer coordinates replaces the string key
+// per vertex this used to build, which allocated an array and a string for
+// every point of every sculpted form and dominated level building.
+export function positionGroups(p){
+  const count=p.count;
+  const qx=new Int32Array(count),qy=new Int32Array(count),qz=new Int32Array(count),group=new Int32Array(count);
+  for(let i=0;i<count;i++){qx[i]=Math.round(p.getX(i)*1e4);qy[i]=Math.round(p.getY(i)*1e4);qz[i]=Math.round(p.getZ(i)*1e4);}
+  const buckets=new Map(),head=[];
+  for(let i=0;i<count;i++){
+    const hash=(Math.imul(qx[i],73856093)^Math.imul(qy[i],19349663)^Math.imul(qz[i],83492791))|0;
+    const bucket=buckets.get(hash);let found=-1;
+    // Hash collisions are resolved by comparing the coordinates themselves, so
+    // the grouping stays exact.
+    if(bucket!==undefined)for(const candidate of bucket){
+      const v=head[candidate];
+      if(qx[v]===qx[i]&&qy[v]===qy[i]&&qz[v]===qz[i]){found=candidate;break;}
+    }
+    if(found<0){found=head.length;head.push(i);if(bucket===undefined)buckets.set(hash,[found]);else bucket.push(found);}
+    group[i]=found;
+  }
+  return {group,groups:head.length};
+}
+
 // Longest-edge subdivision only where broad faces need silhouette samples.
+// Corners travel as plain numbers: the recursion used to build three vectors
+// per corner and three more per midpoint, for every triangle of every broad
+// sculpted block, and that allocation dominated level building.
 function tessellate(g,maxEdge=1.05){
   const p=g.attributes.position,n=g.attributes.normal,uv=g.attributes.uv,out=[],normals=[],uvs=[];
-  const vertex=i=>({p:new THREE.Vector3().fromBufferAttribute(p,i),n:new THREE.Vector3().fromBufferAttribute(n,i),uv:uv?new THREE.Vector2().fromBufferAttribute(uv,i):new THREE.Vector2()});
-  const midpoint=(a,b)=>({p:a.p.clone().add(b.p).multiplyScalar(.5),n:a.n.clone().add(b.n).normalize(),uv:a.uv.clone().add(b.uv).multiplyScalar(.5)});
-  const split=(a,b,c,depth)=>{
-    const edges=[a.p.distanceToSquared(b.p),b.p.distanceToSquared(c.p),c.p.distanceToSquared(a.p)],longest=Math.max(...edges);
-    if(longest>maxEdge*maxEdge&&depth<16){
-      if(edges[1]===longest)[a,b,c]=[b,c,a];else if(edges[2]===longest)[a,b,c]=[c,a,b];
-      const mid=midpoint(a,b);split(a,mid,c,depth+1);split(mid,b,c,depth+1);return;
+  const limit=maxEdge*maxEdge;
+  const emit=(x,y,z,nx,ny,nz,u,v)=>{out.push(x,y,z);normals.push(nx,ny,nz);uvs.push(u,v);};
+  const split=(ax,ay,az,aNx,aNy,aNz,aU,aV,bx,by,bz,bNx,bNy,bNz,bU,bV,cx,cy,cz,cNx,cNy,cNz,cU,cV,depth)=>{
+    const ab=(ax-bx)**2+(ay-by)**2+(az-bz)**2;
+    const bc=(bx-cx)**2+(by-cy)**2+(bz-cz)**2;
+    const ca=(cx-ax)**2+(cy-ay)**2+(cz-az)**2;
+    const longest=Math.max(ab,bc,ca);
+    if(longest>limit&&depth<16){
+      // Halve the longest edge and recurse, keeping the corner order the
+      // former rotation produced.
+      const next=depth+1;
+      if(bc===longest){
+        const mx=(bx+cx)*.5,my=(by+cy)*.5,mz=(bz+cz)*.5;
+        let nx=bNx+cNx,ny=bNy+cNy,nz=bNz+cNz;const d=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;nx/=d;ny/=d;nz/=d;
+        const mu=(bU+cU)*.5,mv=(bV+cV)*.5;
+        split(bx,by,bz,bNx,bNy,bNz,bU,bV,mx,my,mz,nx,ny,nz,mu,mv,ax,ay,az,aNx,aNy,aNz,aU,aV,next);
+        split(mx,my,mz,nx,ny,nz,mu,mv,cx,cy,cz,cNx,cNy,cNz,cU,cV,ax,ay,az,aNx,aNy,aNz,aU,aV,next);
+      }else if(ca===longest){
+        const mx=(cx+ax)*.5,my=(cy+ay)*.5,mz=(cz+az)*.5;
+        let nx=cNx+aNx,ny=cNy+aNy,nz=cNz+aNz;const d=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;nx/=d;ny/=d;nz/=d;
+        const mu=(cU+aU)*.5,mv=(cV+aV)*.5;
+        split(cx,cy,cz,cNx,cNy,cNz,cU,cV,mx,my,mz,nx,ny,nz,mu,mv,bx,by,bz,bNx,bNy,bNz,bU,bV,next);
+        split(mx,my,mz,nx,ny,nz,mu,mv,ax,ay,az,aNx,aNy,aNz,aU,aV,bx,by,bz,bNx,bNy,bNz,bU,bV,next);
+      }else{
+        const mx=(ax+bx)*.5,my=(ay+by)*.5,mz=(az+bz)*.5;
+        let nx=aNx+bNx,ny=aNy+bNy,nz=aNz+bNz;const d=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;nx/=d;ny/=d;nz/=d;
+        const mu=(aU+bU)*.5,mv=(aV+bV)*.5;
+        split(ax,ay,az,aNx,aNy,aNz,aU,aV,mx,my,mz,nx,ny,nz,mu,mv,cx,cy,cz,cNx,cNy,cNz,cU,cV,next);
+        split(mx,my,mz,nx,ny,nz,mu,mv,bx,by,bz,bNx,bNy,bNz,bU,bV,cx,cy,cz,cNx,cNy,cNz,cU,cV,next);
+      }
+      return;
     }
-    for(const v of [a,b,c]){out.push(v.p.x,v.p.y,v.p.z);normals.push(v.n.x,v.n.y,v.n.z);uvs.push(v.uv.x,v.uv.y);}
+    emit(ax,ay,az,aNx,aNy,aNz,aU,aV);emit(bx,by,bz,bNx,bNy,bNz,bU,bV);emit(cx,cy,cz,cNx,cNy,cNz,cU,cV);
   };
-  const index=g.index?.array||Array.from({length:p.count},(_,i)=>i);
-  for(let i=0;i<index.length;i+=3)split(vertex(index[i]),vertex(index[i+1]),vertex(index[i+2]),0);
+  const index=g.index?.array,total=index?index.length:p.count;
+  for(let i=0;i<total;i+=3){
+    const a=index?index[i]:i,b=index?index[i+1]:i+1,c=index?index[i+2]:i+2;
+    split(p.getX(a),p.getY(a),p.getZ(a),n.getX(a),n.getY(a),n.getZ(a),uv?uv.getX(a):0,uv?uv.getY(a):0,
+          p.getX(b),p.getY(b),p.getZ(b),n.getX(b),n.getY(b),n.getZ(b),uv?uv.getX(b):0,uv?uv.getY(b):0,
+          p.getX(c),p.getY(c),p.getZ(c),n.getX(c),n.getY(c),n.getZ(c),uv?uv.getX(c):0,uv?uv.getY(c):0,0);
+  }
   const result=new THREE.BufferGeometry();result.setAttribute('position',new THREE.Float32BufferAttribute(out,3));result.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));result.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));return result;
 }
 
@@ -148,16 +241,25 @@ export function sculptClay(w,geometry,{amplitude=.08,subdivide=false,maxEdge=1.0
   // triangulation/UV/bevel seams; ExtrudeGeometry's per-face source normals can
   // otherwise preserve diagonal shading cuts through a broad deformed wall.
   // Imported models keep their authored normals in clayModel above.
-  const n=g.attributes.normal,keys=[],sums=new Map();
-  for(let i=0;i<p.count;i++){
-    const key=[p.getX(i),p.getY(i),p.getZ(i)].map(v=>Math.round(v*10000)).join(':');
-    keys.push(key);if(!sums.has(key))sums.set(key,new THREE.Vector3());
+  const n=g.attributes.normal,count=p.count;
+  const {group,groups}=positionGroups(p);
+  const sx=new Float64Array(groups),sy=new Float64Array(groups),sz=new Float64Array(groups);
+  const indices=g.index?.array;
+  const total=indices?indices.length:count;
+  for(let i=0;i<total;i+=3){
+    const i0=indices?indices[i]:i,i1=indices?indices[i+1]:i+1,i2=indices?indices[i+2]:i+2;
+    const ax=p.getX(i0),ay=p.getY(i0),az=p.getZ(i0);
+    const ux=p.getX(i1)-ax,uy=p.getY(i1)-ay,uz=p.getZ(i1)-az;
+    const vx=p.getX(i2)-ax,vy=p.getY(i2)-ay,vz=p.getZ(i2)-az;
+    const cx=uy*vz-uz*vy,cy=uz*vx-ux*vz,cz=ux*vy-uy*vx;
+    const g0=group[i0],g1=group[i1],g2=group[i2];
+    sx[g0]+=cx;sy[g0]+=cy;sz[g0]+=cz;
+    sx[g1]+=cx;sy[g1]+=cy;sz[g1]+=cz;
+    sx[g2]+=cx;sy[g2]+=cy;sz[g2]+=cz;
   }
-  const indices=g.index?.array||Array.from({length:p.count},(_,i)=>i),a=new THREE.Vector3(),b=new THREE.Vector3(),d=new THREE.Vector3();
-  for(let i=0;i<indices.length;i+=3){
-    a.fromBufferAttribute(p,indices[i]);b.fromBufferAttribute(p,indices[i+1]).sub(a);d.fromBufferAttribute(p,indices[i+2]).sub(a);b.cross(d);
-    for(let j=0;j<3;j++)sums.get(keys[indices[i+j]]).add(b);
+  for(let i=0;i<n.count;i++){
+    const k=group[i],x=sx[k],y=sy[k],z=sz[k],length=Math.sqrt(x*x+y*y+z*z)||1;
+    n.setXYZ(i,x/length,y/length,z/length);
   }
-  for(let i=0;i<n.count;i++){const normal=sums.get(keys[i]).normalize();n.setXYZ(i,normal.x,normal.y,normal.z);}
   g.userData.clayRelief=true;g.computeBoundingBox();g.computeBoundingSphere();c.sculpted.set(geometry,g);return g;
 }

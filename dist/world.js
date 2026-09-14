@@ -364,10 +364,19 @@ export class World {
         view.root.visible=true;
         view.root.scale.y=s.active?1:.28;
         const low=(s.kind==='pulse'?s.warning:game.channels[s.channel]<2)&&s.active;
-        view.root.traverse(o=>{if(o.isMesh){
-          if(o.userData.phaseSignal){o.visible=s.active||(s.warning&&Math.sin(game.time*20)>0);o.scale.y=s.active?1:1/.28;return;}
-          if(!o.userData.realMat)o.userData.realMat=o.material;o.material=s.active?o.userData.realMat:this.mat.ghost;
-        }});
+        // A deck's meshes are fixed once it is built, so gather them once
+        // instead of walking the whole view every frame.
+        if(!view.phaseMeshes){
+          view.phaseMeshes=[];view.phaseSignals=[];
+          view.root.traverse(o=>{if(o.isMesh)(o.userData.phaseSignal?view.phaseSignals:view.phaseMeshes).push(o);});
+          for(const o of view.phaseMeshes)o.userData.realMat=o.material;
+        }
+        for(const o of view.phaseSignals){o.visible=s.active||(s.warning&&Math.sin(game.time*20)>0);o.scale.y=s.active?1:1/.28;}
+        // Solid and ghosted are the only two states; swap only on the change.
+        if(view.phaseActive!==s.active){
+          view.phaseActive=s.active;
+          for(const o of view.phaseMeshes)o.material=s.active?o.userData.realMat:this.mat.ghost;
+        }
         view.root.position.y=s.y+(low?Math.sin(t*22)*.035:0);
       }
       if(s.kind==='crumble'){
@@ -385,7 +394,12 @@ export class World {
     for(const view of this.circuitViews.values())animateCircuit(view,game,this.reducedMotion);
     animateForest(this,game);
     for(const view of this.windViews.values())animateWind(view,game.time,this.reducedMotion);
-    for(const view of this.platforms.values())view.root.traverse(o=>{if(o.userData.spin)o.rotation.z=game.time*.7;});
+    // Only windmill rotors spin. Locate them once per view rather than walking
+    // every platform's meshes on every frame.
+    for(const view of this.platforms.values()){
+      if(!view.spinners){view.spinners=[];view.root.traverse(o=>{if(o.userData.spin)view.spinners.push(o);});}
+      for(const rotor of view.spinners)rotor.rotation.z=game.time*.7;
+    }
     animateCheckpoints(this,game,dt);
     this.clouds.forEach((g,i)=>g.position.x+=dt*(.045+rand(i)*.03));
     animateEnvironment(this,dt);

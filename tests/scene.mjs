@@ -15,6 +15,7 @@ import {animateEnvironment} from '../dist/environments.js';
 import {Game} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
 import {attachClay} from './load-clay.mjs';
+import {CLAY_CACHE_BYTES} from '../dist/clay.js';
 import {attachCanyon} from './load-canyon.mjs';
 import {attachWindmills} from './load-windmills.mjs';
 import {attachForest} from './load-forest.mjs';
@@ -92,19 +93,21 @@ for(let index=0;index<LEVELS.length;index++){
   if(index===2)assert(w.torches.length>=1);
   let clouds=0;w.backRoot.traverse(o=>{if(o.name==='Ivory cloud'){clouds++;assert(o.scale.x===o.scale.y&&o.scale.y===o.scale.z);const box=new THREE.Box3().setFromObject(o,true),size=box.getSize(new THREE.Vector3());assert(size.z>size.x*.3,'clouds retain their full model depth');}});if(index===0||index===3)assert(clouds>0);
   console.log(`PASS ${g.level.short}: ${meshes} meshes, ${sculptedBlocks} sculpted clay forms, ${solidSurfaces} treated solid surfaces, valid geometry and animation`);
-  let maxPlatforms=0,maxViews=0,maxCache=0;
+  let maxPlatforms=0,maxViews=0,maxCache=0,maxCacheBytes=0;
   for(const x of [...g.level.sections.map(s=>s.x+25),g.level.end,...g.level.sections.map(s=>s.x).reverse()]){
     w.syncVisible(g.level,x,true);w.cameraX=x;w.cameraY=g.level.sections.findLast(s=>x>=s.x)?.id*2+2;animateEnvironment(w,0);
     const floor=g.level.platforms.find(s=>x>=s.x&&x<=s.x+s.w);Object.assign(g.player,{x,y:floor?.y??12});w.render(g,1/60);
     assert(w.camera.position.toArray().every(Number.isFinite));assert.equal(w.backRoot.visible,true);
-    maxPlatforms=Math.max(maxPlatforms,w.platforms.size);maxViews=Math.max(maxViews,w.streamViews.size);maxCache=Math.max(maxCache,w.clay.boxes.size);
+    maxPlatforms=Math.max(maxPlatforms,w.platforms.size);maxViews=Math.max(maxViews,w.streamViews.size);maxCache=Math.max(maxCache,w.clay.boxes.size);maxCacheBytes=Math.max(maxCacheBytes,w.clay.bytes);
     assert([...w.platforms.values()].every(v=>v.root.parent===w.levelRoot));assert([...w.enemyViews.values()].every(v=>v.loaded));
     assert(w.platforms.size<45,'streaming retains only nearby platforms');assert(w.streamViews.size<180,'render region must not grow with level length');
-    assert(w.clay.boxes.size<240,'unused geometry cache stays bounded');
+    let cached=0;for(const [,geo]of w.clay.boxes){cached+=geo.index?geo.index.array.byteLength:0;for(const a of Object.values(geo.attributes))cached+=a.array.byteLength;}
+    assert.equal(cached,w.clay.bytes,'the cache tracks the memory it actually holds');
+    assert(cached<CLAY_CACHE_BYTES*1.6,'unused geometry cache stays bounded by memory, not by a shape count');
     assert.equal(w.depthRoot.children.length,w.depthViews.size,'removed scenery leaves no orphan groups');
     for(const views of [w.coinViews,w.stampViews,w.crusherViews])for(const view of views)if(view)assert.equal(view.parent,w.levelRoot);
   }
-  console.log(`PASS ${g.level.short} forward/backward streaming: max ${maxPlatforms} platforms, ${maxViews} views, ${maxCache} cached clay shapes`);
+  console.log(`PASS ${g.level.short} forward/backward streaming: max ${maxPlatforms} platforms, ${maxViews} views, ${maxCache} cached clay shapes holding ${(maxCacheBytes/1048576).toFixed(1)} MB`);
 }
 assert.equal(palettes.size,LEVELS.length);console.log('PASS every chapter has its own terrain palette and repeated world rebuilds succeed');
 for(const index of [0,3,2,3]){const g=new Game();g.start(index);w.build(g.level,index);assert([...w.enemyViews.values()].every(v=>v.loaded));}
@@ -304,6 +307,16 @@ for(const [index,stops]of [[1,[[4,0],[52,7.8],[101,8.1],[162,20],[260,33.4]]],[2
         assert(!w.torches.some(tr=>chamber.getObjectById(tr.flame.id)),'far haze models do not compete for nearby lights');
       }
       assert.equal(w.scene.fog.near,28);assert.equal(w.scene.fog.far,108);
+      // Static backdrop cells are baked into one mesh per material and block of
+      // space. Losing that merge multiplies the cave's draw calls and the world
+      // matrices rebuilt every frame.
+      let backdropMeshes=0;w.backRoot.traverse(o=>{if(o.isMesh)backdropMeshes++;});
+      assert(backdropMeshes<350,`merged cave backdrop stays compact, held ${backdropMeshes} meshes`);
+      for(const cell of w.backRoot.getObjectByName('Overhead cave silhouette').children){
+        const merged=[];cell.traverse(o=>{if(o.name==='Merged cavern backdrop')merged.push(o);});
+        assert(merged.length>0,'each overhead cell keeps its baked geometry');
+        for(const mesh of merged)assert(mesh.geometry.attributes.position.count>0&&!mesh.castShadow);
+      }
       for(const [key,triangles]of [['grotto',10120],['crystalcap',10382]])w.cavernAssets[key].scene.traverse(o=>{if(o.isMesh){assert(o.material.emissiveMap&&o.material.map&&o.material.normalMap&&o.material.roughnessMap);assert.equal(o.geometry.index.count/3,triangles);}});
       for(const model of models)assert(model.getObjectByName('mushroom light anchor')&&model.getObjectByName('crystal light anchor'));
       const active=w.torchLights.filter(l=>l.intensity>0),colours=active.map(l=>l.color.getHex());
