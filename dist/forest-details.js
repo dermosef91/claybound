@@ -13,6 +13,24 @@ export function forestLeaf(w,parent,x,y,z,size=.28,angle=0){
   const leaf=w.ball(size*.48,size,size*.13,'foliage',g);leaf.rotation.y=.18;
   w.box(.025,size*1.3,.035,'leafLight',g,0,-size*.03,size*.11,.012);return g;
 }
+// Clover strands soften the cut earth under a deck, the way the reference's
+// dirt columns are never bare between the moss cap and the shadow below.
+export function forestClover(w,g,width,depth=3.6){
+  const face=depth/2-.06;
+  for(let i=0;i<Math.max(2,Math.round(width/2.4));i++){
+    const x=.55+i*(Math.max(1,width-1.1)/Math.max(1,Math.round(width/2.4))),drop=1.9+((i*37)%5)*.46,lean=((i%3)-1)*.34;
+    const curve=new THREE.CatmullRomCurve3([
+      new THREE.Vector3(x,-.55,face),
+      new THREE.Vector3(x+lean*.5,-.55-drop*.45,face-.03),
+      new THREE.Vector3(x+lean,-.55-drop,face-.05)]);
+    w.mesh(new THREE.TubeGeometry(curve,14,.036,5,false),'clover',g);
+    for(let j=0;j<3;j++){
+      const t=(j+1)/3.4,point=curve.getPoint(t);
+      for(const side of [-1,1])w.ball(.13,.055,.12,'clover',g,point.x+side*.11,point.y+.04,point.z+.03);
+      w.ball(.12,.05,.11,'clover',g,point.x,point.y+.12,point.z+.02);
+    }
+  }
+}
 export function forestCover(w,s,g,depth=2.08){
   w.box(s.w+.07,.22,depth,'top',g,s.w/2,-.025,0,.105);
   for(let i=0;i<Math.ceil(s.w/1.05);i++){
@@ -21,7 +39,7 @@ export function forestCover(w,s,g,depth=2.08){
     if(i%3===1)forestLeaf(w,g,x,-.19,depth*.49,.23,-.2);
   }
   for(const [x,width,turn]of [[.3,1.5,-.16],[s.w-.5,1.45,.18]])forestBloom(w,g,x,-.35,depth*.49,width,turn);
-  if(s.w>6)forestBloom(w,g,s.w*.36,-.2,depth*.49,.63,.1);
+  for(let i=1;i*2.1<s.w-1;i++)forestBloom(w,g,i*2.1,-.24,depth*.49,.58+(i%3)*.12,-.2+(i%4)*.14);
 }
 export function forestBranch(w,s,g){
   g.name='Mossy branch '+s.id;
