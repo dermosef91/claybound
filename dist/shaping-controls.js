@@ -1,5 +1,5 @@
 import * as THREE from './lib/three.module.js';
-import {nearbyStation,visitStation,clampShape} from './shaping.js';
+import {nearbyStation,visitStation,clampShape,nudgeClay} from './shaping.js';
 
 // Kneading has no panel. The clay says what it is by being violet, soft and
 // alive, and says how to work it with the hand cue over it; this class only
@@ -26,15 +26,21 @@ export class ShapingControls {
       const s=game.level.platforms.find(p=>station.parts.includes(p.id)&&point.x>=p.x-grab&&point.x<=p.x+p.w+grab&&point.y<=p.y+(p.slope||0)+grab&&point.y>=p.y-p.h-grab);
       if(!s)return;
       e.preventDefault();canvas.setPointerCapture(e.pointerId);
-      this.drag={id:e.pointerId,station,x:e.clientX,y:e.clientY,start:station.target,side:point.x<s.x+s.w/2?-1:1};
+      this.drag={id:e.pointerId,station,x:e.clientX,y:e.clientY,start:station.target,side:point.x<s.x+s.w/2?-1:1,moved:0};
       input.shapeId=station.id;
     });
     canvas.addEventListener('pointermove',e=>{
       const d=this.drag;if(!d||e.pointerId!==d.id||!this.enabled())return;
+      d.moved=Math.max(d.moved,Math.abs(e.clientX-d.x),Math.abs(e.clientY-d.y));
       const delta=d.station.gesture==='down'?e.clientY-d.y:(e.clientX-d.x)*(d.station.gesture==='out'?d.side:1);
       input.shapeAmount=clampShape(d.start+delta/Math.max(90,Math.min(200,innerWidth*.18)));
     });
-    const end=e=>{if(e.pointerId===this.drag?.id){this.drag=null;input.shapeId=null;input.shapeAmount=null;}};
+    const end=e=>{
+      const d=this.drag;if(!d||e.pointerId!==d.id)return;
+      // Touch that never travelled is a tap on the clay, so give it a press.
+      if(d.moved<9&&this.enabled())nudgeClay(this.game,d.station.id);
+      this.drag=null;input.shapeId=null;input.shapeAmount=null;
+    };
     for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,end);
   }
   enabled(){return !!this.game.level.shaping?.length&&this.game.status==='playing';}

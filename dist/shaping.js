@@ -45,9 +45,20 @@ export function updateShaping(game,dt,input){
     if(station.amount>.995&&!station.announced){station.announced=true;game.event('shape',{id:station.id,x:p.x,y:p.y,message:station.name+' · shaped'});}
   }
 }
+// Landing hard on clay works it, whichever way that clay is meant to go: a
+// stomp is an unmistakable "I am shaping this", and refusing it on a pull
+// station just reads as the clay being broken.
 export function stompClay(game,s){
   const station=(game.level.shaping||[]).find(t=>t.parts.includes(s.id));
-  if(station?.gesture==='down')station.target=clampShape(station.target+.5);
+  if(station)station.target=clampShape(station.target+.5);
+}
+// A tap, or any touch too short to be a drag, still moves the clay. Without it
+// the only way in is a long precise drag, and clay that ignores a tap looks
+// like clay that is not interactive at all.
+export function nudgeClay(game,id){
+  const station=(game.level.shaping||[]).find(s=>s.id===id);
+  if(!station||station.target>=1)return false;
+  station.target=clampShape(station.target+.3);return true;
 }
 export function visitStation(game,id,{reset=false}={}){
   if(!game.level.playground||!['playing','paused'].includes(game.status))return false;

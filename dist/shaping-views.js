@@ -15,11 +15,13 @@ function roundedGrid(radius){
 // Magic clay is its own material, not a recolour of terrain: violet, smoother
 // and glossier than the sculpted world around it, so "you can work this" reads
 // before any cue appears and without depending on colour alone.
-export const MAGIC_CLAY=0x8b68c7,MAGIC_CLAY_LIGHT=0xa582d9;
+// One step darker than the first pass: the reference blob is a deeper violet
+// than the lilac that ended up on screen, which read washed out against the sky.
+export const MAGIC_CLAY=0x7a55b5,MAGIC_CLAY_LIGHT=0x8b68c7;
 function magicMaterials(w){
   for(const [name,color,roughness]of [['magicClay',MAGIC_CLAY,.55],['magicClayLight',MAGIC_CLAY_LIGHT,.47]]){
     if(w.mat[name])continue;
-    const m=new THREE.MeshStandardMaterial({color,roughness,metalness:0,emissive:color,emissiveIntensity:.07});
+    const m=new THREE.MeshStandardMaterial({color,roughness,metalness:0,emissive:color,emissiveIntensity:.04});
     // A shallower relief than terrain keeps the surface soft rather than gritty.
     clayMaterial(w,m,.032);w.mat[name]=m;
   }
@@ -61,6 +63,9 @@ export function animateClayView(view,s,dt,{near=false,playing=true,reducedMotion
   view.root.position.set(s.x+cx*(1-kx),s.y+cy*(1-ky),0);
   clay.marker.scale.setScalar(1+clay.breath*.22+(reducedMotion?0:swell*2.2));
 }
+// Two slow waves, so the lumps read as pinched by hand rather than tiled.
+const lump=(a,b)=>Math.sin(a*5.1+b*3.7)*.56+Math.sin(a*2.3-b*4.9)*.44;
+
 export function updateClayView(view,s){
   if(!view.clay)return;
   const {pieces,marker}=view.clay,key=[s.x,s.w,s.y,s.h,s.slope].join(':');
@@ -74,7 +79,17 @@ export function updateClayView(view,s){
       const h=cap?.35:s.h+(s.clayRole==='ramp'?rise:0),top=rise-(cap||monolithic?0:.23);
       let width=s.w;
       if(s.clayRole==='landing'&&!cap)width=1.5+(s.w-1.5)*Math.pow(v,5);
-      a.setXYZ(i,s.w/2+(u-.5)*width,top-(1-v)*h,z*(cap?depth+.16:depth)+Math.sin(u*s.w*3.1+v*s.h*2.2)*.018*Math.sin(z*3));
+      // Hand-pressed lumps: the sides and base bulge, the surface dimples, and
+      // the top row is only ever pushed down — never above its own collider,
+      // and never far enough to disagree with the walking surface.
+      const amp=Math.min(.15,Math.max(.05,Math.min(s.w,h)*.1));
+      const flank=Math.pow(1-v,.6);
+      const bulge=lump(u*3.1+s.x*.37,v*2.6)*amp*flank;
+      const dimple=-Math.abs(lump(u*4.3+s.x*.53,v*1.7))*Math.min(.02,amp*.3);
+      a.setXYZ(i,
+        s.w/2+(u-.5)*width+bulge,
+        top-(1-v)*h+dimple,
+        z*(cap?depth+.16:depth)*(1+lump(u*2.9,v*3.3)*.1)+Math.sin(u*s.w*3.1+v*s.h*2.2)*.05*Math.sin(z*3));
     }
     a.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingBox();mesh.geometry.computeBoundingSphere();
   }
