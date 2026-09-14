@@ -6,7 +6,7 @@ import {Game,surfaceAt,FIXED_DT} from '../dist/simulation.js';
 import {clayWallBounds,nudgeClay,stompClay} from '../dist/shaping.js';
 import playground from '../dist/routes/clay-playground.js';
 import {createShapeHands,animateShapeHands,disposeShapeHands} from '../dist/shape-hand.js';
-import {animateClayView,MAGIC_CLAY,MAGIC_CLAY_LIGHT} from '../dist/shaping-views.js';
+import {animateClayView,MAGIC_CLAY} from '../dist/shaping-views.js';
 const w=Object.create(World.prototype);w.mat={};for(const name of ['top','terrain','cream'])w.mat[name]=new THREE.MeshStandardMaterial();
 const game=new Game();game.start(3,playground);
 for(const s of game.level.platforms.filter(s=>s.shape)){
@@ -26,13 +26,17 @@ for(const s of game.level.platforms.filter(s=>s.shape)){
           assert(Math.abs(y-(surfaceAt(s,s.x+x)-s.y))<.035,'triangle interiors match the curved walking surface');
         }
       }
-      if(piece.cap){const a=geo.attributes.position;for(let j=0;j<a.count;j++)assert(a.getY(j)<=surfaceAt(s,s.x+a.getX(j))-s.y+.001,'visible surface stays at or below collider');}
+      // One lump, no cap slab: the body's own top row is the walking surface,
+      // so every vertex has to sit at or below the collider.
+      const a=geo.attributes.position;
+      for(let j=0;j<a.count;j++)assert(a.getY(j)<=surfaceAt(s,s.x+Math.min(Math.max(a.getX(j),0),s.w))-s.y+.001,'visible surface stays at or below collider');
+      assert(Math.max(...Array.from({length:a.count},(_,j)=>a.getY(j)))>-.025,'and reaches it, with no gap where a cap used to be');
     }
   }
 }
 const landing=game.level.platforms.find(s=>s.id==='soft-landing');Object.assign(landing,landing.shape.to);
-assert(clayWallBounds(landing,landing.y-5).right<landing.x+landing.w-2,'tapered pillar has no invisible wall under its wider cap');
-console.log('PASS all clay poses: finite geometry/normals, stable buffers, collision-aligned caps and tapered pillar sides');
+assert(clayWallBounds(landing,landing.y-5).right<landing.x+landing.w-2,'tapered pillar has no invisible wall beside its narrow foot');
+console.log('PASS all clay poses: finite geometry/normals, stable buffers, collision-aligned surfaces and tapered pillar sides');
 
 // The gesture hand: chapter four asks for clay with a cue on the object rather
 // than a panel of text, so the cue has to be legible, correctly aimed, and gone
@@ -101,10 +105,12 @@ console.log('PASS all clay poses: finite geometry/normals, stable buffers, colli
   for(const method of ['mesh','box','ball','cylinder'])mw[method]=World.prototype[method];
   const g=new Game();g.start(3);
   for(const s of g.level.platforms.filter(p=>p.shape)){
-    const view=createClayView(mw,s,new THREE.Group()),seen=new Set();
-    view.root.traverse(o=>{if(o.isMesh&&o.material!==mw.mat.cream)seen.add(o.material);});
-    for(const m of seen){
-      assert([MAGIC_CLAY,MAGIC_CLAY_LIGHT].includes(m.color.getHex()),`${s.id}: kneadable clay wears the magic violet`);
+    const view=createClayView(mw,s,new THREE.Group()),meshes=[];
+    view.root.traverse(o=>{if(o.isMesh)meshes.push(o);});
+    // One lump and nothing bolted to it: no cap slab, no grip ring, no dents.
+    assert.equal(meshes.length,1,`${s.id}: the clay is a single unadorned lump`);
+    for(const {material:m} of meshes){
+      assert.equal(m.color.getHex(),MAGIC_CLAY,`${s.id}: kneadable clay wears the magic violet`);
       assert(m.roughness<mw.mat.terrain.roughness-.3,`${s.id}: reads softer and glossier than ordinary terrain`);
     }
     // The idle breath is feel, not geometry: it never moves the collider by a
@@ -113,16 +119,15 @@ console.log('PASS all clay poses: finite geometry/normals, stable buffers, colli
     for(let i=0;i<240;i++){animateClayView(view,s,1/60,{near:true});lo=Math.min(lo,view.root.scale.y);hi=Math.max(hi,view.root.scale.y);}
     assert(lo<.995&&hi>1.005,`${s.id}: clay breathes when the player is near`);
     assert(1-lo<.03&&hi-1<.03,`${s.id}: the breath stays under three per cent`);
-    assert(view.clay.marker.scale.x>1.05,`${s.id}: the grip mark swells with it`);
-    const still=view.clay.marker.scale.x;
+    const still=view.root.scale.y;
     animateClayView(view,s,1/60,{near:true,playing:false});
-    assert.equal(view.clay.marker.scale.x,still,`${s.id}: the breath freezes with the game`);
+    assert.equal(view.root.scale.y,still,`${s.id}: the breath freezes with the game`);
     for(let i=0;i<400;i++)animateClayView(view,s,1/60,{near:false});
     assert(Math.abs(view.root.scale.y-1)<1e-3&&Math.abs(view.root.position.x-s.x)<1e-3,`${s.id}: settles when the player leaves`);
     for(let i=0;i<120;i++)animateClayView(view,s,1/60,{near:true,reducedMotion:true});
     assert.equal(view.root.scale.y,1,`${s.id}: reduced motion holds the clay still`);
   }
-  console.log('PASS magic clay: violet material, softer surface, bounded idle squash, grip swell, pause and reduced motion');
+  console.log('PASS magic clay: one violet lump, softer surface, bounded idle squash, pause and reduced motion');
 }
 
 // The hand is the tutorial layer and retires; the material is permanent.
@@ -154,7 +159,6 @@ console.log('PASS all clay poses: finite geometry/normals, stable buffers, colli
   for(let i=0;i<60*9;i++){station.amount=Math.min(.9,station.amount+.0008);animateShapeHands(hw,g,1/60,true);}
   assert(!view.root.visible,'kneading in progress keeps the cue away');
   assert.equal(view.materials[1].color.getHex(),MAGIC_CLAY,'the cue carries the clay colour');
-  assert(MAGIC_CLAY<MAGIC_CLAY_LIGHT,'the body tone is the darker of the pair');
   disposeShapeHands(hw);
   console.log('PASS gesture cue: teaches unsolved clay, stays quiet on solved clay, returns on a stall, never nags mid-knead');
 }
