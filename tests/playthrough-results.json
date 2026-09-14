@@ -25,9 +25,9 @@
   },
   {
     "index": 2,
-    "seconds": 99.85833333335887,
-    "frames": 11983,
-    "coins": 50,
+    "seconds": 87.2500000000155,
+    "frames": 10470,
+    "coins": 23,
     "flowers": 0,
     "checkpoint": "gallery-out",
     "latched": {
@@ -39,16 +39,17 @@
   },
   {
     "index": 3,
-    "seconds": 64.19999999999716,
-    "frames": 7704,
-    "coins": 67,
+    "seconds": 71.30833333333615,
+    "frames": 8557,
+    "coins": 76,
     "flowers": 0,
-    "checkpoint": "bell-roof2",
+    "checkpoint": "bell-rest",
     "latched": {
       "weight-a": true,
+      "draught": true,
       "weight-b": true,
       "weight-c": true,
-      "weight-d": true
+      "belfry": true
     }
   }
 ]

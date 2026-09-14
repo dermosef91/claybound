@@ -912,7 +912,7 @@ export default chapter({
   {
     "from": "spark-relay",
     "to": "spark-hub",
-    "mode": "fall"
+    "mode": "jump"
   },
   {
     "from": "spark-hub",
@@ -925,6 +925,11 @@ export default chapter({
     "mode": "jump"
   },
   {
+    "from": "clay-2-copy-1",
+    "to": "clay-2-copy-1-copy-1-copy-1",
+    "mode": "jump"
+  },
+  {
     "from": "clay-2-copy-1-copy-1-copy-1",
     "to": "ferry-dock",
     "mode": "jump"
@@ -932,7 +937,7 @@ export default chapter({
   {
     "from": "ferry-dock",
     "to": "furnace-ferry",
-    "mode": "walk"
+    "mode": "board"
   },
   {
     "from": "furnace-ferry",
@@ -942,22 +947,17 @@ export default chapter({
   {
     "from": "ferry-exit",
     "to": "clay-4",
-    "mode": "jump"
+    "mode": "board"
   },
   {
     "from": "clay-4",
     "to": "clay-5",
-    "mode": "jump"
+    "mode": "ride"
   },
   {
     "from": "clay-5",
-    "to": "clay-5-copy-1",
-    "mode": "jump"
-  },
-  {
-    "from": "clay-5-copy-1",
     "to": "heart-entry",
-    "mode": "fall"
+    "mode": "jump"
   },
   {
     "from": "heart-entry",
@@ -971,23 +971,38 @@ export default chapter({
   },
   {
     "from": "heart-paddle",
-    "to": "heart-balcony",
+    "to": "clay-12",
     "mode": "ride"
   },
   {
-    "from": "heart-balcony",
+    "from": "clay-12",
+    "to": "clay-11-copy-1-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-11-copy-1-copy-1",
+    "to": "clay-11-copy-1-copy-1-copy-2",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-11-copy-1-copy-1-copy-2",
+    "to": "clay-11-copy-1-copy-1-copy-1-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-11-copy-1-copy-1-copy-1-copy-1",
     "to": "heart-relay",
-    "mode": "walk"
+    "mode": "jump"
   },
   {
     "from": "heart-relay",
-    "to": "heart-descent",
-    "mode": "fall"
+    "to": "clay-9",
+    "mode": "jump"
   },
   {
-    "from": "heart-floor",
+    "from": "clay-9",
     "to": "vault-entry",
-    "mode": "walk"
+    "mode": "jump"
   },
   {
     "from": "vault-entry",
@@ -996,8 +1011,13 @@ export default chapter({
   },
   {
     "from": "sluice-hatch",
-    "to": "sluice-relay",
-    "mode": "fall"
+    "to": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
+    "to": "sluice-lift",
+    "mode": "board"
   },
   {
     "from": "sluice-lift",
@@ -1005,9 +1025,49 @@ export default chapter({
     "mode": "ride"
   },
   {
-    "from": "sluice-floor",
+    "from": "sluice-balcony",
+    "to": "clay-16",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-16",
+    "to": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-2-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-2-copy-1",
+    "to": "clay-16-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-16-copy-1",
+    "to": "sluice-relay",
+    "mode": "jump"
+  },
+  {
+    "from": "sluice-relay",
+    "to": "clay-14-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-14-copy-1",
+    "to": "clay-14-copy-1-copy-2-copy-1-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-14-copy-1-copy-2-copy-1-copy-1",
+    "to": "clay-14-copy-1-copy-2-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-14-copy-1-copy-2-copy-1",
     "to": "gallery-entry",
-    "mode": "walk"
+    "mode": "jump"
+  },
+  {
+    "from": "gallery-entry",
+    "to": "gallery-crumble",
+    "mode": "jump"
   },
   {
     "from": "gallery-crumble",
@@ -1017,7 +1077,7 @@ export default chapter({
   {
     "from": "gallery-watch",
     "to": "gallery-out",
-    "mode": "fall"
+    "mode": "jump"
   },
   {
     "from": "gallery-out",
@@ -1036,18 +1096,28 @@ export default chapter({
   },
   {
     "from": "last-relay-floor",
+    "to": "last-return",
+    "mode": "jump"
+  },
+  {
+    "from": "last-return",
     "to": "last-relay",
-    "mode": "walk"
+    "mode": "jump"
   },
   {
     "from": "last-relay",
     "to": "last-return",
-    "mode": "fall"
+    "mode": "jump"
   },
   {
     "from": "last-return",
+    "to": "last-relay-floor",
+    "mode": "jump"
+  },
+  {
+    "from": "last-relay-floor",
     "to": "last-bridge",
-    "mode": "fall"
+    "mode": "jump"
   },
   {
     "from": "last-bridge",
@@ -1056,6 +1126,26 @@ export default chapter({
   },
   {
     "from": "last-pulse",
+    "to": "clay-19",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-19",
+    "to": "last-pulse-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "last-pulse-copy-1",
+    "to": "clay-19-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-19-copy-1",
+    "to": "clay-19-copy-1-copy-1",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-19-copy-1-copy-1",
     "to": "ember-bell",
     "mode": "jump"
   }
@@ -1135,23 +1225,38 @@ export default chapter({
   [
     {
       "from": "sluice-balcony",
+      "to": "sluice-lift",
+      "mode": "board"
+    },
+    {
+      "from": "sluice-lift",
       "to": "sluice-branch",
-      "mode": "jump"
+      "mode": "ride"
     },
     {
       "from": "sluice-branch",
+      "to": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-2",
+      "mode": "jump"
+    },
+    {
+      "from": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-2",
       "to": "sluice-flower",
       "mode": "jump"
     },
     {
       "from": "sluice-flower",
-      "to": "sluice-branch",
-      "mode": "fall"
+      "to": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
+      "mode": "jump"
     },
     {
-      "from": "sluice-branch",
+      "from": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
+      "to": "sluice-lift",
+      "mode": "board"
+    },
+    {
+      "from": "sluice-lift",
       "to": "sluice-balcony",
-      "mode": "fall"
+      "mode": "ride"
     }
   ]
 ],recoveries:[
