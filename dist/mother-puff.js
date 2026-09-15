@@ -3,6 +3,7 @@ import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel} from './clay.js';
 import {cameraTarget} from './camera.js';
 import {MOTHER_PUFF} from './mother-puff-rules.js';
+import {createSpringPad,animateSpringPad} from './spring-pad.js';
 import {createMotherEnvironment,animateMotherEnvironment} from './mother-puff-environment.js';
 export {createMotherArenaFloor} from './mother-puff-environment.js';
 import {createMotherClouds,animateMotherClouds} from './mother-puff-cinematics.js';
@@ -18,9 +19,9 @@ export function prepareMotherPuff(w,pose,gltf){
   const box=new THREE.Box3().setFromObject(scene,true),size=box.getSize(new THREE.Vector3());
   if(!Number.isFinite(size.y)||size.y<=0)throw new Error('Mother Puff has no usable geometry.');
   clayMaterials(scene);clayModel(w,scene);retainModel(w,scene);
-  w.motherAssets??={};w.motherAssets[pose]={scene,scale:(pose==='friendly'?2.35:MOTHER_PUFF.height)/size.y,bottom:box.min.y,center:box.getCenter(new THREE.Vector3())};
+  w.motherAssets??={};w.motherAssets[pose]={scene,scale:(pose==='friendly'?MOTHER_PUFF.friendlyHeight:MOTHER_PUFF.height)/size.y,bottom:box.min.y,center:box.getCenter(new THREE.Vector3())};
 }
-const COLORS={yellow:0xf5ba47,purple:0x9c66b8,white:0xffedd4,green:0xa0c56f};
+const COLORS={orange:0xf17836,purple:0x9c66b8,white:0xffedd4,green:0xa0c56f};
 function materials(w){
   w.motherMaterials??=Object.fromEntries(Object.entries(COLORS).map(([key,color])=>{
     const m=new THREE.MeshStandardMaterial({color,roughness:1,metalness:0});
@@ -36,7 +37,8 @@ export function createMotherPuff(w,b){
     const m=a.scene.clone(true);m.name='Mother Puff '+name;m.scale.setScalar(a.scale);
     m.position.set(-a.center.x*a.scale,-a.bottom*a.scale,-a.center.z*a.scale);pose.add(m);models[name]=m;
   }
-  const bodyGrey=afflictBranch(pose,0),growth=createGrowths(w,pose,models.idle);
+  const bodyGrey=afflictBranch(pose,.38),growth=createGrowths(w,pose,models.idle);
+  pose.rotation.y=-Math.PI/4;
   const healed=new THREE.Group();healed.name='Friendly final form';healed.position.set(b.x,b.y,-1.1);root.add(healed);
   const a=w.motherAssets?.friendly;
   if(a){const model=a.scene.clone(true);model.scale.setScalar(a.scale);model.position.set(-a.center.x*a.scale,-a.bottom*a.scale,-a.center.z*a.scale);healed.add(model);}
@@ -45,11 +47,10 @@ export function createMotherPuff(w,b){
 }
 function effectView(w,v,s,flying){
   const root=new THREE.Group();root.name=`${s.color} ${flying?'spore cloud':'ground puff'}`;v.root.add(root);
-  const mat=materials(w)[s.color],parts=[];
-  if(!flying&&s.color==='yellow'){
-    w.ball(.4,.49,.42,'cream',root,0,.38,0);
-    w.ball(1.55,.35,1.15,mat,root,0,.56,0);
-    for(let i=0;i<5;i++){const a=i*2.4;w.ball(.19,.04,.16,'cream',root,Math.cos(a)*.86,.86,Math.sin(a)*.66);}
+  const mat=materials(w)[s.color],parts=[];let springPad;
+  if(!flying&&s.color==='orange'){
+    const width=(s.radius??1.55)*2,anchor=new THREE.Group();anchor.position.set(-width/2,MOTHER_PUFF.padHeight,0);root.add(anchor);
+    springPad=createSpringPad(w,{id:'mother-pad-'+s.id,x:s.x-width/2,y:s.y+MOTHER_PUFF.padHeight,w:width},anchor);
   }else{
     const count=w.reducedMotion?5:s.color==='white'?15:9;
     for(let i=0;i<count;i++){
@@ -61,13 +62,13 @@ function effectView(w,v,s,flying){
   let marker;
   if(flying){
     marker=new THREE.Group();marker.name=s.color+' landing warning';v.root.add(marker);
-    const ring=w.mesh(new THREE.TorusGeometry(s.color==='yellow'?1.5:2.15,.07,6,32),mat,marker);ring.rotation.x=Math.PI/2;
+    const ring=w.mesh(new THREE.TorusGeometry(s.color==='orange'?1.5:2.15,.07,6,32),mat,marker);ring.rotation.x=Math.PI/2;
     // Distinct physical symbols keep the telegraphs readable without color.
     if(s.color==='purple')for(const angle of [-.65,.65]){const m=w.box(1.3,.06,.13,mat,marker,0,.02,0,.02);m.rotation.y=angle;}
-    if(s.color==='yellow')w.ball(.35,.08,.35,'cream',marker,0,.04,0);
+    if(s.color==='orange')w.ball(.35,.08,.35,'cream',marker,0,.04,0);
     if(s.color==='green')for(const x of [-.3,.3])w.ball(.15,.13,.15,mat,marker,x,.08,0);
   }
-  return {root,parts,marker};
+  return {root,parts,marker,springPad};
 }
 function removeEffect(v){
   // Geometry/materials created through World are shared or retained. Only
@@ -77,20 +78,21 @@ function removeEffect(v){
 }
 export function animateMotherPuff(w,game){
   const v=w.motherView,b=game.level.boss;if(!v||!b)return;
-  const t=game.time,quiet=w.reducedMotion,inhale=b.state==='inhale',hurt=b.state==='hurt',ending=b.hits===3;
+  const t=game.time,quiet=w.reducedMotion,hurt=b.state==='hurt',ending=b.hits===3;
   const asleep=b.state==='sleeping';
-  const breath=quiet||ending?0:inhale?Math.min(1,b.stateTime/MOTHER_PUFF.inhale)*.055:asleep?Math.sin(t*1.2)*.012:0;
+  const breath=quiet||ending||!asleep?0:Math.sin(t*1.2)*.012;
+  const shotAge=t-(b.lastShotTime??-100),pulse=!quiet&&!ending&&!hurt&&!asleep&&shotAge>=0&&shotAge<.38?Math.sin(shotAge/.38*Math.PI):0;
   v.pose.visible=!['transform','reveal-form','regard','farewell','bloom','defeated'].includes(b.state);
   v.healed.visible=['transform','reveal-form','regard'].includes(b.state)||b.state==='farewell'&&b.stateTime<.9;
-  v.pose.scale.set(1+breath,1-breath*.35,1+breath);v.pose.position.y=b.y;
-  v.pose.rotation.set(0,0,hurt&&!quiet?Math.sin(b.stateTime*23)*.035*Math.exp(-b.stateTime*2):0);
+  v.pose.scale.set(1+breath+pulse*.06,1-breath*.35-pulse*.045,1+breath+pulse*.04);v.pose.position.y=b.y;
+  v.pose.rotation.set(pulse*.035,-Math.PI/4,hurt&&!quiet?Math.sin(b.stateTime*23)*.035*Math.exp(-b.stateTime*2):0);
   if(!quiet&&!ending&&!asleep&&b.hits)v.pose.rotation.z+=Math.sin(t*8)*.009*b.hits;
   // Keep the alert casting model through the entire encounter. The sleepy
   // model belongs only to the undisturbed clearing.
   if(v.models.idle)v.models.idle.visible=asleep;
   if(v.models.cast)v.models.cast.visible=!asleep;
-  v.healed.scale.setScalar(1);v.healed.position.y=b.y;v.healed.rotation.y=-.55;
-  v.bodyGrey.value=0;
+  v.healed.scale.setScalar(1);v.healed.position.y=b.y;v.healed.rotation.y=-Math.PI/4;
+  v.bodyGrey.value=[.38,.25,.12,0][b.hits];
   animateGrowths(v.growth,b,quiet);animateMotherEnvironment(w,v.environment,b,quiet);
   animateFriendly(v.friendly,b,quiet);animateMotherClouds(v.clouds,b,quiet);
   const wanted=new Set();
@@ -102,10 +104,7 @@ export function animateMotherPuff(w,game){
     const progress=flying?s.age/s.duration:s.age/s.life;
     const fade=flying?1:Math.min(1,s.age/.18,(s.life-s.age)/.5);
     e.root.scale.setScalar(Math.max(.001,fade));
-    if(!flying&&s.color==='yellow'){
-      const squash=quiet?0:Math.sin(s.bounceAge*19)*Math.exp(-s.bounceAge*7)*.25;
-      e.root.scale.set(fade*(1+squash*.3),fade*(1-squash),fade);
-    }
+    if(e.springPad){e.bounce=quiet?0:Math.max(0,1-s.bounceAge*2.5);animateSpringPad(e,0);}
     for(const [i,part]of e.parts.entries()){
       const spread=flying?.55+progress*.7:s.color==='white'?2.1:s.color==='purple'?.7+progress*2:1;
       const a=part.a+(quiet?0:t*.3),r=part.r*(flying?1.4:s.color==='white'?2:1.2);

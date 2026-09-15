@@ -153,8 +153,14 @@ export function createMotherEnvironment(w,root,b){
 export function animateMotherEnvironment(w,view,b,reduced){
   if(!view)return;
   const healing=clamp(b.healing||0),remaining=1-healing*.94;
+  // These fragments belong to Mother Puff's corruption, rather than the
+  // chapter's crumbling ledges. Clear them with the final hit and restore them
+  // when a failed encounter is reset, including streamed ground fragments.
+  const porousVisible=b.hits<3;
+  for(const entry of view.porous)entry.root.visible=porousVisible;
   for(const entry of view.corruption)entry.uniform.value=entry.amount*remaining;
   for(const platform of w.platforms?.values()||[]){
+    for(const entry of platform.root.userData.motherPorous||[])entry.root.visible=porousVisible;
     const records=platform.root.userData.motherCorruption;
     if(records){for(const entry of records)entry.uniform.value=remaining;continue;}
     // Covers the exit ledge and its leaves, while world-space limits keep the

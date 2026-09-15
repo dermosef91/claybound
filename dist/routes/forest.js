@@ -1,6 +1,6 @@
 import {chapter,p,path} from '../route-authoring.js';
 export default chapter({
-  layoutVersion:7,
+  layoutVersion:8,
   name:'The Wildwood',short:'Wildwood',label:'Bounce, burrow & bloom',biome:'forest',
   intro:'Climb the living tree. Break its sealed roots and let the forest breathe.',
   sky:'#b2d2b7',fog:'#b7d2bc',spawn:{x:1.5,y:0},end:315,previousDistance:875,cameraY:3,
@@ -28,7 +28,7 @@ export default chapter({
     p("tree-west",103.25,3.3,15.25,"ledge"),
     p("tree-west-spring",104,1.8,15.75,"spring"),
     p("tree-top",110,5,19.2,"ledge"),
-    p("tree-seal",119.15,1.7,19.75,"break",{"releases":"tree-spores"}),
+    p("tree-seal",118,4,19.75,"break",{"releases":"tree-spores"}),
     p("tree-heart",116,10,14,"ledge",{"checkpoint":124.2,"landmark":"sporepod"}),
     p("spore1",128,4,15.6,"ledge"),
     p("spore2",134,4,20.2,"ledge"),
@@ -78,6 +78,6 @@ export default chapter({
     {kind:'spore',x:196.5,y:20.5,min:195.1,max:197.3,speed:.55}
   ],
   hazards:[{"x":11,"y":-4,"w":22},{"x":67,"y":-1,"w":8},{"x":80,"y":3,"w":16},{"x":104,"y":3.8,"w":12},{"x":231,"y":19,"w":26.5}],
-  hints:[{x:0,end:11,icon:'mushroom',title:'Mushroom bounce',text:'Land on the orange target. Hold jump to bounce higher.'},{x:115,end:126,y:13,icon:'balloon',title:'Spore balloon',text:'Stomp the golden balloon above. The spores lift you up.'}],
+  hints:[{x:0,end:11,icon:'mushroom',title:'Mushroom bounce',text:'Land on the orange target to jump higher.'},{x:115,end:126,y:13,icon:'balloon',title:'Spore balloon',text:'Stomp the balloon. Spores lift you up.'}],
   guides:[{platformId:'tree-east',offset:1,dir:-1},{platformId:'tree-west',offset:2.7,dir:1},{platformId:'tree-top',offset:4.5,dir:1}]
 });

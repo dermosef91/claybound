@@ -15,10 +15,12 @@ export const CHAPTER_TRACKS=[
 ];
 export const FLOWER_VICTORY=new URL('./assets/flower-victory.wav',import.meta.url).href;
 export const SPORE_BALLOON_BURST=new URL('./assets/spore-balloon-burst.wav',import.meta.url).href;
+export const MOTHER_PUFF_GROWL=new URL('./assets/mother-puff-growl.wav',import.meta.url).href;
 export const COIN_PICKUP=new URL('./assets/coin-pickup.wav',import.meta.url).href;
 export const CHECKPOINT_FLAG=new URL('./assets/checkpoint-flag.wav',import.meta.url).href;
 export const FINISH_BELL=new URL('./assets/finish-bell.wav',import.meta.url).href;
 export const POROUS_CLAY_STEP=new URL('./assets/porous-clay-step.wav',import.meta.url).href;
+export const ENEMY_HEAD_IMPACT=new URL('./assets/enemy-head-impact.wav',import.meta.url).href;
 export class Sound {
   constructor(){
     this.ctx=null;this._enabled=true;this.foreground=true;this.title=true;this.playing=false;this.chapter=0;this.quiet=false;
@@ -42,6 +44,9 @@ export class Sound {
     if(!this.sporeBalloonLoading&&this.ctx.decodeAudioData){
       this.sporeBalloonLoading=fetch(SPORE_BALLOON_BURST).then(r=>{if(!r.ok)throw new Error('Spore balloon sound unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.sporeBalloonBuffer=buffer;}).catch(()=>{});
     }
+    if(!this.motherGrowlLoading&&this.ctx.decodeAudioData){
+      this.motherGrowlLoading=fetch(MOTHER_PUFF_GROWL).then(r=>{if(!r.ok)throw new Error('Mother Puff growl unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.motherGrowlBuffer=buffer;}).catch(()=>{});
+    }
     if(!this.coinLoading&&this.ctx.decodeAudioData){
       this.coinLoading=fetch(COIN_PICKUP).then(r=>{if(!r.ok)throw new Error('Coin sound unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.coinBuffer=buffer;}).catch(()=>{});
     }
@@ -53,6 +58,9 @@ export class Sound {
     }
     if(!this.porousStepLoading&&this.ctx.decodeAudioData){
       this.porousStepLoading=fetch(POROUS_CLAY_STEP).then(r=>{if(!r.ok)throw new Error('Porous clay step sound unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.porousStepBuffer=buffer;}).catch(()=>{});
+    }
+    if(!this.enemyHeadImpactLoading&&this.ctx.decodeAudioData){
+      this.enemyHeadImpactLoading=fetch(ENEMY_HEAD_IMPACT).then(r=>{if(!r.ok)throw new Error('Enemy head impact sound unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.enemyHeadImpactBuffer=buffer;}).catch(()=>{});
     }
   }
   musicVolume(){return this.title?.3:this.motherQuiet?.008:this.celebrating?.08:this.quiet?.19:.26;}
@@ -126,8 +134,12 @@ export class Sound {
     if(type==='checkpoint'&&this.bufferEffect(this.checkpointBuffer,.25))return;
     if(type==='complete'&&this.bufferEffect(this.completeBuffer))return;
     if(type==='step'&&event.surface==='crumble'&&this.bufferEffect(this.porousStepBuffer,.06,.38,.88+Math.random()*.1,.12))return;
-    if(type==='break'&&event.spore){
-      if(this.bufferEffect(this.sporeBalloonBuffer))return;
+    if(type==='mother-open'){
+      if(!this.bufferEffect(this.motherGrowlBuffer,.2))this.tone(90,1.5,'sine',.04,.65);
+      return;
+    }
+    if(type==='break'&&event.spore||type==='mother-hit'||type==='mother-collapse'){
+      if(this.bufferEffect(this.sporeBalloonBuffer,type==='break'?.5:.4))return;
       this.tone(115,.14,'sine',.075,.35);
       this.tone(360,.27,'triangle',.045,2.3);
       setTimeout(()=>this.tone(880,.38,'sine',.026,1.18),65);
@@ -135,6 +147,7 @@ export class Sound {
       return;
     }
     if(type==='squish'&&event.kind==='spore'&&this.bufferEffect(this.sporeBalloonBuffer,.22,.45))return;
+    if(type==='squish'&&['bat','spitter','clayling'].includes(event.kind)&&this.bufferEffect(this.enemyHeadImpactBuffer,.36))return;
     if(type==='jump')this.tone(230,.18,'sine',.06,1.8);
     if(type==='coin'){const now=performance.now();this.coinRun=now-this.lastCoin<600?(this.coinRun+1)%5:0;this.lastCoin=now;this.tone([659,784,880,988,1175][this.coinRun],.23,'sine',.04,1.1);}
     if(type==='land')this.tone(110,.07,'sine',.03,.7);
@@ -144,12 +157,9 @@ export class Sound {
     if(type==='step')this.tone(145+Math.random()*35,.04,'sine',.012,.7);
     if(type==='skid')this.tone(210,.12,'triangle',.022,.5);
     if(type==='spring'){this.tone(140,.4,'triangle',.055,4);}
-    if(type==='mother-wake'||type==='mother-inhale')this.tone(90,1.5,'sine',.06,1.8);
     if(type==='mother-release')this.tone(160,.8,'triangle',.065,.4);
     if(type==='mother-puff')this.tone(120,.22,'sine',.04,.6);
     if(type==='mother-bounce')this.tone(130,.5,'triangle',.055,4);
-    if(type==='mother-hit')this.tone(90,.38,'triangle',.07,2);
-    if(type==='mother-collapse')this.tone(65,.7,'triangle',.06,.35);
     if(type==='mother-friendly')this.tone(285,.4,'sine',.03,1.5);
     if(type==='mother-bloom')[330,440,554].forEach((f,i)=>setTimeout(()=>this.tone(f,1.2,'sine',.025),i*210));
     if(type==='drifter-bump'){this.tone(220,.13,'sine',.028,1.35);}

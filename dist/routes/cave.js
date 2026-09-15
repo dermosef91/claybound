@@ -1,6 +1,6 @@
 import {chapter} from '../route-authoring.js';
 export default chapter({
-  layoutVersion:7,
+  layoutVersion:8,
   name:"The Ember Caverns",short:"Ember Caverns",label:"Wake the heart of the mountain",biome:"cave",
   intro:"Follow the light cables. The way forward sometimes begins above — or below.",sky:"#253c57",fog:"#496d91",spawn:{
   "x": 1.5,
@@ -108,10 +108,9 @@ export default chapter({
     "kind": "stone"
   },
   {
-    "x": 110,
+    "x": 112.75,
     "y": 0,
-    "w": 13,
-    "checkpoint": 118,
+    "w": 10.25,
     "id": "heart-entry",
     "landmark": "pulsedrum",
     "kind": "stone"
@@ -572,7 +571,7 @@ export default chapter({
     "x": 112.5,
     "y": 20,
     "w": 13,
-    "h": 15.75,
+    "h": 15,
     "id": "clay-10",
     "kind": "wall"
   },
@@ -629,7 +628,7 @@ export default chapter({
   {
     "x": 161.5,
     "y": 10,
-    "w": 1.25,
+    "w": 8.25,
     "delay": 0.15,
     "id": "clay-14",
     "kind": "crumble"
@@ -637,15 +636,15 @@ export default chapter({
   {
     "x": 161.25,
     "y": 7.5,
-    "w": 3,
+    "w": 4,
     "delay": 0.15,
     "id": "clay-14-copy-1-copy-1",
     "kind": "crumble"
   },
   {
-    "x": 161.5,
+    "x": 161.75,
     "y": 4.75,
-    "w": 4.75,
+    "w": 5.75,
     "delay": 0.15,
     "id": "clay-14-copy-1-copy-1-copy-1-copy-1",
     "kind": "crumble"
@@ -876,6 +875,14 @@ export default chapter({
     "checkpoint": 278.875,
     "id": "clay-20",
     "kind": "ledge"
+  },
+  {
+    "x": 109.75,
+    "y": 0,
+    "w": 3,
+    "checkpoint": 111.25,
+    "id": "clay-21",
+    "kind": "stone"
   }
 ],
   routeLinks:[
@@ -956,6 +963,11 @@ export default chapter({
   },
   {
     "from": "clay-5",
+    "to": "clay-21",
+    "mode": "jump"
+  },
+  {
+    "from": "clay-21",
     "to": "heart-entry",
     "mode": "jump"
   },
@@ -1001,6 +1013,11 @@ export default chapter({
   },
   {
     "from": "clay-9",
+    "to": "clay-14",
+    "mode": "fall"
+  },
+  {
+    "from": "clay-14",
     "to": "vault-entry",
     "mode": "jump"
   },
@@ -1323,7 +1340,7 @@ export default chapter({
     "holdChannel": "press-a"
   },
   {
-    "x": 92.25,
+    "x": 94,
     "y": 5.25,
     "w": 2,
     "period": 5.4,
@@ -1545,11 +1562,11 @@ export default chapter({
     "kind": "bat"
   },
   {
-    "x": 115.75,
+    "x": 121,
     "y": 0,
     "speed": 0.38,
-    "min": 113.75,
-    "max": 117.75,
+    "min": 119,
+    "max": 123,
     "kind": "spitter"
   },
   {
@@ -1610,36 +1627,14 @@ export default chapter({
     "end": 32,
     "icon": "relay",
     "title": "Relay",
-    "text": "The relay above opens the grate below. Go up, then come back."
+    "text": "The switch above opens the gate."
   },
   {
     "x": 58,
     "end": 67,
     "icon": "ferry",
     "title": "Steer the ferry",
-    "text": "Stand at an end to move, at the centre to stop. Watch the press lamps."
-  },
-  {
-    "x": 124,
-    "end": 132,
-    "icon": "wheel",
-    "title": "Turning heart",
-    "text": "Board a cradle, stay near its centre, step off at the upper balcony."
-  },
-  {
-    "x": 170,
-    "end": 180,
-    "icon": "drop",
-    "title": "Drop through",
-    "text": "Stomp on the thin shelf to drop through. The lift brings you back."
-  },
-  {
-    "x": 110,
-    "end": 114,
-    "y": 0,
-    "icon": "spitter",
-    "title": "Spitter",
-    "text": "A swelling mouth means a shot is coming. Take cover, then jump on it."
+    "text": "Stand at the edges to move."
   }
 ],guides:[
   {

@@ -8,7 +8,7 @@ import {chapter,p,row,arc,path} from '../route-authoring.js';
 const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,to},...extra});
 
 export default chapter({
-  layoutVersion:4,
+  layoutVersion:5,
   name:'The Hanging Quarter',short:'Hanging Quarter',label:'Weights, draughts & your own hands',biome:'citadel',
   intro:'Everything you have learned hangs over this city. Knead the last bridge to the sky bell.',
   sky:'#86a6c5',fog:'#91abc3',spawn:{x:4.75,y:0},end:305.5,previousDistance:1002.5,cameraY:2.15,
@@ -25,7 +25,7 @@ export default chapter({
     p('lift1',9,4,1.65,'lift',{moveY:.9,period:5.6}),
     p('roof1',14.55,8.5,3.9,'stone',{house:true,checkpoint:16.5}),
     part('roof-ramp',{x:23.05,w:2.3,y:7.1,h:3.05,slope:0},{x:23.05,w:7.8,y:3.9,h:.65,slope:3.3},{station:'roof-ramp',clayRole:'ramp'}),
-    p('tile-dock',30.85,3,7.2,'stone',{checkpoint:32}),
+    p('tile-dock',30.85,3,7.2,'stone'),
     p('tile1',35,3.4,7.6,'crumble',{delay:1.2}),
     p('tile2',40,3.4,8.2,'crumble',{delay:1.1}),
     p('lookout',45,4,8.8,'ledge'),
@@ -38,18 +38,14 @@ export default chapter({
     p('draught-valve',78.5,1.8,10.33,'switch',{channel:'draught',latch:true}),
     p('draught-step',82,4,11.4,'ledge'),
     p('draught-crown',87,4,16.2,'ledge'),
-    p('draught-turn',83.5,3.2,17.9,'ledge'),
-    p('court-flower',80,3.2,19.6,'ledge',{optional:true}),
     p('draught-exit',93,6,17.6,'stone'),
-    p('garden',101,10,15,'stone',{checkpoint:104,landmark:'oasis',house:true,rest:true}),
+    p('garden',101,10,15,'stone',{landmark:'oasis',house:true,rest:true}),
 
     // 03 · Laundry Switchbacks — awning springs, a leftward return, a kneaded stair.
     p('laundry-entry',113,8,13.3,'stone',{checkpoint:116,landmark:'bannerarch'}),
     p('laundry1',123,3.5,14.6,'ledge'),
     p('awning1',128,3.2,15.4,'spring'),
     p('laundry-high',132.5,4,20.6,'ledge'),
-    p('laundry-turn',129,3.2,22.4,'ledge'),
-    p('laundry-flower',125.5,3.2,24.1,'ledge',{optional:true}),
     p('stair-dock',138.5,5.5,22.6,'stone'),
     ...[0,1,2].map(i=>part('laundry-stair-'+i,
       {x:144+i*.8,w:.85,y:27.9,h:8.5},
@@ -86,7 +82,17 @@ export default chapter({
     p('belfry-step',288.5,3,39.4,'ledge'),
     p('belfry-crown',293,2.6,44.2,'ledge'),
     part('belfry-span',{x:295.6,w:1.9,y:48.5,h:4.8},{x:295.6,w:1.9,y:44.2,h:.65},{station:'belfry-span',clayRole:'bridge'}),
-    p('sky-bell',297.5,16,44.2,'stone',{goal:true,house:true,arch:true})
+    p('sky-bell',297.5,16,44.2,'stone',{goal:true,house:true,arch:true}),
+
+    // Editor-authored revision: alternate high route through the court and laundry approach.
+    p('clay-1',74,2.25,22,'crumble',{delay:.35}),
+    p('clay-1-copy-1',78.5,2.25,19.75,'crumble',{delay:.35}),
+    p('clay-1-copy-1-copy-1',82.75,2.25,18,'crumble',{delay:.35}),
+    p('clay-2',125.5,4,25.25,'lift',{moveY:5,period:5}),
+    p('clay-3',116.5,4,27.5,'orbit',{moveX:4,moveY:4,period:12}),
+    p('clay-4',108.75,3,27.25,'crumble',{delay:.15}),
+    p('clay-3-copy-1',116.5,4,27.5,'orbit',{moveX:4,moveY:4,period:12,phase:2}),
+    p('clay-3-copy-1-copy-1',116.75,4,27.5,'orbit',{moveX:4,moveY:4,period:12,phase:4})
   ],
   route:[
     'start','lift1','roof1',['roof-ramp','walk'],['tile-dock','walk'],'tile1','tile2','lookout',
@@ -101,8 +107,8 @@ export default chapter({
   // switchback with a return, and a deliberate drop out of the failing stair —
   // whose pocket doubles as the lower catch if the tiles beat you to it.
   detours:[
-    path(['draught-crown','draught-turn','court-flower','draught-turn','draught-crown','draught-exit']),
-    path(['laundry-high','laundry-turn','laundry-flower','laundry-turn','laundry-high','stair-dock']),
+    path(['draught-crown','draught-exit']),
+    path(['laundry-high','stair-dock']),
     path(['stair1',['bell-pocket','fall'],'pocket-awning','stair2'])
   ],
   recoveries:[],
@@ -129,32 +135,29 @@ export default chapter({
     {source:'belfry-valve',channel:'belfry',targets:['belfry-crown'],kind:'wind'}
   ],
   coins:[
-    ...row(10,3.2,2),...row(16,5.2,3),...arc(24,5.2,6,3,4,.9),
-    ...row(35.6,9,2),...row(40.6,9.6,2),...row(45.6,10.1,2),
-    ...row(52,7.8,3),...row(62,8.6,2),...row(70,10.4,2),...row(76,11.6,2),
-    ...arc(83,12.8,4,4.2,4,1),...row(80.8,20.7,2),...row(94,19,3),...row(103,16.4,3),
-    ...row(115,14.7,3),...row(123.6,16,2),...arc(129,17,4,4.2,4,.8),
-    ...row(126.3,25.2,2),...row(139.5,24,2),...arc(145,26,5,3,4,.7),...row(152,29.3,3),
-    ...row(159,26.2,2),...row(170,28.3,2),...row(177,29.3,3),
-    ...row(190.5,26.3,3),...row(200,27,2),...row(205.5,27.7,2),...arc(210.5,28.4,10,1.1,4,.9),
-    ...row(224,30.2,2),...row(237.5,31.8,3),...row(245.5,34,3),
-    ...row(254,34.6,2),...row(267.5,37,3),...row(275,38,2),...row(280,39,2),
-    ...arc(289.5,40.8,4,4.4,4,.8),...row(299,45.6,4)
+    {x:11.1,y:3.2},{x:25.2,y:6.329006727063226},{x:26.4,y:7.255950864665639},{x:27.6,y:7.855950864665639},{x:28.8,y:8.129006727063226},
+    {x:36.7,y:9},{x:41.7,y:9.6},{x:46.7,y:10.1},{x:63.1,y:8.6},{x:71.1,y:10.4},{x:83.8,y:14.227785252292474},
+    {x:84.6,y:15.431056516295154},{x:85.4,y:16.271056516295154},{x:96.2,y:19},{x:105.75,y:16.75},{x:130,y:18.25},{x:131,y:20.5},
+    {x:139.5,y:24},{x:140.6,y:24},{x:146,y:27.011449676604734},{x:147,y:27.865739561406606},{x:148,y:28.465739561406608},
+    {x:149,y:28.81144967660473},{x:159,y:26.2},{x:160.1,y:26.2},{x:170,y:28.3},{x:171.1,y:28.3},{x:177,y:29.3},
+    {x:178.1,y:29.3},{x:179.2,y:29.3},{x:190.5,y:26.3},{x:191.6,y:26.3},{x:192.7,y:26.3},{x:200,y:27},{x:201.1,y:27},
+    {x:205.5,y:27.7},{x:206.6,y:27.7},{x:212.5,y:29.149006727063224},{x:214.5,y:29.695950864665637},
+    {x:216.5,y:29.915950864665636},{x:218.5,y:29.809006727063224},{x:224,y:30.2},{x:225.1,y:30.2},{x:247.7,y:34},
+    {x:255.1,y:34.6},{x:267,y:37},{x:276.1,y:38},{x:281.1,y:39},{x:290.3,y:42.150228201833976},
+    {x:291.1,y:43.320845213036115},{x:291.9,y:44.20084521303612},{x:292.7,y:44.790228201833976},
+    {x:299,y:45.6},{x:300.1,y:45.6},{x:301.2,y:45.6},{x:302.3,y:45.6}
   ],
-  stamps:[{x:81.6,y:20.6},{x:127.1,y:25.1},{x:277.2,y:33.8}],
+  stamps:[{x:75.25,y:22.75},{x:277.2,y:33.8},{x:110.25,y:28.5}],
   // Four species, all returning from earlier chapters: the canyon's drifters,
   // the city's own claylings, the caves' bats, and one Echo Spitter above the
   // gallery, where the lower deck is the safe place to read its wind-up.
   enemies:[
-    {kind:'drifter',x:20.5,y:5.05,min:18.6,max:22.4,speed:.85,bob:.16,period:5.2,phase:0},
     {x:46.5,y:8.8,min:45.3,max:48,speed:1.4},
     {x:57,y:6.4,min:55,max:59,speed:1.5},
-    {kind:'drifter',x:108,y:16.15,min:106,max:110,speed:.95,bob:.18,period:4.8,phase:1.1},
-    {kind:'bat',x:154,y:30.6,period:4.6,bob:.55,speed:1.25,min:152,max:156.5},
+    {kind:'bat',x:154,y:28.5,period:4.6,bob:.55,speed:1.25,min:152,max:156.5},
     {x:180.4,y:27.9,min:179.7,max:181.4,speed:1.6},
-    {kind:'drifter',x:195.5,y:26.05,min:194.4,max:196.8,speed:1,bob:.18,period:4.5,phase:2.2},
     {kind:'bat',x:241.5,y:33.8,period:4.6,bob:.55,speed:1.25,min:240.6,max:242.4,phase:1.5},
-    {kind:'spitter',x:248.5,y:32.6,min:246.5,max:249.5,speed:.38}
+    {x:18.25,y:3.75,min:18.25,max:22,speed:1.5}
   ],
   hazards:[
     {x:10,w:4.5,y:-2.6},{x:23.05,w:7.8,y:2.2},{x:34,w:11,y:5.6},
@@ -166,15 +169,14 @@ export default chapter({
     {x:220.6,w:2.3,y:26},{x:228.1,w:2.3,y:25.5},{x:234.2,w:2.2,y:26.8},
     {x:242.6,w:1.8,y:29},{x:250.6,w:2.3,y:31},{x:258.1,w:2.3,y:30.5},{x:264.2,w:2.2,y:30.5},
     {x:272.6,w:1.8,y:31.5},{x:275.5,w:7.5,y:29},{x:287.1,w:1.3,y:36},{x:291.6,w:1.3,y:37.5},
-    {x:295.7,w:1.7,y:41}
+    {x:295.7,w:1.7,y:41},{x:117.25,w:2.25,y:27.75}
   ],
   // Chapter four is the last chapter: it only explains what no earlier chapter
-  // has explained. Moving, jumping, valves and their rising air, bounce pads,
-  // sinking ledges and the Echo Spitter are all taught in chapters one to
-  // three, and the clay asks with a hand above it rather than a panel of text.
+  // has explained. The first clay encounter pairs its gesture hand with one
+  // short input hint; later clay relies on the learned gesture alone.
   hints:[
+    {x:14,end:31,icon:'ramp',title:'Shape the clay',text:'Drag and drop the clay to move it, or hold E.',touchText:'Drag and drop the clay to move it.'},
     {x:50,end:66,title:'Counterweight',text:'Stand on the right end of the beam until the lift locks high.'},
-    {x:199,end:210,title:'Blinking decks',text:'Lit decks fade on their own rhythm. Cross each one while it glows.'}
   ],
   guides:[
     {platformId:'draught-crown',offset:.55,dir:-1},{platformId:'draught-crown',offset:3.4,dir:1},

@@ -322,9 +322,9 @@
         "section": 2
       },
       {
-        "x": 119.15,
+        "x": 118,
         "y": 19.75,
-        "w": 1.7,
+        "w": 4,
         "id": "tree-seal",
         "releases": "tree-spores",
         "kind": "break",

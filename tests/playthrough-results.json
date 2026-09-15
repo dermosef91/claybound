@@ -1,47 +1,9 @@
 [
   {
-    "index": 0,
-    "seconds": 56.34166666666411,
-    "frames": 6761,
-    "coins": 28,
-    "flowers": 0,
-    "checkpoint": "sky-rest",
-    "latched": {
-      "wind-a": true,
-      "wind-b": true
-    }
-  },
-  {
-    "index": 1,
-    "seconds": 140.69166666670304,
-    "frames": 16883,
-    "coins": 26,
-    "flowers": 1,
-    "checkpoint": "heart-bell",
-    "latched": {
-      "tree-spores": true,
-      "bloom-spores": true
-    }
-  },
-  {
-    "index": 2,
-    "seconds": 87.2500000000155,
-    "frames": 10470,
-    "coins": 23,
-    "flowers": 0,
-    "checkpoint": "gallery-out",
-    "latched": {
-      "spark-lock": true,
-      "heart-lock": true,
-      "sluice-lock": true,
-      "last-light": true
-    }
-  },
-  {
     "index": 3,
-    "seconds": 71.30833333333615,
-    "frames": 8557,
-    "coins": 76,
+    "seconds": 69.43333333333466,
+    "frames": 8332,
+    "coins": 43,
     "flowers": 0,
     "checkpoint": "bell-rest",
     "latched": {

@@ -371,6 +371,8 @@ console.log('PASS supplied distant grotto arches, stronger cave fog, bounded lig
 // remain visible through the camera pass, and stop ambient motion when paused.
 {
   const g=new Game();g.start(1);w.build(g.level,1,118);
+  const seals=g.level.platforms.filter(p=>p.kind==='break');
+  assert.equal(seals[0].w,seals[1].w,'both Wildwood breakable seals use the same full-size collider');
   for(const s of g.level.platforms.filter(p=>p.kind==='break')){
     w.syncVisible(g.level,s.x,true);w.scene.updateMatrixWorld(true);
     const root=w.platforms.get(s.id).root;assert.equal(root.name,'Stompable spore balloon');
@@ -404,6 +406,7 @@ console.log('PASS supplied distant grotto arches, stronger cave fog, bounded lig
   g.checkpointId='tree-heart';g.checkpoint={x:124.2,y:14};
   const restored=new Game();restored.start(1);restored.restore(g.snapshot());
   assert(restored.level.platforms.find(p=>p.id===seal.id).broken&&restored.channels[seal.releases]>0,'opened seed and spore current survive resume');
+  assert(!w.levelRoot.getObjectByName('Breathing Tree trunk'),'the breathing-tree climb has no decorative pillar');
   const heart=w.platforms.get('tree-heart').root.children.find(o=>o.userData.breathing);assert(heart);
   const leaf=w.ambient.find(a=>a.leaf).mesh;g.time=1;animateForest(w,g);animateEnvironment(w,0);const first=heart.scale.x;
   g.time=2;animateForest(w,g);animateEnvironment(w,0);assert.notEqual(heart.scale.x,first);
@@ -458,10 +461,13 @@ console.log('PASS all four Dust Drifter models remain loaded and in view after f
   assert(impacted);assert.equal(root.position.y,c.baseY,'the housing stays fixed');assert.equal(head.position.y,c.y-c.baseY,'only the head follows the stroke');
 }
 {
-  const g=new Game();g.start(0);w.build(g.level,0,30);const s=g.level.platforms.find(p=>p.kind==='crumble');w.syncVisible(g.level,s.x,true);const v=w.platforms.get(s.id);
+  const g=new Game();g.start(1);w.build(g.level,1,30);const s=g.level.platforms.find(p=>p.kind==='crumble');w.syncVisible(g.level,s.x,true);const v=w.platforms.get(s.id);
   assert(v.fracture.pieces.length>=8);assert(v.fracture.pieces.some(p=>p.layer===1));
+  const ledgeGrey=v.fracture.pieces.find(p=>p.layer===0).mesh.material.color.getHex();
   Object.assign(g.player,{x:s.x+s.w/2,y:s.y});s.timer=.3;w.render(g,1/60);assert(w.particles.some(q=>q.kind==='clay-chip'),'the weakening ledge sheds crumbs');
+  assert(w.particles.every(q=>q.mesh.material.color.getHex()===ledgeGrey),'Wildwood warning crumbs match the grey ledge instead of its green palette');
   s.active=false;s.timer=(s.delay||.62)+.32;w.event({type:'crumble-collapse',x:s.x+s.w/2,y:s.y,w:s.w});w.render(g,1/60);
+  assert(w.particles.every(q=>q.mesh.material.color.getHex()===ledgeGrey),'Wildwood collapse debris matches the grey ledge');
   assert(v.root.visible,'fragments remain visible while falling after collision stops');assert(v.fracture.pieces.some(p=>p.mesh.position.y<p.rest.y-.2));
   for(let i=0;i<30;i++)w.event({type:'crumble-collapse',x:s.x,y:s.y,w:s.w});assert(w.particles.length<=110,'debris stays within the shared particle budget');
   const snapshot=w.particles.map(q=>q.mesh.position.clone());w.updateParticles(0);assert(w.particles.every((q,i)=>q.mesh.position.equals(snapshot[i])));

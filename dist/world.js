@@ -305,7 +305,8 @@ export class World {
     if(e.type==='press-impact'&&Math.abs(this.cameraX-e.x)>this.viewW*.8)return;
     heroEvent(this.character,e);
     if(e.type==='checkpoint')raiseCheckpoint(this,e);
-    else if(e.type==='mother-hit'||e.type==='mother-collapse'){this.burst(e.x,e.y,'gold',20,1.3);if(!this.reducedMotion)this.shake=.12;}
+    else if(e.type==='mother-open'){if(!this.reducedMotion)this.shake=Math.max(this.shake,.07);}
+    else if(e.type==='mother-hit'||e.type==='mother-collapse'){this.burst(e.x,e.y,'gold',20,1.3);if(!this.reducedMotion)this.shake=Math.max(this.shake,.08);}
     else if(e.type==='mother-bounce')this.burst(e.x,e.y,'orange',10,.7);
     else if(e.type==='break'&&e.spore)burstSporePod(this,e);
     else if(e.type==='crumble-collapse')clayFragments(this,e.x,e.y,e.w,24,1.1,true);

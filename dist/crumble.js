@@ -4,6 +4,7 @@ import {porousClay} from './porous-clay.js';
 
 const random=n=>{const x=Math.sin(n*127.13+73.41)*43758.5453;return x-Math.floor(x);};
 const clamp=n=>Math.max(0,Math.min(1,n));
+const CRUMBLE_GREY=0x606063;
 function clip(poly,nx,nz,k){
   const out=[];
   for(let i=0;i<poly.length;i++){
@@ -24,8 +25,9 @@ function cells(width,rows,seed){
 }
 function crumbleMaterials(w){
   // Independent of biome palettes, including after a chapter switch.
-  for(const [name,color]of [['crumbleGrey',0x606063],['crumbleLower',0x525254],['crumbleChip',0x5b5b5e]]){
-    w.mat[name]??=new THREE.MeshStandardMaterial({color,roughness:.98,metalness:0,vertexColors:name!=='crumbleChip'});
+  for(const [name,color]of [['crumbleGrey',CRUMBLE_GREY],['crumbleLower',0x525254],['crumbleChip',CRUMBLE_GREY]]){
+    const material=w.mat[name]??=new THREE.MeshStandardMaterial();
+    material.color.setHex(color);material.roughness=.98;material.metalness=0;material.vertexColors=name!=='crumbleChip';
   }
 }
 export function createCrumble(w,s,root){

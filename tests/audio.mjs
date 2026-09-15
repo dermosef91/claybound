@@ -1,8 +1,9 @@
 // Exercise the real audio controller; emulate only browser audio devices and time.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {motherCorrupted,motherQuiet} from '../dist/mother-puff-rules.js';
 import {STONE_ORCHARD_TRACK} from '../dist/mother-puff-music.js';
-import {Sound,HORIZON_TRACK,CHAPTER_TRACKS,FLOWER_VICTORY,SPORE_BALLOON_BURST,COIN_PICKUP,CHECKPOINT_FLAG,FINISH_BELL,POROUS_CLAY_STEP} from '../dist/audio.js';
+import {Sound,HORIZON_TRACK,CHAPTER_TRACKS,FLOWER_VICTORY,SPORE_BALLOON_BURST,MOTHER_PUFF_GROWL,COIN_PICKUP,CHECKPOINT_FLAG,FINISH_BELL,POROUS_CLAY_STEP,ENEMY_HEAD_IMPACT} from '../dist/audio.js';
 const jobs=new Map();let next=0;
 globalThis.setTimeout=(fn,ms)=>{jobs.set(++next,{fn,ms});return next;};
 globalThis.clearTimeout=id=>jobs.delete(id);
@@ -100,15 +101,17 @@ console.log('PASS synthesized spore explosion fallback and mute');
 
 const victoryBytes=await readFile(new URL('../dist/assets/flower-victory.wav',import.meta.url));
 const sporeBalloonBytes=await readFile(new URL('../dist/assets/spore-balloon-burst.wav',import.meta.url));
+const growlBytes=await readFile(new URL(MOTHER_PUFF_GROWL));assert.equal(growlBytes.subarray(0,4).toString(),'RIFF');
 const coinBytes=await readFile(new URL('../dist/assets/coin-pickup.wav',import.meta.url));
 const checkpointBytes=await readFile(new URL('../dist/assets/checkpoint-flag.wav',import.meta.url));
 const completeBytes=await readFile(new URL('../dist/assets/finish-bell.wav',import.meta.url));
 const porousStepBytes=await readFile(new URL('../dist/assets/porous-clay-step.wav',import.meta.url));
+const enemyHeadImpactBytes=await readFile(new URL(ENEMY_HEAD_IMPACT));
 assert.equal(victoryBytes.subarray(0,4).toString(),'RIFF');
 assert.equal(sporeBalloonBytes.subarray(0,4).toString(),'RIFF');
-for(const bytes of [coinBytes,checkpointBytes,completeBytes,porousStepBytes])assert.equal(bytes.subarray(0,4).toString(),'RIFF');
+for(const bytes of [coinBytes,checkpointBytes,completeBytes,porousStepBytes,enemyHeadImpactBytes])assert.equal(bytes.subarray(0,4).toString(),'RIFF');
 const oldFetch=globalThis.fetch;
-const suppliedEffects=new Map([[FLOWER_VICTORY,victoryBytes],[SPORE_BALLOON_BURST,sporeBalloonBytes],[COIN_PICKUP,coinBytes],[CHECKPOINT_FLAG,checkpointBytes],[FINISH_BELL,completeBytes],[POROUS_CLAY_STEP,porousStepBytes]]);
+const suppliedEffects=new Map([[FLOWER_VICTORY,victoryBytes],[SPORE_BALLOON_BURST,sporeBalloonBytes],[MOTHER_PUFF_GROWL,growlBytes],[COIN_PICKUP,coinBytes],[CHECKPOINT_FLAG,checkpointBytes],[FINISH_BELL,completeBytes],[POROUS_CLAY_STEP,porousStepBytes],[ENEMY_HEAD_IMPACT,enemyHeadImpactBytes]]);
 globalThis.fetch=async url=>{const bytes=suppliedEffects.get(url);return {ok:!!bytes,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)};};
 Context.prototype.decodeAudioData=async bytes=>({duration:1,bytes});
 Context.prototype.createBufferSource=function(){const n=new Node();n.playbackRate=new Param();n.start=(...args)=>{n.started=true;n.startArgs=args;};(this.buffers??=[]).push(n);return n;};
@@ -130,6 +133,21 @@ assert.equal(enemyPuff.buffer,sporeSound.sporeBalloonBuffer);assert.equal(enemyP
 assert.deepEqual(enemyPuff.startArgs,[0,0,.45],'Spore Puff defeat uses only the short opening of the recording');
 sporeSound.effect('squish',{kind:'drifter'});assert.equal(sporeSound.ctx.buffers.length,2,'other level enemies keep their own defeat sound');
 sporeSound.enabled=false;sporeSound.effect('break',{spore:true});assert.equal(sporeSound.ctx.buffers.length,2,'muted spore sounds stay silent');
+const headImpactSound=new Sound();headImpactSound.unlock();await headImpactSound.enemyHeadImpactLoading;
+for(const kind of ['bat','spitter','clayling']){
+  const sourceCount=headImpactSound.ctx.buffers?.length||0,oscillatorCount=headImpactSound.ctx.oscillators.length;
+  headImpactSound.effect('squish',{kind});const impact=headImpactSound.ctx.buffers[sourceCount];
+  assert.equal(impact.buffer,headImpactSound.enemyHeadImpactBuffer);assert.equal(impact.output.gain.value,.36);assert(impact.started);
+  assert.equal(headImpactSound.ctx.oscillators.length,oscillatorCount,`${kind} head landing uses the supplied impact instead of the synthesized cue`);
+}
+headImpactSound.effect('squish',{kind:'drifter'});assert.equal(headImpactSound.ctx.buffers.length,3,'other enemy defeats keep their existing cue');
+console.log('PASS supplied bat, spitter and clayling head-impact cue');
+const bossSound=new Sound();bossSound.unlock();await Promise.all([bossSound.motherGrowlLoading,bossSound.sporeBalloonLoading]);
+bossSound.effect('mother-open');const growl=bossSound.ctx.buffers[0];assert.equal(growl.buffer,bossSound.motherGrowlBuffer);assert.equal(growl.output.gain.value,.2,'opening growl plays at a restrained 20% gain');
+for(const event of ['mother-hit','mother-hit','mother-collapse']){bossSound.effect(event);const hit=bossSound.ctx.buffers.at(-1);assert.equal(hit.buffer,bossSound.sporeBalloonBuffer);assert.equal(hit.output.gain.value,.4);assert(hit.started);}
+assert.equal(bossSound.ctx.buffers.length,4);assert.equal(bossSound.ctx.oscillators.length,0,'opening and all three head hits use supplied recordings');
+bossSound.enabled=false;bossSound.effect('mother-open');bossSound.effect('mother-hit');assert.equal(bossSound.ctx.buffers.length,4);bossSound.enabled=true;bossSound.setForeground(false);bossSound.effect('mother-open');bossSound.effect('mother-collapse');assert.equal(bossSound.ctx.buffers.length,4,'boss cues respect mute and background silence');
+console.log('PASS Mother Puff quiet supplied growl, three balloon-pop hit cues, mute and background silence');
 const interactionSound=new Sound();interactionSound.unlock();await Promise.all([interactionSound.coinLoading,interactionSound.checkpointLoading,interactionSound.completeLoading]);
 const originalRandom=Math.random;Math.random=()=>.25;
 for(const [type,buffer,gain]of [['coin',interactionSound.coinBuffer,.0135],['checkpoint',interactionSound.checkpointBuffer,.25],['complete',interactionSound.completeBuffer,.5]]){
@@ -173,8 +191,12 @@ for(let i=0;i<100;i++)crossing.update(.016,true,1,false,false,false,false,true);
 assert.equal(orchard.plays,plays,'continuous combat does not restart the theme');
 crossing.update(.016,false,1,false,false,false,false,true);assert(orchard.paused);
 crossing.update(.016,true,1,false,false,false,false,true);await settle();assert.equal(orchard.currentTime,14);
-crossing.update(.016,true,1,false,false,false,true,false);assert.equal(crossing.orchard.gain._target,0);assert.equal(crossing.trackGain._target,.008);advance(700);assert(orchard.paused);
-crossing.update(.016,true,1);assert.equal(crossing.trackGain._target,.26);assert.equal(crossing.track.currentTime,73,'victory returns to the continuing forest theme');
+const encounter={level:{boss:{state:'veil',hits:3,triggerX:276}},player:{x:295}};
+for(const state of ['veil','transform','reveal-form','regard','farewell','bloom']){
+ encounter.level.boss.state=state;crossing.update(.016,true,1,false,false,false,motherQuiet(encounter.level.boss),motherCorrupted(encounter));await settle();advance(2500);
+ assert.equal(crossing.trackGain._target,0,'forest music stays silent throughout '+state);assert(!orchard.paused);assert.equal(crossing.orchard.gain._target,motherQuiet(encounter.level.boss)?.008:.26);
+}
+encounter.level.boss.state='defeated';crossing.update(.016,true,1,false,false,false,motherQuiet(encounter.level.boss),motherCorrupted(encounter));assert.equal(crossing.orchard.gain._target,0);assert.equal(crossing.trackGain._target,.26);advance(2500);assert(orchard.paused);assert.equal(crossing.track.currentTime,73,'completed healing returns to the continuing forest theme');
 crossing.update(.016,true,1,false,false,false,false,true);await settle();crossing.enabled=false;assert(orchard.paused);crossing.enabled=true;await settle();assert(!orchard.paused);crossing.setForeground(false);assert(orchard.paused);
 crossing.setForeground(true);await settle();orchard.error={code:3};orchard.dispatchEvent(new Event('error'));assert.equal(crossing.trackGain._target,.26,'a failed orchard stream restores forest music');
 console.log('PASS Stone Orchard crossfade, longer playback, victory return, preserved positions, pause/mute/focus and failed-stream fallback');

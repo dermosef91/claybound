@@ -60,7 +60,7 @@ await click('[data-action="settings-sound"]');assert.equal(app.saved.sound,false
 await click('[data-action="close"]');await click('#settings');assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'false');
 await click('[data-action="close"]');await click('#menu-sound');assert.equal(app.saved.sound,true);
 $('settings').focus();await click('#settings');await click('[data-action="help"]');await click('[data-action="close"]');assert.equal(document.activeElement,$('settings'),'Nested help returns focus to the title trigger');
-await click('#chapters');assert.equal(document.querySelectorAll('.chapter-choice[data-level]').length,4);assert.equal(document.querySelectorAll('.chapter-choice[data-action="playground"]').length,1);await click('[data-action="close"]');
+await click('#chapters');assert.equal(document.querySelectorAll('.chapter-choice[data-level]').length,4);assert.equal(document.querySelectorAll('.chapter-choice[data-action="playground"]').length,0);await click('[data-action="close"]');
 assert.equal(editor.world,undefined,'Menu dialogs stay responsive during a slow asset load');
 assert.equal(worldCount,1,'The title creates just one renderer');
 const firstBegin=app.begin(0),secondBegin=app.begin(0);releaseFirstWorld();await Promise.all([firstBegin,secondBegin]);

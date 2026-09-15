@@ -31,10 +31,7 @@ export function forestBranch(w,s,g){
   const trunk=w.mesh(new THREE.CylinderGeometry(.44,.58,length,14,10),'bark',g,x,-length/2-.25,-.71);trunk.rotation.z=.018;
   const a=new THREE.Vector3(x,-2.3,-.65),b=new THREE.Vector3(s.w*.76,-.49,-.65),d=b.clone().sub(a);
   const brace=w.cylinder(.22,d.length(),'bark',g);brace.position.copy(a).add(b).multiplyScalar(.5);brace.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
-  if(s.id==='tree-top'){
-    const trunk=w.mesh(new THREE.CylinderGeometry(.75,.95,28,16,16),'barkLight',g,2.7,-7,-1.9);trunk.name='Breathing Tree trunk';
-    for(let i=0;i<4;i++)forestBloom(w,g,2.25+(i%2)*.6,-2.8-i*3.1,-1.05,.6,(i%2)*.5);
-  }
+  if(s.id==='tree-top')for(let i=0;i<4;i++)forestBloom(w,g,2.25+(i%2)*.6,-2.8-i*3.1,-1.05,.6,(i%2)*.5);
   if(s.w>4){forestMushroom(w,g,s.w-.58,.06,-.47,.64,.1);forestBloom(w,g,x-.3,-2.9,-.14,.55);}
 }
 export function forestLandmark(w,s,parent){

@@ -1,5 +1,6 @@
 import * as THREE from './lib/three.module.js';
 import {sporeCloud} from './spore-effects.js';
+import {MOTHER_PUFF} from './mother-puff-rules.js';
 const clamp=v=>Math.max(0,Math.min(1,v));
 const smooth=v=>{const t=clamp(v);return t*t*(3-2*t);};
 
@@ -111,7 +112,7 @@ export function animateFriendly(v,b,reduced){
     const duration=phase==='regard'?.95:2.7;
     m.visible=age>=0&&age<duration&&(phase!=='regard'||i<4);age=Math.max(0,age);
     const a=i*2.399,spread=age*(phase==='regard'?2:1.8);
-    m.position.set(b.x+(phase==='regard'?-spread:Math.cos(a)*spread),b.y+1+Math.sin(a)*.2+age*.55,.1+Math.sin(a)*spread*.4);
+    m.position.set(b.x+(phase==='regard'?-spread:Math.cos(a)*spread),b.y+MOTHER_PUFF.friendlyHeight*.42+Math.sin(a)*.2+age*.55,.1+Math.sin(a)*spread*.4);
     m.scale.setScalar(Math.max(.001,Math.min(.9,age*4,(duration-age)*1.3))*(reduced?.7:1));
   }
 }

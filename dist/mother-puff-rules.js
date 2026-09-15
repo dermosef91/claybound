@@ -2,9 +2,9 @@ import {initializeEnemy} from './enemy-rules.js';
 
 // All encounter state is plain data, so saves, pause and deterministic replays
 // use the same simulation as keyboard/touch play. Y always means the feet.
-export const MOTHER_PUFF={height:6.4,capRadius:2.7,bodyRadius:2.55,hits:3,
-  reveal:5.8,inhale:2.1,shotGap:1.4,release:14.6,recover:7.8,hurt:2.1,flight:1.85,
-  bounce:23,capLife:12,cloudLife:5.5,blastLife:.65,slow:.46,maxChildren:3};
+export const MOTHER_PUFF={height:6.4,friendlyHeight:6,capRadius:2.7,bodyRadius:2.55,hits:3,
+  reveal:5.8,shotGap:1.4,recover:.5,hurt:2.1,flight:1.85,
+  bounce:23,padHeight:.46,capLife:12,cloudLife:5.5,blastLife:.65,slow:.73,maxChildren:3};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const enter=(b,state)=>{b.state=state;b.stateTime=0;};
 const combat=b=>b&&['inhale','release','recover','hurt'].includes(b.state);
@@ -12,12 +12,12 @@ export const motherCinematic=b=>!!b&&(b.state==='reveal'||b.hits===3&&b.state!==
 export const motherQuiet=b=>!!b&&['veil','transform'].includes(b.state);
 export const motherIntroTarget=b=>b.left+(b.x-b.left)*.43;
 export const motherCapHeight=b=>[7.25,7.0,6.8,6.4][b.hits];
-export const motherCorrupted=game=>!!game.level.boss&&game.level.boss.hits<3&&(game.level.boss.state!=='sleeping'||game.player.x>=game.level.boss.triggerX);
+export const motherCorrupted=game=>!!game.level.boss&&game.level.boss.state!=='defeated'&&(game.level.boss.state!=='sleeping'||game.player.x>=game.level.boss.triggerX);
 const ENDING=[['veil',1.5],['transform',1.8],['reveal-form',2.6],['regard',1.7],['farewell',1.8],['bloom',3.6]];
 
 export function initializeMotherPuff(L){
   if(!L.boss||L.boss.kind!=='mother-puff')return;
-  Object.assign(L.boss,{state:'sleeping',stateTime:0,hits:0,cycle:0,serial:0,spores:[],patches:[],queue:[],nextShot:0,healing:0});
+  Object.assign(L.boss,{state:'sleeping',stateTime:0,hits:0,cycle:0,serial:0,spores:[],patches:[],queue:[],nextShot:0,lastShotTime:-100,healing:0});
 }
 export function resetMotherPuff(game,defeated=false){
   const b=game.level.boss;if(!b)return;
@@ -32,27 +32,35 @@ export function resetMotherPuff(game,defeated=false){
 
 function prepareVolley(game){
   const b=game.level.boss;
-  // A long, readable chain plays entirely to her left. The launch spore is
-  // always third- or second-last; its lane stays clear of late explosions.
-  const span=b.x-b.left,at=f=>b.left+span*f,flip=b.cycle%2;
-  const sequence=[['purple',at(.29)],['white',at(.53)],['green',at(.16)],
-    ['purple',at(.61)],['white',at(.2)],['purple',at(.4)],['green',at(.48)],
-    ['white',at(.32)],['purple',at(.18)]];
+  // Hazards aim independently. The orange launch pad ends each spree and
+  // always lands within bouncing distance of the crown.
+  const flip=b.cycle%2;
+  const sequence=['purple','white','green','purple','white','purple','green','white','purple'];
   if(flip)sequence.reverse();
-  sequence.splice(flip?8:7,0,['yellow',b.x-5.9]);
+  sequence.push('orange');
   b.queue=sequence;
 
   b.nextShot=0;b.cycle++;
 }
 function launchOne(game){
-  const b=game.level.boss,[color,x]=b.queue.shift(),y=b.y+motherCapHeight(b)-.35;
+  const b=game.level.boss,color=b.queue.shift(),x=color==='orange'?b.x-5.9:game.player.x,y=b.y+motherCapHeight(b)-.35;
   b.spores.push({id:++b.serial,color,x:b.x,y,startX:b.x,startY:y,targetX:x,targetY:b.y,age:0,duration:MOTHER_PUFF.flight});
+  b.lastShotTime=game.time;
   game.event('mother-release',{x:b.x,y,color});
+}
+function beginSpree(game){enter(game.level.boss,'release');prepareVolley(game);}
+
+export function motherSporePosition(s,progress){
+  const t=clamp(progress,0,1),u=1-t,a=3*u*u*t,c=3*u*t*t,end=t*t*t;
+  // A steep upward launch rounds into a high arc, then falls onto the
+  // release-time ground marker. Later movement cannot steer a flying spore.
+  return {x:s.startX+(s.targetX-s.startX)*(a*.12+c*.62+end),
+    y:s.startY+(s.targetY-s.startY)*end+a*3.8+c*5.4};
 }
 
 function puff(game,s){
   const b=game.level.boss,color=s.color;
-  const life=color==='yellow'?MOTHER_PUFF.capLife:color==='white'?MOTHER_PUFF.cloudLife:color==='purple'?MOTHER_PUFF.blastLife:1;
+  const life=color==='orange'?MOTHER_PUFF.capLife:color==='white'?MOTHER_PUFF.cloudLife:color==='purple'?MOTHER_PUFF.blastLife:1;
   b.patches.push({id:s.id,color,x:s.targetX,y:s.targetY,age:0,life,radius:color==='white'?2.6:color==='purple'?2.15:1.55,bounceAge:10});
   if(color==='green'&&game.level.enemies.filter(e=>e.motherChild&&e.alive).length<MOTHER_PUFF.maxChildren){
     const e={kind:'spore',motherChild:true,x:s.targetX,y:s.targetY,min:Math.max(b.left+.7,s.targetX-3),max:Math.min(b.right-.7,s.targetX+3),speed:.8};
@@ -80,15 +88,17 @@ export function updateMotherPuff(game,dt){
     b.healing=b.state==='defeated'?1:b.state==='bloom'?clamp(b.stateTime/3.1,0,1):0;
     return;
   }
-  if(b.state==='reveal'&&b.stateTime>=MOTHER_PUFF.reveal){enter(b,'inhale');game.event('mother-inhale',{x:b.x,y:b.y});}
-  else if(b.state==='inhale'&&b.stateTime>=MOTHER_PUFF.inhale){enter(b,'release');prepareVolley(game);}
-  else if(b.state==='release'&&b.stateTime>=MOTHER_PUFF.release)enter(b,'recover');
-  else if(b.state==='recover'&&b.stateTime>=MOTHER_PUFF.recover-b.hits*.5){enter(b,'inhale');game.event('mother-inhale',{x:b.x,y:b.y});}
-  else if(b.state==='hurt'&&b.stateTime>=MOTHER_PUFF.hurt){enter(b,'inhale');game.event('mother-inhale',{x:b.x,y:b.y});}
-  if(b.state==='release')while(b.queue.length&&b.stateTime+1e-6>=b.nextShot){launchOne(game);b.nextShot+=MOTHER_PUFF.shotGap;}
+  if(b.state==='reveal'&&b.stateTime>=MOTHER_PUFF.reveal){beginSpree(game);game.event('mother-open',{x:b.x,y:b.y});}
+  else if(b.state==='inhale')beginSpree(game);
+  else if(b.state==='recover'&&b.stateTime+1e-6>=MOTHER_PUFF.recover)beginSpree(game);
+  else if(b.state==='hurt'&&b.stateTime>=MOTHER_PUFF.hurt)beginSpree(game);
+  if(b.state==='release')while(b.queue.length&&b.stateTime+1e-6>=b.nextShot){
+    launchOne(game);b.nextShot+=MOTHER_PUFF.shotGap;
+    if(!b.queue.length)enter(b,'recover');
+  }
   for(const s of b.spores){
     s.age+=dt;const t=Math.min(1,s.age/s.duration);
-    s.x=s.startX+(s.targetX-s.startX)*t;s.y=s.startY+(s.targetY-s.startY)*t+Math.sin(t*Math.PI)*4.2;
+    Object.assign(s,motherSporePosition(s,t));
     if(s.age>=s.duration)puff(game,s);
   }
   b.spores=b.spores.filter(s=>s.age<s.duration);
@@ -127,8 +137,8 @@ export function contactMotherPuff(game,previous,input,rules){
     p.x=b.x-(MOTHER_PUFF.bodyRadius+rules.radius);p.vx=0;
   }
   for(const s of b.patches){
-    if(s.color==='yellow'){
-      const cap=s.y+.85;
+    if(s.color==='orange'){
+      const cap=s.y+MOTHER_PUFF.padHeight;
       if(Math.abs(p.x-s.x)<s.radius&&p.vy<=0&&previous.y>=cap-(p.groundId?1:.14)&&p.y<=cap+.04&&p.y>=s.y-.2){
         p.y=cap;p.vy=MOTHER_PUFF.bounce;p.groundId=null;p.coyote=0;p.springing=true;p.stomping=false;p.stompWindup=0;p.motherBounce=true;p.squash=.32;s.bounceAge=0;
         game.event('mother-bounce',{x:p.x,y:p.y});

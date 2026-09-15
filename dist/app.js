@@ -11,7 +11,6 @@ import {LevelEditor} from './editor.js';
 import {collectiblesMarkup,settingsMarkup} from './title-menu.js';
 import {TitleScene} from './title-scene.js';
 import {loadTitleAssets} from './title-assets.js';
-import playground from './routes/clay-playground.js';
 import {ShapingControls} from './shaping-controls.js';
 import {visitStation} from './shaping.js';
 import {applyUIPalette} from './palette.js';
@@ -51,8 +50,7 @@ function onEvent(e){
   if(!world?.reducedMotion){if(e.type==='break'||e.type==='squish')hitStop=.035;if(e.type==='hurt')hitStop=.055;}
   if(e.type==='checkpoint')saveJourney();
   if(e.type==='mother-defeat')saveJourney();
-  if(e.type==='stamp'){clearInput();saveJourney();}
-  if(e.type==='flower-resume')clearInput();
+  if(e.type==='stamp')saveJourney();
   if(e.type==='activate'){toast(e.message?.split(' · ')[0]||'Mechanism opened');saveJourney();}
   // The hand cue is a tutorial, not furniture: once a few stations have been
   // finished, the violet clay and its idle squash carry the message alone.
@@ -178,7 +176,7 @@ function pause(){
 }
 function chapters(){
   const choices=LEVELS.map((base,i)=>{const L=activeLevel(i),edited=drafts.has(i),run=(L.custom?saved.customRuns:saved.runs)[i],best=(L.custom?saved.customBest:saved.best)[i];return `<div class="chapter-option"><button class="chapter-choice" data-level="${i}"><span>0${i+1}</span><div><strong>${L.short}${edited?L.custom?' · Your edit':' · Original':''}</strong><small>${L.sections.length} passages${run?.version===L.layoutVersion?' · Checkpoint saved':best?.version===L.layoutVersion?` · ${best.stamps}/${L.stamps.length} flowers`:''}</small></div>${icon('arrow-up-right')}</button>${edited?`<button class="quiet-button chapter-alternate" data-level="${i}" data-source="${L.custom?'original':'edited'}">${icon(L.custom?'refresh-cw':'pencil-ruler')} ${L.custom?'Play updated original':'Play your edit'}</button>`:''}</div>`;}).join('');
-  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">FOUR CHAPTERS & A CLAY PLAYGROUND</span><h2>Choose your path.</h2><div class="chapters-list">${choices}<button class="chapter-choice playground-choice" data-action="playground"><span>✦</span><div><strong>Clay playground</strong><small>Hanging Quarter copy · 5 shaping experiments</small></div>${icon('arrow-up-right')}</button></div><p>Original chapters include the latest updates. Your edits and their checkpoints are kept separately on this device.</p>`);
+  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">FOUR CHAPTERS</span><h2>Choose your path.</h2><div class="chapters-list">${choices}</div><p>Original chapters include the latest updates. Your edits and their checkpoints are kept separately on this device.</p>`);
 }
 function help(){
   openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Violet clay can be shaped</strong><span>Tap or drag it, hold E, or stomp it — violet clay breathes when you are beside it and stretches into ramps, stairs and bridges. R softens it back.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
@@ -214,8 +212,8 @@ $('dialog-content').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;sound.unlock();
   if(b.hasAttribute('data-level')){begin(Number(b.dataset.level),false,b.dataset.source);return;}
   const a=b.dataset.action;
-  if(a==='resume'||a==='close')closeDialog();if(a==='play')begin(saved.last);if(a==='restart')begin(game.index,true,undefined,game.level.playground?playground:null);if(a==='next')begin(game.index+1);if(a==='chapters')chapters();if(a==='home')home();
-  if(a==='playground')begin(3,true,'original',playground);if(a==='stations')stationPicker();
+  if(a==='resume'||a==='close')closeDialog();if(a==='play')begin(saved.last);if(a==='restart')begin(game.index,true);if(a==='next')begin(game.index+1);if(a==='chapters')chapters();if(a==='home')home();
+  if(a==='stations')stationPicker();
   if(b.dataset.station){visitStation(game,b.dataset.station);closeDialog();show('touch-controls',true);}
   if(a==='editor')openEditor();if(a==='back-editor')editor.returnToEditor();if(a==='restart-test')editor.playtest(false);
   if(a==='fullscreen'){fullscreenTransition=performance.now()+1000;fullscreen.toggle();}
@@ -277,7 +275,7 @@ function updateHUD(now){
   if(hintKey&&key!==hintKey)dismissed.add(hintKey);
   if(key&&key===hintKey&&now>=hintUntil)dismissed.add(key);
   const visible=!!hint&&!dismissed.has(key);show('hint',visible);
-  if(visible&&hintKey!==key){hintKey=key;hintUntil=now+6500;$('hint-mark').innerHTML=hintIcon(hint.icon);$('hint-title').textContent=hint.title;$('hint-text').textContent=matchMedia('(pointer:coarse), (max-width:850px)').matches?hint.text.replace('A / D or arrows to move.','Drag the joystick to move, farther to run.').replace('↓ / S or STOMP','STOMP'):hint.text;}
+  if(visible&&hintKey!==key){hintKey=key;hintUntil=now+6500;$('hint-mark').innerHTML=hintIcon(hint.icon);$('hint-title').textContent=hint.title;const touch=matchMedia('(pointer:coarse), (max-width:850px)').matches;$('hint-text').textContent=touch?(hint.touchText||hint.text.replace('A / D or arrows to move.','Drag the joystick to move.').replace('↓ / S or STOMP','STOMP')):hint.text;}
 }
 let prev=performance.now(),accum=0,hudAccum=0;
 function frame(now){

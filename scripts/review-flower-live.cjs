@@ -9,7 +9,7 @@ const root=path.resolve(__dirname,'..'),out=root+'/docs/flower-celebration/live-
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   await page.route('**/app.js*',async route=>{
-   const body=fs.readFileSync(root+'/dist/app.js','utf8')+'\nwindow.playtest={get game(){return game},get world(){return world},begin};';
+   const body=fs.readFileSync(root+'/dist/app.js','utf8')+'\nwindow.playtest={get game(){return game},get world(){return world},get input(){return input},begin};';
    await route.fulfill({contentType:'text/javascript',body});
   });
   await page.goto(process.env.REVIEW_URL||'http://127.0.0.1:5176');
@@ -19,17 +19,22 @@ const root=path.resolve(__dirname,'..'),out=root+'/docs/flower-celebration/live-
   await page.evaluate(()=>{
    const g=playtest.game,w=playtest.world,c=g.level.stamps[0];
    const floor=g.level.platforms.find(s=>s.active&&c.x>=s.x&&c.x<=s.x+s.w&&Math.abs(s.y+.8-c.y)<.85);
-   Object.assign(g.player,{x:c.x-.3,y:floor?.y??c.y-.8,vx:0,vy:0,groundId:floor?.id??null});
-   playtest.frames=[];playtest.seen=false;const render=w.render.bind(w);
-   w.render=(g,dt)=>{render(g,dt);if(g.flowerCelebration){playtest.seen=true;const f=w.character.flower,position=f?.root.position;playtest.frames.push({time:g.flowerCelebration.time,pose:w.character.state,flower:!!f?.root.visible,position:position?.toArray(),scale:f?.root.scale.x,visible:w.character.root.visible,dt});}};
+   Object.assign(g.player,{x:c.x,y:floor?.y??c.y-.8,vx:0,vy:0,groundId:floor?.id??null});c.taken=true;
+   playtest.flower=c;playtest.frames=[];playtest.seen=false;playtest.tracking=false;const render=w.render.bind(w);
+   w.render=(g,dt)=>{render(g,dt);if(playtest.tracking){const celebration=g.flowerCelebration,f=w.character.flower,position=f?.root.position;if(celebration)playtest.seen=true;playtest.frames.push({time:celebration?.time??null,pose:w.character.state,flower:!!f?.root.visible,position:position?.toArray(),scale:f?.root.scale.x,visible:w.character.root.visible,inputHeld:playtest.input.jumpHeld,y:g.player.y,vy:g.player.vy,groundId:g.player.groundId,dt});}};
   });
-  await page.keyboard.down('d');
+  await page.keyboard.down('Space');
+  await page.waitForFunction(()=>playtest.game.player.groundId===null&&playtest.game.player.vy>5,null,{timeout:20000});
+  await page.evaluate(()=>{const {game:g,flower}=playtest;flower.y=g.player.y+.8;flower.taken=false;playtest.tracking=true;});
   await page.waitForFunction(()=>playtest.game.flowerCelebration?.time>.15,null,{timeout:20000});
-  await page.keyboard.up('d');await page.screenshot({path:out+'/hold.png'});
+  await page.screenshot({path:out+'/hold.png'});
   await page.waitForFunction(()=>playtest.seen&&!playtest.game.flowerCelebration,null,{timeout:20000});
-  const frames=await page.evaluate(()=>playtest.frames);
+  await page.waitForFunction(()=>playtest.game.player.groundId!==null,null,{timeout:20000});
+  const result=await page.evaluate(()=>({frames:playtest.frames,inputHeld:playtest.input.jumpHeld,landed:playtest.game.player.groundId!==null}));
+  await page.keyboard.up('Space');const frames=result.frames;
   fs.writeFileSync(out+'/frames.json',JSON.stringify({frames,errors},null,2));
-  assert.deepEqual(errors,[]);assert(frames.length>10);assert(frames.filter(f=>f.time>.1&&f.time<.38).every(f=>f.visible===true&&f.flower&&f.scale>.95&&f.position.every(Number.isFinite)));
+  const celebration=frames.filter(f=>f.time!==null),apex=frames.some((f,i)=>i&&frames[i-1].vy>0&&f.vy<=0);
+  assert.deepEqual(errors,[]);assert(frames.length>10);assert(result.inputHeld&&result.landed&&apex);assert(celebration.every(f=>f.inputHeld));assert(celebration.filter(f=>f.time>.1&&f.time<.38).every(f=>f.visible===true&&f.flower&&f.scale>.95&&f.position.every(Number.isFinite)));
   console.log('PASS real frame loop',frames.length,frames[0],frames.at(-1));
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});

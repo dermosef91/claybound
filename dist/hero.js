@@ -150,8 +150,8 @@ export function animateHero(w,game,dt){
       const resting=!encounter&&!game.flowerCelebration&&(game.status==='menu'||(game.status==='playing'&&!air&&speed<.08&&c.hurt===0&&c.landing===0&&!c.death));
       if(resting){
         c.idleTime+=step;
-        const idleDelay=game.status==='menu'?3:1;
-        if(c.idleTime>idleDelay&&!c.longIdlePlayed){
+        const idleDelay=4;
+        if(c.idleTime>=idleDelay&&!c.longIdlePlayed){
           c.longIdlePlayed=true;c.idleVariant='longIdle';
           c.actions.longIdle.reset().play().setEffectiveWeight(c.weights.longIdle);
         }

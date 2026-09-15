@@ -24,4 +24,29 @@ for(const airborne of [false,true]){
  assert.deepEqual(g.snapshot().stamps,[flower.id]);
  g.flowerCelebration={time:.5,id:flower.id};g.start(1);assert.equal(g.flowerCelebration,null);
 }
-console.log('PASS flower celebration: grounded/airborne pickup, concurrent movement/world/run clocks, manual pause, half-second cleanup, one reward, save and chapter reset');
+
+// Collecting during ascent must produce the same uninterrupted jump arc as a
+// control run, including the live jump buffer, apex, descent and landing.
+{
+ const reward=new Game(),control=new Game();reward.start(0);control.start(0);
+ control.level.stamps.forEach(flower=>flower.taken=true);
+ const input=(jumpPressed=false)=>({jumpPressed,jumpHeld:true});
+ reward.tick(FIXED_DT,input(true));control.tick(FIXED_DT,input(true));
+ for(let i=0;i<10;i++){reward.tick(FIXED_DT,input());control.tick(FIXED_DT,input());}
+ assert.equal(reward.player.groundId,null);assert(reward.player.vy>0,'pickup starts during jump ascent');
+ const flower=reward.level.stamps[0];Object.assign(flower,{x:reward.player.x,y:reward.player.y+.8,taken:false});
+ reward.tick(FIXED_DT,input(true));control.tick(FIXED_DT,input(true));
+ assert(reward.flowerCelebration,'flower is collected in mid-flight');
+ const motion=['x','y','vx','vy','groundId','coyote','jumpBuffer','stomping','springing'];
+ const sameMotion=()=>assert.deepEqual(Object.fromEntries(motion.map(key=>[key,reward.player[key]])),Object.fromEntries(motion.map(key=>[key,control.player[key]])),'flower pickup changed jump motion');
+ sameMotion();assert(reward.player.jumpBuffer>0,'mid-flight jump buffer remains live');
+ let sawApex=false,landed=false;
+ for(let i=0;i<240&&!landed;i++){
+  const previousVy=reward.player.vy;
+  reward.tick(FIXED_DT,{jumpHeld:i<20});control.tick(FIXED_DT,{jumpHeld:i<20});sameMotion();
+  if(previousVy>0&&reward.player.vy<=0)sawApex=true;
+  landed=sawApex&&reward.player.groundId!==null;
+ }
+ assert(sawApex,'jump reaches its apex after pickup');assert(landed,'jump lands normally after pickup');
+}
+console.log('PASS flower celebration: grounded/airborne pickup, uninterrupted mid-flight jump arc, concurrent clocks, manual pause, half-second cleanup, one reward, save and chapter reset');

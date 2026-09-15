@@ -1,4 +1,5 @@
 import * as THREE from './lib/three.module.js';
+import {MOTHER_PUFF} from './mother-puff-rules.js';
 
 const smooth=v=>{const t=Math.max(0,Math.min(1,v));return t*t*(3-2*t);};
 
@@ -33,7 +34,7 @@ export function animateMotherClouds(v,b,reduced){
   if(phase==='veil')cover=smooth(t/1.05);
   if(phase==='transform')cover=1;
   if(phase==='reveal-form'){cover=1-smooth(t/2.6);scatter=smooth(t/2.6);}
-  if(farewell){size=.38;cover=phase==='farewell'?smooth(t/.65):1-smooth(t/1.4);scatter=phase==='bloom'?smooth(t/1.4):0;}
+  if(farewell){size=(MOTHER_PUFF.friendlyHeight+.45)/MOTHER_PUFF.height;cover=phase==='farewell'?smooth(t/.65):1-smooth(t/1.4);scatter=phase==='bloom'?smooth(t/1.4):0;}
   v.material.opacity=cover;
   v.material.depthWrite=cover>.97;
   v.root.position.set(b.x,b.y,0);

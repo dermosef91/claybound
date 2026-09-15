@@ -59,17 +59,17 @@ game.player.facing=-1;step(100);assert(Math.abs(c.turn-Math.PI)<.01);
 game.player.facing=1;step(100);assert(c.turn<.01);assert.equal(c.model.scale.x,c.model.scale.z);
 console.log('PASS left/right turns preserve model scale and the fixed physics origin');
 
-game.start(0);heroEvent(c,{type:'respawn'});step(118);
+game.start(0);heroEvent(c,{type:'respawn'});step(479);
 assert.equal(c.idleVariant,'idle');assert.equal(c.weights.longIdle,0);assert(c.weights.idle>.99);
-step(4);assert.equal(c.idleVariant,'longIdle');assert(c.actions.longIdle.time<.04,'long idle starts at its beginning after one second');
+step(2);assert.equal(c.idleVariant,'longIdle');assert(c.actions.longIdle.time<.04,'long idle starts at its beginning after four seconds');
 game.pause();const idleClock=c.idleTime,actionClock=c.actions.longIdle.time;step(240);
 assert.equal(c.idleTime,idleClock);assert.equal(c.actions.longIdle.time,actionClock);game.resume();
 step(35,{right:true});assert.equal(c.idleTime,0);assert(c.weights.longIdle<.01,'movement interrupts the fidget');
-game.start(0);heroEvent(c,{type:'respawn'});step(850);
+game.start(0);heroEvent(c,{type:'respawn'});step(1210);
 assert(c.longIdlePlayed);assert.equal(c.idleVariant,'idle');assert(c.weights.idle>.99,'return to the new idle after one fidget');
 const finished=c.actions.longIdle.time;step(300);assert.equal(c.actions.longIdle.time,finished);assert.equal(c.idleVariant,'idle');
 step(1,{right:true});assert.equal(c.longIdlePlayed,false);assert.equal(c.idleTime,0);
-console.log('PASS new default idle, strict one-second delay, interruption, paused timer and one fidget per continuous rest');
+console.log('PASS new default idle, strict four-second delay, interruption, paused timer and one fidget per continuous rest');
 
 // The reward uses the real rig: both wrists reach one stem and normal motion continues.
 game.start(0);heroEvent(c,{type:'respawn'});game.flowerCelebration={id:0,time:.25};
@@ -129,6 +129,6 @@ game.player.vx=2;
 for(let i=0;i<60;i++)animateHero(w,game,1/120);
 assert(c.weights.walk>.98,'automatic entrance still plays the walk animation');
 game.player.vx=0;game.level.boss.state='defeated';
-for(let i=0;i<180;i++)animateHero(w,game,1/120);
+for(let i=0;i<481;i++)animateHero(w,game,1/120);
 assert.equal(c.idleVariant,'longIdle','ordinary rest animation returns after the encounter');
 console.log('PASS boss encounter suppresses relaxed idle and yawn while preserving walking and post-battle idle');

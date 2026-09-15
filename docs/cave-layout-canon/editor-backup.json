@@ -2,9 +2,9 @@
   "format": "claybound-level",
   "version": 1,
   "chapter": 2,
-  "baseVersion": 6,
+  "baseVersion": 7,
   "level": {
-    "layoutVersion": "editor-6-bk9abc",
+    "layoutVersion": "editor-7-bcx3jv",
     "winds": [],
     "crushers": [
       {
@@ -27,7 +27,7 @@
         "holdChannel": "press-a"
       },
       {
-        "x": 92.25,
+        "x": 94,
         "y": 5.25,
         "w": 2,
         "period": 5.4,
@@ -84,17 +84,12 @@
       },
       {
         "platformId": "heart-balcony",
-        "offset": 7,
+        "offset": 3,
         "dir": 1
       },
       {
-        "platformId": "heart-return",
-        "offset": 2,
-        "dir": 0
-      },
-      {
         "platformId": "sluice-hatch",
-        "offset": 3,
+        "offset": 1.1,
         "dir": 0
       },
       {
@@ -183,23 +178,38 @@
       [
         {
           "from": "sluice-balcony",
+          "to": "sluice-lift",
+          "mode": "board"
+        },
+        {
+          "from": "sluice-lift",
           "to": "sluice-branch",
-          "mode": "jump"
+          "mode": "ride"
         },
         {
           "from": "sluice-branch",
+          "to": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-2",
+          "mode": "jump"
+        },
+        {
+          "from": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-2",
           "to": "sluice-flower",
           "mode": "jump"
         },
         {
           "from": "sluice-flower",
-          "to": "sluice-branch",
-          "mode": "fall"
+          "to": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
+          "mode": "jump"
         },
         {
-          "from": "sluice-branch",
+          "from": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
+          "to": "sluice-lift",
+          "mode": "board"
+        },
+        {
+          "from": "sluice-lift",
           "to": "sluice-balcony",
-          "mode": "fall"
+          "mode": "ride"
         }
       ]
     ],
@@ -269,7 +279,7 @@
         "name": "The Last Light",
         "landmark": "bellgate",
         "id": 5,
-        "end": 299
+        "end": 300
       }
     ],
     "platforms": [
@@ -349,14 +359,13 @@
         "section": 1
       },
       {
-        "x": 110,
+        "x": 112.75,
         "y": 0,
-        "w": 13,
-        "checkpoint": 118,
+        "w": 10.25,
         "id": "heart-entry",
         "landmark": "pulsedrum",
         "kind": "stone",
-        "section": 1
+        "section": 2
       },
       {
         "x": 124.75,
@@ -869,7 +878,7 @@
         "x": 112.5,
         "y": 20,
         "w": 13,
-        "h": 15.75,
+        "h": 15,
         "id": "clay-10",
         "kind": "wall",
         "section": 2
@@ -934,7 +943,7 @@
       {
         "x": 161.5,
         "y": 10,
-        "w": 1.25,
+        "w": 8.25,
         "delay": 0.15,
         "id": "clay-14",
         "kind": "crumble",
@@ -943,16 +952,16 @@
       {
         "x": 161.25,
         "y": 7.5,
-        "w": 3,
+        "w": 4,
         "delay": 0.15,
         "id": "clay-14-copy-1-copy-1",
         "kind": "crumble",
         "section": 2
       },
       {
-        "x": 161.5,
+        "x": 161.75,
         "y": 4.75,
-        "w": 4.75,
+        "w": 5.75,
         "delay": 0.15,
         "id": "clay-14-copy-1-copy-1-copy-1-copy-1",
         "kind": "crumble",
@@ -1212,6 +1221,287 @@
         "id": "clay-20",
         "kind": "ledge",
         "section": 5
+      },
+      {
+        "x": 109.75,
+        "y": 0,
+        "w": 3,
+        "checkpoint": 111.25,
+        "id": "clay-21",
+        "kind": "stone",
+        "section": 1
+      }
+    ],
+    "routeLinks": [
+      {
+        "from": "start",
+        "to": "spark-hub",
+        "mode": "walk"
+      },
+      {
+        "from": "spark-hub",
+        "to": "clay-1-copy-3",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-1-copy-3",
+        "to": "spark-rise",
+        "mode": "jump"
+      },
+      {
+        "from": "spark-rise",
+        "to": "clay-1",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-1",
+        "to": "clay-1-copy-4",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-1-copy-4",
+        "to": "spark-relay",
+        "mode": "jump"
+      },
+      {
+        "from": "spark-relay",
+        "to": "spark-hub",
+        "mode": "jump"
+      },
+      {
+        "from": "spark-hub",
+        "to": "clay-2",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-2",
+        "to": "clay-2-copy-1",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-2-copy-1",
+        "to": "clay-2-copy-1-copy-1-copy-1",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-2-copy-1-copy-1-copy-1",
+        "to": "ferry-dock",
+        "mode": "jump"
+      },
+      {
+        "from": "ferry-dock",
+        "to": "furnace-ferry",
+        "mode": "board"
+      },
+      {
+        "from": "furnace-ferry",
+        "to": "ferry-exit",
+        "mode": "ride"
+      },
+      {
+        "from": "ferry-exit",
+        "to": "clay-4",
+        "mode": "board"
+      },
+      {
+        "from": "clay-4",
+        "to": "clay-5",
+        "mode": "ride"
+      },
+      {
+        "from": "clay-5",
+        "to": "heart-entry",
+        "mode": "jump"
+      },
+      {
+        "from": "heart-entry",
+        "to": "heart-boarding",
+        "mode": "jump"
+      },
+      {
+        "from": "heart-boarding",
+        "to": "heart-paddle",
+        "mode": "board"
+      },
+      {
+        "from": "heart-paddle",
+        "to": "clay-12",
+        "mode": "ride"
+      },
+      {
+        "from": "clay-12",
+        "to": "clay-11-copy-1-copy-1",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-11-copy-1-copy-1",
+        "to": "clay-11-copy-1-copy-1-copy-2",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-11-copy-1-copy-1-copy-2",
+        "to": "clay-11-copy-1-copy-1-copy-1-copy-1",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-11-copy-1-copy-1-copy-1-copy-1",
+        "to": "heart-relay",
+        "mode": "jump"
+      },
+      {
+        "from": "heart-relay",
+        "to": "clay-9",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-9",
+        "to": "vault-entry",
+        "mode": "jump"
+      },
+      {
+        "from": "vault-entry",
+        "to": "sluice-hatch",
+        "mode": "walk"
+      },
+      {
+        "from": "sluice-hatch",
+        "to": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
+        "to": "sluice-lift",
+        "mode": "board"
+      },
+      {
+        "from": "sluice-lift",
+        "to": "sluice-balcony",
+        "mode": "ride"
+      },
+      {
+        "from": "sluice-balcony",
+        "to": "clay-16",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-16",
+        "to": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-2-copy-1",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-2-copy-1",
+        "to": "clay-16-copy-1",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-16-copy-1",
+        "to": "sluice-relay",
+        "mode": "jump"
+      },
+      {
+        "from": "sluice-relay",
+        "to": "clay-14-copy-1",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-14-copy-1",
+        "to": "clay-14-copy-1-copy-2-copy-1-copy-1",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-14-copy-1-copy-2-copy-1-copy-1",
+        "to": "clay-14-copy-1-copy-2-copy-1",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-14-copy-1-copy-2-copy-1",
+        "to": "gallery-entry",
+        "mode": "jump"
+      },
+      {
+        "from": "gallery-entry",
+        "to": "gallery-crumble",
+        "mode": "jump"
+      },
+      {
+        "from": "gallery-crumble",
+        "to": "gallery-watch",
+        "mode": "jump"
+      },
+      {
+        "from": "gallery-watch",
+        "to": "gallery-out",
+        "mode": "jump"
+      },
+      {
+        "from": "gallery-out",
+        "to": "last-step",
+        "mode": "jump"
+      },
+      {
+        "from": "last-step",
+        "to": "last-turn",
+        "mode": "jump"
+      },
+      {
+        "from": "last-turn",
+        "to": "last-relay-floor",
+        "mode": "jump"
+      },
+      {
+        "from": "last-relay-floor",
+        "to": "last-return",
+        "mode": "jump"
+      },
+      {
+        "from": "last-return",
+        "to": "last-relay",
+        "mode": "jump"
+      },
+      {
+        "from": "last-relay",
+        "to": "last-return",
+        "mode": "jump"
+      },
+      {
+        "from": "last-return",
+        "to": "last-relay-floor",
+        "mode": "jump"
+      },
+      {
+        "from": "last-relay-floor",
+        "to": "last-bridge",
+        "mode": "jump"
+      },
+      {
+        "from": "last-bridge",
+        "to": "last-pulse",
+        "mode": "jump"
+      },
+      {
+        "from": "last-pulse",
+        "to": "clay-19",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-19",
+        "to": "last-pulse-copy-1",
+        "mode": "jump"
+      },
+      {
+        "from": "last-pulse-copy-1",
+        "to": "clay-19-copy-1",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-19-copy-1",
+        "to": "clay-19-copy-1-copy-1",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-19-copy-1-copy-1",
+        "to": "ember-bell",
+        "mode": "jump"
       }
     ],
     "coins": [
@@ -1429,11 +1719,11 @@
         "kind": "bat"
       },
       {
-        "x": 115.75,
+        "x": 121,
         "y": 0,
         "speed": 0.38,
-        "min": 113.75,
-        "max": 117.75,
+        "min": 119,
+        "max": 123,
         "kind": "spitter"
       },
       {
@@ -1493,215 +1783,38 @@
       {
         "x": 24,
         "end": 32,
-        "title": "Follow the cable",
-        "text": "The relay above opens the grate below. Explore up, then return."
+        "icon": "relay",
+        "title": "Relay",
+        "text": "The relay above opens the grate below. Go up, then come back."
       },
       {
         "x": 58,
         "end": 67,
-        "title": "Steer with your weight",
-        "text": "Stand near an end to drive the ferry. Its centre brakes. Watch the press lamps."
+        "icon": "ferry",
+        "title": "Steer the ferry",
+        "text": "Stand at an end to move, at the centre to stop. Watch the press lamps."
       },
       {
         "x": 124,
         "end": 132,
-        "title": "Ride the turning heart",
-        "text": "Board a cradle, stay near its centre, and step off at the upper balcony."
+        "icon": "wheel",
+        "title": "Turning heart",
+        "text": "Board a cradle, stay near its centre, step off at the upper balcony."
       },
       {
         "x": 170,
         "end": 180,
-        "title": "Something below",
-        "text": "Stomp on the thin shelf to drop through. The lift will bring you back."
+        "icon": "drop",
+        "title": "Drop through",
+        "text": "Stomp on the thin shelf to drop through. The lift brings you back."
       },
       {
         "x": 110,
         "end": 114,
         "y": 0,
-        "title": "Cheeks mean trouble",
-        "text": "A swelling mouth warns of a shot. Use stone cover, then jump onto the spitter."
-      }
-    ],
-    "routeLinks": [
-      {
-        "from": "start",
-        "to": "spark-hub",
-        "mode": "walk"
-      },
-      {
-        "from": "spark-hub",
-        "to": "clay-1-copy-3",
-        "mode": "jump"
-      },
-      {
-        "from": "clay-1-copy-3",
-        "to": "spark-rise",
-        "mode": "jump"
-      },
-      {
-        "from": "spark-rise",
-        "to": "clay-1",
-        "mode": "jump"
-      },
-      {
-        "from": "clay-1",
-        "to": "clay-1-copy-4",
-        "mode": "jump"
-      },
-      {
-        "from": "clay-1-copy-4",
-        "to": "spark-relay",
-        "mode": "jump"
-      },
-      {
-        "from": "spark-relay",
-        "to": "spark-hub",
-        "mode": "fall"
-      },
-      {
-        "from": "spark-hub",
-        "to": "clay-2",
-        "mode": "jump"
-      },
-      {
-        "from": "clay-2",
-        "to": "clay-2-copy-1",
-        "mode": "jump"
-      },
-      {
-        "from": "clay-2-copy-1-copy-1-copy-1",
-        "to": "ferry-dock",
-        "mode": "jump"
-      },
-      {
-        "from": "ferry-dock",
-        "to": "furnace-ferry",
-        "mode": "walk"
-      },
-      {
-        "from": "furnace-ferry",
-        "to": "ferry-exit",
-        "mode": "ride"
-      },
-      {
-        "from": "ferry-exit",
-        "to": "clay-4",
-        "mode": "jump"
-      },
-      {
-        "from": "clay-4",
-        "to": "clay-5",
-        "mode": "jump"
-      },
-      {
-        "from": "clay-5",
-        "to": "clay-5-copy-1",
-        "mode": "jump"
-      },
-      {
-        "from": "clay-5-copy-1",
-        "to": "heart-entry",
-        "mode": "fall"
-      },
-      {
-        "from": "heart-entry",
-        "to": "heart-boarding",
-        "mode": "jump"
-      },
-      {
-        "from": "heart-boarding",
-        "to": "heart-paddle",
-        "mode": "board"
-      },
-      {
-        "from": "heart-paddle",
-        "to": "heart-balcony",
-        "mode": "ride"
-      },
-      {
-        "from": "heart-balcony",
-        "to": "heart-relay",
-        "mode": "walk"
-      },
-      {
-        "from": "heart-relay",
-        "to": "heart-descent",
-        "mode": "fall"
-      },
-      {
-        "from": "heart-floor",
-        "to": "vault-entry",
-        "mode": "walk"
-      },
-      {
-        "from": "vault-entry",
-        "to": "sluice-hatch",
-        "mode": "walk"
-      },
-      {
-        "from": "sluice-hatch",
-        "to": "sluice-relay",
-        "mode": "fall"
-      },
-      {
-        "from": "sluice-lift",
-        "to": "sluice-balcony",
-        "mode": "ride"
-      },
-      {
-        "from": "sluice-floor",
-        "to": "gallery-entry",
-        "mode": "walk"
-      },
-      {
-        "from": "gallery-crumble",
-        "to": "gallery-watch",
-        "mode": "jump"
-      },
-      {
-        "from": "gallery-watch",
-        "to": "gallery-out",
-        "mode": "fall"
-      },
-      {
-        "from": "gallery-out",
-        "to": "last-step",
-        "mode": "jump"
-      },
-      {
-        "from": "last-step",
-        "to": "last-turn",
-        "mode": "jump"
-      },
-      {
-        "from": "last-turn",
-        "to": "last-relay-floor",
-        "mode": "jump"
-      },
-      {
-        "from": "last-relay-floor",
-        "to": "last-relay",
-        "mode": "walk"
-      },
-      {
-        "from": "last-relay",
-        "to": "last-return",
-        "mode": "fall"
-      },
-      {
-        "from": "last-return",
-        "to": "last-bridge",
-        "mode": "fall"
-      },
-      {
-        "from": "last-bridge",
-        "to": "last-pulse",
-        "mode": "jump"
-      },
-      {
-        "from": "last-pulse",
-        "to": "ember-bell",
-        "mode": "jump"
+        "icon": "spitter",
+        "title": "Spitter",
+        "text": "A swelling mouth means a shot is coming. Take cover, then jump on it."
       }
     ],
     "originalDistance": 96.5,

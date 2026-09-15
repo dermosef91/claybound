@@ -1,0 +1,1642 @@
+{
+  "format": "claybound-level",
+  "version": 1,
+  "chapter": 3,
+  "baseVersion": 4,
+  "level": {
+    "layoutVersion": "editor-4-1cx56zc",
+    "winds": [
+      {
+        "x": 80,
+        "y": 9,
+        "w": 12,
+        "h": 12,
+        "fx": 0,
+        "fy": 18,
+        "id": "court-draught",
+        "channel": "draught"
+      },
+      {
+        "x": 287.5,
+        "y": 38,
+        "w": 5.1,
+        "h": 9,
+        "fx": 0,
+        "fy": 18,
+        "id": "belfry-draught",
+        "channel": "belfry"
+      }
+    ],
+    "crushers": [],
+    "circuits": [
+      {
+        "source": "weight1",
+        "channel": "weight-a",
+        "targets": [
+          "counter1"
+        ],
+        "kind": "weight"
+      },
+      {
+        "source": "draught-valve",
+        "channel": "draught",
+        "targets": [
+          "draught-step",
+          "draught-crown"
+        ],
+        "kind": "wind"
+      },
+      {
+        "source": "weight2",
+        "channel": "weight-b",
+        "targets": [
+          "counter2"
+        ],
+        "kind": "weight"
+      },
+      {
+        "source": "weight3",
+        "channel": "weight-c",
+        "targets": [
+          "counter3"
+        ],
+        "kind": "weight"
+      },
+      {
+        "source": "belfry-valve",
+        "channel": "belfry",
+        "targets": [
+          "belfry-crown"
+        ],
+        "kind": "wind"
+      }
+    ],
+    "guides": [
+      {
+        "platformId": "draught-crown",
+        "offset": 0.55,
+        "dir": -1
+      },
+      {
+        "platformId": "draught-crown",
+        "offset": 3.4,
+        "dir": 1
+      },
+      {
+        "platformId": "laundry-high",
+        "offset": 0.55,
+        "dir": -1
+      },
+      {
+        "platformId": "laundry-high",
+        "offset": 3.4,
+        "dir": 1
+      },
+      {
+        "platformId": "stair1",
+        "offset": 0.5,
+        "dir": -1
+      }
+    ],
+    "detours": [
+      [
+        {
+          "from": "draught-crown",
+          "to": "draught-exit",
+          "mode": "jump"
+        }
+      ],
+      [
+        {
+          "from": "laundry-high",
+          "to": "stair-dock",
+          "mode": "jump"
+        }
+      ],
+      [
+        {
+          "from": "stair1",
+          "to": "bell-pocket",
+          "mode": "fall"
+        },
+        {
+          "from": "bell-pocket",
+          "to": "pocket-awning",
+          "mode": "jump"
+        },
+        {
+          "from": "pocket-awning",
+          "to": "stair2",
+          "mode": "jump"
+        }
+      ]
+    ],
+    "recoveries": [],
+    "name": "The Hanging Quarter",
+    "short": "Hanging Quarter",
+    "label": "Weights, draughts & your own hands",
+    "biome": "citadel",
+    "intro": "Everything you have learned hangs over this city. Knead the last bridge to the sky bell.",
+    "sky": "#86a6c5",
+    "fog": "#91abc3",
+    "spawn": {
+      "x": 4.75,
+      "y": 0
+    },
+    "end": 305.5,
+    "previousDistance": 1002.5,
+    "cameraY": 2.15,
+    "sections": [
+      {
+        "x": -8,
+        "name": "The Familiar Rooftops",
+        "landmark": "opening",
+        "id": 0,
+        "end": 50
+      },
+      {
+        "x": 50,
+        "name": "Counterweight Court",
+        "landmark": "counterweight",
+        "id": 1,
+        "end": 112
+      },
+      {
+        "x": 112,
+        "name": "Laundry Switchbacks",
+        "landmark": "bannerarch",
+        "id": 2,
+        "end": 183
+      },
+      {
+        "x": 183,
+        "name": "Gondola Exchange",
+        "landmark": "counterweight",
+        "id": 3,
+        "end": 242
+      },
+      {
+        "x": 242,
+        "name": "The Sky Bell",
+        "landmark": "bellgate",
+        "id": 4,
+        "end": 313.5
+      }
+    ],
+    "platforms": [
+      {
+        "x": -8,
+        "y": 0,
+        "w": 18,
+        "id": "start",
+        "arch": true,
+        "entrance": true,
+        "kind": "stone",
+        "section": 0
+      },
+      {
+        "x": 9,
+        "y": 1.65,
+        "w": 4,
+        "moveY": 0.9,
+        "period": 5.6,
+        "id": "lift1",
+        "kind": "lift",
+        "section": 0
+      },
+      {
+        "x": 14.55,
+        "y": 3.9,
+        "w": 8.5,
+        "checkpoint": 16.5,
+        "id": "roof1",
+        "house": true,
+        "kind": "stone",
+        "section": 0
+      },
+      {
+        "x": 23.05,
+        "y": 7.1,
+        "w": 2.3,
+        "shape": {
+          "from": {
+            "x": 23.05,
+            "y": 7.1,
+            "w": 2.3,
+            "h": 3.05,
+            "slope": 0
+          },
+          "to": {
+            "x": 23.05,
+            "y": 3.9,
+            "w": 7.8,
+            "h": 0.65,
+            "slope": 3.3
+          }
+        },
+        "station": "roof-ramp",
+        "clayRole": "ramp",
+        "id": "roof-ramp",
+        "kind": "clay",
+        "section": 0
+      },
+      {
+        "x": 30.85,
+        "y": 7.2,
+        "w": 3,
+        "id": "tile-dock",
+        "kind": "stone",
+        "section": 0
+      },
+      {
+        "x": 35,
+        "y": 7.6,
+        "w": 3.4,
+        "delay": 1.2,
+        "id": "tile1",
+        "kind": "crumble",
+        "section": 0
+      },
+      {
+        "x": 40,
+        "y": 8.2,
+        "w": 3.4,
+        "delay": 1.1,
+        "id": "tile2",
+        "kind": "crumble",
+        "section": 0
+      },
+      {
+        "x": 45,
+        "y": 8.8,
+        "w": 4,
+        "id": "lookout",
+        "kind": "ledge",
+        "section": 0
+      },
+      {
+        "x": 50,
+        "y": 6.4,
+        "w": 10,
+        "checkpoint": 53,
+        "id": "lower-court",
+        "landmark": "counterweight",
+        "kind": "stone",
+        "section": 1
+      },
+      {
+        "x": 61,
+        "y": 7.2,
+        "w": 5.5,
+        "id": "weight1",
+        "channel": "weight-a",
+        "kind": "balance",
+        "section": 1
+      },
+      {
+        "x": 69,
+        "y": 6.2,
+        "w": 4,
+        "rise": 2.8,
+        "id": "counter1",
+        "channel": "weight-a",
+        "kind": "counter",
+        "section": 1
+      },
+      {
+        "x": 75,
+        "y": 10.2,
+        "w": 6,
+        "id": "court-roof",
+        "house": true,
+        "kind": "stone",
+        "section": 1
+      },
+      {
+        "x": 78.5,
+        "y": 10.33,
+        "w": 1.8,
+        "id": "draught-valve",
+        "channel": "draught",
+        "latch": true,
+        "kind": "switch",
+        "section": 1
+      },
+      {
+        "x": 82,
+        "y": 11.4,
+        "w": 4,
+        "id": "draught-step",
+        "kind": "ledge",
+        "section": 1
+      },
+      {
+        "x": 87,
+        "y": 16.2,
+        "w": 4,
+        "id": "draught-crown",
+        "kind": "ledge",
+        "section": 1
+      },
+      {
+        "x": 93,
+        "y": 17.6,
+        "w": 6,
+        "id": "draught-exit",
+        "kind": "stone",
+        "section": 1
+      },
+      {
+        "x": 101,
+        "y": 15,
+        "w": 10,
+        "id": "garden",
+        "landmark": "oasis",
+        "house": true,
+        "rest": true,
+        "kind": "stone",
+        "section": 1
+      },
+      {
+        "x": 113,
+        "y": 13.3,
+        "w": 8,
+        "checkpoint": 116,
+        "id": "laundry-entry",
+        "landmark": "bannerarch",
+        "kind": "stone",
+        "section": 2
+      },
+      {
+        "x": 123,
+        "y": 14.6,
+        "w": 3.5,
+        "id": "laundry1",
+        "kind": "ledge",
+        "section": 2
+      },
+      {
+        "x": 128,
+        "y": 15.4,
+        "w": 3.2,
+        "id": "awning1",
+        "kind": "spring",
+        "section": 2
+      },
+      {
+        "x": 132.5,
+        "y": 20.6,
+        "w": 4,
+        "id": "laundry-high",
+        "kind": "ledge",
+        "section": 2
+      },
+      {
+        "x": 138.5,
+        "y": 22.6,
+        "w": 5.5,
+        "id": "stair-dock",
+        "kind": "stone",
+        "section": 2
+      },
+      {
+        "x": 144,
+        "y": 27.9,
+        "w": 0.85,
+        "shape": {
+          "from": {
+            "x": 144,
+            "y": 27.9,
+            "w": 0.85,
+            "h": 8.5
+          },
+          "to": {
+            "x": 144,
+            "y": 24.3,
+            "w": 2.4,
+            "h": 4.9
+          }
+        },
+        "station": "laundry-stairs",
+        "clayRole": "stairs",
+        "id": "laundry-stair-0",
+        "kind": "clay",
+        "section": 2
+      },
+      {
+        "x": 144.8,
+        "y": 27.9,
+        "w": 0.85,
+        "shape": {
+          "from": {
+            "x": 144.8,
+            "y": 27.9,
+            "w": 0.85,
+            "h": 8.5
+          },
+          "to": {
+            "x": 146.4,
+            "y": 26.1,
+            "w": 2.4,
+            "h": 6.7
+          }
+        },
+        "station": "laundry-stairs",
+        "clayRole": "stairs",
+        "id": "laundry-stair-1",
+        "kind": "clay",
+        "section": 2
+      },
+      {
+        "x": 145.6,
+        "y": 27.9,
+        "w": 0.85,
+        "shape": {
+          "from": {
+            "x": 145.6,
+            "y": 27.9,
+            "w": 0.85,
+            "h": 8.5
+          },
+          "to": {
+            "x": 148.8,
+            "y": 27.900000000000002,
+            "w": 2.4,
+            "h": 8.5
+          }
+        },
+        "station": "laundry-stairs",
+        "clayRole": "stairs",
+        "id": "laundry-stair-2",
+        "kind": "clay",
+        "section": 2
+      },
+      {
+        "x": 151.2,
+        "y": 27.9,
+        "w": 6,
+        "id": "laundry-roof",
+        "arch": true,
+        "house": true,
+        "kind": "stone",
+        "section": 2
+      },
+      {
+        "x": 158.5,
+        "y": 24.8,
+        "w": 4,
+        "id": "laundry-drop",
+        "kind": "ledge",
+        "section": 2
+      },
+      {
+        "x": 164,
+        "y": 24.4,
+        "w": 4,
+        "moveY": 1.8,
+        "period": 5.4,
+        "phase": -1.57,
+        "id": "laundry-lift",
+        "kind": "lift",
+        "section": 2
+      },
+      {
+        "x": 169.5,
+        "y": 26.9,
+        "w": 4,
+        "id": "laundry-return",
+        "kind": "ledge",
+        "section": 2
+      },
+      {
+        "x": 175,
+        "y": 27.9,
+        "w": 7,
+        "checkpoint": 178,
+        "id": "laundry-home",
+        "house": true,
+        "kind": "stone",
+        "section": 2
+      },
+      {
+        "x": 183.5,
+        "y": 26.5,
+        "w": 4,
+        "id": "exchange-step",
+        "kind": "ledge",
+        "section": 3
+      },
+      {
+        "x": 189.5,
+        "y": 24.9,
+        "w": 8,
+        "checkpoint": 192.5,
+        "id": "exchange-entry",
+        "landmark": "counterweight",
+        "kind": "stone",
+        "section": 3
+      },
+      {
+        "x": 199.5,
+        "y": 25.6,
+        "w": 3.4,
+        "period": 4.6,
+        "duty": 0.74,
+        "id": "lamp1",
+        "kind": "pulse",
+        "section": 3
+      },
+      {
+        "x": 205,
+        "y": 26.3,
+        "w": 3.4,
+        "period": 4.6,
+        "phase": 0.5,
+        "duty": 0.74,
+        "id": "lamp2",
+        "kind": "pulse",
+        "section": 3
+      },
+      {
+        "x": 210.5,
+        "y": 27,
+        "w": 4,
+        "moveX": 1,
+        "moveY": 0.4,
+        "period": 5.2,
+        "phase": -0.6,
+        "id": "exchange1",
+        "kind": "lift",
+        "section": 3
+      },
+      {
+        "x": 216.5,
+        "y": 28.1,
+        "w": 4,
+        "moveX": 1,
+        "moveY": 0.4,
+        "period": 5.2,
+        "phase": 2.54,
+        "id": "exchange2",
+        "kind": "lift",
+        "section": 3
+      },
+      {
+        "x": 223,
+        "y": 28.8,
+        "w": 5,
+        "id": "weight2",
+        "channel": "weight-b",
+        "kind": "balance",
+        "section": 3
+      },
+      {
+        "x": 230.5,
+        "y": 27.8,
+        "w": 3.6,
+        "rise": 2.8,
+        "id": "counter2",
+        "channel": "weight-b",
+        "kind": "counter",
+        "section": 3
+      },
+      {
+        "x": 236.5,
+        "y": 30.4,
+        "w": 6,
+        "checkpoint": 239.5,
+        "id": "gallery-low",
+        "kind": "stone",
+        "section": 3
+      },
+      {
+        "x": 244.5,
+        "y": 32.6,
+        "w": 6,
+        "id": "gallery-high",
+        "kind": "stone",
+        "section": 4
+      },
+      {
+        "x": 253,
+        "y": 33.2,
+        "w": 5,
+        "id": "weight3",
+        "channel": "weight-c",
+        "kind": "balance",
+        "section": 4
+      },
+      {
+        "x": 260.5,
+        "y": 32.2,
+        "w": 3.6,
+        "rise": 2.8,
+        "id": "counter3",
+        "channel": "weight-c",
+        "kind": "counter",
+        "section": 4
+      },
+      {
+        "x": 266.5,
+        "y": 35.6,
+        "w": 6,
+        "checkpoint": 268,
+        "id": "bell-court",
+        "landmark": "bellgate",
+        "rest": true,
+        "kind": "stone",
+        "section": 4
+      },
+      {
+        "x": 270.5,
+        "y": 35.73,
+        "w": 1.8,
+        "id": "belfry-valve",
+        "channel": "belfry",
+        "latch": true,
+        "kind": "switch",
+        "section": 4
+      },
+      {
+        "x": 274.5,
+        "y": 36.6,
+        "w": 3,
+        "delay": 1,
+        "id": "stair1",
+        "kind": "crumble",
+        "section": 4
+      },
+      {
+        "x": 275.5,
+        "y": 32.8,
+        "w": 3.4,
+        "id": "bell-pocket",
+        "optional": true,
+        "kind": "ledge",
+        "section": 4
+      },
+      {
+        "x": 280,
+        "y": 32.4,
+        "w": 3,
+        "id": "pocket-awning",
+        "kind": "spring",
+        "section": 4
+      },
+      {
+        "x": 279.5,
+        "y": 37.6,
+        "w": 3,
+        "delay": 0.9,
+        "id": "stair2",
+        "kind": "crumble",
+        "section": 4
+      },
+      {
+        "x": 283,
+        "y": 38.4,
+        "w": 4,
+        "checkpoint": 285,
+        "id": "bell-rest",
+        "kind": "stone",
+        "section": 4
+      },
+      {
+        "x": 288.5,
+        "y": 39.4,
+        "w": 3,
+        "id": "belfry-step",
+        "kind": "ledge",
+        "section": 4
+      },
+      {
+        "x": 293,
+        "y": 44.2,
+        "w": 2.6,
+        "id": "belfry-crown",
+        "kind": "ledge",
+        "section": 4
+      },
+      {
+        "x": 295.6,
+        "y": 48.5,
+        "w": 1.9,
+        "shape": {
+          "from": {
+            "x": 295.6,
+            "y": 48.5,
+            "w": 1.9,
+            "h": 4.8
+          },
+          "to": {
+            "x": 295.6,
+            "y": 44.2,
+            "w": 1.9,
+            "h": 0.65
+          }
+        },
+        "station": "belfry-span",
+        "clayRole": "bridge",
+        "id": "belfry-span",
+        "kind": "clay",
+        "section": 4
+      },
+      {
+        "x": 297.5,
+        "y": 44.2,
+        "w": 16,
+        "bellX": 8,
+        "id": "sky-bell",
+        "goal": true,
+        "arch": true,
+        "house": true,
+        "kind": "stone",
+        "section": 4
+      },
+      {
+        "x": 74,
+        "y": 22,
+        "w": 2.25,
+        "delay": 0.35,
+        "id": "clay-1",
+        "kind": "crumble",
+        "section": 1
+      },
+      {
+        "x": 78.5,
+        "y": 19.75,
+        "w": 2.25,
+        "delay": 0.35,
+        "id": "clay-1-copy-1",
+        "kind": "crumble",
+        "section": 1
+      },
+      {
+        "x": 82.75,
+        "y": 18,
+        "w": 2.25,
+        "delay": 0.35,
+        "id": "clay-1-copy-1-copy-1",
+        "kind": "crumble",
+        "section": 1
+      },
+      {
+        "x": 125.5,
+        "y": 25.25,
+        "w": 4,
+        "moveY": 5,
+        "period": 5,
+        "id": "clay-2",
+        "kind": "lift",
+        "section": 2
+      },
+      {
+        "x": 116.5,
+        "y": 27.5,
+        "w": 4,
+        "moveX": 4,
+        "moveY": 4,
+        "period": 12,
+        "id": "clay-3",
+        "kind": "orbit",
+        "section": 2
+      },
+      {
+        "x": 108.75,
+        "y": 27.25,
+        "w": 3,
+        "delay": 0.15,
+        "id": "clay-4",
+        "kind": "crumble",
+        "section": 1
+      },
+      {
+        "x": 116.5,
+        "y": 27.5,
+        "w": 4,
+        "moveX": 4,
+        "moveY": 4,
+        "period": 12,
+        "phase": 2,
+        "id": "clay-3-copy-1",
+        "kind": "orbit",
+        "section": 2
+      },
+      {
+        "x": 116.75,
+        "y": 27.5,
+        "w": 4,
+        "moveX": 4,
+        "moveY": 4,
+        "period": 12,
+        "phase": 4,
+        "id": "clay-3-copy-1-copy-1",
+        "kind": "orbit",
+        "section": 2
+      }
+    ],
+    "shaping": [
+      {
+        "id": "roof-ramp",
+        "name": "Stretch a ramp",
+        "verb": "Pull right",
+        "gesture": "right",
+        "parts": [
+          "roof-ramp"
+        ],
+        "x": 14,
+        "end": 31,
+        "spawn": {
+          "x": 18,
+          "y": 3.9,
+          "groundId": "roof1"
+        },
+        "hint": "Drag the orange clay to the right, or hold E / KNEAD, to stretch a walkable ramp. R resets it."
+      },
+      {
+        "id": "laundry-stairs",
+        "name": "Wall into stairs",
+        "verb": "Pull right",
+        "gesture": "right",
+        "parts": [
+          "laundry-stair-0",
+          "laundry-stair-1",
+          "laundry-stair-2"
+        ],
+        "x": 138,
+        "end": 152,
+        "spawn": {
+          "x": 141,
+          "y": 22.6,
+          "groundId": "stair-dock"
+        },
+        "hint": "Pull the tall clay wall to the right, or hold E / KNEAD, to knead out three steps."
+      },
+      {
+        "id": "belfry-span",
+        "name": "Press the last bridge",
+        "verb": "Press down",
+        "gesture": "down",
+        "parts": [
+          "belfry-span"
+        ],
+        "x": 288,
+        "end": 300,
+        "spawn": {
+          "x": 294,
+          "y": 44.2,
+          "groundId": "belfry-crown"
+        },
+        "hint": "Press the clay plug down — drag, hold E / KNEAD, or stomp it — and walk your own bridge to the bell."
+      }
+    ],
+    "coins": [
+      {
+        "x": 11.1,
+        "y": 3.2
+      },
+      {
+        "x": 25.2,
+        "y": 6.329006727063226
+      },
+      {
+        "x": 26.4,
+        "y": 7.255950864665639
+      },
+      {
+        "x": 27.6,
+        "y": 7.855950864665639
+      },
+      {
+        "x": 28.8,
+        "y": 8.129006727063226
+      },
+      {
+        "x": 36.7,
+        "y": 9
+      },
+      {
+        "x": 41.7,
+        "y": 9.6
+      },
+      {
+        "x": 46.7,
+        "y": 10.1
+      },
+      {
+        "x": 63.1,
+        "y": 8.6
+      },
+      {
+        "x": 71.1,
+        "y": 10.4
+      },
+      {
+        "x": 83.8,
+        "y": 14.227785252292474
+      },
+      {
+        "x": 84.6,
+        "y": 15.431056516295154
+      },
+      {
+        "x": 85.4,
+        "y": 16.271056516295154
+      },
+      {
+        "x": 96.2,
+        "y": 19
+      },
+      {
+        "x": 105.75,
+        "y": 16.75
+      },
+      {
+        "x": 130,
+        "y": 18.25
+      },
+      {
+        "x": 131,
+        "y": 20.5
+      },
+      {
+        "x": 139.5,
+        "y": 24
+      },
+      {
+        "x": 140.6,
+        "y": 24
+      },
+      {
+        "x": 146,
+        "y": 27.011449676604734
+      },
+      {
+        "x": 147,
+        "y": 27.865739561406606
+      },
+      {
+        "x": 148,
+        "y": 28.465739561406608
+      },
+      {
+        "x": 149,
+        "y": 28.81144967660473
+      },
+      {
+        "x": 159,
+        "y": 26.2
+      },
+      {
+        "x": 160.1,
+        "y": 26.2
+      },
+      {
+        "x": 170,
+        "y": 28.3
+      },
+      {
+        "x": 171.1,
+        "y": 28.3
+      },
+      {
+        "x": 177,
+        "y": 29.3
+      },
+      {
+        "x": 178.1,
+        "y": 29.3
+      },
+      {
+        "x": 179.2,
+        "y": 29.3
+      },
+      {
+        "x": 190.5,
+        "y": 26.3
+      },
+      {
+        "x": 191.6,
+        "y": 26.3
+      },
+      {
+        "x": 192.7,
+        "y": 26.3
+      },
+      {
+        "x": 200,
+        "y": 27
+      },
+      {
+        "x": 201.1,
+        "y": 27
+      },
+      {
+        "x": 205.5,
+        "y": 27.7
+      },
+      {
+        "x": 206.6,
+        "y": 27.7
+      },
+      {
+        "x": 212.5,
+        "y": 29.149006727063224
+      },
+      {
+        "x": 214.5,
+        "y": 29.695950864665637
+      },
+      {
+        "x": 216.5,
+        "y": 29.915950864665636
+      },
+      {
+        "x": 218.5,
+        "y": 29.809006727063224
+      },
+      {
+        "x": 224,
+        "y": 30.2
+      },
+      {
+        "x": 225.1,
+        "y": 30.2
+      },
+      {
+        "x": 247.7,
+        "y": 34
+      },
+      {
+        "x": 255.1,
+        "y": 34.6
+      },
+      {
+        "x": 267,
+        "y": 37
+      },
+      {
+        "x": 276.1,
+        "y": 38
+      },
+      {
+        "x": 281.1,
+        "y": 39
+      },
+      {
+        "x": 290.3,
+        "y": 42.150228201833976
+      },
+      {
+        "x": 291.1,
+        "y": 43.320845213036115
+      },
+      {
+        "x": 291.9,
+        "y": 44.20084521303612
+      },
+      {
+        "x": 292.7,
+        "y": 44.790228201833976
+      },
+      {
+        "x": 299,
+        "y": 45.6
+      },
+      {
+        "x": 300.1,
+        "y": 45.6
+      },
+      {
+        "x": 301.2,
+        "y": 45.6
+      },
+      {
+        "x": 302.3,
+        "y": 45.6
+      }
+    ],
+    "stamps": [
+      {
+        "x": 75.25,
+        "y": 22.75
+      },
+      {
+        "x": 277.2,
+        "y": 33.8
+      },
+      {
+        "x": 110.25,
+        "y": 28.5
+      }
+    ],
+    "enemies": [
+      {
+        "x": 46.5,
+        "y": 8.8,
+        "speed": 1.4,
+        "min": 45.3,
+        "max": 48
+      },
+      {
+        "x": 57,
+        "y": 6.4,
+        "speed": 1.5,
+        "min": 55,
+        "max": 59
+      },
+      {
+        "x": 154,
+        "y": 28.5,
+        "period": 4.6,
+        "bob": 0.55,
+        "speed": 1.25,
+        "min": 152,
+        "max": 156.5,
+        "kind": "bat"
+      },
+      {
+        "x": 180.4,
+        "y": 27.9,
+        "speed": 1.6,
+        "min": 179.7,
+        "max": 181.4
+      },
+      {
+        "x": 241.5,
+        "y": 33.8,
+        "period": 4.6,
+        "phase": 1.5,
+        "bob": 0.55,
+        "speed": 1.25,
+        "min": 240.6,
+        "max": 242.4,
+        "kind": "bat"
+      },
+      {
+        "x": 18.25,
+        "y": 3.75,
+        "speed": 1.5,
+        "min": 18.25,
+        "max": 22
+      }
+    ],
+    "hazards": [
+      {
+        "x": 10,
+        "y": -2.6,
+        "w": 4.5
+      },
+      {
+        "x": 23.05,
+        "y": 2.2,
+        "w": 7.8
+      },
+      {
+        "x": 34,
+        "y": 5.6,
+        "w": 11
+      },
+      {
+        "x": 66.4,
+        "y": 4.6,
+        "w": 2.7
+      },
+      {
+        "x": 73.1,
+        "y": 7.4,
+        "w": 1.8
+      },
+      {
+        "x": 81.1,
+        "y": 9,
+        "w": 5.8
+      },
+      {
+        "x": 91.1,
+        "y": 14.6,
+        "w": 1.8
+      },
+      {
+        "x": 99.1,
+        "y": 13,
+        "w": 1.8
+      },
+      {
+        "x": 111.1,
+        "y": 11.5,
+        "w": 1.8
+      },
+      {
+        "x": 121.1,
+        "y": 12.8,
+        "w": 1.8
+      },
+      {
+        "x": 126.6,
+        "y": 13.5,
+        "w": 1.3
+      },
+      {
+        "x": 131.3,
+        "y": 13.5,
+        "w": 1.1
+      },
+      {
+        "x": 136.6,
+        "y": 18.5,
+        "w": 1.8
+      },
+      {
+        "x": 144.1,
+        "y": 20,
+        "w": 7
+      },
+      {
+        "x": 157.3,
+        "y": 22,
+        "w": 1.1
+      },
+      {
+        "x": 162.6,
+        "y": 21,
+        "w": 1.3
+      },
+      {
+        "x": 168.1,
+        "y": 21,
+        "w": 1.3
+      },
+      {
+        "x": 173.6,
+        "y": 25,
+        "w": 1.3
+      },
+      {
+        "x": 182.1,
+        "y": 24.5,
+        "w": 1.3
+      },
+      {
+        "x": 187.6,
+        "y": 23,
+        "w": 1.8
+      },
+      {
+        "x": 197.6,
+        "y": 23.5,
+        "w": 1.8
+      },
+      {
+        "x": 203,
+        "y": 24,
+        "w": 1.9
+      },
+      {
+        "x": 208.5,
+        "y": 24.5,
+        "w": 1.9
+      },
+      {
+        "x": 214.6,
+        "y": 25.5,
+        "w": 1.8
+      },
+      {
+        "x": 220.6,
+        "y": 26,
+        "w": 2.3
+      },
+      {
+        "x": 228.1,
+        "y": 25.5,
+        "w": 2.3
+      },
+      {
+        "x": 234.2,
+        "y": 26.8,
+        "w": 2.2
+      },
+      {
+        "x": 242.6,
+        "y": 29,
+        "w": 1.8
+      },
+      {
+        "x": 250.6,
+        "y": 31,
+        "w": 2.3
+      },
+      {
+        "x": 258.1,
+        "y": 30.5,
+        "w": 2.3
+      },
+      {
+        "x": 264.2,
+        "y": 30.5,
+        "w": 2.2
+      },
+      {
+        "x": 272.6,
+        "y": 31.5,
+        "w": 1.8
+      },
+      {
+        "x": 275.5,
+        "y": 29,
+        "w": 7.5
+      },
+      {
+        "x": 287.1,
+        "y": 36,
+        "w": 1.3
+      },
+      {
+        "x": 291.6,
+        "y": 37.5,
+        "w": 1.3
+      },
+      {
+        "x": 295.7,
+        "y": 41,
+        "w": 1.7
+      },
+      {
+        "x": 117.25,
+        "y": 27.75,
+        "w": 2.25
+      }
+    ],
+    "hints": [
+      {
+        "x": 14,
+        "end": 31,
+        "icon": "ramp",
+        "title": "Shape the clay",
+        "text": "Drag and drop the clay to move it, or hold E.",
+        "touchText": "Drag and drop the clay to move it."
+      },
+      {
+        "x": 50,
+        "end": 66,
+        "title": "Counterweight",
+        "text": "Stand on the right end of the beam until the lift locks high."
+      }
+    ],
+    "routeLinks": [
+      {
+        "from": "start",
+        "to": "lift1",
+        "mode": "jump"
+      },
+      {
+        "from": "lift1",
+        "to": "roof1",
+        "mode": "jump"
+      },
+      {
+        "from": "roof1",
+        "to": "roof-ramp",
+        "mode": "walk"
+      },
+      {
+        "from": "roof-ramp",
+        "to": "tile-dock",
+        "mode": "walk"
+      },
+      {
+        "from": "tile-dock",
+        "to": "tile1",
+        "mode": "jump"
+      },
+      {
+        "from": "tile1",
+        "to": "tile2",
+        "mode": "jump"
+      },
+      {
+        "from": "tile2",
+        "to": "lookout",
+        "mode": "jump"
+      },
+      {
+        "from": "lookout",
+        "to": "lower-court",
+        "mode": "fall"
+      },
+      {
+        "from": "lower-court",
+        "to": "weight1",
+        "mode": "jump"
+      },
+      {
+        "from": "weight1",
+        "to": "counter1",
+        "mode": "jump"
+      },
+      {
+        "from": "counter1",
+        "to": "court-roof",
+        "mode": "jump"
+      },
+      {
+        "from": "court-roof",
+        "to": "draught-valve",
+        "mode": "walk"
+      },
+      {
+        "from": "draught-valve",
+        "to": "draught-step",
+        "mode": "jump"
+      },
+      {
+        "from": "draught-step",
+        "to": "draught-crown",
+        "mode": "jump"
+      },
+      {
+        "from": "draught-crown",
+        "to": "draught-exit",
+        "mode": "jump"
+      },
+      {
+        "from": "draught-exit",
+        "to": "garden",
+        "mode": "fall"
+      },
+      {
+        "from": "garden",
+        "to": "laundry-entry",
+        "mode": "fall"
+      },
+      {
+        "from": "laundry-entry",
+        "to": "laundry1",
+        "mode": "jump"
+      },
+      {
+        "from": "laundry1",
+        "to": "awning1",
+        "mode": "jump"
+      },
+      {
+        "from": "awning1",
+        "to": "laundry-high",
+        "mode": "jump"
+      },
+      {
+        "from": "laundry-high",
+        "to": "stair-dock",
+        "mode": "jump"
+      },
+      {
+        "from": "stair-dock",
+        "to": "laundry-stair-0",
+        "mode": "jump"
+      },
+      {
+        "from": "laundry-stair-0",
+        "to": "laundry-stair-1",
+        "mode": "jump"
+      },
+      {
+        "from": "laundry-stair-1",
+        "to": "laundry-stair-2",
+        "mode": "jump"
+      },
+      {
+        "from": "laundry-stair-2",
+        "to": "laundry-roof",
+        "mode": "walk"
+      },
+      {
+        "from": "laundry-roof",
+        "to": "laundry-drop",
+        "mode": "fall"
+      },
+      {
+        "from": "laundry-drop",
+        "to": "laundry-lift",
+        "mode": "jump"
+      },
+      {
+        "from": "laundry-lift",
+        "to": "laundry-return",
+        "mode": "jump"
+      },
+      {
+        "from": "laundry-return",
+        "to": "laundry-home",
+        "mode": "jump"
+      },
+      {
+        "from": "laundry-home",
+        "to": "exchange-step",
+        "mode": "fall"
+      },
+      {
+        "from": "exchange-step",
+        "to": "exchange-entry",
+        "mode": "fall"
+      },
+      {
+        "from": "exchange-entry",
+        "to": "lamp1",
+        "mode": "jump"
+      },
+      {
+        "from": "lamp1",
+        "to": "lamp2",
+        "mode": "jump"
+      },
+      {
+        "from": "lamp2",
+        "to": "exchange1",
+        "mode": "jump"
+      },
+      {
+        "from": "exchange1",
+        "to": "exchange2",
+        "mode": "jump"
+      },
+      {
+        "from": "exchange2",
+        "to": "weight2",
+        "mode": "jump"
+      },
+      {
+        "from": "weight2",
+        "to": "counter2",
+        "mode": "jump"
+      },
+      {
+        "from": "counter2",
+        "to": "gallery-low",
+        "mode": "jump"
+      },
+      {
+        "from": "gallery-low",
+        "to": "gallery-high",
+        "mode": "jump"
+      },
+      {
+        "from": "gallery-high",
+        "to": "weight3",
+        "mode": "jump"
+      },
+      {
+        "from": "weight3",
+        "to": "counter3",
+        "mode": "jump"
+      },
+      {
+        "from": "counter3",
+        "to": "bell-court",
+        "mode": "jump"
+      },
+      {
+        "from": "bell-court",
+        "to": "belfry-valve",
+        "mode": "walk"
+      },
+      {
+        "from": "belfry-valve",
+        "to": "stair1",
+        "mode": "jump"
+      },
+      {
+        "from": "stair1",
+        "to": "stair2",
+        "mode": "jump"
+      },
+      {
+        "from": "stair2",
+        "to": "bell-rest",
+        "mode": "jump"
+      },
+      {
+        "from": "bell-rest",
+        "to": "belfry-step",
+        "mode": "jump"
+      },
+      {
+        "from": "belfry-step",
+        "to": "belfry-crown",
+        "mode": "jump"
+      },
+      {
+        "from": "belfry-crown",
+        "to": "belfry-span",
+        "mode": "walk"
+      },
+      {
+        "from": "belfry-span",
+        "to": "sky-bell",
+        "mode": "walk"
+      }
+    ],
+    "originalDistance": 100.25,
+    "custom": true
+  }
+}

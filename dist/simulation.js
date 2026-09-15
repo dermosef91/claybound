@@ -238,9 +238,11 @@ export class Game {
     if(section&&section.id!==this.sectionId){this.sectionId=section.id;this.event('section',{section});}
     for(const c of L.coins)if(!c.taken&&Math.hypot(p.x-c.x,p.y+.65-c.y)<.8){c.taken=true;this.coins++;this.event('coin',{x:c.x,y:c.y});}
     for(const c of L.stamps)if(!c.taken&&Math.hypot(p.x-c.x,p.y+.8-c.y)<.9){
-      c.taken=true;this.stamps++;this.flowerCelebration={id:c.id,time:0};p.jumpBuffer=0;
+      c.taken=true;this.stamps++;this.flowerCelebration={id:c.id,time:0};
       this.event('stamp',{x:c.x,y:c.y,id:c.id});
-      return;
+      // Collection is a presentation event. Keep the active jump state and
+      // finish the simulation tick normally, while collecting at most one flower.
+      break;
     }
     for(const e of L.enemies)if(e.alive&&e.kind==='bat'){
       const top=e.y+BAT.top,above=prevY>=(e.prevY??e.y)+BAT.top-.18;
@@ -274,7 +276,7 @@ export class Game {
     contactMotherPuff(this,previousPlayer,input,RULES);
     updateShots(this,dt,previousPlayer);
     for(const e of L.enemies)if(e.alive&&!['bat','drifter','spore','spitter'].includes(e.kind)&&Math.abs(p.x-e.x)<.72&&p.y<e.y+.83&&p.y+RULES.height>e.y+.15){
-      if(p.vy<0&&prevY>e.y+.54){e.alive=false;p.y=e.y+.85;p.vy=input.jumpHeld?12.6:9.5;p.groundId=null;p.stomping=false;p.springing=true;this.event('squish',{x:e.x,y:e.y});}
+      if(p.vy<0&&prevY>e.y+.54){e.alive=false;p.y=e.y+.85;p.vy=input.jumpHeld?12.6:9.5;p.groundId=null;p.stomping=false;p.springing=true;this.event('squish',{x:e.x,y:e.y,kind:'clayling'});}
       else this.damage();
     }
     for(const h of L.hazards)if(p.x+.2>h.x&&p.x-.2<h.x+h.w&&p.y<h.y+.7&&p.y+RULES.height>h.y-.4)this.damage(true);

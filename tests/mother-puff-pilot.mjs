@@ -1,12 +1,14 @@
 // A replayable input-only pilot. No teleports, invulnerability, timer edits,
 // damage calls, or direct boss-state changes during the encounter. It reads
 // visible landing markers, waits through the early volley, then uses its one
-// late yellow cap and simply lands on the crown.
+// late orange cap and simply lands on the crown.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function motherInput(g){
   const p=g.player,b=g.level.boss;
-  let aim=b.state==='defeated'?b.right+4:b.left+8;
-  const pad=b.patches.find(s=>s.color==='yellow'),seed=b.spores.find(s=>s.color==='yellow');
+  const orangeTime=9*1.4;
+  const baiting=b.state==='release'&&b.stateTime>=orangeTime-2.4;
+  let aim=b.state==='defeated'?b.right+4:baiting?b.x-5.9:b.left+12;
+  const pad=b.patches.find(s=>s.color==='orange'),seed=b.spores.find(s=>s.color==='orange');
   if(pad||seed)aim=pad?.x??seed.targetX;
   if(p.motherBounce)aim=b.x-1;
   if(b.state==='sleeping')aim=b.triggerX+.5;
@@ -14,12 +16,12 @@ export function motherInput(g){
   let jumpPressed=false;
   if(!p.motherBounce&&b.hits<3){
     // A purple marker gives nearly two seconds to leave its landing circle.
-    const danger=b.spores.find(s=>s.color==='purple'&&Math.abs(s.targetX-p.x)<3.0&&s.duration-s.age<1.35)
+    const danger=b.spores.find(s=>s.color==='purple'&&Math.abs(s.targetX-p.x)<3.0)
       ||b.patches.find(s=>s.color==='purple'&&s.age<.32&&Math.abs(s.x-p.x)<3.0);
     if(danger){
       const x=danger.targetX??danger.x;
       const left=clamp(x-3.3,b.left+.5,b.x-3.4),right=clamp(x+3.3,b.left+.5,b.x-3.4);
-      aim=Math.abs(p.x-left)<Math.abs(p.x-right)?left:right;
+      aim=Math.abs(aim-left)<Math.abs(aim-right)?left:right;
       if(grounded&&Math.abs(p.x-x)<2.7)jumpPressed=true;
     }
     const child=g.level.enemies.find(e=>e.motherChild&&e.alive&&Math.abs(e.x-p.x)<3.9&&Math.abs(e.y-p.y)<2);
