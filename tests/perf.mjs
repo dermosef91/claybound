@@ -1,6 +1,7 @@
 // Steady-state frame profiler: builds one chapter, then runs the per-frame
 // update repeatedly so a CPU profile shows only what a playing frame costs.
 import {prepareSporeAsset} from '../dist/spore-puff.js';
+import {prepareMotherPuff} from '../dist/mother-puff.js';
 import {prepareBatAsset} from '../dist/bats.js';
 import * as THREE from '../dist/lib/three.module.js';
 import {World} from '../dist/world.js';
@@ -40,6 +41,7 @@ prepareCloudAsset(w,await readGLB(new URL('../dist/assets/cloud.glb',import.meta
 prepareCityLaundry(w,await readGLB(new URL('../dist/assets/city-laundry.glb',import.meta.url)));
 await attachCanyon(w);await attachWindmills(w);await attachForest(w);await attachGrotto(w);await attachDrifter(w);
 prepareSporeAsset(w,await readGLB(new URL('../dist/assets/spore-puff.glb',import.meta.url)));
+for(const pose of ['idle','cast','friendly'])prepareMotherPuff(w,pose,await readGLB(new URL(`../dist/assets/mother-puff-${pose}.glb`,import.meta.url)));
 await attachClay(w);await attachSpitter(w);
 
 const frustum=new THREE.Frustum(),projection=new THREE.Matrix4(),sphere=new THREE.Sphere();

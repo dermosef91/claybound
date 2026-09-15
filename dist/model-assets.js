@@ -1,6 +1,14 @@
 import {GLTFLoader} from './lib/GLTFLoader.js';
 
-export const assetURL=name=>new URL('./assets/'+name,import.meta.url).href;
+// Resolved against the page, not this module: unbundled these are the same
+// place, but a production build moves the module into a hashed chunk and only
+// the document still knows where ./assets/ lives. Test DOMs supply no base at
+// all, so this falls back to the module's own URL rather than throwing.
+const assetBase=()=>{
+  const base=globalThis.document?.baseURI;
+  return typeof base==='string'&&/^[a-z][a-z0-9+.-]*:/i.test(base)&&!base.startsWith('about:')?base:import.meta.url;
+};
+export const assetURL=name=>new URL('./assets/'+name,assetBase()).href;
 export const loadModel=(name,onProgress)=>new GLTFLoader().loadAsync(assetURL(name),e=>onProgress?.(e.total?e.loaded/e.total:null));
 export async function loadData(name){const r=await fetch(assetURL(name));if(!r.ok)throw new Error('Could not load '+name);return r.json();}
 

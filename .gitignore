@@ -6,6 +6,9 @@ node_modules/
 .env.*
 !.env.example
 
+# Optional production bundle (npm run build); dist/ remains the source.
+build/
+
 # Test output: rewritten by tests/playthroughs.mjs on every successful run.
 tests/playthrough-results.json
 tests/flower-playthrough-results.json

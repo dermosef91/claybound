@@ -97,7 +97,20 @@ export function clayModel(w,root,{background=false}={}){
 // it actually holds rather than by a count. Eviction drops the least recently
 // used shapes first, which keeps the small shapes that repeat all over a
 // chapter and lets a player who turns around find the shapes just used.
-export const CLAY_CACHE_BYTES=48*1024*1024;
+// The budget has to clear the largest chapter's live working set, or the cache
+// spends the level evicting shapes it is about to rebuild: at 48 MB a walk
+// through the canyon hit 34% and evicted 325 times, with the cache pinned
+// against its own ceiling from the first section onward. Ember Caverns holds
+// ~105 MB of geometry at once, so the ceiling scales with reported memory and
+// falls back to a small-device figure when the browser will not say.
+export const CLAY_CACHE_BYTES=(()=>{
+  // Profiling override, read only under Node so the browser path is untouched.
+  const override=Number(globalThis.process?.env?.CLAYBOUND_CLAY_CACHE_MB);
+  if(Number.isFinite(override)&&override>0)return Math.round(override*1024*1024);
+  const reported=Number(globalThis.navigator?.deviceMemory);
+  const gb=Number.isFinite(reported)&&reported>0?reported:4;
+  return Math.round(Math.max(96,Math.min(256,gb*32))*1024*1024);
+})();
 const shapeBytes=geo=>{
   let bytes=geo.index?geo.index.array.byteLength:0;
   for(const attribute of Object.values(geo.attributes))bytes+=attribute.array.byteLength;
@@ -126,6 +139,23 @@ export function trimClayShapes(w,live){
     c.boxes.delete(key);w.assetGeometry.delete(geo);
     c.bytes-=geo.userData.clayBytes||0;geo.dispose();
   }
+}
+
+// Everything a chapter builds from a parametric primitive — extruded flags and
+// arches, lathe-turned spikes, tube-twisted rope — goes through here. Those
+// shapes used to be constructed fresh on every stream-in, and because
+// sculptClay's WeakMap is keyed on the source geometry object, a freshly
+// allocated source missed it every time and re-ran tessellation, welding and
+// the normal solve for a shape identical to the one just disposed. Keying on
+// the parameters instead makes the second visit to a stretch of level free.
+// `build` must return the finished, sculpted geometry.
+export function clayShape(w,key,build){
+  if(!w.clay)return build();
+  const cached=cachedClayShape(w,key);
+  if(cached)return cached;
+  const geo=build();
+  if(!geo.boundingSphere)geo.computeBoundingSphere();
+  return retainClayShape(w,key,geo);
 }
 
 export function clayBox(w,width,height,depth,radius,variant=0){

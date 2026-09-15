@@ -30,7 +30,12 @@ export function applyEnvironment(w,L){
   if(!w.mat.flame)w.mat.flame=new THREE.MeshStandardMaterial({color:0xffdb72,emissive:0xffb743,emissiveIntensity:1.2,roughness:1});
   w.hemi.color.setHex(theme.skyLight);w.hemi.groundColor.setHex(theme.groundLight);w.hemi.intensity=theme.ambient;
   w.sun.color.setHex(theme.sun);w.sun.intensity=theme.sunPower;w.fill.color.setHex(theme.fill);w.fill.intensity=theme.fillPower;
-  w.torchLights.forEach(l=>l.intensity=0);w.caveLightState=null;
+  // Outside the caverns these four contribute nothing, but a light that is only
+  // dimmed still occupies a slot in the shader's light array, so every material
+  // in the canyon, the forest and the citadel was shading four point lights per
+  // fragment for no picture. Hiding them drops the count to zero instead.
+  const lit=L.biome==='cave';
+  w.torchLights.forEach(l=>{l.intensity=0;l.visible=lit;});w.caveLightState=null;
   w.scene.fog.near=L.biome==='forest'?24:L.biome==='cave'?28:L.biome==='citadel'?34:32;w.scene.fog.far=L.biome==='forest'?76:L.biome==='cave'?108:L.biome==='citadel'?104:91;
 }
 

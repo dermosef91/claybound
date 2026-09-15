@@ -4,8 +4,12 @@ const kinds=['mushroom','crystal','torch'],fadeSeconds=.6;
 
 // Three selected fixtures plus one shared handoff light. Only one fixture
 // changes at a time, keeping the shader's light count fixed at four.
+// They start hidden so the title screen and the first chapter never compile a
+// point-light path before applyEnvironment decides whether this biome wants one.
 export function createCaveLights(){
-  return Array.from({length:4},()=>new THREE.PointLight(0xffbd70,0,13,2));
+  return Array.from({length:4},()=>{
+    const light=new THREE.PointLight(0xffbd70,0,13,2);light.visible=false;return light;
+  });
 }
 
 const bind=source=>source?{source,position:source.position.clone(),color:source.color||0xffbd70,power:source.power||26,range:source.range||13}:null;

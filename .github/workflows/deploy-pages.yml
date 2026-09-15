@@ -1,8 +1,14 @@
 # Publishes the playable game to GitHub Pages.
 #
-# dist/ is the authored, ready-to-serve game: no build step, no bundler.
-# The job uploads that directory verbatim, so the hosted site matches what
-# LOCAL-DEPLOYMENT.md serves from a local static server.
+# dist/ is the authored, ready-to-serve game and stays that way: it runs from
+# any static server with no build step, which is what keeps it editable. The
+# hosted site is built from it rather than copied, because serving the authored
+# files costs a first-time player 93 separate JavaScript requests and 2 MB of
+# unminified three.js. `npm run build` bundles and minifies that into build/,
+# leaving dist/ untouched; see LOCAL-DEPLOYMENT.md to serve either locally.
+#
+# If the build ever fails, the deploy fails with it and Pages keeps serving the
+# last good publish.
 name: Deploy game
 
 on:
@@ -31,6 +37,18 @@ jobs:
       - name: Check out the game
         uses: actions/checkout@v4
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bundle the site
+        run: npm run build
+
       - name: Turn on Pages
         uses: actions/configure-pages@v5
         with:
@@ -39,10 +57,10 @@ jobs:
           # hand under Settings; see LOCAL-DEPLOYMENT.md.
           enablement: true
 
-      - name: Package dist/ as the site
+      - name: Package build/ as the site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: build
 
       - name: Publish
         id: deployment

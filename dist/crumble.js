@@ -1,5 +1,5 @@
 import * as THREE from './lib/three.module.js';
-import {sculptClay} from './clay.js';
+import {sculptClay,clayShape} from './clay.js';
 import {porousClay} from './porous-clay.js';
 
 const random=n=>{const x=Math.sin(n*127.13+73.41)*43758.5453;return x-Math.floor(x);};
@@ -40,7 +40,9 @@ export function createCrumble(w,s,root){
         const length=Math.hypot(x-cx,z-cz),factor=1-Math.min(.06,length*.16)/length;
         return [(x-cx)*factor,(z-cz)*factor];
       });
-      const geo=porousClay(w,outline,depth,seed+i*137+layer*51,layer===1);
+      // Each fragment's pores are seeded from the deck's own position, so the
+      // same deck rebuilds to the same stone every time it streams back in.
+      const geo=clayShape(w,`crumble:${seed.toFixed(3)}:${layer}:${i}`,()=>porousClay(w,outline,depth,seed+i*137+layer*51,layer===1));
       const mesh=w.mesh(geo,mat,root,cx,top,cz);
       mesh.name=layer?'Porous broken grey underside':'Pitted grey clay cap';
       pieces.push({mesh,rest:mesh.position.clone(),seed:i+layer*37,layer});
