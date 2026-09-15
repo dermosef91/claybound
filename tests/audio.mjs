@@ -132,16 +132,16 @@ sporeSound.effect('squish',{kind:'drifter'});assert.equal(sporeSound.ctx.buffers
 sporeSound.enabled=false;sporeSound.effect('break',{spore:true});assert.equal(sporeSound.ctx.buffers.length,2,'muted spore sounds stay silent');
 const interactionSound=new Sound();interactionSound.unlock();await Promise.all([interactionSound.coinLoading,interactionSound.checkpointLoading,interactionSound.completeLoading]);
 const originalRandom=Math.random;Math.random=()=>.25;
-for(const [type,buffer,gain]of [['coin',interactionSound.coinBuffer,.015],['checkpoint',interactionSound.checkpointBuffer,.25],['complete',interactionSound.completeBuffer,.5]]){
+for(const [type,buffer,gain]of [['coin',interactionSound.coinBuffer,.0135],['checkpoint',interactionSound.checkpointBuffer,.25],['complete',interactionSound.completeBuffer,.5]]){
   const oscillatorCount=interactionSound.ctx.oscillators.length,sourceCount=interactionSound.ctx.buffers?.length||0;
   interactionSound.effect(type);const source=interactionSound.ctx.buffers[sourceCount];
   assert(source?.started,`${type} starts its supplied recording`);assert.equal(source.buffer,buffer);assert.equal(source.output.output,interactionSound.master);
   assert.equal(source.output.gain.value,gain,`${type} uses its tuned playback volume`);
   assert.equal(interactionSound.ctx.oscillators.length,oscillatorCount,`${type} recording replaces its synthesized cue`);
 }
-const firstCoin=interactionSound.ctx.buffers.at(-3);assert.equal(firstCoin.playbackRate.value,.637,'coin pitch is lowered on average');
+const firstCoin=interactionSound.ctx.buffers.at(-3);assert.equal(firstCoin.playbackRate.value,.62,'coin pitch is lowered and varied');
 Math.random=()=>.75;interactionSound.effect('coin');const variedCoin=interactionSound.ctx.buffers.at(-1);
-assert.equal(variedCoin.output.gain.value,.015);assert.equal(variedCoin.playbackRate.value,.679);assert.notEqual(variedCoin.playbackRate.value,firstCoin.playbackRate.value,'successive coin pickups vary pitch');
+assert.equal(variedCoin.output.gain.value,.0165);assert.equal(variedCoin.playbackRate.value,.7);assert.notEqual(variedCoin.output.gain.value,firstCoin.output.gain.value,'successive coin pickups vary volume');assert.notEqual(variedCoin.playbackRate.value,firstCoin.playbackRate.value,'successive coin pickups vary pitch');
 await interactionSound.porousStepLoading;const stepSources=interactionSound.ctx.buffers.length,stepOscillators=interactionSound.ctx.oscillators.length;
 interactionSound.effect('step',{surface:'crumble'});const porousStep=interactionSound.ctx.buffers[stepSources];
 assert.equal(porousStep.buffer,interactionSound.porousStepBuffer);assert.equal(porousStep.output.gain.value,.06,'porous step stays quiet');assert(Math.abs(porousStep.playbackRate.value-.955)<1e-9,'porous step pitch is varied and slightly lowered');

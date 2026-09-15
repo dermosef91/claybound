@@ -122,7 +122,7 @@ export class Sound {
   }
   effect(type,event={}){if(!this.enabled||!this.foreground)return;
     if(type==='stamp'&&this.bufferEffect(this.flowerBuffer))return;
-    if(type==='coin'&&this.bufferEffect(this.coinBuffer,.015,undefined,.616+Math.random()*.084))return;
+    if(type==='coin'&&this.bufferEffect(this.coinBuffer,.012+Math.random()*.006,undefined,.58+Math.random()*.16))return;
     if(type==='checkpoint'&&this.bufferEffect(this.checkpointBuffer,.25))return;
     if(type==='complete'&&this.bufferEffect(this.completeBuffer))return;
     if(type==='step'&&event.surface==='crumble'&&this.bufferEffect(this.porousStepBuffer,.06,.38,.88+Math.random()*.1,.12))return;
