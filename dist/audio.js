@@ -97,7 +97,7 @@ export class Sound {
     }
     if(type==='break'&&event.spore){
       if(this.sporeBalloonBuffer){
-        const source=this.ctx.createBufferSource(),gain=this.ctx.createGain();source.buffer=this.sporeBalloonBuffer;gain.gain.value=.8;source.connect(gain);gain.connect(this.master);source.start();return;
+        const source=this.ctx.createBufferSource(),gain=this.ctx.createGain();source.buffer=this.sporeBalloonBuffer;gain.gain.value=.5;source.connect(gain);gain.connect(this.master);source.start();return;
       }
       this.tone(115,.14,'sine',.075,.35);
       this.tone(360,.27,'triangle',.045,2.3);

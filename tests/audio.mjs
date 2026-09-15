@@ -115,6 +115,7 @@ rewardSound.enabled=true;rewardSound.setForeground(false);rewardSound.effect('st
 const sporeSound=new Sound();sporeSound.unlock();await sporeSound.sporeBalloonLoading;
 sporeSound.effect('break',{spore:true});assert.equal(sporeSound.ctx.buffers.length,1);assert(sporeSound.ctx.buffers[0].started);
 assert.equal(sporeSound.ctx.buffers[0].buffer,sporeSound.sporeBalloonBuffer);assert.equal(sporeSound.ctx.buffers[0].output.output,sporeSound.master);
+assert.equal(sporeSound.ctx.buffers[0].output.gain.value,.5,'spore balloon recording plays at 50% gain');
 assert.equal(sporeSound.ctx.oscillators.length,0,'the supplied recording replaces the synthesized forest burst');
 sporeSound.enabled=false;sporeSound.effect('break',{spore:true});assert.equal(sporeSound.ctx.buffers.length,1,'muted spore balloons stay silent');
 globalThis.fetch=oldFetch;
