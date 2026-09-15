@@ -17,7 +17,7 @@ const positions=bead.geometry.attributes.position;
 let center=-Infinity,recess=-Infinity,rim=-Infinity;
 for(let i=0;i<positions.count;i++){const radius=Math.hypot(positions.getX(i),positions.getY(i)),z=positions.getZ(i);if(radius<.04)center=Math.max(center,z);if(radius>.12&&radius<.17)recess=Math.max(recess,z);if(radius>.20)rim=Math.max(rim,z);}
 assert(center>recess+.04&&rim>recess+.02,'bead has the reward artwork’s raised dot, recessed face and rolled rim');
-const html=await readFile(new URL('../dist/index.html',import.meta.url),'utf8');assert(html.includes('3 health remaining'));assert(html.includes('class="hud-bead" src="./assets/completion/bead.webp"'));
+const html=await readFile(new URL('../dist/index.html',import.meta.url),'utf8');assert(html.includes('3 health remaining'));assert(html.includes('class="hud-bead" src="./assets/completion/bead.webp"'));assert(!html.includes('chapter-status'));assert(!html.includes('chapter-label'));assert(!html.includes('progress-track'));
 // Exercise screen coordinates and the final draw pass using the same renderer.
 globalThis.window={addEventListener(){}};
 const calls=[];let surface={left:0,top:0,width:800,height:400};

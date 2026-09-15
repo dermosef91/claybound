@@ -149,7 +149,7 @@ async function begin(index=0,restart=false,sourceChoice,playgroundSource=null){
   game.start(index,nextLevel);if(restart&&!nextLevel.playground)delete runStore()[index];
   const resumed=!nextLevel.playground&&!restart&&game.restore(runStore()[index]);world.build(game.level,index,game.player.x);if(!nextLevel.playground)saved.last=index;
   if(choice&&!nextLevel.playground)saved.chapterSource[index]=choice;persist();
-  const L=game.level;world.clayDone=new Set(saved.clayDone||[]);warmCompletionAssets(L.biome);document.body.dataset.biome=L.biome;$('chapter-label').innerHTML=`0${index+1} <b>/</b> ${L.short.toUpperCase()}${L.custom?' · EDITED':''}`;
+  const L=game.level;world.clayDone=new Set(saved.clayDone||[]);warmCompletionAssets(L.biome);document.body.dataset.biome=L.biome;
   $('coin-total').textContent=L.coins.length;$('intro-number').textContent=['CHAPTER ONE','CHAPTER TWO','CHAPTER THREE','CHAPTER FOUR'][index];
   $('intro-name').textContent=resumed?game.level.sections[game.sectionId].name:L.name;$('intro-text').textContent=resumed?'Your checkpoint is safe. The journey continues.':L.intro;
   show('chapter-intro',false);introUntil=0;
@@ -263,9 +263,7 @@ shapingControls=new ShapingControls({game,world:()=>world,input,picker:stationPi
 function updateHUD(now){
   if(editor?.active)return;
   const p=game.player;$('coin-count').textContent=game.coins;$('stamp-count').textContent=`${game.stamps}/${game.level.stamps.length}`;
-  const section=game.level.sections[game.sectionId];if(section&&!menu)$('chapter-label').textContent=`${String(game.sectionId+1).padStart(2,'0')} / ${section.name.toUpperCase()}`;
   [...$('health').children].forEach((e,i)=>e.classList.toggle('empty',i>=p.health));$('health').setAttribute('aria-label',`${p.health} health remaining`);
-  $('progress').style.width=`${Math.min(100,Math.max(0,p.x/game.level.end*100))}%`;
   const channel=game.activeChannel,remaining=game.channels[channel]||0;show('timer',remaining>0&&game.status==='playing');if(remaining>0){$('timer-label').textContent=`${Math.ceil(remaining)}s`;$('timer-bar').style.width=`${remaining/(game.channelDurations[channel]||10)*100}%`;}
   if(now>introUntil)show('chapter-intro',false);
   if(menu||game.status!=='playing'||now<introUntil){show('hint',false);return;}
