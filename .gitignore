@@ -8,3 +8,10 @@ node_modules/
 
 # Optional production bundle (npm run build); dist/ remains the source.
 build/
+
+# Test output: rewritten by tests/playthroughs.mjs on every successful run.
+tests/playthrough-results.json
+tests/flower-playthrough-results.json
+
+# Blender auto-save backups left beside .blend files by asset preparation.
+*.blend1
