@@ -1,0 +1,13 @@
+{
+  "states": {
+    "states": [
+      "rest",
+      "warning",
+      "slam",
+      "impact",
+      "retract"
+    ],
+    "grounded": true
+  },
+  "errors": []
+}
