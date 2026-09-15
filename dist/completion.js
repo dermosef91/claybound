@@ -39,9 +39,9 @@ export function completionMarkup(run,level,chapterCount){
         ${reward('timer',clock(run.time),'Your time',timeLabel)}
       </dl>
       <nav class="completion-actions" aria-label="Continue your adventure">
-        <button class="completion-button completion-primary" data-action="${final?'chapters':'next'}">${icon(final?'map':'arrow-right')}<span>${final?'Back to World Map':'Next Chapter'}</span></button>
+        <button class="completion-button completion-primary" data-action="${final?'chapters':'next'}">${icon(final?'map':'arrow-right')}<span>${final?'Chapters':'Next Chapter'}</span></button>
         <button class="completion-button" data-action="restart">${icon('rotate-cw')}<span>Play Again</span></button>
-        <button class="completion-button" data-action="${final?'home':'chapters'}">${icon(final?'house':'map')}<span>${final?'Back to Title':'Back to World Map'}</span></button>
+        <button class="completion-button" data-action="${final?'home':'chapters'}">${icon(final?'house':'map')}<span>${final?'Back to Title':'Chapters'}</span></button>
       </nav>
     </div>
     <p class="completion-note completion-note-top" aria-hidden="true">${final?'What a little<br>adventure.':'Another<br>step forward.'}</p>

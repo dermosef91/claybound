@@ -85,16 +85,3 @@ body.is-menu .toast {z-index:25;max-width:90vw;white-space:normal;text-align:cen
 .title-setting strong {font-size:14px;font-weight:500;color:#86512e;}
 .title-setting:hover {background:#f2dfbe;}
 .title-setting[aria-checked="true"] strong {color:#386750;}
-.collection-summary {font-size:16px!important;}
-.collection-list {display:grid;gap:12px;margin:20px 0;}
-.collection-chapter {display:flex;align-items:center;gap:14px;width:100%;padding:12px;background:#f5e3c5;border:1px solid #c8a8836b;border-radius:16px;color:#503c2d;text-align:left;}
-.collection-chapter:hover {background:#f9e9cd;}
-.collection-chapter>img {width:62px;height:76px;object-fit:cover;border-radius:10px;}
-.collection-details {flex:1;display:grid;gap:7px;}
-.collection-details strong {font-size:16px;font-weight:500;}
-.collection-flowers {display:flex;align-items:center;gap:5px;}
-.collection-flowers img {width:25px;height:25px;object-fit:contain;}
-.collection-flowers img.unfound {filter:grayscale(1);opacity:.28;}
-.collection-flowers small {margin-left:5px;font-size:13px;}
-.collection-beads {font-size:13px;color:#775e49;}
-.collection-chapter>svg {width:20px;height:20px;}

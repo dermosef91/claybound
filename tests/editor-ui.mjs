@@ -53,7 +53,7 @@ const pointer=(id,x,y)=>({pointerId:id,clientX:x,clientY:y,button:0,preventDefau
 // Title navigation is available before the expensive WebGL scene loads.
 assert($('loading').classList.contains('hidden'));assert(!$('menu').inert);
 assert.equal($('play-label').textContent,'Play');assert(!$('menu').textContent.toLowerCase().includes('handmade'));
-await click('#collectibles');assert($('dialog-content').textContent.includes('0 / 13 secret flowers'));assert.equal(document.querySelectorAll('.collection-chapter').length,4);assert($('menu').inert);
+await click('#chapters');assert.equal(document.querySelectorAll('.chapter-collectibles').length,4);assert(document.querySelector('.chapter-choice[data-level="0"] .chapter-collectibles').textContent.includes('0/'));assert($('menu').inert);
 await click('[data-action="close"]');assert(!$('menu').inert);
 await click('#settings');assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'true');
 await click('[data-action="settings-sound"]');assert.equal(app.saved.sound,false);assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'false');assert.equal($('menu-sound').getAttribute('aria-label'),'Enable sound');

@@ -8,7 +8,7 @@ import {VirtualJoystick} from './controls.js';
 import {completionMarkup,completionRecord,warmCompletionAssets} from './completion.js';
 import {DraftLibrary} from './editor-model.js';
 import {LevelEditor} from './editor.js';
-import {collectiblesMarkup,settingsMarkup} from './title-menu.js';
+import {chapterCollections,settingsMarkup} from './title-menu.js';
 import {TitleScene} from './title-scene.js';
 import {loadTitleAssets} from './title-assets.js';
 import {ShapingControls} from './shaping-controls.js';
@@ -172,16 +172,15 @@ function pause(){
   if(game.status!=='playing'&&game.status!=='paused')return;
   if(game.status==='paused'){closeDialog();return;}
   if(editor?.testing){openDialog(`<span class="eyebrow">WORKSHOP PLAYTEST</span><h2>One more little tweak?</h2><button class="primary" data-action="resume">Keep testing ${icon('play')}</button><div class="dialog-actions"><button class="secondary" data-action="restart-test">${icon('rotate-ccw')} Restart test</button><button class="secondary" data-action="back-editor">${icon('pencil-ruler')} Back to editor</button></div>`,'test');return;}
-  openDialog(`<button class="dialog-close" data-action="resume" aria-label="Resume game">${icon('x')}</button><span class="eyebrow">TAKE YOUR TIME</span><h2>A little breather.</h2><p>${game.level.name} · ${game.level.sections[game.sectionId].name}</p><button class="primary" data-action="resume">Keep going ${icon('play')}</button><div class="dialog-actions"><button class="secondary" data-action="restart">${icon('rotate-ccw')} Start over</button><button class="secondary" data-action="chapters">${icon('layers-2')} Chapters</button></div>${game.level.playground?'<button class="quiet-button" data-action="stations">Choose a shaping station</button>':`<button class="quiet-button" data-action="editor">${icon('pencil-ruler')} Edit this chapter</button>`}<button class="quiet-button" data-action="sound">${icon(sound.enabled?'volume-2':'volume-x')} Sound ${sound.enabled?'on':'off'}</button><button class="quiet-button" data-action="fullscreen" data-fullscreen="label">${icon(fullscreen.active?'minimize':'expand')}<span>${fullscreen.active?'Exit fullscreen':'Fullscreen'}</span></button><button class="quiet-button" data-action="home">Return to title</button>`);
+  openDialog(`<button class="dialog-close" data-action="resume" aria-label="Resume game">${icon('x')}</button><span class="eyebrow">TAKE YOUR TIME</span><h2>A little breather.</h2><p>${game.level.name} · ${game.level.sections[game.sectionId].name}</p><button class="primary" data-action="resume">Keep going ${icon('play')}</button><div class="dialog-actions"><button class="secondary" data-action="restart">${icon('rotate-ccw')} Start over</button><button class="secondary" data-action="chapters">${icon('layers-2')} Chapters</button></div>${game.level.playground?'<button class="quiet-button" data-action="stations">Choose a shaping station</button>':''}<button class="quiet-button" data-action="home">Return to title</button><div class="dialog-icons">${game.level.playground?'':`<button class="icon-button" data-action="editor" aria-label="Edit this chapter" title="Edit this chapter">${icon('pencil-ruler')}</button>`}<button class="icon-button" data-action="sound" aria-label="Sound ${sound.enabled?'on':'off'}" title="Sound ${sound.enabled?'on':'off'}">${icon(sound.enabled?'volume-2':'volume-x')}</button><button class="icon-button" data-action="fullscreen" data-fullscreen aria-label="${fullscreen.active?'Exit fullscreen':'Fullscreen'}" title="${fullscreen.active?'Exit fullscreen':'Fullscreen'} (F)">${icon(fullscreen.active?'minimize':'expand')}</button></div>`);
 }
 function chapters(){
-  const choices=LEVELS.map((base,i)=>{const L=activeLevel(i),edited=drafts.has(i),run=(L.custom?saved.customRuns:saved.runs)[i],best=(L.custom?saved.customBest:saved.best)[i];return `<div class="chapter-option"><button class="chapter-choice" data-level="${i}"><span>0${i+1}</span><div><strong>${L.short}${edited?L.custom?' · Your edit':' · Original':''}</strong><small>${L.sections.length} passages${run?.version===L.layoutVersion?' · Checkpoint saved':best?.version===L.layoutVersion?` · ${best.stamps}/${L.stamps.length} flowers`:''}</small></div>${icon('arrow-up-right')}</button>${edited?`<button class="quiet-button chapter-alternate" data-level="${i}" data-source="${L.custom?'original':'edited'}">${icon(L.custom?'refresh-cw':'pencil-ruler')} ${L.custom?'Play updated original':'Play your edit'}</button>`:''}</div>`;}).join('');
-  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">FOUR CHAPTERS</span><h2>Choose your path.</h2><div class="chapters-list">${choices}</div><p>Original chapters include the latest updates. Your edits and their checkpoints are kept separately on this device.</p>`);
+  const choices=LEVELS.map((base,i)=>{const L=activeLevel(i),edited=drafts.has(i),run=(L.custom?saved.customRuns:saved.runs)[i],r=chapterCollections(L,i,saved);return `<div class="chapter-option"><button class="chapter-choice" data-level="${i}"><span>0${i+1}</span><div><strong>${L.short}${edited?L.custom?' · Your edit':' · Original':''}</strong><small>${L.sections.length} passages${run?.version===L.layoutVersion?' · Checkpoint saved':''}</small><span class="chapter-collectibles"><img src="./assets/completion/flower.webp" alt="" class="chapter-flower" width="16" height="16">${r.stamps}/${r.stampTotal}<img src="./assets/completion/bead.webp" alt="" class="chapter-bead" width="16" height="16">${r.coins}/${r.coinTotal}</span></div>${icon('arrow-up-right')}</button>${edited?`<button class="quiet-button chapter-alternate" data-level="${i}" data-source="${L.custom?'original':'edited'}">${icon(L.custom?'refresh-cw':'pencil-ruler')} ${L.custom?'Play updated original':'Play your edit'}</button>`:''}</div>`;}).join('');
+  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">FOUR CHAPTERS</span><h2>Choose your path.</h2><div class="chapters-list">${choices}</div>`);
 }
 function help(){
   openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Violet clay can be shaped</strong><span>Tap or drag it, hold E, or stomp it — violet clay breathes when you are beside it and stretches into ramps, stairs and bridges. R softens it back.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
 }
-function collectibles(){openDialog(collectiblesMarkup(LEVELS.map((_,i)=>activeLevel(i)),saved));}
 function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active));}
 function result(e){
   lastResult=e;document.body.classList.add('is-complete');
@@ -204,10 +203,9 @@ function toggleSound(){sound.unlock();sound.enabled=!sound.enabled;saved.sound=s
 window.addEventListener('pointerdown',()=>sound.unlock(),{passive:true});
 window.addEventListener('keydown',e=>{if(!e.repeat&&!e.metaKey&&!e.ctrlKey&&!e.altKey)sound.unlock();});
 $('play').addEventListener('click',()=>begin(saved.last));$('chapters').addEventListener('click',chapters);$('howto').addEventListener('click',help);$('pause').addEventListener('click',pause);$('menu-sound').addEventListener('click',toggleSound);
-$('collectibles').addEventListener('click',collectibles);$('settings').addEventListener('click',settings);$('error-home').addEventListener('click',home);
+$('settings').addEventListener('click',settings);$('error-home').addEventListener('click',home);
 $('dismiss-hint').addEventListener('click',()=>{dismissed.add(hintKey);show('hint',false);});
 for(const id of ['fullscreen','hud-fullscreen'])$(id).addEventListener('click',()=>{sound.unlock();fullscreenTransition=performance.now()+1000;fullscreen.toggle();});
-async function playFullscreen(){sound.unlock();fullscreenTransition=performance.now()+1500;await fullscreen.enter();begin(saved.last);}
 $('dialog-content').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;sound.unlock();
   if(b.hasAttribute('data-level')){begin(Number(b.dataset.level),false,b.dataset.source);return;}
@@ -219,7 +217,7 @@ $('dialog-content').addEventListener('click',e=>{
   if(a==='fullscreen'){fullscreenTransition=performance.now()+1000;fullscreen.toggle();}
   if(a==='sound'){toggleSound();b.innerHTML=`${icon(sound.enabled?'volume-2':'volume-x')} Sound ${sound.enabled?'on':'off'}`;icons();}
   if(a==='settings-sound'){toggleSound();b.setAttribute('aria-checked',String(sound.enabled));b.innerHTML=`${icon(sound.enabled?'volume-2':'volume-x')}<span>Sound</span><strong>${sound.enabled?'On':'Off'}</strong>`;icons();}
-  if(a==='help')help();if(a==='play-fullscreen')playFullscreen();
+  if(a==='help')help();
 });
 const leftKeys=['ArrowLeft','KeyA'],rightKeys=['ArrowRight','KeyD'],jumpKeys=['Space','ArrowUp','KeyW'],stompKeys=['ArrowDown','KeyS'];
 function syncInput(){

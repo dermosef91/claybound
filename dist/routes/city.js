@@ -92,7 +92,8 @@ export default chapter({
     p('clay-3',116.5,4,27.5,'orbit',{moveX:4,moveY:4,period:12}),
     p('clay-4',108.75,3,27.25,'crumble',{delay:.15}),
     p('clay-3-copy-1',116.5,4,27.5,'orbit',{moveX:4,moveY:4,period:12,phase:2}),
-    p('clay-3-copy-1-copy-1',116.75,4,27.5,'orbit',{moveX:4,moveY:4,period:12,phase:4})
+    p('clay-3-copy-1-copy-1',116.75,4,27.5,'orbit',{moveX:4,moveY:4,period:12,phase:4}),
+    p('clay-5',128,3.25,14.5,'stone')
   ],
   route:[
     'start','lift1','roof1',['roof-ramp','walk'],['tile-dock','walk'],'tile1','tile2','lookout',

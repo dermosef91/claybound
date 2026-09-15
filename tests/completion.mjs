@@ -17,7 +17,7 @@ for(let i=0;i<LEVELS.length;i++){
  const html=completionMarkup(result,LEVELS[i],LEVELS.length);
  assert.equal((html.match(/<button /g)||[]).length,3);
  assert(html.includes('id="dialog-title"'));assert(html.includes('1:48'));assert(html.includes(` / ${LEVELS[i].coins.length}`));
- assert(html.includes('New best!'));assert(html.includes('Back to World Map'));
+ assert(html.includes('New best!'));assert(html.includes('Chapters'));
  assert.equal(html.includes('data-action="next"'),i<LEVELS.length-1);
  for(const [,src]of html.matchAll(/src="([^"]+)"/g))await access(new URL('../dist/'+src,import.meta.url));
 }

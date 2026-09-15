@@ -2,9 +2,9 @@
   "format": "claybound-level",
   "version": 1,
   "chapter": 3,
-  "baseVersion": 4,
+  "baseVersion": 5,
   "level": {
-    "layoutVersion": "editor-4-1cx56zc",
+    "layoutVersion": "editor-5-1cmpllj",
     "winds": [
       {
         "x": 80,
@@ -832,6 +832,14 @@
         "phase": 4,
         "id": "clay-3-copy-1-copy-1",
         "kind": "orbit",
+        "section": 2
+      },
+      {
+        "x": 128,
+        "y": 14.5,
+        "w": 3.25,
+        "id": "clay-5",
+        "kind": "stone",
         "section": 2
       }
     ],
