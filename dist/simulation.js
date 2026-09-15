@@ -8,10 +8,10 @@ import {resetSpitter,contactSpitter,updateShots} from './spitter-rules.js';
 
 import {claySurface,clayWallBounds,updateShaping,stompClay} from './shaping.js';
 import {bridgeOffset} from './bridge-surface.js';
-import {MOTHER_PUFF,updateMotherPuff,contactMotherPuff,resetMotherPuff} from './mother-puff-rules.js';
+import {MOTHER_PUFF,motherCinematic,updateMotherPuff,contactMotherPuff,resetMotherPuff} from './mother-puff-rules.js';
 
 export const FIXED_DT=1/120;
-export const FLOWER_CELEBRATION_DURATION=2;
+export const FLOWER_CELEBRATION_DURATION=.5;
 export const RULES={speed:6.7,jump:11.8,gravity:27,radius:.32,height:1.7,maxHealth:3};
 const approach=(v,t,d)=>v<t?Math.min(t,v+d):Math.max(t,v-d);
 export const surfaceAt=(s,x,previous=false)=>s.shape?claySurface(s,x,previous):(previous?s.prevY:s.y)+(s.kind==='bridge'?bridgeOffset(s,x-(previous?s.prevX:s.x)):s.kind==='balance'?Math.sin(previous?s.prevAngle:s.angle)*(x-(previous?s.prevX:s.x)-s.w/2):0);
@@ -63,7 +63,7 @@ export class Game {
   }
   damage(fall=false) {
     const p=this.player;
-    if((p.invuln>0&&!fall)||this.respawnTimer>0||this.flowerCelebration||this.status!=='playing') return;
+    if((p.invuln>0&&!fall)||this.respawnTimer>0||this.flowerCelebration||motherCinematic(this.level.boss)||this.status!=='playing') return;
     p.stunTime=0;p.stunJumpQueued=false;p.sporeGrace=Math.max(p.sporeGrace||0,2);p.health--;this.event('hurt',{x:p.x,y:p.y});
     if(fall||p.health<=0) {
       this.deaths++;this.respawnTimer=.48;
@@ -92,6 +92,13 @@ export class Game {
     const p=this.player, L=this.level;
     const previousPlayer={x:p.x,y:p.y};
     updateMotherPuff(this,dt);
+    if(motherCinematic(L.boss)){
+      // Keep gravity and landing live; gently bring the player beside her for
+      // the recovery scene. Held buttons cannot skip or interrupt the reveal.
+      input={moveAxis:L.boss.hits===3?Math.max(-.55,Math.min(.55,(L.boss.x-6-p.x)*.6)):0};
+      if(L.boss.hits===3&&Math.abs(L.boss.x-6-p.x)<.35)p.facing=1;
+      p.jumpBuffer=0;p.stomping=false;p.stompWindup=0;p.motherBounce=false;
+    }
     for(const c of Object.keys(this.channels))if(!this.latched[c])this.channels[c]=Math.max(0,this.channels[c]-dt);
     for(const wind of L.winds||[])wind.active=!wind.channel||this.channels[wind.channel]>0;
     for(const s of L.platforms) {

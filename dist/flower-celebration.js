@@ -3,15 +3,26 @@ import {clayMaterial} from './clay.js';
 import {FLOWER_CELEBRATION_DURATION} from './simulation.js';
 
 const smooth=x=>{x=THREE.MathUtils.clamp(x,0,1);return x*x*(3-2*x);};
-export const flowerEnvelope=time=>smooth(time/.4)*smooth((FLOWER_CELEBRATION_DURATION-time)/.4);
+export const flowerEnvelope=time=>smooth(time/.1)*smooth((FLOWER_CELEBRATION_DURATION-time)/.12);
 
-// A soft radial aura made in geometry: no texture download or postprocess pass.
+// Radiating gold light stays visible against the bright sky as well as caves.
+// The halo is procedural, so it is ready on the first pickup without an image load.
 function aura(){
-  const positions=[0,0,0],colors=[1,.67,.12],alpha=[.38],indices=[];
-  for(let i=0;i<=48;i++){const a=i*Math.PI*2/48;positions.push(Math.cos(a),Math.sin(a),0);colors.push(1,.65,.09);alpha.push(0);if(i<48)indices.push(0,i+1,i+2);}
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setAttribute('alpha',new THREE.Float32BufferAttribute(alpha,1));g.setIndex(indices);
-  const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,uniforms:{strength:{value:1}},vertexShader:'attribute vec3 color; attribute float alpha; varying vec3 tint; varying float opacity; void main(){tint=color;opacity=alpha;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform float strength; varying vec3 tint; varying float opacity; void main(){gl_FragColor=vec4(tint,opacity*strength);}'});
-  return new THREE.Mesh(g,material);
+  const material=new THREE.ShaderMaterial({
+    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,
+    uniforms:{strength:{value:1},time:{value:0}},
+    vertexShader:'varying vec2 glowUv; void main(){glowUv=uv*2.-1.;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader:`uniform float strength; uniform float time; varying vec2 glowUv;
+      void main(){
+        float r=length(glowUv),angle=atan(glowUv.y,glowUv.x);
+        float edge=1.-smoothstep(.65,1.,r);
+        float halo=exp(-r*r*5.)*.48;
+        float rays=pow(abs(cos(angle*7.+time*.12)),16.)*.32*smoothstep(.15,.32,r)*edge;
+        float inner=exp(-r*r*18.)*.4;
+        gl_FragColor=vec4(1.,.62,.12,(halo+rays+inner)*edge*strength);
+      }`
+  });
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(2,2),material);mesh.name='Golden flower radiance';return mesh;
 }
 
 export function createFlowerCelebration(c,w){
@@ -25,7 +36,7 @@ export function createFlowerCelebration(c,w){
   for(let i=0;i<5;i++){const a=i*Math.PI*2/5+Math.PI/2;bead(Math.cos(a)*.23,Math.sin(a)*.23,.145,.15,.10,cream);}
   bead(0,0,.14,.14,.12,orange).position.z=.055;
   const stem=new THREE.Mesh(new THREE.CylinderGeometry(.035,.04,.45,10),stemMat);stem.position.set(0,-.32,-.025);root.add(stem);
-  const glow=aura();glow.position.z=-.14;glow.scale.setScalar(1.15);root.add(glow);
+  const glow=aura();glow.position.z=-.14;glow.scale.setScalar(1.4);root.add(glow);
   const starShape=new THREE.Shape();starShape.moveTo(0,.11);starShape.lineTo(.028,.028);starShape.lineTo(.08,0);starShape.lineTo(.028,-.028);starShape.lineTo(0,-.11);starShape.lineTo(-.028,-.028);starShape.lineTo(-.08,0);starShape.lineTo(-.028,.028);starShape.closePath();
   const starGeo=new THREE.ShapeGeometry(starShape),starMat=new THREE.MeshBasicMaterial({color:0xffe49a,transparent:true,depthWrite:false,side:THREE.DoubleSide});
   const stars=Array.from({length:7},(_,i)=>{const m=new THREE.Mesh(starGeo,starMat);root.add(m);return m;});
@@ -55,16 +66,18 @@ export function animateFlowerCelebration(c,game,w){
   const f=c.flower;f.root.visible=!!reward;if(!reward)return;
   f.basePose=[...f.chains.flatMap(chain=>chain.slice(0,3)),f.head].filter(Boolean).map(bone=>[bone,bone.quaternion.clone()]);
   const amount=flowerEnvelope(reward.time);
-  c.root.rotation.y=THREE.MathUtils.lerp(c.turn,-Math.PI/2+1.0,amount);
-  c.body.rotation.z*=1-amount;c.body.scale.lerp(new THREE.Vector3(1,1,1),amount);
   c.root.updateMatrixWorld(true);
   f.chains.forEach((chain,i)=>reach(chain,c.facing.localToWorld(new THREE.Vector3(i===0?.10:-.10,1.48,.38)),amount));
   if(f.head)f.head.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-.18*amount));
   c.root.updateMatrixWorld(true);
   const left=f.chains[0][3].getWorldPosition(new THREE.Vector3()),right=f.chains[1][3].getWorldPosition(new THREE.Vector3());
-  const grip=c.facing.worldToLocal(left.add(right).multiplyScalar(.5));
-  f.root.position.copy(grip).add(new THREE.Vector3(0,.40,.045));f.root.scale.setScalar(amount);f.root.rotation.y=-.8;
-  f.glow.material.uniforms.strength.value=reducedMotion?.85:1+Math.sin(reward.time*5)*.12;
+  const grip=left.add(right).multiplyScalar(.5);
+  f.root.position.copy(c.facing.worldToLocal(grip.add(new THREE.Vector3(0,.40,.045))));
+  f.root.scale.setScalar(amount);
+  // Face the flower toward the camera without turning the player or legs.
+  f.root.quaternion.copy(c.facing.getWorldQuaternion(new THREE.Quaternion()).invert());
+  f.glow.material.uniforms.strength.value=reducedMotion?1:1.15+Math.sin(reward.time*5)*.12;
+  f.glow.material.uniforms.time.value=reducedMotion?0:reward.time;
   f.light.intensity=amount*.9;
   f.stars.forEach((star,i)=>{const a=i*Math.PI*2/7+(reducedMotion?0:reward.time*.18),r=.57+(i%3)*.10;star.position.set(Math.cos(a)*r,Math.sin(a)*r,.03);star.scale.setScalar(reducedMotion?.65:.55+.35*Math.sin(reward.time*4+i*1.7)**2);});
 }

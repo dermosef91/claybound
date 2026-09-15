@@ -44,7 +44,7 @@ import {CLAY_PALETTE} from './palette.js';
 import {createGoal} from './goal.js';
 import {burstSporePod,updateSporeParticle,disposeSporeParticle} from './spore-effects.js';
 import {flowerEnvelope} from './flower-celebration.js';
-import {loadMotherPuff,createMotherArenaFloor,animateMotherPuff,motherCamera} from './mother-puff.js';
+import {loadMotherPuff,createMotherArenaFloor,animateMotherPuff,motherCamera,motherViewHeight} from './mother-puff.js';
 
 const C={blue:0x315e96,blueLight:0x3d6da5,blueDark:0x244c7b,orange:CLAY_PALETTE.orange,orangeLight:CLAY_PALETTE.orangeLight,cream:0xf1d8a3,rope:0xdcb985,dark:0x172b3f,gold:0xf8ce75};
 const fract=n=>n-Math.floor(n);
@@ -306,7 +306,7 @@ export class World {
     if(e.type==='press-impact'&&Math.abs(this.cameraX-e.x)>this.viewW*.8)return;
     heroEvent(this.character,e);
     if(e.type==='checkpoint')raiseCheckpoint(this,e);
-    else if(e.type==='mother-hit'||e.type==='mother-defeat'){this.burst(e.x,e.y,'gold',20,1.3);if(!this.reducedMotion)this.shake=.12;}
+    else if(e.type==='mother-hit'||e.type==='mother-collapse'){this.burst(e.x,e.y,'gold',20,1.3);if(!this.reducedMotion)this.shake=.12;}
     else if(e.type==='mother-bounce')this.burst(e.x,e.y,'orange',10,.7);
     else if(e.type==='break'&&e.spore)burstSporePod(this,e);
     else if(e.type==='crumble-collapse')clayFragments(this,e.x,e.y,e.w,24,1.1,true);
@@ -348,7 +348,7 @@ export class World {
     if(!edit&&L.boss&&this.canvas){
       const rect=this.canvas.getBoundingClientRect(),base=cameraFraming(rect.width,rect.height,this.biome);
       const near=p.x>L.boss.triggerX-9&&p.x<L.boss.right+7;
-      const height=near?(base.landscape?17.6:Math.max(25,18.2*rect.height/Math.max(1,rect.width))):base.viewH;
+      const height=near?motherViewHeight(L.boss,rect.width,rect.height,base.landscape):base.viewH;
       if(this.viewH!==height){
         this.viewH=this.reducedMotion||Math.abs(height-this.viewH)<.02?height:this.viewH+(height-this.viewH)*(1-Math.exp(-dt*5));
         this.viewW=this.viewH*rect.width/Math.max(1,rect.height);this.camera.left=-this.viewW/2;this.camera.right=this.viewW/2;this.camera.top=this.viewH/2;this.camera.bottom=-this.viewH/2;this.camera.updateProjectionMatrix();

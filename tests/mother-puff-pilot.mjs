@@ -1,3 +1,4 @@
+import {motherCapHeight} from '../dist/mother-puff-rules.js';
 // A replayable input-only pilot. No teleports, invulnerability, timer edits,
 // damage calls, or direct boss-state changes during the encounter.
 export function motherInput(g){
@@ -5,7 +6,7 @@ export function motherInput(g){
   let aim=b.state==='defeated'?b.right+4:b.x-5.9;
   if(p.motherBounce)aim=b.x;
   return {moveAxis:Math.max(-1,Math.min(1,(aim-p.x)*5/6.7)),jumpHeld:true,
-    stompPressed:p.motherBounce&&p.y>b.y+7.1&&Math.abs(p.x-b.x)<1.5};
+    stompPressed:p.motherBounce&&p.y>b.y+motherCapHeight(b)+.5&&Math.abs(p.x-b.x)<1.5};
 }
 export function motherTransfer(original,link){
   const g=Object.assign(Object.create(Object.getPrototypeOf(original)),structuredClone({...original,onEvent:null}));g.onEvent=()=>{};

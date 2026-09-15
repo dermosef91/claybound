@@ -72,9 +72,9 @@ step(1,{right:true});assert.equal(c.longIdlePlayed,false);assert.equal(c.idleTim
 console.log('PASS new default idle, strict one-second delay, interruption, paused timer and one fidget per continuous rest');
 
 // The reward uses the real rig: both wrists reach one stem and normal motion returns.
-game.start(0);heroEvent(c,{type:'respawn'});game.flowerCelebration={id:0,time:.8};
+game.start(0);heroEvent(c,{type:'respawn'});game.flowerCelebration={id:0,time:.25};
 for(let i=0;i<60;i++)animateHero(w,game,1/60);
-assert.equal(c.state,'idle');assert(c.flower.root.visible);
+assert.equal(c.state,'idle');assert(c.flower.root.visible);assert.equal(c.root.visible,true);
 const wrists=c.flower.chains.map(chain=>c.facing.worldToLocal(chain[3].getWorldPosition(new THREE.Vector3())));
 assert(wrists[0].distanceTo(wrists[1])<.26,'both hands hold the same flower');
 for(const wrist of wrists)assert(wrist.y>1.25&&wrist.z>.2,'hands lift in front of the hood');
@@ -83,6 +83,26 @@ game.pause();for(let i=0;i<90;i++)animateHero(w,game,1/60);
 assert.deepEqual(c.flower.chains.flat().map(b=>b.quaternion.toArray()),held,'paused procedural pose does not accumulate rotations');
 game.resume();game.flowerCelebration=null;step(60,{right:true});
 assert(!c.flower.root.visible);assert.equal(c.state,'locomotion');assert(c.weights.run>.95);
-game.flowerCelebration={id:0,time:.7};animateHero(w,game,1/60);game.start(1);heroEvent(c,{type:'respawn'});step(30);
+game.flowerCelebration={id:0,time:.25};animateHero(w,game,1/60);game.start(1);heroEvent(c,{type:'respawn'});step(30);
 assert(!c.flower.root.visible);assert([...bounds().min.toArray(),...bounds().max.toArray()].every(Number.isFinite));
 console.log('PASS both-hand flower hold, pause stability, locomotion recovery and chapter cleanup');
+
+// Only the upper-body overlay moves: sample the actual rig throughout the half-second hold.
+const lowerNames=['Hips','LeftUpLeg','LeftLeg','LeftFoot','LeftToeBase','RightUpLeg','RightLeg','RightFoot','RightToeBase'];
+for(const mode of ['run','jumpRise','jumpFall','leapRise','leapFall','stomp']){
+ game.start(0);heroEvent(c,{type:'respawn'});
+ const air=mode!=='run';Object.assign(game.player,{vx:6,vy:mode.endsWith('Rise')?7:-5,groundId:air?null:game.player.groundId,stomping:mode==='stomp'});
+ c.jumpKind=mode.startsWith('leap')?'leap':'jump';
+ for(let i=0;i<8;i++)animateHero(w,game,1/60);
+ const pose=()=>{c.root.updateMatrixWorld(true);return lowerNames.map(name=>c.asset.getObjectByName(name).matrixWorld.toArray());};
+ const before=pose(),state=c.state,mixerTime=c.mixer.time,weights={...c.weights},actionTimes=Object.values(c.actions).map(a=>a.time);
+ for(let i=0;i<30;i++){
+  game.flowerCelebration={id:0,time:i/60};animateHero(w,game,1/60);
+  assert.deepEqual(pose(),before,`${mode}: legs, hips, whole-body scale and facing stay intact`);
+  assert.equal(c.state,state);assert.equal(c.mixer.time,mixerTime);assert.deepEqual(c.weights,weights);
+  assert.deepEqual(Object.values(c.actions).map(a=>a.time),actionTimes,`${mode}: base clips do not advance or restart`);
+ }
+ game.flowerCelebration=null;animateHero(w,game,0);assert.deepEqual(pose(),before,`${mode}: release has no lower-body snap`);
+ animateHero(w,game,1/60);assert(c.mixer.time>mixerTime);assert.equal(c.state,state);assert(!c.flower.root.visible);
+}
+console.log('PASS upper-body-only pickup: running, rising/falling jumps, leaps and stomp preserve lower-body world poses and resume their original clips');

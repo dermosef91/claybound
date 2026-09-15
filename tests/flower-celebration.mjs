@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {Game,FIXED_DT,FLOWER_CELEBRATION_DURATION} from '../dist/simulation.js';
 
+assert.equal(FLOWER_CELEBRATION_DURATION,.5);
 for(const airborne of [false,true]){
  const events=[],g=new Game(e=>events.push(e));g.start(0);
  const platform=g.level.platforms.find(s=>s.kind==='lift')||g.level.platforms[0],flower=g.level.stamps[0];
@@ -9,13 +10,13 @@ for(const airborne of [false,true]){
  assert(g.flowerCelebration);assert.equal(g.stamps,1);assert.equal(events.filter(e=>e.type==='stamp').length,1);
  const frozen=()=>JSON.stringify({player:g.player,level:g.level,channels:g.channels,time:g.time,elapsed:g.elapsed,shots:g.shots});
  const before=frozen();
- for(let i=0;i<100;i++)g.tick(FIXED_DT,{right:true,jumpPressed:true,stompPressed:true});
+ for(let i=0;i<24;i++)g.tick(FIXED_DT,{right:true,jumpPressed:true,stompPressed:true});
  assert.equal(frozen(),before,'every simulation system and momentum freeze during the hold');
  g.damage(true);assert.equal(frozen(),before,'celebration prevents damage');
  g.pause();const t=g.flowerCelebration.time;for(let i=0;i<300;i++)g.tick(FIXED_DT);assert.equal(g.flowerCelebration.time,t);
- g.resume();for(let i=0;i<Math.ceil((FLOWER_CELEBRATION_DURATION-t)/FIXED_DT);i++)g.tick(FIXED_DT);
- // Allow floating-point rounding to consume the last tick.
- if(g.flowerCelebration)g.tick(FIXED_DT);
+ g.resume();let ticks=24;
+ while(g.flowerCelebration&&ticks<62){g.tick(FIXED_DT);ticks++;}
+ assert(Math.abs(ticks*FIXED_DT-.5)<FIXED_DT+1e-9,'the pause ends at half a second');
  assert.equal(g.flowerCelebration,null);assert.equal(frozen(),before,'resume restores the exact physics state');
  assert.equal(events.filter(e=>e.type==='flower-resume').length,1);
  g.tick(FIXED_DT,{right:true});assert.notEqual(frozen(),before);assert.equal(g.stamps,1);

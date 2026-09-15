@@ -13,6 +13,7 @@ export const CHAPTER_TRACKS=[
   HORIZON_TRACK
 ];
 export const FLOWER_VICTORY=new URL('./assets/flower-victory.wav',import.meta.url).href;
+export const SPORE_BALLOON_BURST=new URL('./assets/spore-balloon-burst.wav',import.meta.url).href;
 export class Sound {
   constructor(){
     this.ctx=null;this._enabled=true;this.foreground=true;this.title=true;this.playing=false;this.chapter=0;this.quiet=false;
@@ -32,6 +33,9 @@ export class Sound {
     this.ctx.resume().catch(()=>{});this.trackBlocked=false;this.syncTrack();
     if(!this.flowerLoading&&this.ctx.decodeAudioData){
       this.flowerLoading=fetch(FLOWER_VICTORY).then(r=>{if(!r.ok)throw new Error('Flower sound unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.flowerBuffer=buffer;}).catch(()=>{});
+    }
+    if(!this.sporeBalloonLoading&&this.ctx.decodeAudioData){
+      this.sporeBalloonLoading=fetch(SPORE_BALLOON_BURST).then(r=>{if(!r.ok)throw new Error('Spore balloon sound unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.sporeBalloonBuffer=buffer;}).catch(()=>{});
     }
   }
   selectedTrack(){return this.title?HORIZON_TRACK:CHAPTER_TRACKS[this.chapter];}
@@ -73,14 +77,14 @@ export class Sound {
         Promise.resolve(this.track.play()).then(()=>{
           if(generation!==this.trackGeneration)return;
           this.playPending=false;if(!this.wantsTrack()){this.stopTrack();return;}
-          this.fade(this.trackGain,this.title?.3:this.celebrating?.08:this.quiet?.19:.26,this.celebrating?.12:.65);
+          this.fade(this.trackGain,this.title?.3:this.motherQuiet?.008:this.celebrating?.08:this.quiet?.19:.26,this.celebrating?.12:.65);
         }).catch(error=>{
           if(generation!==this.trackGeneration)return;
           this.playPending=false;
           if(error.name==='NotSupportedError'){this.failedTracks.add(url);this.theme=-1;this.stopTrack();}
           else if(error.name!=='AbortError')this.trackBlocked=true;
         });
-      }else if(!this.track.paused)this.fade(this.trackGain,this.title?.3:this.celebrating?.08:this.quiet?.19:.26,this.celebrating?.12:.65);
+      }else if(!this.track.paused)this.fade(this.trackGain,this.title?.3:this.motherQuiet?.008:this.celebrating?.08:this.quiet?.19:.26,this.celebrating?.12:.65);
     }else if(this.track&&!this.track.paused&&!this.pauseTimer){
       this.fade(this.trackGain,0,.3);
       this.pauseTimer=setTimeout(()=>{this.pauseTimer=null;if(!this.wantsTrack())this.stopTrack();},310);
@@ -92,6 +96,9 @@ export class Sound {
       const source=this.ctx.createBufferSource(),gain=this.ctx.createGain();source.buffer=this.flowerBuffer;gain.gain.value=.8;source.connect(gain);gain.connect(this.master);source.start();return;
     }
     if(type==='break'&&event.spore){
+      if(this.sporeBalloonBuffer){
+        const source=this.ctx.createBufferSource(),gain=this.ctx.createGain();source.buffer=this.sporeBalloonBuffer;gain.gain.value=.8;source.connect(gain);gain.connect(this.master);source.start();return;
+      }
       this.tone(115,.14,'sine',.075,.35);
       this.tone(360,.27,'triangle',.045,2.3);
       setTimeout(()=>this.tone(880,.38,'sine',.026,1.18),65);
@@ -112,7 +119,9 @@ export class Sound {
     if(type==='mother-puff')this.tone(120,.22,'sine',.04,.6);
     if(type==='mother-bounce')this.tone(130,.5,'triangle',.055,4);
     if(type==='mother-hit')this.tone(90,.38,'triangle',.07,2);
-    if(type==='mother-defeat')[330,440,554,660].forEach((f,i)=>setTimeout(()=>this.tone(f,.7,'sine',.05),i*150));
+    if(type==='mother-collapse')this.tone(65,.7,'triangle',.06,.35);
+    if(type==='mother-friendly')this.tone(285,.4,'sine',.03,1.5);
+    if(type==='mother-bloom')[330,440,554].forEach((f,i)=>setTimeout(()=>this.tone(f,1.2,'sine',.025),i*210));
     if(type==='drifter-bump'){this.tone(220,.13,'sine',.028,1.35);}
     if(type==='stomp')this.tone(260,.22,'triangle',.04,.25);
     if(type==='spitter-charge')this.tone(220,.7,'sine',.023,1.9);
@@ -129,9 +138,9 @@ export class Sound {
     if(type==='activate'){this.tone(330,.45,'triangle',.04,2);setTimeout(()=>this.tone(660,.5,'sine',.04,1.5),130);}
     if(type==='stamp'||type==='checkpoint'||type==='complete') [523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.tone(f,.6,'sine',.047),i*95));
   }
-  update(dt,playing,chapter=0,quiet=false,title=false,celebrating=false){
-    this.celebrating=celebrating;this.playing=playing;this.chapter=chapter;this.quiet=quiet;this.title=title;this.syncTrack();
-    if(title||!playing||!this.enabled||!this.foreground||!this.ctx||this.selectedTrack()&&!this.trackFailed)return;
+  update(dt,playing,chapter=0,quiet=false,title=false,celebrating=false,motherQuiet=false){
+    this.motherQuiet=motherQuiet;this.celebrating=celebrating;this.playing=playing;this.chapter=chapter;this.quiet=quiet;this.title=title;this.syncTrack();
+    if(motherQuiet||title||!playing||!this.enabled||!this.foreground||!this.ctx||this.selectedTrack()&&!this.trackFailed)return;
     if(this.theme!==chapter){this.theme=chapter;this.note=0;this.musicTimer=.3;}
     this.musicTimer-=dt;if(this.musicTimer>0)return;
     const t=THEMES[chapter]||THEMES[0],beat=this.note++,pattern=t.patterns[Math.floor(beat/8)%t.patterns.length],degree=pattern[beat%8];

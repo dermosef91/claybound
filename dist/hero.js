@@ -133,15 +133,17 @@ export function heroEvent(c,e){
 }
 
 export function animateHero(w,game,dt){
-  const c=w.character,p=game.player,paused=game.status==='paused';
+  const c=w.character,p=game.player,paused=game.status==='paused'||!!game.flowerCelebration;
   // Remove last frame's procedural pose before the mixer evaluates its clips.
   if(c.flower?.basePose){for(const [bone,q] of c.flower.basePose)bone.quaternion.copy(q);c.flower.basePose=null;}
+  // Keep the current locomotion/jump clip and lower body frozen with the world.
+  // The separate reward clock drives only the arm/head overlay below.
   const step=paused?0:Math.min(dt,.05),air=!p.groundId;
   c.clock+=step;c.root.position.set(p.x,p.y,.48);c.lastVx=p.vx;
   c.turn=damp(c.turn,p.facing<0?Math.PI:0,26,step);c.root.rotation.y=c.turn;
   if(c.loaded){
     c.hurt=Math.max(0,c.hurt-step);c.landing=Math.max(0,c.landing-step);
-    const speed=game.status==='playing'&&!game.flowerCelebration?Math.abs(p.vx):0;
+    const speed=game.status==='playing'?Math.abs(p.vx):0;
     if(!paused){
       const resting=!game.flowerCelebration&&(game.status==='menu'||(game.status==='playing'&&!air&&speed<.08&&c.hurt===0&&c.landing===0&&!c.death));
       if(resting){
@@ -158,7 +160,7 @@ export function animateHero(w,game,dt){
     let state;
     if(c.death&&game.respawnTimer>0)state='death';
     else if(game.status==='complete')state='victory';
-    else if(game.status==='menu'||game.flowerCelebration)state='idle';
+    else if(game.status==='menu')state='idle';
     else if(c.hurt>0||p.stunTime>0)state='hurt';
     else if(air)state=p.stomping?'stomp':`${c.jumpKind}${p.vy>0?'Rise':'Fall'}`;
     else if(c.landing>0&&speed<2.4)state='land';
@@ -198,7 +200,7 @@ export function animateHero(w,game,dt){
     m.position.set(Math.cos(angle)*.35,1.98+Math.sin(angle*2)*.04,Math.sin(angle)*.24);
   }
   const dying=game.respawnTimer>0;
-  c.root.visible=c.loaded&&(!dying||game.respawnTimer>.22)&&(game.flowerCelebration||dying||!(p.invuln>.1&&Math.floor(c.clock*10)%2===1));
+  c.root.visible=c.loaded&&(!dying||game.respawnTimer>.22)&&(!!game.flowerCelebration||dying||!(p.invuln>.1&&Math.floor(c.clock*10)%2===1));
   // Follow the nearest actual collision surface, including moving platforms.
   let beneath=null;
   for(const s of game.level.platforms)if(s.active&&!s.broken&&p.x>s.x-.2&&p.x<s.x+s.w+.2&&p.y>=s.y-.15&&(!beneath||s.y>beneath.y))beneath=s;

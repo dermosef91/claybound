@@ -23,7 +23,7 @@ const pickup=await page.evaluate(async()=>{
  Object.assign(g.player,{x:c.x,y:ground?.y??c.y-.8,vx:0,vy:0,groundId:ground?.id??null});
  for(let i=0;i<60;i++)w.render(g,1/60);
  g.tick(1/120,{});const snapshot=JSON.stringify({p:g.player,time:g.time,elapsed:g.elapsed,platforms:g.level.platforms,enemies:g.level.enemies});
- for(let i=0;i<100;i++){g.tick(1/120,{right:true,jumpPressed:true});w.render(g,1/120);}
+ for(let i=0;i<30;i++){g.tick(1/120,{right:true,jumpPressed:true});w.render(g,1/120);}
  playtest.draw();
  const assertFreeze= snapshot===JSON.stringify({p:g.player,time:g.time,elapsed:g.elapsed,platforms:g.level.platforms,enemies:g.level.enemies});
  return {active:!!g.flowerCelebration,frozen:assertFreeze,soundDecoded:!!sound.flowerBuffer,stamps:g.stamps,time:g.flowerCelebration.time};
@@ -42,7 +42,7 @@ await page.setViewportSize({width:390,height:844});
 await page.evaluate(()=>{playtest.world.setEditorCamera(null);playtest.draw();});
 await page.screenshot({path:out+'/gameplay-portrait.png'});
 const resume=await page.evaluate(()=>{
- const {game:g,world:w}=playtest;g.resume();for(let i=0;i<160;i++){g.tick(1/120,{});w.render(g,1/120);}
+ const {game:g,world:w}=playtest;g.resume();for(let i=0;i<60;i++){g.tick(1/120,{});w.render(g,1/120);}
  return {active:!!g.flowerCelebration,visible:w.character.flower.root.visible,time:g.time};
 });assert(!resume.active&&!resume.visible);assert.deepEqual(errors,[]);
 fs.writeFileSync(out+'/verification.json',JSON.stringify({pickup,paused,resume,errors},null,2)+'\n');console.log('PASS flower WebGL', {pickup,paused,resume});

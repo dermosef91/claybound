@@ -1,7 +1,7 @@
 // Exercise the real audio controller; emulate only browser audio devices and time.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Sound,HORIZON_TRACK,CHAPTER_TRACKS} from '../dist/audio.js';
+import {Sound,HORIZON_TRACK,CHAPTER_TRACKS,SPORE_BALLOON_BURST} from '../dist/audio.js';
 const jobs=new Map();let next=0;
 globalThis.setTimeout=(fn,ms)=>{jobs.set(++next,{fn,ms});return next;};
 globalThis.clearTimeout=id=>jobs.delete(id);
@@ -95,12 +95,14 @@ const pop=new Sound();pop.unlock();await settle();const initial=pop.ctx.oscillat
 pop.effect('break',{spore:true});assert.equal(pop.ctx.oscillators.length,initial+2,'spore burst layers a low pop with a rising bloom');
 advance(150);assert.equal(pop.ctx.oscillators.length,initial+4,'two quiet sparkle notes follow the burst');
 pop.enabled=false;pop.effect('break',{spore:true});advance(150);assert.equal(pop.ctx.oscillators.length,initial+4,'muted bursts stay silent');
-console.log('PASS layered spore explosion sound and mute');
+console.log('PASS synthesized spore explosion fallback and mute');
 
 const victoryBytes=await readFile(new URL('../dist/assets/flower-victory.wav',import.meta.url));
+const sporeBalloonBytes=await readFile(new URL('../dist/assets/spore-balloon-burst.wav',import.meta.url));
 assert.equal(victoryBytes.subarray(0,4).toString(),'RIFF');
+assert.equal(sporeBalloonBytes.subarray(0,4).toString(),'RIFF');
 const oldFetch=globalThis.fetch;
-globalThis.fetch=async()=>({ok:true,arrayBuffer:async()=>victoryBytes.buffer.slice(victoryBytes.byteOffset,victoryBytes.byteOffset+victoryBytes.byteLength)});
+globalThis.fetch=async url=>{const bytes=url===SPORE_BALLOON_BURST?sporeBalloonBytes:victoryBytes;return {ok:true,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)};};
 Context.prototype.decodeAudioData=async bytes=>({duration:1,bytes});
 Context.prototype.createBufferSource=function(){const n=new Node();n.start=()=>{n.started=true;};(this.buffers??=[]).push(n);return n;};
 const rewardSound=new Sound();rewardSound.unlock();await rewardSound.flowerLoading;
@@ -110,5 +112,21 @@ rewardSound.update(.016,true,0,false,false,true);await settle();assert.equal(rew
 rewardSound.update(.016,true,0);await settle();assert.equal(rewardSound.trackGain._target,.26);
 rewardSound.enabled=false;rewardSound.effect('stamp');assert.equal(rewardSound.ctx.buffers.length,1);
 rewardSound.enabled=true;rewardSound.setForeground(false);rewardSound.effect('stamp');assert.equal(rewardSound.ctx.buffers.length,1);
+const sporeSound=new Sound();sporeSound.unlock();await sporeSound.sporeBalloonLoading;
+sporeSound.effect('break',{spore:true});assert.equal(sporeSound.ctx.buffers.length,1);assert(sporeSound.ctx.buffers[0].started);
+assert.equal(sporeSound.ctx.buffers[0].buffer,sporeSound.sporeBalloonBuffer);assert.equal(sporeSound.ctx.buffers[0].output.output,sporeSound.master);
+assert.equal(sporeSound.ctx.oscillators.length,0,'the supplied recording replaces the synthesized forest burst');
+sporeSound.enabled=false;sporeSound.effect('break',{spore:true});assert.equal(sporeSound.ctx.buffers.length,1,'muted spore balloons stay silent');
 globalThis.fetch=oldFetch;
-console.log('PASS supplied flower WAV playback, music duck/restore, mute and hidden-page silence');
+console.log('PASS supplied flower and spore-balloon WAV playback, music duck/restore, mute and hidden-page silence');
+
+const motherSound=new Sound();motherSound.unlock();await settle();
+motherSound.update(.016,true,1);await settle();motherSound.track.currentTime=35;
+motherSound.update(.016,true,1,false,false,false,true);
+assert.equal(motherSound.trackGain._target,.008,'collapse and stillness hush the soundtrack');
+assert.equal(motherSound.track.currentTime,35,'hushing does not restart the forest music');
+motherSound.update(.016,true,1);await settle();assert.equal(motherSound.trackGain._target,.26);
+assert.equal(motherSound.track.currentTime,35);
+const beforePuff=motherSound.ctx.oscillators.length;motherSound.effect('mother-friendly');assert.equal(motherSound.ctx.oscillators.length,beforePuff+1);
+motherSound.enabled=false;motherSound.effect('mother-friendly');assert.equal(motherSound.ctx.oscillators.length,beforePuff+1,'friendly puffs respect mute');
+console.log('PASS Mother Puff quiet recovery, uninterrupted music restoration and friendly puff mute');

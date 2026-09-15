@@ -16,7 +16,8 @@ import {ShapingControls} from './shaping-controls.js';
 import {visitStation} from './shaping.js';
 import {applyUIPalette} from './palette.js';
 import {hintIcon} from './hint-icons.js';
-import {updateMotherHUD} from './mother-puff-hud.js';
+import {motherQuiet} from './mother-puff-rules.js';
+import {updateMotherAtmosphere} from './mother-puff-hud.js';
 
 applyUIPalette(document.documentElement);
 
@@ -49,8 +50,7 @@ function onEvent(e){
   if(e.type==='coin'||e.type==='stamp'){const el=$(e.type==='coin'?'coin-count':'stamp-count');el.animate?.([{transform:'scale(1)'},{transform:'scale(1.4)'},{transform:'scale(1)'}],{duration:190});}
   if(!world?.reducedMotion){if(e.type==='break'||e.type==='squish')hitStop=.035;if(e.type==='hurt')hitStop=.055;}
   if(e.type==='checkpoint')saveJourney();
-  if(e.type==='mother-defeat'){toast('Mother Puff rests · the way is open');saveJourney();}
-  if(e.type==='mother-cap')toast('Bounce from an orange cap, then stomp her crown');
+  if(e.type==='mother-defeat')saveJourney();
   if(e.type==='stamp'){clearInput();saveJourney();}
   if(e.type==='flower-resume')clearInput();
   if(e.type==='activate'){toast(e.message?.split(' · ')[0]||'Mechanism opened');saveJourney();}
@@ -250,7 +250,7 @@ for(const id of ['jump','stomp']){
   b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up);
 }
 window.addEventListener('blur',()=>{sound.setForeground(false);clearInput();if(game.status==='playing'&&!fullscreen.pending&&performance.now()>fullscreenTransition)pause();});
-function syncAudioFocus(){sound.update(0,game.status==='playing',game.index,game.level.sections[game.sectionId]?.quiet,menu,!!game.flowerCelebration);sound.setForeground(!document.hidden);}
+function syncAudioFocus(){sound.update(0,game.status==='playing',game.index,game.level.sections[game.sectionId]?.quiet,menu,!!game.flowerCelebration,motherQuiet(game.level.boss));sound.setForeground(!document.hidden);}
 window.addEventListener('focus',syncAudioFocus);
 document.addEventListener('visibilitychange',()=>{clearInput();if(document.hidden&&game.status==='playing')pause();syncAudioFocus();});
 window.addEventListener('resize',clearInput);
@@ -265,7 +265,7 @@ function stationPicker(){
 }
 shapingControls=new ShapingControls({game,world:()=>world,input,picker:stationPicker});
 function updateHUD(now){
-  updateMotherHUD(game,$('mother-hud'),$('mother-mist'),!menu&&!editor?.active&&game.status==='playing');
+  updateMotherAtmosphere(game,$('mother-mist'),!menu&&!editor?.active&&game.status==='playing');
   if(editor?.active)return;
   const p=game.player;$('coin-count').textContent=game.coins;$('stamp-count').textContent=`${game.stamps}/${game.level.stamps.length}`;
   [...$('health').children].forEach((e,i)=>e.classList.toggle('empty',i>=p.health));$('health').setAttribute('aria-label',`${p.health} health remaining`);
@@ -283,7 +283,7 @@ let prev=performance.now(),accum=0,hudAccum=0;
 function frame(now){
   shapingControls?.update();
   const dt=Math.min((now-prev)/1000,.06);prev=now;
-  sound.update(dt,game.status==='playing',game.index,game.level.sections[game.sectionId]?.quiet,menu,!!game.flowerCelebration);
+  sound.update(dt,game.status==='playing',game.index,game.level.sections[game.sectionId]?.quiet,menu,!!game.flowerCelebration,motherQuiet(game.level.boss));
   if(!assetsReady||document.hidden){accum=0;requestAnimationFrame(frame);return;}
   if(menu){accum=0;titleScene?.render(dt);requestAnimationFrame(frame);return;}
   if(hitStop>0){hitStop=Math.max(0,hitStop-dt);accum=0;}else accum+=dt;
