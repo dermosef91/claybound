@@ -1,5 +1,5 @@
 import * as THREE from './lib/three.module.js';
-import {MAGIC_CLAY} from './shaping-views.js';
+import {createHandGeometry,createArrowGeometry} from './shape-hand-geometry.js';
 
 // A large clay hand over kneadable clay, miming the stroke that clay needs,
 // with a dashed run and a solid arrowhead for the direction. This is the
@@ -7,41 +7,24 @@ import {MAGIC_CLAY} from './shaping-views.js';
 // clay permanently, so the cue goes quiet on clay the player has already
 // solved, and returns if anyone hesitates in front of clay they have not.
 const PERIOD=1.9,DWELL=1.8;
-// Which way the mimed gesture travels, and how the hand is held to make it.
-// The pointing finger leads the way the clay has to go (it points -y at rest).
+// The fingertip touches the clay; the arrow describes the drag. Keeping the
+// back of the hand facing the camera makes its thumb and knuckles readable.
 const GESTURES={
-  down:{move:[0,-1.05],turn:0,rest:1.35,reach:false},
-  right:{move:[1.5,0],turn:Math.PI/2,rest:1.15,reach:true},
-  out:{move:[1.1,0],turn:Math.PI/2,rest:1.15,reach:false,mirror:true}
+  down:{move:[0,-.8],turn:Math.PI,reach:false},
+  right:{move:[.8,0],turn:0,reach:true},
+  out:{move:[.75,0],turn:0,reach:false,mirror:true}
 };
 const ease=t=>t*t*(3-2*t);
 
-function cueMaterial(w,name,color){
-  const base=w.mat[name];
-  const m=base?base.clone():new THREE.MeshStandardMaterial({color,roughness:.93});
-  // Transparent materials keep the plain surface: the clay shader skips them,
-  // which suits a guide that should read as a cue rather than as scenery.
-  m.color.setHex(color);m.transparent=true;m.opacity=0;m.depthWrite=false;m.roughness=.9;m.metalness=0;
-  m.emissive?.setHex(color);m.emissiveIntensity=.2;
-  return m;
+function cueMaterial(){
+  return new THREE.MeshStandardMaterial({color:0xffebcc,roughness:.62,
+    metalness:0,emissive:0xffebcc,emissiveIntensity:.12,
+    transparent:true,opacity:0,depthWrite:false});
 }
 
-function buildHand(w,materials,parent,flip=1){
+function buildHand(geometry,material,parent,flip=1){
   const hand=new THREE.Group();hand.scale.x=flip;parent.add(hand);
-  const [skin,cuff]=materials;
-  // The reference hand: a soft rounded fist with one extended finger leading
-  // the stroke, built from balls and a capsule rather than boxes so the
-  // silhouette is mitten-round, and a chunky cuff at the wrist. About two
-  // thirds of the player's height across, to read at a glance.
-  w.ball(.4,.37,.22,skin,hand,0,-.06,0);
-  // Extended finger, capped so its tip is round.
-  const finger=w.cylinder(.115,.52,skin,hand,-.03,-.5,.06);finger.rotation.z=.06;
-  w.ball(.12,.12,.12,skin,hand,-.05,-.75,.06);
-  // Curled knuckles along the front of the fist.
-  for(let i=0;i<3;i++)w.ball(.115,.1,.12,skin,hand,.13+i*.02,-.3-i*.17,-.04);
-  // Thumb folded across.
-  const thumb=w.ball(.1,.17,.11,skin,hand,-.33,-.19,.09);thumb.rotation.z=.62;
-  w.ball(.33,.16,.24,cuff,hand,0,.28,0);
+  const mesh=new THREE.Mesh(geometry,material);mesh.name='Sculpted pointing hand';hand.add(mesh);
   return hand;
 }
 
@@ -51,28 +34,25 @@ export function createShapeHands(w,L){
     const gesture=GESTURES[station.gesture]||GESTURES.down;
     const root=new THREE.Group();root.name='Clay gesture hand · '+station.id;root.visible=false;
     w.levelRoot.add(root);
-    // The cuff carries the clay's own violet, so the cue and the object it
-    // refers to are visibly the same idea.
-    const materials=[cueMaterial(w,'cream',0xfff2dc),cueMaterial(w,'orange',MAGIC_CLAY)];
+    const materials=[cueMaterial()];
+    const geometries=[createHandGeometry(),new THREE.CapsuleGeometry(.055,.24,6,12),createArrowGeometry()];
+    geometries[1].rotateZ(Math.PI/2);
     const carrier=new THREE.Group();root.add(carrier);
     // A spreading gesture needs two hands leaving the middle in opposite
     // directions; every other gesture is one hand travelling one way.
     const dirs=gesture.mirror?[1,-1]:[1];
-    const hands=dirs.map(dir=>Object.assign(buildHand(w,materials,carrier,dir),{userData:{dir}}));
+    const hands=dirs.map(dir=>Object.assign(buildHand(geometries[0],materials[0],carrier,dir),{userData:{dir}}));
     // A dashed run and an arrowhead: the same drawing the reference uses.
     const marks=[];
     for(const dir of dirs){
-      for(let i=0;i<4;i++){
-        const dash=w.box(.31,.14,.15,materials[0],carrier,0,0,0,.07);
-        dash.userData={dir,step:.42+i*.29,dash:true};marks.push(dash);
+      for(let i=0;i<3;i++){
+        const dash=new THREE.Mesh(geometries[1],materials[0]);carrier.add(dash);
+        dash.userData={dir,step:1.4+i*.53,dash:true};marks.push(dash);
       }
-      // A solid triangular head closes the run, as the reference draws it.
-      const head=new THREE.Group();carrier.add(head);
-      const tip=w.mesh(new THREE.ConeGeometry(.3,.46,3),materials[0],head,0,0,0);
-      tip.rotation.z=-Math.PI/2;tip.rotation.y=Math.PI/2;tip.scale.z=.5;
-      head.userData={dir,step:1.82,arrow:true};marks.push(head);
+      const head=new THREE.Mesh(geometries[2],materials[0]);carrier.add(head);
+      head.userData={dir,step:3.32,arrow:true};marks.push(head);
     }
-    views.push({root,carrier,hands,marks,materials,station,gesture,opacity:0,time:0,dwell:0,seen:0});
+    views.push({root,carrier,hands,marks,materials,geometries,station,gesture,opacity:0,time:0,dwell:0,seen:0});
   }
   return views;
 }
@@ -89,11 +69,10 @@ function anchor(view,L,player){
     top=Math.max(top,s.y+(s.slope||0));bottom=Math.min(bottom,s.y-(s.h??.65));
   }
   if(!Number.isFinite(left))return null;
-  const x=gesture.reach?left+.55:(left+right)/2;
-  // Prefer hovering just clear of the clay's top; on a tall plug, stay inside
-  // the landscape camera's headroom (viewH 8.7 centred a little above the
-  // player) so the cue never drifts off the top of the screen.
-  const y=Math.max(bottom+1,Math.min(top+gesture.rest,player.y+5));
+  const x=gesture.reach?left+Math.min((right-left)*.65,1.65):(left+right)/2;
+  // Touch the upper face instead of floating a disconnected hand above it.
+  // Reserve space for the raised index even beside the tall stair wall.
+  const y=Math.max(bottom+1,Math.min(top-(gesture.move[1]?.25:1.05),player.y+3.7));
   return {x,y};
 }
 
@@ -121,7 +100,7 @@ export function animateShapeHands(w,game,dt,playing){
     const alpha=view.opacity*(.25+.75*(1-station.amount));
     root.visible=alpha>.02;
     if(!root.visible)continue;
-    root.position.set(spot.x,spot.y,1.35);
+    root.position.set(spot.x,spot.y,1.8);
 
     view.time+=playing?dt:0;
     // Reduced motion holds a legible mid-gesture pose instead of looping.
@@ -134,20 +113,21 @@ export function animateShapeHands(w,game,dt,playing){
     for(const m of view.materials)m.opacity=alpha*(.35+.65*fade);
     const bob=w.reducedMotion?0:Math.sin(view.time*2.3)*.07*(1-swing);
     view.carrier.position.set(0,bob,0);
+    view.carrier.scale.setScalar(w.landscape===false?.9:1);
     for(const hand of view.hands){
       const dir=hand.userData.dir;
-      hand.position.set(gesture.move[0]*swing*dir,gesture.move[1]*swing,0);
+      hand.position.set((gesture.move[0]*swing+(gesture.mirror?.48:0))*dir,gesture.move[1]*swing,0);
       hand.rotation.z=gesture.turn*dir+(gesture.move[1]?swing*.12:0);
       // A press squashes the hand a little as it lands on the clay.
       hand.scale.y=1-swing*.08;
     }
     for(const mark of view.marks){
       const {dir,step,arrow}=mark.userData;
-      mark.position.set(gesture.move[0]*step*.82*dir,gesture.move[1]*step*.82,0);
+      mark.position.set(gesture.move[0]?(step+(gesture.mirror?.48:0))*dir:0,gesture.move[1]?-step:.35,0);
       mark.rotation.z=gesture.move[1]?-Math.PI/2:dir>0?0:Math.PI;
       // The run lights up in sequence, so the direction is unmistakable.
-      const lead=w.reducedMotion?.75:Math.max(0,1-Math.abs(u*2.2-step)*1.6);
-      mark.scale.setScalar(arrow?.8+lead*.35:.62+lead*.5);
+      const lead=w.reducedMotion?.75:Math.max(0,1-Math.abs(u*5-step)*1.2);
+      mark.scale.setScalar(arrow?.85+lead*.035:.9+lead*.1);
     }
   }
 }
@@ -155,6 +135,7 @@ export function animateShapeHands(w,game,dt,playing){
 export function disposeShapeHands(w){
   for(const view of w.shapeHands||[]){
     view.root.removeFromParent();
+    for(const g of view.geometries)g.dispose();
     for(const m of view.materials)m.dispose();
   }
   w.shapeHands=[];

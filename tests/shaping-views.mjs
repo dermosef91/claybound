@@ -158,7 +158,7 @@ console.log('PASS all clay poses: finite geometry/normals, stable buffers, colli
   view.opacity=0;view.dwell=0;station.amount=0;
   for(let i=0;i<60*9;i++){station.amount=Math.min(.9,station.amount+.0008);animateShapeHands(hw,g,1/60,true);}
   assert(!view.root.visible,'kneading in progress keeps the cue away');
-  assert.equal(view.materials[1].color.getHex(),MAGIC_CLAY,'the cue carries the clay colour');
+  assert.equal(view.materials[0].color.getHex(),0xffebcc,'the hand and arrow share the reference cream');
   disposeShapeHands(hw);
   console.log('PASS gesture cue: teaches unsolved clay, stays quiet on solved clay, returns on a stall, never nags mid-knead');
 }
