@@ -5,3 +5,10 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Test output: rewritten by tests/playthroughs.mjs on every successful run.
+tests/playthrough-results.json
+tests/flower-playthrough-results.json
+
+# Blender auto-save backups left beside .blend files by asset preparation.
+*.blend1
