@@ -1,5 +1,6 @@
 import * as THREE from './lib/three.module.js';
 import {sculptClay} from './clay.js';
+import {porousClay} from './porous-clay.js';
 
 const random=n=>{const x=Math.sin(n*127.13+73.41)*43758.5453;return x-Math.floor(x);};
 const clamp=n=>Math.max(0,Math.min(1,n));
@@ -21,36 +22,32 @@ function cells(width,rows,seed){
     return poly;
   });
 }
+function crumbleMaterials(w){
+  // Independent of biome palettes, including after a chapter switch.
+  for(const [name,color]of [['crumbleGrey',0x606063],['crumbleLower',0x525254],['crumbleChip',0x5b5b5e]]){
+    w.mat[name]??=new THREE.MeshStandardMaterial({color,roughness:.98,metalness:0,vertexColors:name!=='crumbleChip'});
+  }
+}
 export function createCrumble(w,s,root){
-  root.name='Fractured clay platform';
+  root.name='Porous grey crumbling ledge';crumbleMaterials(w);
   const pieces=[],seed=s.x*3+s.y*11;
-  for(const [layer,rows,depth,top,mat]of [[0,2,.39,0,w.biome==='forest'?'barkLight':'top'],[1,1,.26,-.43,'terrain']]){
+  for(const [layer,rows,depth,top,mat]of [[0,2,.39,0,'crumbleGrey'],[1,1,.30,-.43,'crumbleLower']]){
     for(const [i,poly]of cells(s.w,rows,seed+layer*41).entries()){
       const cx=poly.reduce((a,b)=>a+b[0],0)/poly.length,cz=poly.reduce((a,b)=>a+b[1],0)/poly.length;
-      const shape=new THREE.Shape();
-      const outline=[];
-      for(let j=0;j<poly.length;j++){
-        const a=poly[j],b=poly[(j+1)%poly.length],steps=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/.4));
-        for(let n=0;n<steps;n++){
-          let x=a[0]+(b[0]-a[0])*n/steps,z=a[1]+(b[1]-a[1])*n/steps;
-          const px=x;x+=Math.sin(x*6.8+z*4.1)*.028;z+=Math.sin(px*5.2-z*3.3)*.045;
-          const length=Math.hypot(x-cx,z-cz),inset=Math.min(.12,length*.22),factor=1-inset/length;
-          outline.push([(x-cx)*factor,(z-cz)*factor]);
-        }
-      }
-      outline.forEach(([x,z],j)=>j?shape.lineTo(x,z):shape.moveTo(x,z));shape.closePath();
-      const geo=new THREE.ExtrudeGeometry(shape,{depth:depth-.16,steps:1,bevelEnabled:true,bevelSize:.08,bevelThickness:.08,bevelSegments:4});
-      geo.rotateX(Math.PI/2);geo.translate(0,-.08,0);
-      // Shallow relief retains the broad, level contact surface and deep gaps.
-      const mesh=w.mesh(sculptClay(w,geo,{amplitude:.013,subdivide:true}),mat,root,cx,top,cz);
-      mesh.name=layer?'Broken lower clay layer':'Cracked golden cap';
+      const outline=poly.map(([x,z])=>{
+        const length=Math.hypot(x-cx,z-cz),factor=1-Math.min(.06,length*.16)/length;
+        return [(x-cx)*factor,(z-cz)*factor];
+      });
+      const geo=porousClay(w,outline,depth,seed+i*137+layer*51,layer===1);
+      const mesh=w.mesh(geo,mat,root,cx,top,cz);
+      mesh.name=layer?'Porous broken grey underside':'Pitted grey clay cap';
       pieces.push({mesh,rest:mesh.position.clone(),seed:i+layer*37,layer});
     }
   }
-  // Loose grains wedged along the exposed seam make fragility readable at rest.
+  // Loose grey grains sit in the seam, then fall with their parent fragments.
   for(let i=0;i<Math.ceil(s.w*3);i++){
     const x=.15+random(seed+i*7)*(s.w-.3),r=.025+random(seed+i*13)*.045;
-    const mesh=w.mesh(fragmentGeometry(w),w.biome==='forest'?'barkLight':'top',root,x,-.42-r*.3,.86);mesh.scale.set(r*1.2,r*.9,r*.8);
+    const mesh=w.mesh(fragmentGeometry(w),'crumbleChip',root,x,-.42-r*.3,.86);mesh.scale.set(r*1.2,r*.9,r*.8);
     pieces.push({mesh,rest:mesh.position.clone(),seed:60+i,grain:true});
   }
   return {pieces,crumbClock:0};
@@ -62,11 +59,11 @@ function fragmentGeometry(w){
   }
   return w.fragmentGeometry;
 }
-export function clayFragments(w,x,y,width,count=18,power=1){
+export function clayFragments(w,x,y,width,count=18,power=1,porous=false){
   count=Math.max(0,Math.min(w.reducedMotion?Math.min(7,count):count,110-w.particles.length));
-  fragmentGeometry(w);
+  fragmentGeometry(w);if(porous)crumbleMaterials(w);
   for(let i=0;i<count;i++){
-    const mesh=w.mesh(w.fragmentGeometry,i%3?'top':'terrain',w.fxRoot,x+(Math.random()-.5)*width,y-.15,.5+Math.random()*.45);
+    const mesh=w.mesh(w.fragmentGeometry,porous?'crumbleChip':i%3?'top':'terrain',w.fxRoot,x+(Math.random()-.5)*width,y-.15,.5+Math.random()*.45);
     const r=.035+Math.random()*.08;mesh.scale.set(r*1.3,r*.75,r);mesh.castShadow=false;mesh.receiveShadow=false;
     w.particles.push({kind:'clay-chip',mesh,vx:(Math.random()-.5)*3.4*power,vy:(Math.random()*2.1-.7)*power,vz:(Math.random()-.35)*1.6,spinX:Math.random()*8-4,spinZ:Math.random()*10-5,life:.65+Math.random()*.45});
   }
@@ -95,6 +92,6 @@ export function animateCrumble(w,view,s,dt){
   }
   if(s.active&&s.timer>0&&dt>0){
     fracture.crumbClock-=dt;
-    if(fracture.crumbClock<=0){fracture.crumbClock=.10;clayFragments(w,s.x+s.w/2,s.y-.18,s.w,w.reducedMotion?1:3,.28);}
+    if(fracture.crumbClock<=0){fracture.crumbClock=.10;clayFragments(w,s.x+s.w/2,s.y-.18,s.w,w.reducedMotion?1:3,.28,true);}
   }else fracture.crumbClock=0;
 }

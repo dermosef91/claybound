@@ -302,7 +302,7 @@ export class World {
     heroEvent(this.character,e);
     if(e.type==='checkpoint')raiseCheckpoint(this,e);
     else if(e.type==='break'&&e.spore)burstSporePod(this,e);
-    else if(e.type==='crumble-collapse')clayFragments(this,e.x,e.y,e.w,24,1.1);
+    else if(e.type==='crumble-collapse')clayFragments(this,e.x,e.y,e.w,24,1.1,true);
     else if(e.type==='press-impact'){clayFragments(this,e.x,e.y,e.w+1,14,.85);if(!this.reducedMotion&&Math.abs(this.cameraX-e.x)<this.viewW*.6)this.shake=.06;}
     else if(e.type==='squish'&&e.kind==='spore')this.burst(e.x,e.y,'spore',16,.75);
     else if(e.type==='shot-pop'||e.type==='spitter-fire')this.burst(e.x,e.y,'gold',e.type==='shot-pop'?5:3,.4);
