@@ -3,9 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
-  <meta name="theme-color" content="#7ca8cb">
-  <meta name="description" content="Small feet. Bigger worlds. Leap through canyons, treetops, caves and a blue clay city in the clouds, with keyboard and touch controls.">
+  <meta name="theme-color" content="#e64e1e">
+  <meta name="description" content="Small feet. Bigger worlds. Leap through canyons, treetops, caves and a blue clay city in the clouds, with keyboard, controller and touch controls.">
   <title>Claybound — Small feet. Bigger worlds.</title>
+
+  <!-- Link previews. Without these the game arrives in a chat as a bare URL,
+       which is most people's first and only look at it. The image paths are
+       relative so the game still previews from any folder; Slack and Discord
+       resolve those inconsistently, so when the public URL is known, replace
+       the two image URLs with absolute ones (https://host/og-card.jpg). -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Claybound">
+  <meta property="og:title" content="Claybound">
+  <meta property="og:description" content="Small feet. Bigger worlds. A handmade clay platformer across four worlds — canyon, treetops, glowing caverns and a city in the clouds.">
+  <meta property="og:image" content="./og-card.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="A small clay figure on a canyon overlook beside a flag and a cactus, under the Claybound logo.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Claybound">
+  <meta name="twitter:description" content="Small feet. Bigger worlds. A handmade clay platformer across four worlds.">
+  <meta name="twitter:image" content="./og-card.jpg">
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./controls.css">
   <link rel="stylesheet" href="./completion.css">
@@ -15,7 +33,14 @@
   <link rel="stylesheet" href="./clay-ui.css">
   <link rel="stylesheet" href="./shaping.css">
   <link rel="stylesheet" href="./mother-puff.css">
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="./icon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="./icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="./icon-180.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Claybound">
   <link rel="preload" href="./assets/title/logo.webp" as="image">
   <script type="module" src="./lib/lucide-subset.js"></script>
 </head>

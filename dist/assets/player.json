@@ -1,0 +1,21 @@
+{
+  "source": "player.glb",
+  "sourceSha256": "e73125f0be9b4771fa9014cf56502e393e3f25a5fa140c1c540d431d3058b0e1",
+  "shippedSha256": "aecff59830d47aed24ff93b0c0b3e7811930388901ba663e233baaca93843146",
+  "sourceBytes": 5273408,
+  "shippedBytes": 1240288,
+  "textures": [
+    {
+      "role": "other",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "textureLimit": 1024,
+  "geometryUnchanged": true,
+  "geometrySha256": "781141ca6f6d8a9008a1b61c120ae0f99382106638adc1d2f7f6f55108e3d596",
+  "animations": 11,
+  "triangles": 10418
+}

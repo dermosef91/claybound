@@ -1,0 +1,35 @@
+{
+  "source": "Meshy_AI_Clay_Wanderer_Running.glb",
+  "sourceSha256": "f5188272d9a120087b8b0b0714b5644d7792e66ee9c6973ce33c0af090dd441e",
+  "shippedSha256": "539fa19a20e5fad9365c48cc1d66e5b83f0505d0b464c42aa1c259d0fdff7008",
+  "sourceBytes": 11691184,
+  "shippedBytes": 3654412,
+  "textures": [
+    {
+      "role": "normal",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "baseColor",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "other",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "textureLimit": 1024,
+  "geometryUnchanged": true,
+  "geometrySha256": "9d343653ea167c3cfd2b924d2e3f13e22143751feb17b1b102cd42524a924d3c",
+  "animations": 2,
+  "triangles": 19402
+}

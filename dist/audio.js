@@ -22,10 +22,25 @@ export const FINISH_BELL=new URL('./assets/finish-bell.wav',import.meta.url).hre
 export const POROUS_CLAY_STEP=new URL('./assets/porous-clay-step.wav',import.meta.url).href;
 export const ENEMY_HEAD_IMPACT=new URL('./assets/enemy-head-impact.wav',import.meta.url).href;
 export class Sound {
+  // Music and effects sit on their own buses so either can be silenced without
+  // the other. Music defaults below effects: it is background, they are not.
+  static DEFAULT_MUSIC=.55;
+  static DEFAULT_EFFECTS=1;
   constructor(){
     this.ctx=null;this._enabled=true;this.foreground=true;this.title=true;this.playing=false;this.chapter=0;this.quiet=false;
+    this._musicLevel=Sound.DEFAULT_MUSIC;this._effectsLevel=Sound.DEFAULT_EFFECTS;
     this.lastCoin=0;this.coinRun=0;this.musicTimer=0;this.note=0;this.theme=-1;
     this.track=null;this.trackGain=null;this.playPending=false;this.trackBlocked=false;this.failedTracks=new Set();this.trackURL=null;this.trackGeneration=0;this.pauseTimer=null;
+  }
+  get musicLevel(){return this._musicLevel;}
+  set musicLevel(value){this._musicLevel=Math.min(1,Math.max(0,Number(value)||0));this.setBuses();this.syncTrack();}
+  get effectsLevel(){return this._effectsLevel;}
+  set effectsLevel(value){this._effectsLevel=Math.min(1,Math.max(0,Number(value)||0));this.setBuses();}
+  setBuses(){
+    if(!this.ctx)return;
+    for(const [bus,level] of [[this.musicBus,this._musicLevel],[this.effectsBus,this._effectsLevel]]){
+      bus.gain.cancelScheduledValues(this.ctx.currentTime);bus.gain.setValueAtTime(level,this.ctx.currentTime);
+    }
   }
   get enabled(){return this._enabled;}
   set enabled(value){this._enabled=!!value;this.setMaster();if(!this._enabled)this.stopTrack();else this.syncTrack();}
@@ -35,7 +50,10 @@ export class Sound {
     if(!this.ctx){
       const A=window.AudioContext||window.webkitAudioContext;if(!A)return;
       this.ctx=new A();this.master=this.ctx.createGain();this.master.connect(this.ctx.destination);
-      this.motifGain=this.ctx.createGain();this.motifGain.connect(this.master);this.setMaster();
+      this.musicBus=this.ctx.createGain();this.musicBus.connect(this.master);
+      this.effectsBus=this.ctx.createGain();this.effectsBus.connect(this.master);
+      this.motifGain=this.ctx.createGain();this.motifGain.connect(this.musicBus);
+      this.setBuses();this.setMaster();
     }
     this.ctx.resume().catch(()=>{});this.trackBlocked=false;if(this.orchard)this.orchard.blocked=false;this.syncTrack();
     if(!this.flowerLoading&&this.ctx.decodeAudioData){
@@ -73,7 +91,7 @@ export class Sound {
     // Reuse one streaming element; only the selected song is requested.
     const track=document.createElement('audio');track.id='chapter-soundtrack';track.hidden=true;track.preload='none';track.loop=true;track.setAttribute('playsinline','');track.setAttribute('aria-hidden','true');
     this.track=track;document.body.append(track);
-    this.trackGain=this.ctx.createGain();this.trackGain.gain.value=0;this.trackGain.connect(this.master);
+    this.trackGain=this.ctx.createGain();this.trackGain.gain.value=0;this.trackGain.connect(this.musicBus);
     this.trackSource=this.ctx.createMediaElementSource(track);this.trackSource.connect(this.trackGain);
     track.addEventListener('error',()=>{if(track.error){this.failedTracks.add(this.trackURL);this.theme=-1;this.stopTrack();}});
   }
@@ -121,10 +139,10 @@ export class Sound {
     if(this.orchardActive()&&!this.orchard&&this.enabled&&this.foreground&&this.playing)this.orchard=new OrchardMusic(this);
     this.orchard?.update(this.orchardActive(),this.musicVolume(),musicFade);
   }
-  tone(freq,duration=.12,type='sine',volume=.04,slide=1,music=false){if(!this.enabled||!this.foreground||!this.ctx)return;const now=this.ctx.currentTime;const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,now);o.frequency.exponentialRampToValueAtTime(Math.max(30,freq*slide),now+duration);g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(volume,now+.012);g.gain.exponentialRampToValueAtTime(.001,now+duration);o.connect(g);g.connect(music?this.motifGain:this.master);o.start(now);o.stop(now+duration+.02);}
+  tone(freq,duration=.12,type='sine',volume=.04,slide=1,music=false){if(!this.enabled||!this.foreground||!this.ctx)return;const now=this.ctx.currentTime;const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,now);o.frequency.exponentialRampToValueAtTime(Math.max(30,freq*slide),now+duration);g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(volume,now+.012);g.gain.exponentialRampToValueAtTime(.001,now+duration);o.connect(g);g.connect(music?this.motifGain:this.effectsBus);o.start(now);o.stop(now+duration+.02);}
   bufferEffect(buffer,volume=.5,duration,playbackRate=1,offset=0){
     if(!buffer)return false;
-    const source=this.ctx.createBufferSource(),gain=this.ctx.createGain();source.buffer=buffer;gain.gain.value=volume;source.connect(gain);gain.connect(this.master);
+    const source=this.ctx.createBufferSource(),gain=this.ctx.createGain();source.buffer=buffer;gain.gain.value=volume;source.connect(gain);gain.connect(this.effectsBus);
     source.playbackRate.value=playbackRate;
     if(duration)source.start(0,offset,duration);else source.start();return true;
   }

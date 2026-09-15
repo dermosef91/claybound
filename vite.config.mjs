@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {dirname,join,resolve,relative} from 'node:path';
 
 const root=dirname(fileURLToPath(import.meta.url));
+const BRAND_FILES=/^(manifest\.webmanifest|og-card\.jpg|icon-\d+\.png)$/;
 
 // dist/ stays the authored, directly-servable source — `npm run dev` serves the
 // same files a browser would get from a plain static host, which is what makes
@@ -60,6 +61,22 @@ const copyRuntimeAssets=()=>{
       const missing=[...referenced].filter(rel=>!existsSync(join(out,'assets',rel)));
       if(missing.length)throw new Error(
         `Built output references assets that were not copied: ${missing.join(', ')}`);
+
+      // The web app manifest lists icons Rollup never sees, because nothing
+      // parses a manifest's contents. Copy anything it names that is not
+      // already beside index.html, then prove the installed app can find it.
+      const manifestPath=join(out,'manifest.webmanifest');
+      if(existsSync(manifestPath)){
+        const manifest=JSON.parse(await readFile(manifestPath,'utf8'));
+        const listed=[...(manifest.icons||[]),...(manifest.screenshots||[])].map(entry=>entry.src);
+        for(const src of new Set(listed)){
+          const name=src.replace(/^\.\//,'');
+          if(existsSync(join(out,name)))continue;
+          if(!existsSync(join(root,'dist',name)))
+            throw new Error(`The manifest lists ${src}, which is not in dist/.`);
+          await cp(join(root,'dist',name),join(out,name));
+        }
+      }
     }
   };
 };
@@ -79,6 +96,18 @@ export default defineConfig({
     // The game is one screen: a single chunk beats a waterfall of small ones.
     modulePreload:{polyfill:false},
     reportCompressedSize:true,
-    rollupOptions:{output:{manualChunks:undefined}}
+    rollupOptions:{output:{
+      manualChunks:undefined,
+      // Five files must keep their exact names beside index.html. The web app
+      // manifest resolves its own icon list and its start_url/scope against its
+      // own URL, so hashing it into bundle/ would point the installed app at
+      // bundle/ and at icons that are not there. The share card keeps a stable
+      // name for the opposite reason: crawlers cache og:image by URL, and a new
+      // hash every build throws that cache away.
+      assetFileNames(info){
+        const name=(info.names?.[0]||info.name||'').split('/').pop();
+        return BRAND_FILES.test(name)?'[name][extname]':'bundle/[name]-[hash][extname]';
+      }
+    }}
   }
 });

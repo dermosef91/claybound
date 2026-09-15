@@ -1,0 +1,28 @@
+{
+  "source": "echo-crystal.glb",
+  "sourceSha256": "c4bb9e6d5958507bc1e89a025cbdf2765812e41c0f5d8a72657c55a3d19d3780",
+  "shippedSha256": "0137b22ea487c951966cbd3f57cc618294c0349d00ea04909dce832adbbbd4c9",
+  "sourceBytes": 15367204,
+  "shippedBytes": 910780,
+  "textures": [
+    {
+      "role": "baseColor",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "other",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "textureLimit": 1024,
+  "geometryUnchanged": true,
+  "geometrySha256": "2e558f53b6011e073a512e79b1acb389c77adec8f46816cce018384768345f00",
+  "animations": 0,
+  "triangles": 3045
+}

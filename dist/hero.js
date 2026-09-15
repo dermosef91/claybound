@@ -3,6 +3,7 @@ import {GLTFLoader} from './lib/GLTFLoader.js';
 import {clayModel} from './clay.js';
 import {assetURL} from './model-assets.js';
 import {animateFlowerCelebration} from './flower-celebration.js';
+import {CHARACTERS} from './characters.js';
 
 const clamp=THREE.MathUtils.clamp;
 const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
@@ -20,15 +21,20 @@ export function createHero(w){
   return {root,body,facing,shadow,loaded:false,actions:{},weights:{},state:'idle',idleTime:0,idleVariant:'idle',longIdlePlayed:false,turn:0,spring:0,springV:0,gait:0,clock:0,hurt:0,landing:0,death:false,jumpKind:'jump',lastVx:0};
 }
 
-export async function loadHero(w,onProgress){
-  const [gltf,motion,idle]=await Promise.all([
-    new GLTFLoader().loadAsync(assetURL('player.glb'),e=>onProgress?.(e.total?e.loaded/e.total:null)),
-    fetch(assetURL('player-motion.json')).then(r=>{if(!r.ok)throw new Error('Character motion data could not load.');return r.json();}),
-    fetch(assetURL('player-idle.json')).then(r=>{if(!r.ok)throw new Error('The new idle animation could not load.');return r.json();})
+export async function loadHero(w,onProgress,choice=CHARACTERS[0]){
+  const [gltf,motion,animation]=await Promise.all([
+    new GLTFLoader().loadAsync(assetURL(choice.model),e=>onProgress?.(e.total?e.loaded/e.total:null)),
+    fetch(assetURL(choice.motion)).then(r=>{if(!r.ok)throw new Error('Character motion data could not load.');return r.json();}),
+    fetch(assetURL(choice.animation)).then(r=>{if(!r.ok)throw new Error('The character animations could not load.');return r.json();})
   ]);
-  attachHero(w,gltf,motion,idle);onProgress?.(1);
+  attachHero(w,gltf,motion,animation,choice);onProgress?.(1);
   return w.character;
 }
+
+// Every character carries its own copy of the game's states. The original rig
+// keeps its nine clips in the GLB and supplies only the newer idle alongside;
+// a retargeted rig supplies the whole set, since its own file has just one.
+const suppliedClips=animation=>animation.clips||[animation.clip];
 
 // Exact boundary samples keep short takeoff / landing excerpts continuous.
 function excerpt(source,name,start=0,end=source.duration){
@@ -41,14 +47,17 @@ function excerpt(source,name,start=0,end=source.duration){
   return new THREE.AnimationClip(name,end-start,tracks);
 }
 
-export function makeHeroClips(animations,motion,idle){
-  if(!idle||idle.playerSha256!==motion.sourceSha256)throw new Error('The idle animation does not match this character.');
-  const originals=new Map([...animations,THREE.AnimationClip.parse(idle.clip)].map(clip=>[clip.name,clip]));
+export function makeHeroClips(animations,motion,animation){
+  if(!animation||animation.playerSha256!==motion.sourceSha256)throw new Error('The animations do not match this character.');
+  const supplied=suppliedClips(animation).map(clip=>THREE.AnimationClip.parse(clip));
+  const originals=new Map([...animations,...supplied].map(clip=>[clip.name,clip]));
   function prepare(source,name,mode,start,end){
     const original=originals.get(source);if(!original)throw new Error(`Character animation is missing: ${source}`);
     const clip=original.clone(),track=clip.tracks.find(t=>t.name==='Hips.position');
     if(!track)throw new Error(`Character root animation is missing: ${source}`);
-    const correction=source===SOURCE.idle?idle.ground:motion.clips[source];
+    // A clip that arrived beside the model brings its own floor correction.
+    const correction=motion.clips[source]||animation.ground;
+    if(mode==='ground'&&!correction)throw new Error(`Character floor correction is missing: ${source}`);
     const ground=mode==='ground'?new THREE.NumberKeyframeTrack('floor',correction.times,correction.values).createInterpolant():null;
     for(let i=0;i<track.times.length;i++){
       track.values[i*3]=motion.anchor[0];track.values[i*3+2]=motion.anchor[2];
@@ -67,16 +76,28 @@ export function makeHeroClips(animations,motion,idle){
   };
 }
 
-export function attachHero(w,gltf,motion,idle){
+export function attachHero(w,gltf,motion,animation,choice=CHARACTERS[0]){
   const c=w.character;
   if(c.loaded)throw new Error('The character has already been loaded.');
+  // A supplied rig may carry its exporter's joint prefix. Drop it once, from the
+  // nodes and from the clips bound to them, so the movement states and the
+  // flower celebration address one vocabulary of joint names.
+  if(choice.bonePrefix){
+    const plain=name=>name.startsWith(choice.bonePrefix)?name.slice(choice.bonePrefix.length):name;
+    gltf.scene.traverse(o=>{o.name=plain(o.name);});
+    for(const clip of gltf.animations)for(const track of clip.tracks)track.name=plain(track.name);
+  }
   const hips=gltf.scene.getObjectByName('Hips');if(!hips?.isBone)throw new Error('The supplied character has no usable skeleton.');
   gltf.scene.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(gltf.scene,true),height=bounds.max.y-bounds.min.y;
   if(!Number.isFinite(height)||height<=0)throw new Error('The character has invalid geometry.');
+  // The skeleton's own root scale carries its units: the original armature is
+  // authored in centimetres, the Wanderer's in metres. Both normalize to the
+  // same standing height, so the two read as one cast at one size.
+  const rootScale=hips.parent.getWorldScale(new THREE.Vector3()).y;
   const scale=MODEL_HEIGHT/height,model=new THREE.Group();model.name='Normalized custom character';
-  model.scale.setScalar(scale);model.position.set(0,-bounds.min.y*scale,-motion.anchor[2]*.01*scale);
-  model.add(gltf.scene);c.facing.add(model);c.model=model;c.asset=gltf.scene;c.hips=hips;
+  model.scale.setScalar(scale);model.position.set(0,-bounds.min.y*scale,-motion.anchor[2]*rootScale*scale);
+  model.add(gltf.scene);c.facing.add(model);c.model=model;c.asset=gltf.scene;c.hips=hips;c.choice=choice;
   const maxAnisotropy=Math.min(4,w.renderer?.capabilities.getMaxAnisotropy()||4);
   gltf.scene.traverse(o=>{
     if(!o.isMesh)return;
@@ -85,7 +106,7 @@ export function attachHero(w,gltf,motion,idle){
     o.frustumCulled=false;
     for(const material of Array.isArray(o.material)?o.material:[o.material]){
       // Keep the supplied surface detail while matching its orange pigment.
-      material.userData.clayOrangeSource=.780;
+      material.userData.clayOrangeSource=choice.orangeSource;
       material.roughness=.94;material.metalness=0;material.emissiveIntensity=0;
       if('specularIntensity' in material)material.specularIntensity=.22;
       if(material.map)material.map.anisotropy=maxAnisotropy;
@@ -93,7 +114,8 @@ export function attachHero(w,gltf,motion,idle){
     }
   });
   clayModel(w,gltf.scene);
-  c.clips=makeHeroClips(gltf.animations,motion,idle);c.sourceClips=[...gltf.animations.map(a=>a.name),idle.clip.name];
+  c.clips=makeHeroClips(gltf.animations,motion,animation);
+  c.sourceClips=[...gltf.animations.map(a=>a.name),...suppliedClips(animation).map(clip=>clip.name)];
   c.mixer=new THREE.AnimationMixer(gltf.scene);
   for(const [name,clip] of Object.entries(c.clips)){
     const a=c.mixer.clipAction(clip);a.setLoop(LOOPING.has(name)?THREE.LoopRepeat:THREE.LoopOnce,LOOPING.has(name)?Infinity:1);
@@ -102,6 +124,32 @@ export function attachHero(w,gltf,motion,idle){
   c.actions.walk.setEffectiveTimeScale(0);c.actions.run.setEffectiveTimeScale(0);
   c.actions.land.setEffectiveTimeScale(1.9);c.actions.hurt.setEffectiveTimeScale(1.9);c.actions.death.setEffectiveTimeScale(3.4);
   c.loaded=true;c.mixer.update(0);c.root.updateMatrixWorld(true);
+}
+
+// Release one character so another can take its place mid-session. The group
+// the game drives — position, facing, shadow, spore motes — is not a character
+// and stays put; only the rig, its clips and the bones the flower reaches for
+// belong to whoever is being put away.
+export function detachHero(w){
+  const c=w.character;
+  // Keyed on the model, not on `loaded`: a rig whose clips were rejected is
+  // still attached, and it is exactly the one worth clearing away.
+  if(!c.model)return;
+  c.mixer?.stopAllAction();c.mixer?.uncacheRoot(c.asset);
+  c.model.removeFromParent();c.flower?.root.removeFromParent();
+  for(const root of [c.asset,c.flower?.root])root?.traverse(o=>{
+    if(!o.isMesh)return;
+    o.geometry.dispose();
+    for(const material of Array.isArray(o.material)?o.material:[o.material]){
+      for(const map of ['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap'])material[map]?.dispose();
+      material.dispose();
+    }
+  });
+  c.loaded=false;c.model=c.asset=c.hips=c.mixer=c.clips=c.choice=undefined;
+  c.flower=null;c.actions={};c.weights={};c.state='idle';
+  c.idleTime=0;c.idleVariant='idle';c.longIdlePlayed=false;
+  c.spring=0;c.springV=0;c.gait=0;c.hurt=0;c.landing=0;c.death=false;c.lastVx=0;c.jumpKind='jump';
+  c.body.scale.setScalar(1);c.body.rotation.set(0,0,0);c.body.position.y=0;
 }
 
 function transition(c,state,restart=false){

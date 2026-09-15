@@ -1,0 +1,35 @@
+{
+  "source": "Meshy_AI_Emberleaf_Wanderer_Running.glb",
+  "sourceSha256": "3604af7fab35571574a42cdb0e215bd27ee721e0c5a6d7d9f22a874fd56bbccd",
+  "shippedSha256": "2a89a8197fd1014438464dfea515b936956025d1cea068d75a491fa95b41b802",
+  "sourceBytes": 13013120,
+  "shippedBytes": 4065344,
+  "textures": [
+    {
+      "role": "normal",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "baseColor",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "other",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "textureLimit": 1024,
+  "geometryUnchanged": true,
+  "geometrySha256": "179c9fcae1142563f216abcca87079baa30ce096a0cad1195a0ad22156dcc8fe",
+  "animations": 2,
+  "triangles": 21215
+}

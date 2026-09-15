@@ -8,7 +8,7 @@ import {prepareCastleAsset,castle} from '../dist/castle.js';
 import {prepareCottageAsset,cottageModel} from '../dist/cottage.js';
 const url=name=>new URL('../dist/assets/'+name,import.meta.url),w={levelRoot:new THREE.Group()};
 const gltf=await readGLB(url('enemy.glb')),motion=JSON.parse(await readFile(url('enemy-motion.json')));
-assert.equal(createHash('sha256').update(await readFile(url('enemy.glb'))).digest('hex'),motion.sourceSha256);
+assert.equal(createHash('sha256').update(await readFile(url('enemy.glb'))).digest('hex'),motion.shippedSha256);
 prepareEnemyAsset(w,gltf,motion);
 const e={id:0,x:12,y:3.9,dir:1,speed:1.8,alive:true},a=createEnemyView(w,e),b=createEnemyView(w,{...e,id:1,x:15});
 const ma=a.model.getObjectByName('char1'),mb=b.model.getObjectByName('char1');

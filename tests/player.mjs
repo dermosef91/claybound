@@ -9,7 +9,7 @@ import {Game} from '../dist/simulation.js';
 const bytes=await readFile(new URL('../dist/assets/player.glb',import.meta.url));
 const motion=JSON.parse(await readFile(new URL('../dist/assets/player-motion.json',import.meta.url)));
 const idle=JSON.parse(await readFile(new URL('../dist/assets/player-idle.json',import.meta.url)));
-assert.equal(motion.sourceSha256,createHash('sha256').update(bytes).digest('hex'),'floor corrections match the exact shipped GLB');
+assert.equal(motion.shippedSha256,createHash('sha256').update(bytes).digest('hex'),'floor corrections match the exact shipped GLB');
 const w={scene:new THREE.Scene(),mat:{shadow:new THREE.MeshBasicMaterial()},reducedMotion:false,time:0,mesh(g,m,parent){const o=new THREE.Mesh(g,m);parent.add(o);return o;}};
 w.character=createHero(w);w.scene.add(w.character.root);
 const gltf=await readPlayer();attachHero(w,gltf,motion,idle);const c=w.character;

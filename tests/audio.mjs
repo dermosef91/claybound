@@ -48,7 +48,24 @@ assert.equal(sound.trackGain._target,.3);
 track.currentTime=42;sound.update(.016,true,3,false,false);await settle();
 assert.equal(track.currentTime,42);assert.equal(track.plays,1,'title to Hanging Quarter remains continuous');
 assert.equal(sound.trackGain._target,.26);assert.equal(sound.ctx.oscillators.length,0,'the old chapter motif is silent under the supplied music');
-sound.effect('jump');assert.equal(sound.ctx.oscillators.length,1);assert.equal(sound.ctx.oscillators[0].output.output,sound.master,'effects remain on their own bus');
+sound.effect('jump');assert.equal(sound.ctx.oscillators.length,1);
+assert.equal(sound.ctx.oscillators[0].output.output,sound.effectsBus,'effects remain on their own bus');
+assert.equal(sound.effectsBus.output,sound.master);assert.equal(sound.musicBus.output,sound.master);
+assert.equal(sound.trackGain.output,sound.musicBus,'the streamed soundtrack rides the music bus');
+assert.equal(sound.motifGain.output,sound.musicBus,'the synthesized motif is music, not an effect');
+// Either bus can be silenced without touching the other, and the levels
+// survive a chapter change and a mute/unmute round trip.
+sound.musicLevel=0;
+assert.equal(sound.musicBus.gain.value,0);assert.equal(sound.effectsBus.gain.value,1,'silencing music leaves effects audible');
+sound.effect('jump');assert.equal(sound.ctx.oscillators.at(-1).output.output,sound.effectsBus);
+sound.effectsLevel=.4;sound.musicLevel=.8;
+assert.equal(sound.effectsBus.gain.value,.4);assert.equal(sound.musicBus.gain.value,.8);
+sound.enabled=false;sound.enabled=true;await settle();
+assert.equal(sound.musicBus.gain.value,.8,'mute does not reset the chosen levels');
+assert.equal(sound.effectsBus.gain.value,.4);
+sound.musicLevel=2;assert.equal(sound.musicLevel,1,'levels clamp');
+sound.effectsLevel=-1;assert.equal(sound.effectsLevel,0);
+sound.effectsLevel=1;sound.musicLevel=Sound.DEFAULT_MUSIC;
 sound.update(.016,true,3,true);assert.equal(sound.trackGain._target,.19,'quiet areas reduce the soundtrack');
 sound.update(.016,false,3);assert.equal(sound.trackGain._target,0);advance(310);assert(track.paused);assert.equal(track.currentTime,42);
 sound.update(.016,true,3);await settle();assert(!track.paused);assert.equal(track.currentTime,42);
@@ -117,7 +134,7 @@ Context.prototype.decodeAudioData=async bytes=>({duration:1,bytes});
 Context.prototype.createBufferSource=function(){const n=new Node();n.playbackRate=new Param();n.start=(...args)=>{n.started=true;n.startArgs=args;};(this.buffers??=[]).push(n);return n;};
 const rewardSound=new Sound();rewardSound.unlock();await rewardSound.flowerLoading;
 rewardSound.effect('stamp');assert.equal(rewardSound.ctx.buffers.length,1);assert(rewardSound.ctx.buffers[0].started);
-assert.equal(rewardSound.ctx.buffers[0].output.output,rewardSound.master);
+assert.equal(rewardSound.ctx.buffers[0].output.output,rewardSound.effectsBus);
 assert.equal(rewardSound.ctx.buffers[0].output.gain.value,.5,'flower victory recording plays at 50% gain');
 rewardSound.update(.016,true,0,false,false,true);await settle();assert.equal(rewardSound.trackGain._target,.08);
 rewardSound.update(.016,true,0);await settle();assert.equal(rewardSound.trackGain._target,.26);
@@ -125,7 +142,7 @@ rewardSound.enabled=false;rewardSound.effect('stamp');assert.equal(rewardSound.c
 rewardSound.enabled=true;rewardSound.setForeground(false);rewardSound.effect('stamp');assert.equal(rewardSound.ctx.buffers.length,1);
 const sporeSound=new Sound();sporeSound.unlock();await sporeSound.sporeBalloonLoading;
 sporeSound.effect('break',{spore:true});assert.equal(sporeSound.ctx.buffers.length,1);assert(sporeSound.ctx.buffers[0].started);
-assert.equal(sporeSound.ctx.buffers[0].buffer,sporeSound.sporeBalloonBuffer);assert.equal(sporeSound.ctx.buffers[0].output.output,sporeSound.master);
+assert.equal(sporeSound.ctx.buffers[0].buffer,sporeSound.sporeBalloonBuffer);assert.equal(sporeSound.ctx.buffers[0].output.output,sporeSound.effectsBus);
 assert.equal(sporeSound.ctx.buffers[0].output.gain.value,.5,'spore balloon recording plays at 50% gain');
 assert.equal(sporeSound.ctx.oscillators.length,0,'the supplied recording replaces the synthesized forest burst');
 sporeSound.effect('squish',{kind:'spore'});const enemyPuff=sporeSound.ctx.buffers[1];
@@ -153,7 +170,7 @@ const originalRandom=Math.random;Math.random=()=>.25;
 for(const [type,buffer,gain]of [['coin',interactionSound.coinBuffer,.0135],['checkpoint',interactionSound.checkpointBuffer,.25],['complete',interactionSound.completeBuffer,.5]]){
   const oscillatorCount=interactionSound.ctx.oscillators.length,sourceCount=interactionSound.ctx.buffers?.length||0;
   interactionSound.effect(type);const source=interactionSound.ctx.buffers[sourceCount];
-  assert(source?.started,`${type} starts its supplied recording`);assert.equal(source.buffer,buffer);assert.equal(source.output.output,interactionSound.master);
+  assert(source?.started,`${type} starts its supplied recording`);assert.equal(source.buffer,buffer);assert.equal(source.output.output,interactionSound.effectsBus);
   assert.equal(source.output.gain.value,gain,`${type} uses its tuned playback volume`);
   assert.equal(interactionSound.ctx.oscillators.length,oscillatorCount,`${type} recording replaces its synthesized cue`);
 }

@@ -1,0 +1,35 @@
+{
+  "source": "cloud.glb",
+  "sourceSha256": "afc548e26ccb785602babf4dab3a1207aa93a744f9dfb32dd7aefe8f71b007f3",
+  "shippedSha256": "176bc5d61d2c3d9fe628edd7554042fda80feeb5d81ee07f36919a6311909f7b",
+  "sourceBytes": 5261624,
+  "shippedBytes": 445384,
+  "textures": [
+    {
+      "role": "baseColor",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "other",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "normal",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "textureLimit": 1024,
+  "geometryUnchanged": true,
+  "geometrySha256": "cbe63a62ab3cef2b4ff23d9e3ba09906b79098f53a1a61b4fbe26140777da9cb",
+  "animations": 0,
+  "triangles": 3134
+}

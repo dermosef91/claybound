@@ -85,6 +85,11 @@ built-in workflow token is not granted. After that the workflow runs
 unattended, and the published address appears both in the run summary and
 under Settings then Pages.
 
+One thing to set once the address is known: `og:image` and `twitter:image` in
+`dist/index.html` are relative, so the card previews from any folder, but Slack
+and Discord resolve relative image URLs inconsistently. Replace both with the
+absolute address (`https://host/og-card.jpg`) and re-run the build.
+
 Two things to know before switching it on. Publishing from a private
 repository requires a paid GitHub plan; making the repository public also
 works. And a Pages site is reachable by anyone who has the address even

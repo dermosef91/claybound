@@ -1,6 +1,7 @@
 import * as THREE from './lib/three.module.js';
 import { RoundedBoxGeometry } from './lib/RoundedBoxGeometry.js';
-import {createHero,loadHero,animateHero,heroEvent} from './hero.js';
+import {createHero,loadHero,detachHero,animateHero,heroEvent} from './hero.js';
+import {characterChoice} from './characters.js';
 import {applyEnvironment,buildBackdrop,buildTerrain,animateEnvironment} from './environments.js';
 import {makeCitadelLift} from './citadel.js';
 import {makeMovingPlatform} from './moving-platform.js';
@@ -71,7 +72,7 @@ sphereG.computeVertexNormals();
 const cylG=new THREE.CylinderGeometry(1,1,1,24);
 
 export class World {
-  constructor(canvas,{onProgress}={}) {
+  constructor(canvas,{onProgress,character}={}) {
     this.canvas=canvas;this.time=0;this.cameraX=8.3;this.cameraY=3.4;this.particles=[];this.clouds=[];this.shake=0;this.cameraLook=0;
     this.reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
@@ -100,10 +101,28 @@ export class World {
     this.scene.add(this.backRoot,this.levelRoot,this.fxRoot);
     this.character=createHero(this);this.scene.add(this.character.root);
     const progress=[0,0,0,0,0,0,0],report=(i,value)=>{if(value!==null){progress[i]=value;onProgress?.(progress.reduce((a,b)=>a+b,0)/progress.length);}};
-    this.ready=Promise.all([loadHero(this,value=>report(0,value)),loadEnemies(this,value=>report(1,value)),loadClay(this,value=>report(2,value)),loadClouds(this,value=>report(3,value)),loadCanyonAssets(this,value=>report(4,value)),loadCottage(this,value=>report(5,value)),loadWindmills(this,value=>report(6,value))]);
+    this.ready=Promise.all([loadHero(this,value=>report(0,value),characterChoice(character)),loadEnemies(this,value=>report(1,value)),loadClay(this,value=>report(2,value)),loadClouds(this,value=>report(3,value)),loadCanyonAssets(this,value=>report(4,value)),loadCottage(this,value=>report(5,value)),loadWindmills(this,value=>report(6,value))]);
     this.resize();
     window.addEventListener('resize',()=>this.resize());
     window.visualViewport?.addEventListener('resize',()=>this.resize());
+  }
+  // Trade one character for another without rebuilding the world. The outgoing
+  // rig goes first, so only one skeleton and one set of clips are ever resident,
+  // and a second request waits on the first rather than racing it into the same
+  // group. The level, camera and the player's position are untouched.
+  async setCharacter(id){
+    const choice=characterChoice(id);
+    this.characterSwap=Promise.resolve(this.characterSwap).catch(()=>{}).then(async()=>{
+      // The first character may still be arriving; attaching over it would
+      // leave two rigs in the same group with one of them orphaned.
+      await this.ready;
+      if(this.character.choice?.id===choice.id)return;
+      detachHero(this);
+      await loadHero(this,null,choice);
+      heroEvent(this.character,{type:'respawn'});
+    });
+    await this.characterSwap;
+    return this.character;
   }
   mesh(g,material,parent,x=0,y=0,z=0){
     const base=typeof material==='string'?this.mat[material]:material;

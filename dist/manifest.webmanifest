@@ -1,0 +1,22 @@
+{
+  "name": "Claybound",
+  "short_name": "Claybound",
+  "description": "Small feet. Bigger worlds. Leap through canyons, treetops, caves and a blue clay city in the clouds.",
+  "start_url": "./",
+  "scope": "./",
+  "id": "/claybound/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#89b7db",
+  "theme_color": "#e64e1e",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {"src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "screenshots": [
+    {"src": "./og-card.jpg", "sizes": "1200x630", "type": "image/jpeg", "form_factor": "wide", "label": "Claybound — the Sunbaked Canyon"}
+  ]
+}

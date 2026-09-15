@@ -1,0 +1,21 @@
+{
+  "source": "echo-spitter-gloob.glb",
+  "sourceSha256": "24b398b95373bbf0bf4b9ff140ceff177b52752e72cf96045bd8b9e00339f473",
+  "shippedSha256": "5d1b3ae4ee0c824b8f2ce8df8ef40fc34e7528917af4855e27c7522bc2c0df6a",
+  "sourceBytes": 6358696,
+  "shippedBytes": 773404,
+  "textures": [
+    {
+      "role": "other",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "textureLimit": 1024,
+  "geometryUnchanged": true,
+  "geometrySha256": "31dee241d6f1dc07f3cfffac0f2ab5598a8744ee8eb18689193cdd18ce00b2d2",
+  "animations": 1,
+  "triangles": 10452
+}

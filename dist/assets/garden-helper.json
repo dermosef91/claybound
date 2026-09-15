@@ -1,0 +1,35 @@
+{
+  "source": "Meshy_AI_Clay_Garden_Helper_Running.glb",
+  "sourceSha256": "df93b49fd52fe1cde3374967da2608cd4573944f6f60b8f908ea09a4dfd05f1f",
+  "shippedSha256": "10fde083988c1432356d211d5c071ea14316b26214c5662b1716df0de9da5b8e",
+  "sourceBytes": 13268712,
+  "shippedBytes": 3816408,
+  "textures": [
+    {
+      "role": "normal",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "baseColor",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "other",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "textureLimit": 1024,
+  "geometryUnchanged": true,
+  "geometrySha256": "0b58e52f2a3c6dbf32aad9d23b12af0fa0fed0daf46c44c12db8c73810112bf1",
+  "animations": 2,
+  "triangles": 19316
+}

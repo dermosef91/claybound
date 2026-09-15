@@ -30,6 +30,9 @@
   animation:clay-loading 1.8s ease-in-out infinite;
 }
 .loading-line.determinate span {animation:none;transform:none;width:0;transition:width .15s linear;}
+/* The reveal is shorter than the .5s used when the overlay first appears:
+   the player has already waited, and the chapter behind it is drawn. */
+.loading.is-revealing {transition:opacity .28s ease;}
 #loading-status {font-size:clamp(13px,1.2vw,16px);font-weight:500;line-height:1.6;letter-spacing:.02em;color:var(--title-cream);}
 @keyframes clay-loading {from{transform:translateX(-110%)}to{transform:translateX(330%)}}
 @media(max-width:600px) {

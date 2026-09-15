@@ -1,0 +1,35 @@
+{
+  "source": "cactus-mesa.glb",
+  "sourceSha256": "20177059066b2dc80c3244d87004b5838938faeedf88812734d945e3836bf47b",
+  "shippedSha256": "5f7fc5e414b498f324fe05c848b3dcda5ded8487334942d414d10fde48bc420e",
+  "sourceBytes": 6198544,
+  "shippedBytes": 1014972,
+  "textures": [
+    {
+      "role": "baseColor",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "other",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "normal",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "textureLimit": 1024,
+  "geometryUnchanged": true,
+  "geometrySha256": "e5962ee68c3d61735aceb1428e6bb4c9e55e988eb141f5a6d71bab7f0a9ca232",
+  "animations": 0,
+  "triangles": 10394
+}

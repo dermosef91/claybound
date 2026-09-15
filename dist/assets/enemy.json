@@ -1,0 +1,21 @@
+{
+  "source": "enemy.glb",
+  "sourceSha256": "96c01cfa052b1f0f81766e25e77e87f8950a0386f75a2af0c2657d12dc8a8999",
+  "shippedSha256": "60abe4a3a45b45f242c5e1214e23b529396934844b281f06e113f071671fca1e",
+  "sourceBytes": 4241324,
+  "shippedBytes": 622668,
+  "textures": [
+    {
+      "role": "other",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "textureLimit": 1024,
+  "geometryUnchanged": true,
+  "geometrySha256": "ffa838c5b59e212734c4fbe192f59e4066790d6c37a1cf5b6781e9a96f196183",
+  "animations": 1,
+  "triangles": 10380
+}
