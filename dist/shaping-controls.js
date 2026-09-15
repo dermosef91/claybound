@@ -47,7 +47,7 @@ export class ShapingControls {
     };
     for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,end);
   }
-  enabled(){return !!this.game.level.shaping?.length&&this.game.status==='playing';}
+  enabled(){return !!this.game.level.shaping?.length&&this.game.status==='playing'&&!this.game.flowerCelebration;}
   clear(){this.drag=null;this.input.shapeHeld=false;this.input.shapeId=null;this.input.shapeAmount=null;this.input.shapeReset=false;}
   // In the playground R also returns the player to the station's own spawn.
   // A chapter only softens the clay again, wherever the player is standing.

@@ -11,6 +11,11 @@ const hash=text=>{let h=2166136261;for(let i=0;i<text.length;i++)h=Math.imul(h^t
 
 export function repairDraft(level){
   const ids=new Set(level.platforms.map(p=>p.id));
+  if(level.boss){
+    const arena=level.platforms.find(p=>p.motherArena);
+    if(!arena)delete level.boss;
+    else Object.assign(level.boss,{x:arena.x+arena.w/2+.5,y:arena.y,left:arena.x+3.5,right:arena.x+arena.w-2.5,triggerX:arena.x+4.5});
+  }
   for(const p of level.platforms){
     if(p.checkpoint!==undefined)p.checkpoint=clamp(p.checkpoint,p.x+.2,p.x+p.w-.2)||.001;
     if(p.goal){p.bellX=clamp(p.bellX??p.w/2,.4,p.w-.4);level.end=p.x+p.bellX;}
@@ -40,6 +45,9 @@ export function repairDraft(level){
 export function validateDraft(source,base){
   if(!source||typeof source!=='object')throw new Error('This file does not contain a level.');
   const out=clone(base),limits={platforms:260,coins:1000,stamps:30,enemies:60,hazards:150,winds:35,crushers:35};
+  // An older imported forest has no boss clearing. Do not silently gate its
+  // earlier finish bell on a boss that is outside that draft's playable path.
+  if(source.boss?.kind!=='mother-puff')delete out.boss;
   const nums={x:[-100,2000],y:[-40,160],w:[.6,80],h:[.6,80],moveX:[-30,30],moveY:[-30,30],period:[.5,60],phase:[-20,20],bob:[0,4],rise:[0,30],travel:[1,30],floorY:[-40,160],delay:[.15,3.5],duty:[.1,.95],duration:[1,60],fx:[-30,30],fy:[-15,25],speed:[.1,8],min:[-100,2000],max:[-100,2000],range:[.2,25],bellX:[.1,80],checkpoint:[-100,2080]};
   for(const list of LISTS){
     if(!Array.isArray(source[list])||source[list].length>limits[list])throw new Error(`Invalid ${list} list (maximum ${limits[list]}).`);
@@ -59,7 +67,7 @@ export function validateDraft(source,base){
         for(const key of ['station','clayRole'])if(item[key]!==undefined){if(!idOK(item[key]))throw new Error(`Invalid ${key}.`);clean[key]=item[key];}
       }
       for(const key of ['id','channel','releases','holdChannel','landmark'])if(item[key]!==undefined){if(!idOK(item[key]))throw new Error(`Invalid ${key}. Use letters, numbers and hyphens.`);clean[key]=item[key];}
-      for(const key of ['goal','latch','gust','spores','arch','house','entrance','optional','recovery','rest'])if(item[key]!==undefined)clean[key]=!!item[key];
+      for(const key of ['goal','latch','gust','spores','arch','house','entrance','optional','recovery','rest','motherArena'])if(item[key]!==undefined)clean[key]=!!item[key];
       if(list==='platforms'){
         if(!idOK(item.id)||!KINDS[item.kind])throw new Error('Every platform needs a unique ID and a supported type.');
         clean.kind=item.kind;finite(clean.w,.6,80,'Platform width');

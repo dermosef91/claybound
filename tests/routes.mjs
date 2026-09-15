@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {Game,FIXED_DT as dt,surfaceAt} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
 import {machineTransfer} from './machine-pilot.mjs';
+import {motherTransfer} from './mother-puff-pilot.mjs';
 export const cloneGame=g=>{const copy=Object.assign(Object.create(Game.prototype),structuredClone({...g,onEvent:null}));copy.onEvent=()=>{};return copy;};
 export function steer(g,aim){return Math.max(-1,Math.min(1,((aim-g.player.x)*7-(g.player.windX||0)*.16)/6.7));}
 export function crossing(index,link){
@@ -20,7 +21,9 @@ export function crossing(index,link){
     if(walk&&overlap)x=Math.max(a.x+.35,Math.min(a.x+a.w-.35,b.x+(dir>0?-1:b.w+1)));
     if((drop||fall)&&overlap)x=Math.max(a.x+.35,Math.min(a.x+a.w-.35,landingX));
     if(a.kind==='spring')x=a.x+a.w/2;
+    if(link.mode==='boss')x=a.x+.75;
     Object.assign(g.player,{x,y:surfaceAt(a,x),vx:drop||a.kind==='spring'?0:dir*6.7,vy:0,groundId:a.id,coyote:a.kind==='spring'?0:.13});g.checkpoint={x,y:Math.min(a.y,b.y)};
+    if(link.mode==='boss'){const r=motherTransfer(g,link);if(r)return {phase,offset,frames:r.controls.length};continue;}
     if(a.kind==='ferry'||(link.mode==='ride'||link.mode==='board')){const r=machineTransfer(g,link);if(r)return {phase,offset,frames:r.controls.length};continue;}
     let landedSpring=false;g.onEvent=e=>{if(e.type==='spring'&&b.kind==='spring'&&Math.abs(e.y-b.y)<.2&&e.x>b.x-.3&&e.x<b.x+b.w+.3)landedSpring=true;};
     for(let frame=0;frame<600;frame++){
@@ -34,7 +37,9 @@ export function crossing(index,link){
 if(process.argv[1]?.endsWith('routes.mjs')){
  let count=0;const failures=[];
  for(const [i,L]of LEVELS.entries()){
-  assert(Math.abs((L.end-L.spawn.x)/L.previousDistance-.3)<.005);assert.equal(L.stamps.length,[3,2,5,3][i]);
+  // The original compact traversal retains its length; Wildwood now adds
+  // a 51-unit boss clearing beyond that route.
+  assert(Math.abs(((L.boss?L.end-51:L.end)-L.spawn.x)/L.previousDistance-.3)<.005);assert.equal(L.stamps.length,[3,2,5,3][i]);
   assert.equal(new Set(L.platforms.map(s=>s.id)).size,L.platforms.length);assert.equal(L.platforms.filter(s=>s.goal).length,1);
   assert(Math.abs(L.platforms.find(s=>s.goal).x+L.platforms.find(s=>s.goal).bellX-L.end)<1e-6);
   for(const link of [...L.routeLinks,...L.detours.flat(),...L.recoveries.flat()]){

@@ -1,5 +1,9 @@
 # Claybound
 
+The Sunbaked Canyon now uses the approved Level 1 editor layout (layout version 6): its flower approaches, bead trail and Dust Drifter placements are refined, and the Great Arch flower route trades its old return ledge for a crumbling step.
+
+Wildwood now ends in **Mother’s Clearing**, a new arena for **Mother Puff**. The supplied sleepy and casting mushroom models breathe, release four colored spore clouds, and react to three orange-assisted crown stomps. Orange ground puffs grow launch caps; purple blasts damage and push back; white clouds obscure and slow; green puffs spawn Spore Puffs. The former finish platform is a checkpoint, and living roots open the way to a new finish bell after victory. The forest uses layout version 7. See [Mother Puff](docs/mother-puff/README.md) for controls, asset provenance and verification.
+
 **The Hanging Quarter is rebuilt as the mastery chapter (layout version 4, which restarts incompatible chapter-four checkpoints; other chapters keep their layouts and progress).** It still owns counterweight beams and paired gondolas, but it no longer introduces a mechanic and then drops it: the canyon's draughts, Wildwood's springs, the caverns' pulse decks, and drifters, claylings, bats and one Echo Spitter all return in new combinations, and the chapter closes on a climax rather than a walk to the bell — the belfry draught, three failing tiles over a flower pocket that doubles as the lower catch, and a clay plug the player presses into the final bridge.
 
 Kneadable clay is no longer confined to the playground. Three stations carry the chapter: a ramp onto the first roof (taught over safe ground), a wall kneaded into three stairs to reach the laundry roof, and the last span to the sky bell. Finished shapes survive respawns and are stored with the checkpoint, so resuming never drops the player in front of clay they already worked. Tap or drag the clay itself, hold `E`, or stomp clay you can stand on; `R` softens it back. There is no knead panel — input is on the clay, not in a box.
@@ -98,6 +102,8 @@ Each chapter has secret flowers (three in the canyon, the caverns' five, two in 
 - **F**: toggle native fullscreen. Fullscreen buttons are also available in the title screen, HUD and pause menu.
 - **Settings → Play fullscreen**: begin directly in fullscreen; touch devices request landscape where supported.
 - Touch devices display an analog thumb joystick alongside jump and stomp buttons. A generous neutral zone and gradual speed curve make small steps easier; drag farther for a full run. The joystick captures one thumb until release, even outside its ring, while the other thumb can jump or stomp. Lifting, interrupted touches, pause, fullscreen and rotation reset it safely.
+
+Flower pickups pause the world and run timer for two seconds while the player lifts a glowing flower with both hands. The supplied `dist/assets/flower-victory.wav` plays over ducked music; gameplay resumes with the same position and momentum. Reduced motion keeps the camera still. `tests/flower-celebration.mjs` checks the freeze and recovery, and `scripts/review-flower.cjs` captures the actual desktop/portrait celebration.
 
 The simulation runs at a fixed 120 Hz and is independent of rendering. It includes coyote time, jump buffering, variable-height jumps, faster reversals, firm braking, a small apex pause, moving-platform carry, short invulnerability after damage and checkpoint recovery. Resize, focus loss and graphics context loss are handled explicitly. Sound uses the Web Audio API after a player gesture.
 

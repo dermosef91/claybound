@@ -8,8 +8,10 @@ import {resetSpitter,contactSpitter,updateShots} from './spitter-rules.js';
 
 import {claySurface,clayWallBounds,updateShaping,stompClay} from './shaping.js';
 import {bridgeOffset} from './bridge-surface.js';
+import {MOTHER_PUFF,updateMotherPuff,contactMotherPuff,resetMotherPuff} from './mother-puff-rules.js';
 
 export const FIXED_DT=1/120;
+export const FLOWER_CELEBRATION_DURATION=2;
 export const RULES={speed:6.7,jump:11.8,gravity:27,radius:.32,height:1.7,maxHealth:3};
 const approach=(v,t,d)=>v<t?Math.min(t,v+d):Math.max(t,v-d);
 export const surfaceAt=(s,x,previous=false)=>s.shape?claySurface(s,x,previous):(previous?s.prevY:s.y)+(s.kind==='bridge'?bridgeOffset(s,x-(previous?s.prevX:s.x)):s.kind==='balance'?Math.sin(previous?s.prevAngle:s.angle)*(x-(previous?s.prevX:s.x)-s.w/2):0);
@@ -19,7 +21,7 @@ export class Game {
   event(type,data={}) {this.onEvent({type,...data});}
   load(index,source) {
     this.index=index;this.level=instantiateLevel(index,source);this.time=0;this.elapsed=0;this.coins=0;this.stamps=0;
-    this.shots=[];this.shotSerial=0;
+    this.shots=[];this.shotSerial=0;this.flowerCelebration=null;
     this.deaths=0;this.channels={a:0,b:0};this.latched={};this.channelDurations={};this.activeChannel=null;this.sectionId=0;this.checkpoint={...this.level.spawn};this.checkpointId='start';this.activatedCheckpoints=new Set();
     for(const s of this.level.platforms)if(s.channel){this.channels[s.channel]=0;if(s.kind==='switch')this.channelDurations[s.channel]=s.duration||10;}
     const ground=this.level.platforms.find(p=>this.level.spawn.x>=p.x&&this.level.spawn.x<=p.x+p.w&&Math.abs(p.y-this.level.spawn.y)<.2);
@@ -33,7 +35,7 @@ export class Game {
     if(this.latched[channel])return;
     this.latched[channel]=true;this.channels[channel]=1;this.event('activate',{channel,x,y,message});
   }
-  snapshot(){return {version:this.level.layoutVersion,index:this.index,checkpointId:this.checkpointId,activatedCheckpoints:[...this.activatedCheckpoints],elapsed:this.elapsed,deaths:this.deaths,latched:Object.keys(this.latched).filter(c=>this.latched[c]),broken:this.level.platforms.filter(s=>s.broken).map(s=>s.id),shaped:(this.level.shaping||[]).filter(s=>s.amount>.995).map(s=>s.id),coins:this.level.coins.filter(c=>c.taken).map(c=>c.id),stamps:this.level.stamps.filter(c=>c.taken).map(c=>c.id)};}
+  snapshot(){return {bossDefeated:this.level.boss?.state==='defeated',version:this.level.layoutVersion,index:this.index,checkpointId:this.checkpointId,activatedCheckpoints:[...this.activatedCheckpoints],elapsed:this.elapsed,deaths:this.deaths,latched:Object.keys(this.latched).filter(c=>this.latched[c]),broken:this.level.platforms.filter(s=>s.broken).map(s=>s.id),shaped:(this.level.shaping||[]).filter(s=>s.amount>.995).map(s=>s.id),coins:this.level.coins.filter(c=>c.taken).map(c=>c.id),stamps:this.level.stamps.filter(c=>c.taken).map(c=>c.id)};}
   restore(save){
     if(!save||save.version!==this.level.layoutVersion||save.index!==this.index)return false;
     const checkpoint=this.level.platforms.find(s=>s.id===save.checkpointId&&s.checkpoint);if(!checkpoint)return false;
@@ -56,11 +58,12 @@ export class Game {
     }
     Object.assign(this.player,{...this.checkpoint,groundId:checkpoint.id,health:RULES.maxHealth,invuln:1.4,stunTime:0,sporeGrace:0,stunJumpQueued:false});
     this.shots=[];this.level.enemies.forEach(e=>{resetBat(e,this.time);resetDrifter(e,this.time);resetSpore(e);resetSpitter(e);});
+    resetMotherPuff(this,save.bossDefeated===true);
     this.sectionId=this.level.sections.findLast(s=>this.player.x>=s.x)?.id||0;return true;
   }
   damage(fall=false) {
     const p=this.player;
-    if((p.invuln>0&&!fall)||this.respawnTimer>0||this.status!=='playing') return;
+    if((p.invuln>0&&!fall)||this.respawnTimer>0||this.flowerCelebration||this.status!=='playing') return;
     p.stunTime=0;p.stunJumpQueued=false;p.sporeGrace=Math.max(p.sporeGrace||0,2);p.health--;this.event('hurt',{x:p.x,y:p.y});
     if(fall||p.health<=0) {
       this.deaths++;this.respawnTimer=.48;
@@ -68,7 +71,9 @@ export class Game {
     } else {p.invuln=1.6;p.vy=6;p.vx=-p.facing*4;p.groundId=null;p.stomping=false;}
   }
   respawn() {
+    this.flowerCelebration=null;
     const p=this.player;Object.assign(p,{...this.checkpoint,vx:0,vy:0,health:p.health<=0?RULES.maxHealth:Math.min(RULES.maxHealth,p.health),invuln:1.4,groundId:null,coyote:.135,jumpBuffer:0,stomping:false,springing:false,skidding:false,stride:0,stompWindup:0,dropTimer:0,dropThrough:null,stunTime:0,sporeGrace:0,stunJumpQueued:false});
+    resetMotherPuff(this,this.level.boss?.state==='defeated');
     // A failed timed crossing always resets its route so the switch can be used again.
     this.level.platforms.forEach(s=>{if(s.kind==='crumble'){s.active=true;s.timer=0;}});
     this.shots=[];this.level.enemies.forEach(e=>{resetBat(e,this.time);resetDrifter(e,this.time);resetSpore(e);resetSpitter(e);});
@@ -77,9 +82,16 @@ export class Game {
   }
   tick(dt,input={}) {
     if(this.status!=='playing')return;
+    // Celebration time is separate: physics, hazards and the run clock all rest.
+    if(this.flowerCelebration){
+      this.flowerCelebration.time+=dt;
+      if(this.flowerCelebration.time>=FLOWER_CELEBRATION_DURATION){this.flowerCelebration=null;this.event('flower-resume');}
+      return;
+    }
     this.time+=dt;this.elapsed+=dt;
     const p=this.player, L=this.level;
     const previousPlayer={x:p.x,y:p.y};
+    updateMotherPuff(this,dt);
     for(const c of Object.keys(this.channels))if(!this.latched[c])this.channels[c]=Math.max(0,this.channels[c]-dt);
     for(const wind of L.winds||[])wind.active=!wind.channel||this.channels[wind.channel]>0;
     for(const s of L.platforms) {
@@ -138,7 +150,7 @@ export class Game {
     let windX=0,windY=0;
     for(const wind of L.winds||[])if(wind.active&&p.x>wind.x&&p.x<wind.x+wind.w&&p.y+RULES.height>wind.y&&p.y<wind.y+wind.h){const strength=wind.gust?.35+.65*(.5+.5*Math.sin(this.time*1.3+wind.phase)):1;windX+=wind.fx*strength;windY+=wind.fy*strength;}
     p.windX=windX;p.windY=windY;
-    p.vx=approach(p.vx,axis*RULES.speed*(p.stomping?.45:1)+windX*(p.groundId?.025:.16),dt*(Math.abs(axis)>.01?accel:(p.groundId?80:10)));
+    p.vx=approach(p.vx,axis*RULES.speed*(p.stomping?.45:1)*(p.sporeSlow?MOTHER_PUFF.slow:1)+windX*(p.groundId?.025:.16),dt*(Math.abs(axis)>.01?accel:(p.groundId?80:10)));
     if(p.jumpBuffer>0&&p.coyote>0) {
       p.vy=RULES.jump;p.groundId=null;p.coyote=0;p.jumpBuffer=0;p.stomping=false;p.springing=false;p.squash=-.12;p.stompWindup=0;
       this.event('jump',{x:p.x,y:p.y});
@@ -215,7 +227,11 @@ export class Game {
     const section=L.sections?.findLast(s=>p.x>=s.x);
     if(section&&section.id!==this.sectionId){this.sectionId=section.id;this.event('section',{section});}
     for(const c of L.coins)if(!c.taken&&Math.hypot(p.x-c.x,p.y+.65-c.y)<.8){c.taken=true;this.coins++;this.event('coin',{x:c.x,y:c.y});}
-    for(const c of L.stamps)if(!c.taken&&Math.hypot(p.x-c.x,p.y+.8-c.y)<.9){c.taken=true;this.stamps++;this.event('stamp',{x:c.x,y:c.y});}
+    for(const c of L.stamps)if(!c.taken&&Math.hypot(p.x-c.x,p.y+.8-c.y)<.9){
+      c.taken=true;this.stamps++;this.flowerCelebration={id:c.id,time:0};p.jumpBuffer=0;
+      this.event('stamp',{x:c.x,y:c.y,id:c.id});
+      return;
+    }
     for(const e of L.enemies)if(e.alive&&e.kind==='bat'){
       const top=e.y+BAT.top,above=prevY>=(e.prevY??e.y)+BAT.top-.18;
       // Swept top crossing catches a fast stomp even if it traverses the
@@ -245,6 +261,7 @@ export class Game {
       if(contact==='defeat')this.event('squish',{x:e.x,y:e.y+.6,kind:'spitter'});
       else if(contact==='hit')this.damage();
     }
+    contactMotherPuff(this,previousPlayer,input,RULES);
     updateShots(this,dt,previousPlayer);
     for(const e of L.enemies)if(e.alive&&!['bat','drifter','spore','spitter'].includes(e.kind)&&Math.abs(p.x-e.x)<.72&&p.y<e.y+.83&&p.y+RULES.height>e.y+.15){
       if(p.vy<0&&prevY>e.y+.54){e.alive=false;p.y=e.y+.85;p.vy=input.jumpHeld?12.6:9.5;p.groundId=null;p.stomping=false;p.springing=true;this.event('squish',{x:e.x,y:e.y});}
@@ -253,7 +270,7 @@ export class Game {
     for(const h of L.hazards)if(p.x+.2>h.x&&p.x-.2<h.x+h.w&&p.y<h.y+.7&&p.y+RULES.height>h.y-.4)this.damage(true);
     for(const c of L.crushers||[])if(pressTouches(c,p,RULES,prevY))this.damage(true);
     if(p.y<-7||p.y<this.checkpoint.y-13)this.damage(true);
-    if(p.x>L.end&&p.y>=L.platforms.find(s=>s.goal).y-.1){
+    if(p.x>L.end&&p.y>=L.platforms.find(s=>s.goal).y-.1&&(!L.boss||L.boss.state==='defeated')){
       this.status='complete';this.event('complete',{index:this.index,coins:this.coins,stamps:this.stamps,time:this.elapsed,deaths:this.deaths});
     }
   }

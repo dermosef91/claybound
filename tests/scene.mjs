@@ -1,4 +1,5 @@
 import {prepareSporeAsset} from '../dist/spore-puff.js';
+import {prepareMotherPuff} from '../dist/mother-puff.js';
 import {prepareBatAsset} from '../dist/bats.js';
 // CPU-side geometry validation. This does not claim to test GPU rendering.
 import assert from 'node:assert/strict';
@@ -54,6 +55,7 @@ await attachGrotto(w);
 await attachDrifter(w);
 prepareSporeAsset(w,await readGLB(new URL('../dist/assets/spore-puff.glb',import.meta.url)));
 await attachClay(w);
+for(const pose of ['idle','cast'])prepareMotherPuff(w,pose,await readGLB(new URL(`../dist/assets/mother-puff-${pose}.glb`,import.meta.url)));
 await attachSpitter(w);
 prepareTitleMesa(w,await readGLB(new URL('../dist/assets/title/cactus-mesa.glb',import.meta.url)));
 const titleScene=new TitleScene(w);
@@ -545,7 +547,7 @@ console.log('PASS cradle deck/axle transforms, visible opening grates, projectil
     }});assert.equal(triangles,10440);
     const rear=room.getObjectByName('Recessed sandstone wall with sky windows');assert(rear.material.bumpMap===w.clay.detail);
     assert(new THREE.Box3().setFromObject(rear,true).max.z<box.min.z,'recess never masks the supplied sculpted wall');
-    for(const id of ['arch-shelf','arch-balcony','arch-return','arch-flower'])assert(w.platforms.get(id).root.getObjectByName('Sandstone ledge root'));
+    for(const id of ['arch-shelf','arch-balcony','arch-flower'])assert(w.platforms.get(id).root.getObjectByName('Sandstone ledge root'));
     return box;
   };
   const initial=inspect();assert.equal(JSON.stringify(g.level),original,'scenery leaves the authored physics and collectibles unchanged');

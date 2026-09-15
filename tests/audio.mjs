@@ -96,3 +96,19 @@ pop.effect('break',{spore:true});assert.equal(pop.ctx.oscillators.length,initial
 advance(150);assert.equal(pop.ctx.oscillators.length,initial+4,'two quiet sparkle notes follow the burst');
 pop.enabled=false;pop.effect('break',{spore:true});advance(150);assert.equal(pop.ctx.oscillators.length,initial+4,'muted bursts stay silent');
 console.log('PASS layered spore explosion sound and mute');
+
+const victoryBytes=await readFile(new URL('../dist/assets/flower-victory.wav',import.meta.url));
+assert.equal(victoryBytes.subarray(0,4).toString(),'RIFF');
+const oldFetch=globalThis.fetch;
+globalThis.fetch=async()=>({ok:true,arrayBuffer:async()=>victoryBytes.buffer.slice(victoryBytes.byteOffset,victoryBytes.byteOffset+victoryBytes.byteLength)});
+Context.prototype.decodeAudioData=async bytes=>({duration:1,bytes});
+Context.prototype.createBufferSource=function(){const n=new Node();n.start=()=>{n.started=true;};(this.buffers??=[]).push(n);return n;};
+const rewardSound=new Sound();rewardSound.unlock();await rewardSound.flowerLoading;
+rewardSound.effect('stamp');assert.equal(rewardSound.ctx.buffers.length,1);assert(rewardSound.ctx.buffers[0].started);
+assert.equal(rewardSound.ctx.buffers[0].output.output,rewardSound.master);
+rewardSound.update(.016,true,0,false,false,true);await settle();assert.equal(rewardSound.trackGain._target,.08);
+rewardSound.update(.016,true,0);await settle();assert.equal(rewardSound.trackGain._target,.26);
+rewardSound.enabled=false;rewardSound.effect('stamp');assert.equal(rewardSound.ctx.buffers.length,1);
+rewardSound.enabled=true;rewardSound.setForeground(false);rewardSound.effect('stamp');assert.equal(rewardSound.ctx.buffers.length,1);
+globalThis.fetch=oldFetch;
+console.log('PASS supplied flower WAV playback, music duck/restore, mute and hidden-page silence');

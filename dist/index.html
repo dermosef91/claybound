@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="./loading.css">
   <link rel="stylesheet" href="./clay-ui.css">
   <link rel="stylesheet" href="./shaping.css">
+  <link rel="stylesheet" href="./mother-puff.css">
   <link rel="icon" href="data:,">
   <link rel="preload" href="./assets/title/logo.webp" as="image">
   <script src="./lib/lucide.min.js" defer></script>
@@ -45,6 +46,8 @@
       <div class="hud-right"><div class="collect-count"><img class="hud-bead" src="./assets/completion/bead.webp" alt="Clay beads"><span id="coin-count">0</span><span class="count-divider">/</span><span id="coin-total">26</span></div><div class="stamp-count"><i data-lucide="flower-2"></i><span id="stamp-count">0/3</span></div><button id="hud-fullscreen" class="icon-button" data-fullscreen aria-label="Enter fullscreen" title="Fullscreen (F)"><i data-lucide="expand"></i></button><button id="pause" class="icon-button" aria-label="Pause game"><i data-lucide="pause"></i></button></div>
     </header>
 
+    <div id="mother-mist" class="mother-mist hidden" aria-hidden="true"></div>
+    <div id="mother-hud" class="mother-hud hidden" role="status" aria-live="polite"><div class="mother-heading"><strong>Mother Puff</strong><span data-boss-hits>3 / 3</span></div><div class="mother-pips" aria-hidden="true"><i data-boss-pip></i><i data-boss-pip></i><i data-boss-pip></i></div><p data-boss-status></p></div>
     <section id="menu" class="main-menu title-screen" aria-label="Claybound title screen">
       <p id="title-scene-status" class="title-scene-status" role="status">Shaping the canyon…</p>
       <header class="title-brand">

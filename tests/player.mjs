@@ -70,3 +70,19 @@ assert(c.longIdlePlayed);assert.equal(c.idleVariant,'idle');assert(c.weights.idl
 const finished=c.actions.longIdle.time;step(300);assert.equal(c.actions.longIdle.time,finished);assert.equal(c.idleVariant,'idle');
 step(1,{right:true});assert.equal(c.longIdlePlayed,false);assert.equal(c.idleTime,0);
 console.log('PASS new default idle, strict one-second delay, interruption, paused timer and one fidget per continuous rest');
+
+// The reward uses the real rig: both wrists reach one stem and normal motion returns.
+game.start(0);heroEvent(c,{type:'respawn'});game.flowerCelebration={id:0,time:.8};
+for(let i=0;i<60;i++)animateHero(w,game,1/60);
+assert.equal(c.state,'idle');assert(c.flower.root.visible);
+const wrists=c.flower.chains.map(chain=>c.facing.worldToLocal(chain[3].getWorldPosition(new THREE.Vector3())));
+assert(wrists[0].distanceTo(wrists[1])<.26,'both hands hold the same flower');
+for(const wrist of wrists)assert(wrist.y>1.25&&wrist.z>.2,'hands lift in front of the hood');
+const held=c.flower.chains.flat().map(b=>b.quaternion.toArray());
+game.pause();for(let i=0;i<90;i++)animateHero(w,game,1/60);
+assert.deepEqual(c.flower.chains.flat().map(b=>b.quaternion.toArray()),held,'paused procedural pose does not accumulate rotations');
+game.resume();game.flowerCelebration=null;step(60,{right:true});
+assert(!c.flower.root.visible);assert.equal(c.state,'locomotion');assert(c.weights.run>.95);
+game.flowerCelebration={id:0,time:.7};animateHero(w,game,1/60);game.start(1);heroEvent(c,{type:'respawn'});step(30);
+assert(!c.flower.root.visible);assert([...bounds().min.toArray(),...bounds().max.toArray()].every(Number.isFinite));
+console.log('PASS both-hand flower hold, pause stability, locomotion recovery and chapter cleanup');

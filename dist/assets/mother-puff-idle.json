@@ -1,0 +1,24 @@
+{
+  "source": "Meshy_AI_Sleepy_Mushroom_Guard_0913143352_texture.glb",
+  "sourceSha256": "94affcbb2f247f66535339f6eeaf80d63672fe3aec150a1601c3026148bfed5a",
+  "shippedSha256": "9565c064116a268f6ffd784fb5b7fbbd708ac49d1eccb4002568a24d515d8615",
+  "sourceBytes": 5859876,
+  "shippedBytes": 998460,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryUnchanged": true,
+  "geometrySha256": "3c01cf323b98dc7aecea3e6cfa1e1b4b9c30f13a69d29ea0e33c43671a709c8e",
+  "triangles": 10448
+}

@@ -7,6 +7,7 @@ import {createPressView} from './press-views.js';
 import {createBead} from './beads.js';
 import {greatArchLayout,buildGreatArch} from './great-arch.js';
 import {clayCacheOverBudget,trimClayShapes} from './clay.js';
+import {createMotherPuff} from './mother-puff.js';
 
 const attached=(o,root)=>{for(let p=o;p;p=p.parent)if(p===root)return true;return false;};
 export function disposeBranch(w,root){
@@ -35,7 +36,8 @@ function collectible(w,c,stamp){
 }
 
 export function syncStream(w,L,center,force=false){
-  if(!force&&Math.abs(center-(w.streamCenter??Infinity))<8)return;
+  if(!force&&Math.abs(center-(w.streamCenter??Infinity))<8&&w.streamRevision===(L.dynamicRevision||0))return;
+  w.streamRevision=L.dynamicRevision||0;
   w.streamCenter=center;w.streamViews??=new Map();
   const behind=Math.max(20,(w.viewW||15)*.6+12),ahead=Math.max(34,(w.viewW||15)*.95+17),wanted=new Set();
   const near=(x,width=0,travel=0)=>x+width+travel>center-behind&&x-travel<center+ahead;
@@ -43,6 +45,7 @@ export function syncStream(w,L,center,force=false){
     wanted.add(key);if(!w.streamViews.has(key)){const root=make();w.streamViews.set(key,{root,remove});}
   };
   const arch=greatArchLayout(L);
+  if(L.boss&&near(L.boss.left,L.boss.right-L.boss.left))add('boss:mother-puff',()=>{w.motherView=createMotherPuff(w,L.boss);return w.motherView.root;},()=>{w.motherView=null;});
   if(arch&&near(arch.left,arch.width))add('scenery:great-arch',()=>buildGreatArch(w,arch),()=>{});
   for(const s of L.platforms)if(near(s.baseX??s.x,s.w,Math.max(Math.abs(s.moveX||0),s.travel||0)))add('p:'+s.id,()=>{
     const v=w.makePlatform(s);v.guides=(L.guides||[]).filter(guide=>guide.platformId===s.id).map(guide=>guideView(w,guide,s,v));

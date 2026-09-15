@@ -57,7 +57,7 @@ export function archLiftCeiling(w,s){
 }
 
 export function greatArchLedge(w,s,root){
-  if(w.biome!=='desert'||!['arch-shelf','arch-balcony','arch-return','arch-flower'].includes(s.id))return;
+  if(w.biome!=='desert'||!['arch-shelf','arch-balcony','arch-flower'].includes(s.id))return;
   const profile=[[.04,-1.75],[.18,-1.52],[.26,-1.0],[.48,-.56],[.72,-.35]].map(([r,y])=>new THREE.Vector2(r,y));
   const rock=w.mesh(new THREE.LatheGeometry(profile,12),'terrain2',root,s.w*.52,0,-.65);
   rock.scale.set(Math.min(1.35,s.w*.32),1,1.4);rock.name='Sandstone ledge root';

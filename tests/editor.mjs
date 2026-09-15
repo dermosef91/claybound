@@ -8,9 +8,17 @@ const memory=new Map(),storage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>me
 const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
 // The incognito export is the source of truth, including deliberate deletions.
 {
+ const canonical=validateDraft(LEVELS[0],LEVELS[0]);
+ assert.equal(LEVELS[0].layoutVersion,6);assert(!LEVELS[0].custom);
+ assert.equal(canonical.layoutVersion,'editor-6-1ahx603','canonical canyon matches the approved editor export');
+}
+{
  const exported=JSON.parse(readFileSync(new URL('../docs/forest-canopy-canon/editor-backup.json',import.meta.url),'utf8'));
- const canonical=validateDraft(LEVELS[1],LEVELS[1]),draft=validateDraft(exported.level,LEVELS[1]);
- assert.equal(LEVELS[1].layoutVersion,6);assert(!LEVELS[1].custom);
+ const beforeBoss=structuredClone(LEVELS[1]);delete beforeBoss.boss;
+ beforeBoss.platforms=beforeBoss.platforms.filter(p=>!['mother-arena','mother-bell'].includes(p.id));
+ const oldBell=beforeBoss.platforms.find(p=>p.id==='heart-bell');delete oldBell.checkpoint;Object.assign(oldBell,{goal:true,bellX:6.5,landmark:'bellgate'});
+ const canonical=validateDraft(beforeBoss,LEVELS[1]),draft=validateDraft(exported.level,LEVELS[1]);
+ assert.equal(LEVELS[1].layoutVersion,7);assert(!LEVELS[1].custom);assert(!draft.boss,'old forest imports keep their original finish');
  for(const key of ['spawn',...LISTS])assert.deepEqual(canonical[key],draft[key],`canonical forest ${key} matches the approved export`);
 }
 {

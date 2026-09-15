@@ -7,8 +7,10 @@ import {LEVELS} from '../dist/levels.js';
 import {cloneGame,steer} from './routes.mjs';
 import {nearbyStation} from '../dist/shaping.js';
 import {machineTransfer} from './machine-pilot.mjs';
+import {motherTransfer} from './mother-puff-pilot.mjs';
 
 function attempt(original,link,{offset,wait,hold}){
+ if(link.mode==='boss')return motherTransfer(original,link);
  const g=cloneGame(original),a=g.level.platforms.find(p=>p.id===link.from),b=g.level.platforms.find(p=>p.id===link.to);
  if(a.kind==='ferry'||(link.mode==='ride'||link.mode==='board'))return machineTransfer(original,link);
  let spring=false;g.onEvent=e=>{if(e.type==='spring'&&b.kind==='spring'&&Math.abs(e.y-b.y)<.2&&e.x>b.x-.25&&e.x<b.x+b.w+.25)spring=true;};
@@ -70,7 +72,8 @@ for(const [i,L]of LEVELS.entries()){
   // Machine transfers ignore jump offsets/holds/waits. Repeating their exact
   // input search 112 times cannot discover another result; backtrack upstream.
   const link=links[li],from=state.level.platforms.find(p=>p.id===link.from);
-  if(from.kind==='ferry'||link.mode==='ride'||link.mode==='board'){
+  if(from.kind==='ferry'||link.mode==='ride'||link.mode==='board'||link.mode==='boss'){
+   if(link.mode==='boss'){attempts++;const r=motherTransfer(state,link);if(!r)return null;const rest=journey(r.g,li+1);return rest?{g:rest.g,parts:[r.controls,...rest.parts]}:null;}
    attempts++;const r=machineTransfer(state,link);if(!r)return null;
    const rest=journey(r.g,li+1);return rest?{g:rest.g,parts:[r.controls,...rest.parts]}:null;
   }

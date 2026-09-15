@@ -1,0 +1,24 @@
+{
+  "source": "Meshy_AI_Mushroom_Hug_0913144326_texture.glb",
+  "sourceSha256": "16b49f2417cf7600dde80d4ea6ed3589dfbb0ba22ce78df0afb201f4dc2672c7",
+  "shippedSha256": "110becc7df707ad86d8ade514f14b47fd0fedc95c706824d77247d00a3cda7a4",
+  "sourceBytes": 6044220,
+  "shippedBytes": 1029136,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryUnchanged": true,
+  "geometrySha256": "69dfb8365caa54eec9c502ecac8a1836df7453dc91a37c43f323f9757a64373d",
+  "triangles": 10428
+}

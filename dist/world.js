@@ -43,6 +43,8 @@ import {createClayView,updateClayView,animateClayView} from './shaping-views.js'
 import {CLAY_PALETTE} from './palette.js';
 import {createGoal} from './goal.js';
 import {burstSporePod,updateSporeParticle,disposeSporeParticle} from './spore-effects.js';
+import {flowerEnvelope} from './flower-celebration.js';
+import {loadMotherPuff,createMotherArenaFloor,animateMotherPuff,motherCamera} from './mother-puff.js';
 
 const C={blue:0x315e96,blueLight:0x3d6da5,blueDark:0x244c7b,orange:CLAY_PALETTE.orange,orangeLight:CLAY_PALETTE.orangeLight,cream:0xf1d8a3,rope:0xdcb985,dark:0x172b3f,gold:0xf8ce75};
 const fract=n=>n-Math.floor(n);
@@ -171,6 +173,7 @@ export class World {
     if(L.biome==='desert'||L.enemies.some(e=>e.kind==='drifter'))await loadDrifters(this,onProgress);
     if(L.biome==='forest'||L.enemies.some(e=>e.kind==='spore'))await loadSpores(this,onProgress);
     if(L.biome==='forest')await loadForestAssets(this,onProgress);
+    if(L.boss?.kind==='mother-puff')await loadMotherPuff(this,onProgress);
     if(L.biome==='cave')await loadCavernAssets(this,onProgress);
     if(L.biome==='cave'||L.enemies.some(e=>e.kind==='spitter'))await loadSpitterAssets(this,onProgress);
     if(L.biome==='citadel'){await loadCastle(this,onProgress);await loadCityLaundry(this,onProgress);}
@@ -181,6 +184,7 @@ export class World {
   }
   makePlatform(s) {
     const g=new THREE.Group();g.position.set(s.x,s.y,0);this.levelRoot.add(g);
+    if(s.motherArena){createMotherArenaFloor(this,s,g);return {root:g,ropes:[]};}
     if(s.shape)return createClayView(this,s,g);
     if(s.kind==='bridge'){
       const view=makeRopeBridge(this,s,g);
@@ -245,6 +249,7 @@ export class World {
   buildBackground(L) { buildBackdrop(this,L); }
   build(L,index,focusX=L.spawn.x) {
     this.currentLevel=L;
+    this.motherView=null;
     releaseEnemyViews(this);
     if(!this.depthRoot){this.depthRoot=new THREE.Group();this.depthRoot.name='Sharp side scenery';this.scene.add(this.depthRoot);}
     this.depthViews=new Map();
@@ -301,6 +306,8 @@ export class World {
     if(e.type==='press-impact'&&Math.abs(this.cameraX-e.x)>this.viewW*.8)return;
     heroEvent(this.character,e);
     if(e.type==='checkpoint')raiseCheckpoint(this,e);
+    else if(e.type==='mother-hit'||e.type==='mother-defeat'){this.burst(e.x,e.y,'gold',20,1.3);if(!this.reducedMotion)this.shake=.12;}
+    else if(e.type==='mother-bounce')this.burst(e.x,e.y,'orange',10,.7);
     else if(e.type==='break'&&e.spore)burstSporePod(this,e);
     else if(e.type==='crumble-collapse')clayFragments(this,e.x,e.y,e.w,24,1.1,true);
     else if(e.type==='press-impact'){clayFragments(this,e.x,e.y,e.w+1,14,.85);if(!this.reducedMotion&&Math.abs(this.cameraX-e.x)<this.viewW*.6)this.shake=.06;}
@@ -333,9 +340,20 @@ export class World {
     }
   }
   render(game,dt,menu=false) {
+    const heroDt=dt;
+    if(game.flowerCelebration||game.status==='paused')dt=0;
     this.time+=dt;
     const t=this.time,p=game.player,L=game.level;
     const edit=this.editorCamera;
+    if(!edit&&L.boss&&this.canvas){
+      const rect=this.canvas.getBoundingClientRect(),base=cameraFraming(rect.width,rect.height,this.biome);
+      const near=p.x>L.boss.triggerX-9&&p.x<L.boss.right+7;
+      const height=near?(base.landscape?17.6:Math.max(25,18.2*rect.height/Math.max(1,rect.width))):base.viewH;
+      if(this.viewH!==height){
+        this.viewH=this.reducedMotion||Math.abs(height-this.viewH)<.02?height:this.viewH+(height-this.viewH)*(1-Math.exp(-dt*5));
+        this.viewW=this.viewH*rect.width/Math.max(1,rect.height);this.camera.left=-this.viewW/2;this.camera.right=this.viewW/2;this.camera.top=this.viewH/2;this.camera.bottom=-this.viewH/2;this.camera.updateProjectionMatrix();
+      }
+    }
     if(edit){
       const rect=this.canvas.getBoundingClientRect(),viewW=edit.viewH*rect.width/Math.max(1,rect.height);
       if(this.viewH!==edit.viewH||this.viewW!==viewW){this.viewH=edit.viewH;this.viewW=viewW;this.camera.left=-viewW/2;this.camera.right=viewW/2;this.camera.top=edit.viewH/2;this.camera.bottom=-edit.viewH/2;this.camera.updateProjectionMatrix();}
@@ -346,7 +364,7 @@ export class World {
     this.lastPlayerX=p.x;
     this.cameraLook+=(p.vx*.2-this.cameraLook)*(1-Math.exp(-dt*3.5));
     const citadel=this.biome==='citadel';
-    const target=cameraTarget(p,this.viewW,this.viewH,this.landscape,this.cameraLook);
+    const target=motherCamera(L.boss,p,this.viewW,this.viewH,this.landscape)||cameraTarget(p,this.viewW,this.viewH,this.landscape,this.cameraLook);
     const targetX=menu?L.spawn.x+this.viewW*.18:target.x;
     const targetY=menu?L.spawn.y+this.viewH*.18:target.y;
     this.cameraX+=(targetX-this.cameraX)*(1-Math.exp(-dt*6.7));
@@ -354,8 +372,17 @@ export class World {
     }else{this.cameraX=edit.x;this.cameraY=edit.y;}
     this.shake=Math.max(0,this.shake-dt*.7);const sx=this.reducedMotion?0:Math.sin(t*82)*this.shake,sy=this.reducedMotion?0:Math.cos(t*67)*this.shake*.65;
     this.camera.position.set(this.cameraX+sx,this.cameraY+(edit?0:(this.theme.cameraElevation??(this.biome==='citadel'?1.25:3.05)))+sy,26);this.camera.lookAt(this.cameraX+sx,this.cameraY+sy,0);
+    const reward=game.flowerCelebration;
+    const focus=reward?flowerEnvelope(reward.time):0;
+    const emphasis=this.reducedMotion?0:Math.max(0,focus);
+    const zoom=1+emphasis*.42;
+    if(this.camera.zoom!==zoom){this.camera.zoom=zoom;this.camera.updateProjectionMatrix();}
+    if(emphasis){
+      const x=THREE.MathUtils.lerp(this.cameraX,p.x,emphasis*.65),y=THREE.MathUtils.lerp(this.cameraY,p.y+1.35,emphasis*.65);
+      this.camera.position.set(x,y+(this.theme.cameraElevation??3.05),26);this.camera.lookAt(x,y,0);
+    }
     this.sun.position.set(this.cameraX-10,this.cameraY+18,12);this.sun.target.position.set(this.cameraX,this.cameraY-2,0);
-    animateHero(this,game,dt);
+    animateHero(this,game,heroDt);
     for(const s of L.platforms){
       const view=this.platforms.get(s.id);if(!view)continue;view.root.position.set(s.x,s.y,0);view.root.visible=!s.broken;
       for(const rope of view.ropes||[]){const anchor=rope.userData.ceiling;if(anchor)rope.scale.y=Math.max(.1,anchor.y-s.y-(anchor.offset??.25))/anchor.rest;}
@@ -396,6 +423,7 @@ export class World {
     animateShapeHands(this,game,dt,game.status==='playing');
     L.enemies.forEach(e=>animateEnemy(this.enemyViews.get(e.id),e,dt,game.status));
     syncShots(this,game);
+    animateMotherPuff(this,game);
     L.coins.forEach((c,i)=>{const g=this.coinViews[i];if(!g)return;g.visible=!c.taken;g.position.y=c.y+Math.sin(t*2.5+i*.5)*.09;g.rotation.y=Math.sin(t*1.3+i*.7)*.48;g.rotation.z=Math.sin(t*.6+i)*.08;});
     L.stamps.forEach((c,i)=>{const g=this.stampViews[i];if(!g)return;g.visible=!c.taken;g.position.y=c.y+Math.sin(t*2+i)*.13;g.rotation.y=Math.sin(t*1.8)*.28;g.rotation.z=t*.35;});
     L.crushers?.forEach((c,i)=>animatePressView(this.crusherViews[i],c));

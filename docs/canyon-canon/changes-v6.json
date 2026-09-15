@@ -1,0 +1,49 @@
+{
+  "source": "claybound-chapter-1 (1).json",
+  "sourceSha256": "e300e98ff5db5fd334bfbece03601f44ef48a148b8a555e6ecd2340b1c20ed10",
+  "baseVersion": 5,
+  "canonicalVersion": 6,
+  "draftVersion": "editor-5-1ahx603",
+  "canonicalEditorSignature": "editor-6-1ahx603",
+  "changes": {
+    "platforms": {
+      "updated": [
+        "wind-turn",
+        "well-flower",
+        "arch-flower"
+      ],
+      "removed": [
+        "arch-return"
+      ],
+      "added": [
+        "clay-2"
+      ]
+    },
+    "coins": {
+      "before": 54,
+      "after": 35
+    },
+    "stamps": {
+      "updated": [
+        0,
+        2
+      ]
+    },
+    "enemies": {
+      "updated": [
+        0,
+        3
+      ]
+    }
+  },
+  "authoredTopology": {
+    "greatArchFlowerDetour": [
+      "arch-balcony",
+      "clay-2",
+      "arch-flower",
+      "clay-2",
+      "arch-balcony",
+      "arch-roof"
+    ]
+  }
+}

@@ -1,9 +1,9 @@
 [
   {
     "index": 0,
-    "seconds": 55.366666666664166,
-    "frames": 6644,
-    "coins": 42,
+    "seconds": 56.34166666666411,
+    "frames": 6761,
+    "coins": 28,
     "flowers": 0,
     "checkpoint": "sky-rest",
     "latched": {
@@ -13,11 +13,11 @@
   },
   {
     "index": 1,
-    "seconds": 64.69999999999756,
-    "frames": 7764,
+    "seconds": 89.1666666666837,
+    "frames": 10941,
     "coins": 26,
     "flowers": 1,
-    "checkpoint": "bloom-root",
+    "checkpoint": "heart-bell",
     "latched": {
       "tree-spores": true,
       "bloom-spores": true
