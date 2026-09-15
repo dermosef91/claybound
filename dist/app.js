@@ -16,7 +16,7 @@ import {ShapingControls} from './shaping-controls.js';
 import {visitStation} from './shaping.js';
 import {applyUIPalette} from './palette.js';
 import {hintIcon} from './hint-icons.js';
-import {motherQuiet} from './mother-puff-rules.js';
+import {motherQuiet,motherCorrupted} from './mother-puff-rules.js';
 import {updateMotherAtmosphere} from './mother-puff-hud.js';
 
 applyUIPalette(document.documentElement);
@@ -250,7 +250,7 @@ for(const id of ['jump','stomp']){
   b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up);
 }
 window.addEventListener('blur',()=>{sound.setForeground(false);clearInput();if(game.status==='playing'&&!fullscreen.pending&&performance.now()>fullscreenTransition)pause();});
-function syncAudioFocus(){sound.update(0,game.status==='playing',game.index,game.level.sections[game.sectionId]?.quiet,menu,!!game.flowerCelebration,motherQuiet(game.level.boss));sound.setForeground(!document.hidden);}
+function syncAudioFocus(){sound.update(0,game.status==='playing',game.index,game.level.sections[game.sectionId]?.quiet,menu,!!game.flowerCelebration,motherQuiet(game.level.boss),motherCorrupted(game));sound.setForeground(!document.hidden);}
 window.addEventListener('focus',syncAudioFocus);
 document.addEventListener('visibilitychange',()=>{clearInput();if(document.hidden&&game.status==='playing')pause();syncAudioFocus();});
 window.addEventListener('resize',clearInput);
@@ -283,7 +283,7 @@ let prev=performance.now(),accum=0,hudAccum=0;
 function frame(now){
   shapingControls?.update();
   const dt=Math.min((now-prev)/1000,.06);prev=now;
-  sound.update(dt,game.status==='playing',game.index,game.level.sections[game.sectionId]?.quiet,menu,!!game.flowerCelebration,motherQuiet(game.level.boss));
+  sound.update(dt,game.status==='playing',game.index,game.level.sections[game.sectionId]?.quiet,menu,!!game.flowerCelebration,motherQuiet(game.level.boss),motherCorrupted(game));
   if(!assetsReady||document.hidden){accum=0;requestAnimationFrame(frame);return;}
   if(menu){accum=0;titleScene?.render(dt);requestAnimationFrame(frame);return;}
   if(hitStop>0){hitStop=Math.max(0,hitStop-dt);accum=0;}else accum+=dt;

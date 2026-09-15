@@ -3,15 +3,17 @@ import {initializeEnemy} from './enemy-rules.js';
 // All encounter state is plain data, so saves, pause and deterministic replays
 // use the same simulation as keyboard/touch play. Y always means the feet.
 export const MOTHER_PUFF={height:6.4,capRadius:2.7,bodyRadius:2.55,hits:3,
-  reveal:3.4,inhale:2.1,shotGap:.48,release:2.65,recover:5.4,hurt:2.1,flight:1.85,
+  reveal:5.8,inhale:2.1,shotGap:1.4,release:14.6,recover:7.8,hurt:2.1,flight:1.85,
   bounce:23,capLife:12,cloudLife:5.5,blastLife:.65,slow:.46,maxChildren:3};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const enter=(b,state)=>{b.state=state;b.stateTime=0;};
 const combat=b=>b&&['inhale','release','recover','hurt'].includes(b.state);
 export const motherCinematic=b=>!!b&&(b.state==='reveal'||b.hits===3&&b.state!=='defeated');
-export const motherQuiet=b=>!!b&&['collapse','quiet'].includes(b.state);
-export const motherCapHeight=b=>[8.35,7.45,6.95,6.4][b.hits];
-const ENDING=[['collapse',1.5],['quiet',1.8],['revive',2.8],['regard',1.7],['farewell',1.8],['bloom',3.6]];
+export const motherQuiet=b=>!!b&&['veil','transform'].includes(b.state);
+export const motherIntroTarget=b=>b.left+(b.x-b.left)*.43;
+export const motherCapHeight=b=>[7.25,7.0,6.8,6.4][b.hits];
+export const motherCorrupted=game=>!!game.level.boss&&game.level.boss.hits<3&&(game.level.boss.state!=='sleeping'||game.player.x>=game.level.boss.triggerX);
+const ENDING=[['veil',1.5],['transform',1.8],['reveal-form',2.6],['regard',1.7],['farewell',1.8],['bloom',3.6]];
 
 export function initializeMotherPuff(L){
   if(!L.boss||L.boss.kind!=='mother-puff')return;
@@ -23,18 +25,23 @@ export function resetMotherPuff(game,defeated=false){
   // accidentally be rebound to an enemy from a different attempt.
   const serial=b.serial;initializeMotherPuff(game.level);b.serial=serial;
   game.level.enemies=game.level.enemies.filter(e=>!e.motherChild);
-  game.player.motherBounce=false;game.player.sporeSlow=0;
+  game.player.motherBounce=false;game.player.motherPush=0;game.player.sporeSlow=0;
   if(defeated){b.hits=MOTHER_PUFF.hits;enter(b,'defeated');b.healing=1;}
   game.level.dynamicRevision=(game.level.dynamicRevision||0)+1;
 }
 
 function prepareVolley(game){
-  const b=game.level.boss,p=game.player,flip=b.cycle%2?-1:1;
-  // Guaranteed launch pads on BOTH sides; other colors stay out of their
-  // landing lanes. Purple locks its target at release, never tracks a dodge.
-  const aim=clamp(p.x,b.left+2,b.right-2);
-  const purple=Math.abs(aim-(b.x-5.9))<3?b.x-11:Math.abs(aim-(b.x+5.9))<3?b.x+11:Math.abs(aim-b.x)<4?b.x+11*flip:aim;
-  b.queue=[['orange',b.x-5.9],['orange',b.x+5.9],['purple',purple],['white',b.x-10*flip],['green',b.x+12.5*flip]];
+  const b=game.level.boss;
+  // A long, readable chain plays entirely to her left. The launch spore is
+  // always third- or second-last; its lane stays clear of late explosions.
+  const span=b.x-b.left,at=f=>b.left+span*f,flip=b.cycle%2;
+  const sequence=[['purple',at(.29)],['white',at(.53)],['green',at(.16)],
+    ['purple',at(.61)],['white',at(.2)],['purple',at(.4)],['green',at(.48)],
+    ['white',at(.32)],['purple',at(.18)]];
+  if(flip)sequence.reverse();
+  sequence.splice(flip?8:7,0,['yellow',b.x-5.9]);
+  b.queue=sequence;
+
   b.nextShot=0;b.cycle++;
 }
 function launchOne(game){
@@ -45,7 +52,7 @@ function launchOne(game){
 
 function puff(game,s){
   const b=game.level.boss,color=s.color;
-  const life=color==='orange'?MOTHER_PUFF.capLife:color==='white'?MOTHER_PUFF.cloudLife:color==='purple'?MOTHER_PUFF.blastLife:1;
+  const life=color==='yellow'?MOTHER_PUFF.capLife:color==='white'?MOTHER_PUFF.cloudLife:color==='purple'?MOTHER_PUFF.blastLife:1;
   b.patches.push({id:s.id,color,x:s.targetX,y:s.targetY,age:0,life,radius:color==='white'?2.6:color==='purple'?2.15:1.55,bounceAge:10});
   if(color==='green'&&game.level.enemies.filter(e=>e.motherChild&&e.alive).length<MOTHER_PUFF.maxChildren){
     const e={kind:'spore',motherChild:true,x:s.targetX,y:s.targetY,min:Math.max(b.left+.7,s.targetX-3),max:Math.min(b.right-.7,s.targetX+3),speed:.8};
@@ -66,7 +73,7 @@ export function updateMotherPuff(game,dt){
     const i=ENDING.findIndex(([name])=>name===b.state);
     if(i>=0&&b.stateTime>=ENDING[i][1]){
       enter(b,ENDING[i+1]?.[0]||'defeated');
-      if(b.state==='revive'||b.state==='regard'||b.state==='farewell')game.event('mother-friendly',{x:b.x,y:b.y+1.2});
+      if(b.state==='reveal-form'||b.state==='regard'||b.state==='farewell')game.event('mother-friendly',{x:b.x,y:b.y+1.2});
       if(b.state==='bloom')game.event('mother-bloom',{x:b.x,y:b.y});
       if(b.state==='defeated')game.event('mother-defeat',{x:b.x,y:b.y});
     }
@@ -98,29 +105,29 @@ export function updateMotherPuff(game,dt){
 
 export function contactMotherPuff(game,previous,input,rules){
   const b=game.level.boss,p=game.player;if(!b||['sleeping','defeated'].includes(b.state)||game.respawnTimer>0)return;
-  // The living root curtains confine the arena regardless of jump height.
-  const nx=clamp(p.x,b.left+rules.radius,b.right-rules.radius);
+  // Invisible encounter bounds keep the action on her left, without scenery gates.
+  const nx=clamp(p.x,b.left+rules.radius,combat(b)?b.x:b.right-rules.radius);
   if(nx!==p.x){p.x=nx;p.vx=0;}
   if(!combat(b))return;
   const top=b.y+motherCapHeight(b);
   if(p.vy<0&&previous.y>=top-.12&&p.y<=top+.03&&Math.abs(p.x-b.x)<MOTHER_PUFF.capRadius){
-    const hit=p.stomping&&p.motherBounce&&b.state!=='hurt';
-    p.y=top+.04;p.vy=hit?13:9;p.groundId=null;p.coyote=0;p.springing=true;p.stomping=false;p.stompWindup=0;
+    const hit=b.state!=='hurt';
+    p.y=top+.04;p.vy=9;p.groundId=null;p.coyote=0;p.springing=true;p.stomping=false;p.stompWindup=0;
     if(hit){
-      b.hits++;p.motherBounce=false;b.spores=[];b.patches=[];b.queue=[];
+      b.hits++;p.motherBounce=false;p.motherPush=.85;p.vx=-13;p.facing=-1;b.spores=[];b.patches=[];b.queue=[];
       game.level.enemies=game.level.enemies.filter(e=>!e.motherChild);
       game.level.dynamicRevision=(game.level.dynamicRevision||0)+1;
-      enter(b,b.hits===MOTHER_PUFF.hits?'collapse':'hurt');
-      game.event(b.state==='collapse'?'mother-collapse':'mother-hit',{x:b.x,y:top,hits:b.hits});
+      enter(b,b.hits===MOTHER_PUFF.hits?'veil':'hurt');
+      game.event(b.state==='veil'?'mother-collapse':'mother-hit',{x:b.x,y:top,hits:b.hits});
     }else game.event('mother-cap',{x:b.x,y:top});
     return;
   }
   // Her soft body is stationary and solid. Damage comes from spores/children.
   if(p.y<top-1&&p.y+rules.height>b.y&&Math.abs(p.x-b.x)<MOTHER_PUFF.bodyRadius+rules.radius){
-    p.x=b.x+(Math.sign(previous.x-b.x)||-1)*(MOTHER_PUFF.bodyRadius+rules.radius);p.vx=0;
+    p.x=b.x-(MOTHER_PUFF.bodyRadius+rules.radius);p.vx=0;
   }
   for(const s of b.patches){
-    if(s.color==='orange'){
+    if(s.color==='yellow'){
       const cap=s.y+.85;
       if(Math.abs(p.x-s.x)<s.radius&&p.vy<=0&&previous.y>=cap-(p.groundId?1:.14)&&p.y<=cap+.04&&p.y>=s.y-.2){
         p.y=cap;p.vy=MOTHER_PUFF.bounce;p.groundId=null;p.coyote=0;p.springing=true;p.stomping=false;p.stompWindup=0;p.motherBounce=true;p.squash=.32;s.bounceAge=0;

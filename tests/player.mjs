@@ -71,10 +71,10 @@ const finished=c.actions.longIdle.time;step(300);assert.equal(c.actions.longIdle
 step(1,{right:true});assert.equal(c.longIdlePlayed,false);assert.equal(c.idleTime,0);
 console.log('PASS new default idle, strict one-second delay, interruption, paused timer and one fidget per continuous rest');
 
-// The reward uses the real rig: both wrists reach one stem and normal motion returns.
+// The reward uses the real rig: both wrists reach one stem and normal motion continues.
 game.start(0);heroEvent(c,{type:'respawn'});game.flowerCelebration={id:0,time:.25};
-for(let i=0;i<60;i++)animateHero(w,game,1/60);
-assert.equal(c.state,'idle');assert(c.flower.root.visible);assert.equal(c.root.visible,true);
+animateHero(w,game,1/60);
+assert(c.flower.root.visible);assert.equal(c.root.visible,true);
 const wrists=c.flower.chains.map(chain=>c.facing.worldToLocal(chain[3].getWorldPosition(new THREE.Vector3())));
 assert(wrists[0].distanceTo(wrists[1])<.26,'both hands hold the same flower');
 for(const wrist of wrists)assert(wrist.y>1.25&&wrist.z>.2,'hands lift in front of the hood');
@@ -85,24 +85,50 @@ game.resume();game.flowerCelebration=null;step(60,{right:true});
 assert(!c.flower.root.visible);assert.equal(c.state,'locomotion');assert(c.weights.run>.95);
 game.flowerCelebration={id:0,time:.25};animateHero(w,game,1/60);game.start(1);heroEvent(c,{type:'respawn'});step(30);
 assert(!c.flower.root.visible);assert([...bounds().min.toArray(),...bounds().max.toArray()].every(Number.isFinite));
-console.log('PASS both-hand flower hold, pause stability, locomotion recovery and chapter cleanup');
+console.log('PASS both-hand flower hold, manual-pause stability, continuous locomotion and chapter cleanup');
 
-// Only the upper-body overlay moves: sample the actual rig throughout the half-second hold.
+// Compare against a second copy of the actual rig. Its lower body must be
+// identical while the primary rig layers the flower pose over the same live clip.
 const lowerNames=['Hips','LeftUpLeg','LeftLeg','LeftFoot','LeftToeBase','RightUpLeg','RightLeg','RightFoot','RightToeBase'];
+const baselineWorld={scene:new THREE.Scene(),mat:{shadow:new THREE.MeshBasicMaterial()},reducedMotion:false,time:0,mesh(g,m,parent){const o=new THREE.Mesh(g,m);parent.add(o);return o;}};
+baselineWorld.character=createHero(baselineWorld);baselineWorld.scene.add(baselineWorld.character.root);
+const baselineGltf=await readPlayer();attachHero(baselineWorld,baselineGltf,motion,idle);
+const baseline=baselineWorld.character,baselineGame=new Game(e=>heroEvent(baseline,e));
+const lowerPose=character=>lowerNames.map(name=>{const bone=character.asset.getObjectByName(name);return [...bone.position.toArray(),...bone.quaternion.toArray(),...bone.scale.toArray()];});
+const samePose=(actual,expected,message)=>actual.forEach((matrix,i)=>matrix.forEach((value,j)=>assert(Math.abs(value-expected[i][j])<1e-9,message)));
 for(const mode of ['run','jumpRise','jumpFall','leapRise','leapFall','stomp']){
- game.start(0);heroEvent(c,{type:'respawn'});
+ game.start(0);heroEvent(c,{type:'respawn'});baselineGame.start(0);heroEvent(baseline,{type:'respawn'});
  const air=mode!=='run';Object.assign(game.player,{vx:6,vy:mode.endsWith('Rise')?7:-5,groundId:air?null:game.player.groundId,stomping:mode==='stomp'});
- c.jumpKind=mode.startsWith('leap')?'leap':'jump';
- for(let i=0;i<8;i++)animateHero(w,game,1/60);
- const pose=()=>{c.root.updateMatrixWorld(true);return lowerNames.map(name=>c.asset.getObjectByName(name).matrixWorld.toArray());};
- const before=pose(),state=c.state,mixerTime=c.mixer.time,weights={...c.weights},actionTimes=Object.values(c.actions).map(a=>a.time);
+ Object.assign(baselineGame.player,{vx:game.player.vx,vy:game.player.vy,groundId:game.player.groundId,stomping:game.player.stomping});
+ c.jumpKind=baseline.jumpKind=mode.startsWith('leap')?'leap':'jump';
+ for(let i=0;i<8;i++){animateHero(w,game,1/60);animateHero(baselineWorld,baselineGame,1/60);}
+ const mixerTime=c.mixer.time;
  for(let i=0;i<30;i++){
+  const primaryBefore=c.mixer.time,baselineBefore=baseline.mixer.time;
   game.flowerCelebration={id:0,time:i/60};animateHero(w,game,1/60);
-  assert.deepEqual(pose(),before,`${mode}: legs, hips, whole-body scale and facing stay intact`);
-  assert.equal(c.state,state);assert.equal(c.mixer.time,mixerTime);assert.deepEqual(c.weights,weights);
-  assert.deepEqual(Object.values(c.actions).map(a=>a.time),actionTimes,`${mode}: base clips do not advance or restart`);
+  animateHero(baselineWorld,baselineGame,1/60);
+  samePose(lowerPose(c),lowerPose(baseline),`${mode}: flower overlay changed the lower body`);
+  assert.equal(c.state,baseline.state);
+  assert(Math.abs((c.mixer.time-primaryBefore)-(baseline.mixer.time-baselineBefore))<1e-12,`${mode}: base clip advanced differently`);
  }
- game.flowerCelebration=null;animateHero(w,game,0);assert.deepEqual(pose(),before,`${mode}: release has no lower-body snap`);
- animateHero(w,game,1/60);assert(c.mixer.time>mixerTime);assert.equal(c.state,state);assert(!c.flower.root.visible);
+ assert(c.mixer.time>mixerTime,`${mode}: base clip keeps advancing`);
+ game.flowerCelebration=null;animateHero(w,game,1/60);animateHero(baselineWorld,baselineGame,1/60);
+ samePose(lowerPose(c),lowerPose(baseline),`${mode}: release changed the lower body`);assert(!c.flower.root.visible);
 }
-console.log('PASS upper-body-only pickup: running, rising/falling jumps, leaps and stomp preserve lower-body world poses and resume their original clips');
+console.log('PASS upper-body-only pickup: running, rising/falling jumps, leaps and stomp keep their live lower-body clips throughout');
+
+// Waiting through a long boss volley must not start either relaxed idle clip.
+game.start(1);heroEvent(c,{type:'respawn'});
+Object.assign(game.player,{x:287,y:33.4,vx:0,vy:0,groundId:'mother-arena'});
+for(const state of ['reveal','inhale','release','recover','hurt']){
+ game.level.boss.state=state;
+ for(let i=0;i<360;i++)animateHero(w,game,1/120);
+ assert.equal(c.idleVariant,'idle');assert.equal(c.weights.longIdle,0);assert.equal(c.actions.idle.time,0);
+}
+game.player.vx=2;
+for(let i=0;i<60;i++)animateHero(w,game,1/120);
+assert(c.weights.walk>.98,'automatic entrance still plays the walk animation');
+game.player.vx=0;game.level.boss.state='defeated';
+for(let i=0;i<180;i++)animateHero(w,game,1/120);
+assert.equal(c.idleVariant,'longIdle','ordinary rest animation returns after the encounter');
+console.log('PASS boss encounter suppresses relaxed idle and yawn while preserving walking and post-battle idle');

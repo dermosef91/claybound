@@ -32,6 +32,7 @@ console.log('PASS both presses reach their floors, warn/slam/retract, damage, ho
   const source={...structuredClone(LEVELS[0]),spawn:{x:1,y:2},platforms:[{id:'start',x:-8,w:60,y:0,kind:'stone'},{id:'fragile',x:0,w:4,y:2,kind:'crumble',delay:.8},{id:'end',x:54,w:12,y:0,kind:'stone',goal:true}],enemies:[],hazards:[],crushers:[],winds:[],coins:[],stamps:[],end:62};
   const events=[],g=new Game(e=>events.push(e));g.start(0,source);const s=g.level.platforms[1];g.tick(dt);
   assert(s.timer>0&&s.active);assert.equal(events.filter(e=>e.type==='crumble').length,1);
+  ticks(g,24,{right:true});assert(events.some(e=>e.type==='step'&&e.surface==='crumble'&&e.platformId===s.id),'footsteps identify the porous crumbling ledge');
   ticks(g,60);assert(s.active);const age=s.timer;g.pause();ticks(g,240);assert.equal(s.timer,age);g.resume();
   ticks(g,42);assert(!s.active);assert(g.player.y<2,'a collapsed deck releases the player');
   ticks(g,110);assert.equal(events.filter(e=>e.type==='crumble-collapse').length,1,'one collapse event per break');

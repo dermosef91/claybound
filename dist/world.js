@@ -43,7 +43,6 @@ import {createClayView,updateClayView,animateClayView} from './shaping-views.js'
 import {CLAY_PALETTE} from './palette.js';
 import {createGoal} from './goal.js';
 import {burstSporePod,updateSporeParticle,disposeSporeParticle} from './spore-effects.js';
-import {flowerEnvelope} from './flower-celebration.js';
 import {loadMotherPuff,createMotherArenaFloor,animateMotherPuff,motherCamera,motherViewHeight} from './mother-puff.js';
 
 const C={blue:0x315e96,blueLight:0x3d6da5,blueDark:0x244c7b,orange:CLAY_PALETTE.orange,orangeLight:CLAY_PALETTE.orangeLight,cream:0xf1d8a3,rope:0xdcb985,dark:0x172b3f,gold:0xf8ce75};
@@ -341,16 +340,16 @@ export class World {
   }
   render(game,dt,menu=false) {
     const heroDt=dt;
-    if(game.flowerCelebration||game.status==='paused')dt=0;
+    if(game.status==='paused')dt=0;
     this.time+=dt;
     const t=this.time,p=game.player,L=game.level;
     const edit=this.editorCamera;
     if(!edit&&L.boss&&this.canvas){
       const rect=this.canvas.getBoundingClientRect(),base=cameraFraming(rect.width,rect.height,this.biome);
-      const near=p.x>L.boss.triggerX-9&&p.x<L.boss.right+7;
-      const height=near?motherViewHeight(L.boss,rect.width,rect.height,base.landscape):base.viewH;
+      const near=!['sleeping','defeated'].includes(L.boss.state)&&p.x>L.boss.triggerX-1&&p.x<L.boss.right+7;
+      const height=near?motherViewHeight(L.boss,rect.width,rect.height,base.landscape,base.viewH):base.viewH;
       if(this.viewH!==height){
-        this.viewH=this.reducedMotion||Math.abs(height-this.viewH)<.02?height:this.viewH+(height-this.viewH)*(1-Math.exp(-dt*5));
+        this.viewH=this.reducedMotion||Math.abs(height-this.viewH)<.02?height:this.viewH+(height-this.viewH)*(1-Math.exp(-dt*(L.boss.state==='reveal'?1.4:2.4)));
         this.viewW=this.viewH*rect.width/Math.max(1,rect.height);this.camera.left=-this.viewW/2;this.camera.right=this.viewW/2;this.camera.top=this.viewH/2;this.camera.bottom=-this.viewH/2;this.camera.updateProjectionMatrix();
       }
     }
@@ -367,20 +366,13 @@ export class World {
     const target=motherCamera(L.boss,p,this.viewW,this.viewH,this.landscape)||cameraTarget(p,this.viewW,this.viewH,this.landscape,this.cameraLook);
     const targetX=menu?L.spawn.x+this.viewW*.18:target.x;
     const targetY=menu?L.spawn.y+this.viewH*.18:target.y;
-    this.cameraX+=(targetX-this.cameraX)*(1-Math.exp(-dt*6.7));
+    const cameraRate=L.boss?.state==='reveal'?2:L.boss?.state==='defeated'?3.5:6.7;
+    this.cameraX+=(targetX-this.cameraX)*(1-Math.exp(-dt*cameraRate));
     this.cameraY+=(targetY-this.cameraY)*(1-Math.exp(-dt*(p.groundId?7:11)));
     }else{this.cameraX=edit.x;this.cameraY=edit.y;}
     this.shake=Math.max(0,this.shake-dt*.7);const sx=this.reducedMotion?0:Math.sin(t*82)*this.shake,sy=this.reducedMotion?0:Math.cos(t*67)*this.shake*.65;
     this.camera.position.set(this.cameraX+sx,this.cameraY+(edit?0:(this.theme.cameraElevation??(this.biome==='citadel'?1.25:3.05)))+sy,26);this.camera.lookAt(this.cameraX+sx,this.cameraY+sy,0);
-    const reward=game.flowerCelebration;
-    const focus=reward?flowerEnvelope(reward.time):0;
-    const emphasis=this.reducedMotion?0:Math.max(0,focus);
-    const zoom=1+emphasis*.42;
-    if(this.camera.zoom!==zoom){this.camera.zoom=zoom;this.camera.updateProjectionMatrix();}
-    if(emphasis){
-      const x=THREE.MathUtils.lerp(this.cameraX,p.x,emphasis*.65),y=THREE.MathUtils.lerp(this.cameraY,p.y+1.35,emphasis*.65);
-      this.camera.position.set(x,y+(this.theme.cameraElevation??3.05),26);this.camera.lookAt(x,y,0);
-    }
+    if(this.camera.zoom!==1){this.camera.zoom=1;this.camera.updateProjectionMatrix();}
     this.sun.position.set(this.cameraX-10,this.cameraY+18,12);this.sun.target.position.set(this.cameraX,this.cameraY-2,0);
     animateHero(this,game,heroDt);
     for(const s of L.platforms){

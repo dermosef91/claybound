@@ -55,7 +55,7 @@ await attachGrotto(w);
 await attachDrifter(w);
 prepareSporeAsset(w,await readGLB(new URL('../dist/assets/spore-puff.glb',import.meta.url)));
 await attachClay(w);
-for(const pose of ['idle','cast'])prepareMotherPuff(w,pose,await readGLB(new URL(`../dist/assets/mother-puff-${pose}.glb`,import.meta.url)));
+for(const pose of ['idle','cast','friendly'])prepareMotherPuff(w,pose,await readGLB(new URL(`../dist/assets/mother-puff-${pose}.glb`,import.meta.url)));
 await attachSpitter(w);
 prepareTitleMesa(w,await readGLB(new URL('../dist/assets/title/cactus-mesa.glb',import.meta.url)));
 const titleScene=new TitleScene(w);

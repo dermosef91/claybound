@@ -22,13 +22,13 @@ const pickup=await page.evaluate(async()=>{
  const c=g.level.stamps[0],ground=g.level.platforms.find(s=>s.active&&c.x>=s.x&&c.x<=s.x+s.w&&Math.abs(s.y+.8-c.y)<.85);
  Object.assign(g.player,{x:c.x,y:ground?.y??c.y-.8,vx:0,vy:0,groundId:ground?.id??null});
  for(let i=0;i<60;i++)w.render(g,1/60);
- g.tick(1/120,{});const snapshot=JSON.stringify({p:g.player,time:g.time,elapsed:g.elapsed,platforms:g.level.platforms,enemies:g.level.enemies});
- for(let i=0;i<30;i++){g.tick(1/120,{right:true,jumpPressed:true});w.render(g,1/120);}
+ g.tick(1/120,{});const before={x:g.player.x,time:g.time,elapsed:g.elapsed};
+ for(let i=0;i<30;i++){g.tick(1/120,{right:true});w.render(g,1/120);}
  playtest.draw();
- const assertFreeze= snapshot===JSON.stringify({p:g.player,time:g.time,elapsed:g.elapsed,platforms:g.level.platforms,enemies:g.level.enemies});
- return {active:!!g.flowerCelebration,frozen:assertFreeze,soundDecoded:!!sound.flowerBuffer,stamps:g.stamps,time:g.flowerCelebration.time};
+ const concurrent=g.player.x>before.x&&g.time>before.time&&g.elapsed>before.elapsed;
+ return {active:!!g.flowerCelebration,concurrent,soundDecoded:!!sound.flowerBuffer,stamps:g.stamps,time:g.flowerCelebration.time,zoom:w.camera.zoom};
 });
-assert(pickup.active&&pickup.frozen&&pickup.soundDecoded);assert.equal(pickup.stamps,1);
+assert(pickup.active&&pickup.concurrent&&pickup.soundDecoded);assert.equal(pickup.stamps,1);assert.equal(pickup.zoom,1);
 await page.screenshot({path:out+'/gameplay-desktop.png'});
 await page.evaluate(()=>{const {world:w,game:g}=playtest;w.setEditorCamera({x:g.player.x,y:g.player.y+1.15,viewH:4.8});playtest.draw();});
 await page.screenshot({path:out+'/pose-detail.png'});

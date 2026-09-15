@@ -133,11 +133,10 @@ export function heroEvent(c,e){
 }
 
 export function animateHero(w,game,dt){
-  const c=w.character,p=game.player,paused=game.status==='paused'||!!game.flowerCelebration;
+  const c=w.character,p=game.player,paused=game.status==='paused';
   // Remove last frame's procedural pose before the mixer evaluates its clips.
   if(c.flower?.basePose){for(const [bone,q] of c.flower.basePose)bone.quaternion.copy(q);c.flower.basePose=null;}
-  // Keep the current locomotion/jump clip and lower body frozen with the world.
-  // The separate reward clock drives only the arm/head overlay below.
+  // Normal locomotion keeps running; the reward clock drives only the arm/head overlay.
   const step=paused?0:Math.min(dt,.05),air=!p.groundId;
   c.clock+=step;c.root.position.set(p.x,p.y,.48);c.lastVx=p.vx;
   c.turn=damp(c.turn,p.facing<0?Math.PI:0,26,step);c.root.rotation.y=c.turn;
@@ -145,7 +144,10 @@ export function animateHero(w,game,dt){
     c.hurt=Math.max(0,c.hurt-step);c.landing=Math.max(0,c.landing-step);
     const speed=game.status==='playing'?Math.abs(p.vx):0;
     if(!paused){
-      const resting=!game.flowerCelebration&&(game.status==='menu'||(game.status==='playing'&&!air&&speed<.08&&c.hurt===0&&c.landing===0&&!c.death));
+      const encounter=game.level.boss&&!['sleeping','defeated'].includes(game.level.boss.state);
+      c.actions.idle.paused=!!encounter;
+      if(encounter){c.actions.idle.time=0;c.weights.longIdle=0;c.actions.longIdle.setEffectiveWeight(0);}
+      const resting=!encounter&&!game.flowerCelebration&&(game.status==='menu'||(game.status==='playing'&&!air&&speed<.08&&c.hurt===0&&c.landing===0&&!c.death));
       if(resting){
         c.idleTime+=step;
         const idleDelay=game.status==='menu'?3:1;

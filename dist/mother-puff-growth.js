@@ -1,4 +1,5 @@
 import * as THREE from './lib/three.module.js';
+import {sporeCloud} from './spore-effects.js';
 const clamp=v=>Math.max(0,Math.min(1,v));
 const smooth=v=>{const t=clamp(v);return t*t*(3-2*t);};
 
@@ -40,32 +41,46 @@ function crust(w,parent,x,y,z,size,seed){
     w.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),7,.023*size,4,false),mat.crack,root);
   }return root;
 }
-export function createGrowths(w,pose){
+export function createGrowths(w,pose,model){
   const mat=growthMaterials(w),bands=[];
-  // The last central plug remains above the healthy cap until the third stomp.
-  const specs=[{y:6.1,rx:3.5,ry:2.25,count:9},{y:6.25,rx:2.25,ry:1.2,count:7},{y:6.45,rx:.85,ry:.5,count:4}];
-  for(const [band,s]of specs.entries()){
-    const g=new THREE.Group();g.name='Swollen growth layer '+(band+1);pose.add(g);
-    const sack=w.ball(s.rx,s.ry,s.rx*.67,mat.blush,g,0,s.y,-.05);
-    for(let i=0;i<s.count;i++){
-      const a=i*2.399,dx=Math.cos(a)*s.rx*.73,dz=Math.sin(a)*s.rx*.48;
-      const r=band===0?.7+(i%3)*.13:band===1?.5:.27;
-      w.ball(r,r*.9,r*.85,mat.sack,g,dx,s.y+s.ry*.45+Math.sin(i)*.2,dz);
-      if(i%2===0)crust(w,g,dx,s.y+s.ry*.65,dz+.22,r*.95,i+band*9);
+  // Anchor separate clay plugs to the actual cap surface, never a second cap.
+  pose.updateWorldMatrix(true,true);
+  const ray=new THREE.Raycaster(),up=new THREE.Vector3(0,0,1);
+  const specs=[[[0,-.5,1.05],[-2.1,1.3,.78],[2,1.1,.86],[-1.15,2.05,.7],[1.25,2,.67],[-2.7,-.25,.64],[2.8,-.3,.72]],
+    [[-.85,.15,.78],[1.05,.1,.74],[-1.65,1.7,.59],[1.9,1.5,.6],[-2,-1,.55],[2,-1,.59]],[[0,.75,.64]]];
+  for(const [band,plugs]of specs.entries()){
+    const g=new THREE.Group();g.name='Embedded clay plugs '+(band+1);pose.add(g);
+    for(const [i,[x,z,r]]of plugs.entries()){
+      ray.set(pose.localToWorld(new THREE.Vector3(x,12,z)),new THREE.Vector3(0,-1,0));
+      const hit=ray.intersectObject(model,true)[0];if(!hit)continue;
+      const point=pose.worldToLocal(hit.point.clone());if(point.y<4)continue;
+      const normal=hit.face.normal.clone().applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld));
+      const plug=new THREE.Group();plug.name='Eroded clay lodged in a pore';plug.position.copy(point);plug.quaternion.setFromUnitVectors(up,normal);g.add(plug);
+      // A dark recessed seam and a broken collar make the plug feel embedded.
+      w.mesh(new THREE.TorusGeometry(r*.72,.045,6,19),mat.crack,plug,0,0,.018);
+      const geo=new THREE.SphereGeometry(1,14,10),p=geo.attributes.position;
+      for(let j=0;j<p.count;j++){
+        const a=p.getX(j),b=p.getY(j),c=p.getZ(j),k=1+.12*Math.sin(a*9+c*5+i)+.075*Math.cos(b*11-a*4);
+        p.setXYZ(j,a*k,b*k,c*k);
+      }
+      geo.computeVertexNormals();
+      const stone=w.mesh(geo,mat.crust,plug,0,0,.08);stone.scale.set(r*.81,r*.74,r*.72);
+      for(let j=0;j<3;j++){
+        const a=j*2.2+i,chip=w.mesh(new THREE.IcosahedronGeometry(1,1),mat.crust,plug,Math.cos(a)*r*.63,Math.sin(a)*r*.56,.08);
+        chip.scale.set(r*.32,r*.25,r*.31);
+      }
+      const line=[[-.5,.13,.52],[-.16,.1,.7],[.08,-.06,.74],[.42,-.2,.53]].map(p=>new THREE.Vector3(...p.map(v=>v*r)));
+      w.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(line),8,.018,4,false),mat.crack,plug);
     }
-    // Large dark plates lodged across the forehead; the cream face stays visible.
-    for(let i=0;i<(band===0?5:2);i++){
-      const x=(i-(band===0?2:.5))*(band===0?1.12:.8);
-      crust(w,g,x,s.y-.25,s.rx*.58,.65/(band*.6+1),i+3);
-    }
-    bands.push({root:g,sack});
+    bands.push({root:g});
   }
   const debris=new THREE.Group();debris.name='Breaking clay fragments';pose.add(debris);
   for(let i=0;i<12;i++)crust(w,debris,0,0,0,.18+(i%3)*.06,i);
   return {bands,debris};
 }
+
 export function animateGrowths(view,b,reduced){
-  const hit=b.state==='hurt'||b.state==='collapse',q=smooth(b.stateTime/.8);
+  const hit=b.state==='hurt'||b.state==='veil',q=smooth(b.stateTime/.8);
   for(const [i,band]of view.bands.entries()){
     const breaking=hit&&i===b.hits-1;
     band.root.visible=i>=b.hits||breaking&&q<1;
@@ -82,63 +97,21 @@ export function animateGrowths(view,b,reduced){
   }
 }
 
-export function createAfflictedClearing(w,root,b){
-  const mat=growthMaterials(w),stone=new THREE.Group();stone.name='Rigid clay at the clearing';root.add(stone);
-  // Low angular roots guide the approach, opening into the wide level floor.
-  for(const side of [-1,1])for(let i=0;i<9;i++){
-    const x=b.x+side*(8+i*1.65),z=-4.7-(i%3)*.8;
-    crust(w,stone,x,b.y+.2+(i%3)*.2,z,.8+(i%2)*.25,i+side);
-  }
-  for(const side of [-1,1]){
-    const x=b.x+side*17.2;
-    const pts=[[x,b.y-1,-5],[x-side*.6,b.y+3.5,-5.5],[x+side*.7,b.y+7.3,-6],[x-side*2,b.y+10.7,-6.2]];
-    w.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p))),12,.64,6,false),mat.crust,stone);
-    for(let i=0;i<5;i++){
-      const y=b.y+2+i*1.8;
-      w.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(x,y,-5.5),new THREE.Vector3(x-side*1.4,y+.6,-5.7),new THREE.Vector3(x-side*(2.3+i*.3),y+1.7,-5.5)]),8,.24,5,false),mat.crust,stone);
-    }
-  }
-  const flowers=[];
-  for(let i=0;i<23;i++){
-    const x=b.x-18+i*1.6,z=i%2?1.7:-3.6,flower=new THREE.Group();flower.name='Closed clearing flower';flower.position.set(x,b.y+.03,z);root.add(flower);
-    w.ball(.11,.32,.11,mat.stem,flower,0,.25,0);
-    const petals=[];
-    for(let j=0;j<5;j++){
-      const pivot=new THREE.Group();pivot.position.y=.53;pivot.rotation.y=j*Math.PI*2/5;flower.add(pivot);
-      const petal=w.ball(.15,.34,.1,j%2?mat.petal:mat.blush,pivot,0,.2,.06);petals.push({pivot,petal});
-    }
-    w.ball(.14,.13,.14,mat.sack,flower,0,.52,0);
-    const grey=afflictBranch(flower,1);flowers.push({root:flower,petals,grey,x});
-  }
-  return {stone,flowers};
-}
-export function animateClearing(view,b){
-  for(const f of view.flowers){
-    const open=smooth((b.healing*23-Math.abs(f.x-b.x))/4);
-    f.grey.value=1-open*.87;
-    for(const {pivot}of f.petals)pivot.rotation.x=open*1.18;
-    f.root.scale.setScalar(.72+open*.28);
-  }
-}
-export function createFriendlySpores(w,root,b){
-  const mat=growthMaterials(w),g=new THREE.Group();g.name='Friendly farewell spores';root.add(g);
+export function createFriendlySpores(w,root){
+  const mat=new THREE.MeshStandardMaterial({color:0xffe8b0,roughness:1,transparent:true,opacity:.75,depthWrite:false});
+  const g=new THREE.Group();g.name='Friendly spore billows';root.add(g);
   const parts=[];
-  for(let i=0;i<42;i++){
-    const m=w.ball(.16+(i%3)*.07,.2,.18,i%3===0?mat.blush:mat.sack,g);m.castShadow=false;m.userData.restScale=m.scale.clone();parts.push(m);
-  }
+  for(let i=0;i<15;i++){const m=sporeCloud(w,g,mat,.75);parts.push(m);}
   return {root:g,parts};
 }
 export function animateFriendly(v,b,reduced){
-  const phase=b.state,t=b.stateTime;
-  v.root.visible=['revive','regard','farewell','bloom'].includes(phase);
+  const phase=b.state,t=b.stateTime;v.root.visible=['regard'].includes(phase);
   for(const [i,m]of v.parts.entries()){
-    const a=i*2.399;
-    let age=phase==='revive'?t-i*.05:phase==='regard'?t-.7-i*.018:phase==='farewell'?t-i*.025:t+1.8-i*.025;
-    const duration=phase==='revive'?1.8:phase==='regard'?.85:5;
-    m.visible=age>=0&&age<duration&&(phase!=='regard'||i<9);
-    age=Math.max(0,age);
-    const spread=phase==='regard'?age*3:phase==='bloom'?age*4:age*1.8;
-    m.position.set(b.x+(phase==='regard'?-spread:Math.cos(a)*spread),b.y+.9+Math.sin(a*1.3)*.5+age*(phase==='bloom'?.25:.65),.1+Math.sin(a)*spread*.5);
-    m.scale.copy(m.userData.restScale).multiplyScalar(Math.max(.01,Math.min(1,age*5,(duration-age)*1.5))*(reduced?.65:1));
+    let age=phase==='revive'?t-i*.11:phase==='regard'?t-.7-i*.045:t-i*.075;
+    const duration=phase==='regard'?.95:2.7;
+    m.visible=age>=0&&age<duration&&(phase!=='regard'||i<4);age=Math.max(0,age);
+    const a=i*2.399,spread=age*(phase==='regard'?2:1.8);
+    m.position.set(b.x+(phase==='regard'?-spread:Math.cos(a)*spread),b.y+1+Math.sin(a)*.2+age*.55,.1+Math.sin(a)*spread*.4);
+    m.scale.setScalar(Math.max(.001,Math.min(.9,age*4,(duration-age)*1.3))*(reduced?.7:1));
   }
 }

@@ -8,7 +8,7 @@ import {resetSpitter,contactSpitter,updateShots} from './spitter-rules.js';
 
 import {claySurface,clayWallBounds,updateShaping,stompClay} from './shaping.js';
 import {bridgeOffset} from './bridge-surface.js';
-import {MOTHER_PUFF,motherCinematic,updateMotherPuff,contactMotherPuff,resetMotherPuff} from './mother-puff-rules.js';
+import {MOTHER_PUFF,motherCinematic,motherIntroTarget,updateMotherPuff,contactMotherPuff,resetMotherPuff} from './mother-puff-rules.js';
 
 export const FIXED_DT=1/120;
 export const FLOWER_CELEBRATION_DURATION=.5;
@@ -82,11 +82,10 @@ export class Game {
   }
   tick(dt,input={}) {
     if(this.status!=='playing')return;
-    // Celebration time is separate: physics, hazards and the run clock all rest.
+    // The flourish runs alongside gameplay; movement, hazards and the run clock continue.
     if(this.flowerCelebration){
       this.flowerCelebration.time+=dt;
       if(this.flowerCelebration.time>=FLOWER_CELEBRATION_DURATION){this.flowerCelebration=null;this.event('flower-resume');}
-      return;
     }
     this.time+=dt;this.elapsed+=dt;
     const p=this.player, L=this.level;
@@ -95,10 +94,13 @@ export class Game {
     if(motherCinematic(L.boss)){
       // Keep gravity and landing live; gently bring the player beside her for
       // the recovery scene. Held buttons cannot skip or interrupt the reveal.
-      input={moveAxis:L.boss.hits===3?Math.max(-.55,Math.min(.55,(L.boss.x-6-p.x)*.6)):0};
+      const aim=L.boss.hits===3?L.boss.x-6:motherIntroTarget(L.boss);
+      input={moveAxis:Math.max(-.4,Math.min(.4,(aim-p.x)*.6))};
       if(L.boss.hits===3&&Math.abs(L.boss.x-6-p.x)<.35)p.facing=1;
       p.jumpBuffer=0;p.stomping=false;p.stompWindup=0;p.motherBounce=false;
     }
+    const motherPushed=(p.motherPush||0)>0;
+    if(motherPushed){p.motherPush=Math.max(0,p.motherPush-dt);input={};p.jumpBuffer=0;p.stomping=false;p.stompWindup=0;}
     for(const c of Object.keys(this.channels))if(!this.latched[c])this.channels[c]=Math.max(0,this.channels[c]-dt);
     for(const wind of L.winds||[])wind.active=!wind.channel||this.channels[wind.channel]>0;
     for(const s of L.platforms) {
@@ -158,6 +160,7 @@ export class Game {
     for(const wind of L.winds||[])if(wind.active&&p.x>wind.x&&p.x<wind.x+wind.w&&p.y+RULES.height>wind.y&&p.y<wind.y+wind.h){const strength=wind.gust?.35+.65*(.5+.5*Math.sin(this.time*1.3+wind.phase)):1;windX+=wind.fx*strength;windY+=wind.fy*strength;}
     p.windX=windX;p.windY=windY;
     p.vx=approach(p.vx,axis*RULES.speed*(p.stomping?.45:1)*(p.sporeSlow?MOTHER_PUFF.slow:1)+windX*(p.groundId?.025:.16),dt*(Math.abs(axis)>.01?accel:(p.groundId?80:10)));
+    if(motherPushed)p.vx=-13;
     if(p.jumpBuffer>0&&p.coyote>0) {
       p.vy=RULES.jump;p.groundId=null;p.coyote=0;p.jumpBuffer=0;p.stomping=false;p.springing=false;p.squash=-.12;p.stompWindup=0;
       this.event('jump',{x:p.x,y:p.y});
@@ -218,7 +221,7 @@ export class Game {
         p.stomping=false;p.stompWindup=0;
       }
     }
-    if(p.groundId&&Math.abs(p.vx)>.8){p.stride+=Math.abs(p.vx)*dt;if(p.stride>.86){p.stride=0;this.event('step',{x:p.x-p.facing*.13,y:p.y});}}
+    if(p.groundId&&Math.abs(p.vx)>.8){p.stride+=Math.abs(p.vx)*dt;if(p.stride>.86){p.stride=0;const ground=L.platforms.find(s=>s.id===p.groundId);this.event('step',{x:p.x-p.facing*.13,y:p.y,platformId:p.groundId,surface:ground?.kind});}}
     // Tall solid towers have sides; ledges and rope decks can be jumped through.
     for(const s of L.platforms)if(s.kind!=='wall'&&(solidWall(s)||s.shape)&&p.y<(s.shape?surfaceAt(s,p.x):s.y)-.12&&p.y+RULES.height>s.y-(s.shape?s.h:solidDepth(s))){
       const bounds=s.shape?clayWallBounds(s,p.y+RULES.height):{left:s.x,right:s.x+s.w};

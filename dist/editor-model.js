@@ -14,7 +14,7 @@ export function repairDraft(level){
   if(level.boss){
     const arena=level.platforms.find(p=>p.motherArena);
     if(!arena)delete level.boss;
-    else Object.assign(level.boss,{x:arena.x+arena.w/2+.5,y:arena.y,left:arena.x+3.5,right:arena.x+arena.w-2.5,triggerX:arena.x+4.5});
+    else Object.assign(level.boss,{x:arena.x+arena.w-6.5,y:arena.y,left:arena.x+3.5,right:arena.x+arena.w-2.5,triggerX:arena.x+4.5});
   }
   for(const p of level.platforms){
     if(p.checkpoint!==undefined)p.checkpoint=clamp(p.checkpoint,p.x+.2,p.x+p.w-.2)||.001;

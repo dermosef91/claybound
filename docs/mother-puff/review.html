@@ -1,9 +1,51 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/mother-puff.css"><style>body{margin:0}canvas{width:100vw;height:100vh;display:block}#review{position:fixed;bottom:14px;left:14px;z-index:50;display:flex;gap:6px}#review button{padding:7px 12px;background:#f2dec1;color:#463b4b;border-radius:8px;border:1px solid #bba791}#readout{position:fixed;top:12px;left:16px;color:#423545;font:14px monospace;z-index:30}</style></head><body><canvas id="world"></canvas><output id="readout">Loading…</output><div id="mother-mist" class="mother-mist hidden"></div><nav id="review"><button data-pose="sleeping">Sleepy</button><button data-pose="release">Casting</button><button data-pose="field">Ground spores</button><button data-pose="play">Play fight</button><button data-pose="auto">Input replay</button><button data-pose="paused">Pause</button></nav><script type="module">
-import {motherCapHeight} from '/mother-puff-rules.js';
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/mother-puff.css"><style>body{margin:0}canvas{width:100vw;height:100vh;display:block}#review{position:fixed;bottom:14px;left:14px;z-index:50;display:flex;gap:6px}#review button{padding:7px 12px;background:#f2dec1;color:#463b4b;border-radius:8px;border:1px solid #bba791}#readout{position:fixed;top:12px;left:16px;color:#423545;font:14px monospace;z-index:30}</style></head><body><canvas id="world"></canvas><output id="readout">Loading…</output><div id="mother-mist" class="mother-mist hidden"></div><nav id="review"><button data-pose="sleeping">Sleepy</button><button data-pose="release">Casting</button><button data-pose="field">Ground spores</button><button data-pose="phase2">One hit</button><button data-pose="phase3">Two hits</button><button data-pose="veil">Cloud cover</button><button data-pose="unveil">Unveil</button><button data-pose="friendly">Friendly</button><button data-pose="healing">Healing</button><button data-pose="victory">Victory</button><button data-pose="play">Play fight</button><button data-pose="auto">Input replay</button><button data-pose="paused">Pause</button><button id="review-music">Music off</button></nav><script type="module">
+import {Sound} from '/audio.js';
+import {cameraFraming,cameraTarget} from '/camera.js';
+import {motherQuiet,motherCorrupted} from '/mother-puff-rules.js';
 import {World} from '/world.js';import {Game} from '/simulation.js';import {updateMotherAtmosphere} from '/mother-puff-hud.js';
-const w=new World(document.querySelector('canvas'));await w.ready;const g=new Game(e=>w.event(e));g.start(1);await w.prepareLevel(g.level);const keys=new Set();let auto=false;
-function reset(mode){g.start(1);Object.assign(g.player,{x:281.5,y:33.4,groundId:'mother-arena'});g.checkpoint={x:264,y:33.4};g.checkpointId='heart-bell';w.build(g.level,1,281.5);g.level.boss.state='sleeping';auto=mode==='auto';if(['release','field'].includes(mode)){for(let i=0;i<(mode==='release'?710:1160);i++)g.tick(1/120,{});}g.status=['play','auto'].includes(mode)?'playing':'paused';w.cameraX=287;w.cameraY=39.1;}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function motherInput(g){
+  const p=g.player,b=g.level.boss;
+  let aim=b.state==='defeated'?b.right+4:b.left+8;
+  const pad=b.patches.find(s=>s.color==='yellow'),seed=b.spores.find(s=>s.color==='yellow');
+  if(pad||seed)aim=pad?.x??seed.targetX;
+  if(p.motherBounce)aim=b.x-1;
+  if(b.state==='sleeping')aim=b.triggerX+.5;
+  const grounded=!!p.groundId,nearGround=p.y<b.y+2.8;
+  let jumpPressed=false;
+  if(!p.motherBounce&&b.hits<3){
+    // A purple marker gives nearly two seconds to leave its landing circle.
+    const danger=b.spores.find(s=>s.color==='purple'&&Math.abs(s.targetX-p.x)<3.0&&s.duration-s.age<1.35)
+      ||b.patches.find(s=>s.color==='purple'&&s.age<.32&&Math.abs(s.x-p.x)<3.0);
+    if(danger){
+      const x=danger.targetX??danger.x;
+      const left=clamp(x-3.3,b.left+.5,b.x-3.4),right=clamp(x+3.3,b.left+.5,b.x-3.4);
+      aim=Math.abs(p.x-left)<Math.abs(p.x-right)?left:right;
+      if(grounded&&Math.abs(p.x-x)<2.7)jumpPressed=true;
+    }
+    const child=g.level.enemies.find(e=>e.motherChild&&e.alive&&Math.abs(e.x-p.x)<3.9&&Math.abs(e.y-p.y)<2);
+    if(child&&grounded&&nearGround)jumpPressed=true;
+  }
+  return {moveAxis:clamp((aim-p.x)*5/6.7,-1,1),jumpPressed,jumpHeld:true};
+}
+
+const sound=new Sound();sound.enabled=false;document.querySelector('#review-music').onclick=()=>{sound.enabled=!sound.enabled;sound.unlock();document.querySelector('#review-music').textContent=sound.enabled?'Music on':'Music off';};
+const w=new World(document.querySelector('canvas'));await w.ready;const g=new Game(e=>{w.event(e);sound.effect(e.type,e);});g.start(1);await w.prepareLevel(g.level);const keys=new Set();let auto=false;
+function reset(mode){
+ g.start(1);const b=g.level.boss,live=['play','auto'].includes(mode);
+ Object.assign(g.player,{x:live?276:287,y:b.y,groundId:'mother-arena'});g.checkpoint={x:264,y:b.y};g.checkpointId='heart-bell';
+ w.build(g.level,1,g.player.x);auto=mode==='auto';
+ if(['release','field'].includes(mode)){for(let i=0;i<(mode==='release'?1050:2200);i++)g.tick(1/120,motherInput(g));}
+ if(['phase2','phase3','veil','unveil','friendly','healing','victory'].includes(mode))Object.assign(b,{hits:mode==='phase2'?1:mode==='phase3'?2:3,state:mode==='veil'?'transform':mode==='unveil'?'reveal-form':mode==='friendly'?'regard':mode==='healing'?'bloom':mode==='victory'?'defeated':'recover',stateTime:mode==='unveil'?1.8:mode==='friendly'?1.2:2,healing:mode==='victory'?1:mode==='healing'?.6:0});
+ if(['veil','unveil','friendly','healing','victory'].includes(mode))g.player.x=297;
+ const rect=w.canvas.getBoundingClientRect(),base=cameraFraming(rect.width,rect.height,'forest');
+ w.viewH=live?base.viewH:18.8;w.viewW=w.viewH*rect.width/rect.height;
+ w.camera.left=-w.viewW/2;w.camera.right=w.viewW/2;w.camera.top=w.viewH/2;w.camera.bottom=-w.viewH/2;w.camera.updateProjectionMatrix();
+ const target=live?cameraTarget(g.player,w.viewW,w.viewH,base.landscape):{x:291.5,y:38.8};w.cameraX=target.x;w.cameraY=target.y;w.lastPlayerX=g.player.x;
+ g.status=live?'playing':'paused';
+}
+
 reset('sleeping');document.querySelectorAll('[data-pose]').forEach(b=>b.onclick=()=>{if(b.dataset.pose==='paused')g.status=g.status==='paused'?'playing':'paused';else reset(b.dataset.pose);});
 window.addEventListener('keydown',e=>{keys.add(e.code);e.preventDefault()});window.addEventListener('keyup',e=>keys.delete(e.code));let prev=performance.now(),accum=0,pressed=false,stomp=false;
-function frame(now){const dt=Math.min(.05,(now-prev)/1000);prev=now;accum+=dt;while(accum>=1/120){const p=g.player,b=g.level.boss;let aim=b.state==='defeated'?311:b.x-5.9;if(p.motherBounce)aim=b.x;const jump=keys.has('Space'),down=keys.has('ArrowDown')||keys.has('KeyS');g.tick(1/120,auto?{moveAxis:Math.max(-1,Math.min(1,(aim-p.x)*5/6.7)),jumpHeld:true,stompPressed:p.motherBounce&&p.y>b.y+motherCapHeight(b)+.5&&Math.abs(p.x-b.x)<1.5}:{right:keys.has('ArrowRight')||keys.has('KeyD'),left:keys.has('ArrowLeft')||keys.has('KeyA'),jumpHeld:jump,jumpPressed:jump&&!pressed,stompPressed:down&&!stomp});pressed=jump;stomp=down;accum-=1/120;}w.render(g,dt);updateMotherAtmosphere(g,document.querySelector('#mother-mist'),true);document.querySelector('#readout').textContent=`HP ${g.player.health} · ${g.level.boss.state} · stomps ${g.level.boss.hits}/3 · ${g.status}`;requestAnimationFrame(frame);}requestAnimationFrame(frame);
+function frame(now){const dt=Math.min(.05,(now-prev)/1000);prev=now;accum+=dt;while(accum>=1/120){const p=g.player,b=g.level.boss;const jump=keys.has('Space'),down=keys.has('ArrowDown')||keys.has('KeyS');g.tick(1/120,auto?motherInput(g):{right:keys.has('ArrowRight')||keys.has('KeyD'),left:keys.has('ArrowLeft')||keys.has('KeyA'),jumpHeld:jump,jumpPressed:jump&&!pressed,stompPressed:down&&!stomp});pressed=jump;stomp=down;accum-=1/120;}w.render(g,dt);sound.update(dt,g.status==='playing',1,false,false,false,motherQuiet(g.level.boss),motherCorrupted(g));updateMotherAtmosphere(g,document.querySelector('#mother-mist'),true);document.querySelector('#readout').textContent=`HP ${g.player.health} · ${g.level.boss.state} · landings ${g.level.boss.hits}/3 · x ${g.player.x.toFixed(1)} · view ${w.viewH.toFixed(1)} · ${g.status}`;requestAnimationFrame(frame);}requestAnimationFrame(frame);
 </script></body></html>

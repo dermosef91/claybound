@@ -1,58 +1,60 @@
 # Mother Puff
 
-The Still Clearing extends Wildwood from the entrance checkpoint at x=264 to the bell at x=315. A narrowing approach through rigid charcoal roots opens onto an enormous, uncomfortable mushroom. Her normal cream body remains visible underneath a swollen cap, cream growths, and hard cracked clay lodged in her head. The clearing’s trees, floor and flowers have lost their color.
+The Still Clearing extends Wildwood from the checkpoint at x=264 to the finish bell at x=315. Mother Puff stands at x=303, toward the right edge. The entire fight takes place on her left. No black arches or root curtains are created.
 
-The encounter has no boss name, health bar, hit counter, description, or boss instruction toast. Its changing sculpture conveys progress. The existing orange-bounce and stomp lessons earlier in Wildwood teach the required verbs.
+Separate eroded clay plugs sit directly in her cap pores. Selected trees and leaves on the left are afflicted while healthy patches remain; ground and scenery become fully dark and desaturated toward the right, including the exit. Some damaged pieces use the same recessed `porousClay` geometry as the crumbling ledges. Per-view material uniforms preserve textures and the original shared assets; background shader wrappers restore when the arena unloads.
 
-## Reveal and fight
+There is no boss title, description, health bar, counter, or instruction toast in the game. Relaxed player idle/yawn clips are suppressed throughout the encounter, while walking and jumping retain their normal animations.
 
-Crossing the threshold starts a 3.4-second reveal. The camera opens toward her while root curtains close. Gravity remains active, and held movement/jump/stomp inputs cannot interrupt the scene. She then inhales for 2.1 seconds.
+## Entrance and combat
 
-Each volley fires five spores **one at a time, 0.48 seconds apart**: two orange, then purple, white, and green. The landing positions lock when the volley begins, and each spore has its own landing warning and 1.85-second flight. Purple targets avoid the orange launch lanes.
+Crossing x=276 starts a 5.8-second automatic walk toward x=287.04. The camera eases from the normal framing to the wide arena view throughout the walk. Movement, jump and stomp inputs cannot interrupt the introduction; gravity and landing remain active. A full 2.1-second inhale precedes the first cast.
+
+Each chain contains ten individually telegraphed spores, spaced 1.4 seconds apart. Every landing target is on the left side. Exactly one yellow launch spore appears, alternating between cast eight and cast nine. Purple hazards keep clear of its launch lane. The complete chain spans 12.6 seconds; each projectile flies for 1.85 seconds.
 
 | Spore | Ground effect |
 | --- | --- |
-| Orange | Two mushroom caps, one on either side, bounce the player above her crown. Lasts 12 seconds. |
-| Purple | An explosion deals one health of damage and pushes the player away and upward. |
-| White | A cream cloud obscures visibility and reduces horizontal speed to 46% while touching it. Lasts 5.5 seconds. |
-| Green | Spawns a Spore Puff enemy, with at most three summoned children alive. |
+| Yellow | One mushroom launch cap at x=297.1; lasts 12 seconds and bounces above the crown. |
+| Purple | Explosion damages and pushes the player away and upward. |
+| White | Obscures visibility and reduces horizontal speed to 46% for contact with its 5.5-second cloud. |
+| Green | Spawns a Spore Puff; at most three summoned children are alive. |
 
-Bounce from an orange cap, steer above the swollen crown, and press **↓ / S / STOMP**. Each hit consumes the bounce, cancels the remaining volley, and clears spores and summoned enemies. Ordinary crown landings bounce harmlessly. Fresh orange bounces are required for all three hits.
-
-- Initially, three overlapping growth layers bury the cap. The stomp surface is 8.35 units above the floor.
-- After the first hit, the largest layer breaks apart, her normal coloration starts returning, and restless breathing and head movements become quicker. The target lowers to 7.45 units.
-- After the second hit, only the final central growth remains. The target lowers to 6.95 units.
-- The third hit bursts the final plug and begins recovery.
+Bounce from the yellow cap and steer onto her head. Any descending head landing counts; no stomp button or charged-bounce flag is required. Each of three hits breaks a group of plugs, cancels the volley, clears hazards and summoned children, and creates a leftward spore puff. The puff carries the player left for 0.85 seconds, even against held movement input. The head target lowers from 7.25 to 7.0 to 6.8 units as the growths break away. Her remaining growths become more restless.
 
 ## Recovery
 
-She collapses over 1.5 seconds, followed by 1.8 seconds of stillness with the music hushed. Friendly spores escape as she slowly rises at 36% of her original model scale over 2.8 seconds. She turns toward the player, gives a small suspicious puff, and disappears in a warm spore cloud.
+The third landing fills the whole silhouette with a large spore cloud over 1.5 seconds. For the next 1.8 seconds, the opaque cloud hides the model exchange. Over 2.6 seconds the cloud drifts and fades, revealing the supplied friendly model at its full 2.35-unit height. There is no visible shrinking or growing. She regards the player, gives a small suspicious puff, and disappears behind a second, smaller spore cloud.
 
-An outward wave then opens the closed flowers and returns some color to the grey floor and trees. Hard clay remnants remain, so the clearing looks relieved rather than instantly pristine. After the 3.6-second bloom beat, the root curtains finish withdrawing and the exit opens. The player is gently guided beside her during recovery and keeps normal gravity and landing behavior.
+Healing reuses `createSporeWind` / `animateSporeWind`: the same gold motes and cream billows found earlier in Wildwood. No new mushrooms or flowers grow on victory. The grey environment regains color. After the recovery sequence, the exit unlocks and the normal camera immediately resumes following the player, before they reach the right side of the stage.
 
-Completion is saved once recovery finishes. Reloading a completed encounter retains the healed clearing and open exit. Interrupted/failed fights reset all growths, effects and summoned enemies at the entrance checkpoint. Pause freezes every encounter timer. Reduced motion removes breathing, shaking, head tremors, debris flight, cloud orbit and farewell hopping; it preserves the essential shrinking and flower-opening progression.
+The encounter threshold crossfades the forest music to the supplied **The Stone Orchard** over 2.4 seconds. The third landing fades back to the continuing forest track, hushed during the covered transformation. Pause, mute, hidden-page behavior and stream fallback apply to both tracks.
+
+Victory is saved once recovery finishes. Interrupted fights reset growths, spores and children at the checkpoint. Pause freezes the encounter. Reduced motion suppresses incidental breathing, shaking, tremors and cloud oscillation while retaining the essential reveal and healing.
 
 ## Supplied models
 
 | Pose | User-supplied file | Triangles | Shipped bytes |
 | --- | --- | ---: | ---: |
-| Idle / recovery | `Meshy_AI_Sleepy_Mushroom_Guard_0913143352_texture.glb` | 10,448 | 998,460 |
+| Undisturbed idle | `Meshy_AI_Sleepy_Mushroom_Guard_0913143352_texture.glb` | 10,448 | 998,460 |
 | Casting | `Meshy_AI_Mushroom_Hug_0913144326_texture.glb` | 10,428 | 1,029,136 |
+| Friendly final form | `mushroom+character+3d+model.glb` | 19,686 | 1,797,432 |
 
-Both are static meshes. The game switches sculptures for casting and adds procedural breathing, growth layers, reactions and recovery. Their original geometry, UVs and material maps are retained. Textures were repacked to 1024px JPEGs in the original implementation, with normal vectors renormalized. The Downloads originals remain unchanged. This revision adds no external assets or provider jobs.
+All three are static meshes. The supplied friendly GLB is copied unchanged and normalized at load time. The sleepy sculpture is used before the encounter; the alert casting sculpture stays visible throughout combat. Procedural inhaling, clay-plug reactions and spore clouds complement the supplied forms. Their original geometry, UVs and material maps are retained. Textures were repacked to 1024px JPEGs in the original implementation, with normal vectors renormalized. The Downloads originals remain unchanged. The new model and music were supplied by the user; no provider jobs were used.
 
 `scripts/prepare-mother-puff.py SOURCE idle|cast` reproduces that texture repack. The manifests beside the GLBs retain source/output hashes and geometry fingerprints.
 
 ## Implementation and verification
 
-- `dist/mother-puff-rules.js`: reveal, individual launches, contact effects, changing stomp surfaces, recovery, healing, cleanup and reset.
-- `dist/mother-puff.js`: supplied models, framing, pose animation, arena, telegraphs and spore effects.
-- `dist/mother-puff-growth.js`: swelling, cracked clay, isolated material desaturation, flower opening and friendly spores. Grey materials are cloned per arena instance, preserving the healthy forest and the shared GLBs.
-- `dist/mother-puff-hud.js` / `.css`: only the white-spore visibility effect.
-- `tests/mother-puff.mjs`: ordered launches and timing, all four ground effects, swept stomp collision, an input-only victory, the recovery sequence, pause, save/retry, effect limits and editor integration.
-- `tests/mother-puff-assets.mjs`: supplied asset integrity, grounding, pose switching, growth silhouettes, shrinking, flower progression, shader composition, material ownership, effect disposal, HUD removal and portrait framing.
-- `tests/mother-puff-pilot.mjs`: ordinary-input encounter replay used by route and complete chapter checks. The revised encounter reaches the exit deck in 4,294 frames from its entrance, with three stomps, no deaths and full player health.
+- `dist/mother-puff-rules.js`: deterministic entrance, ten-cast chains, landing damage, push, ending, save/reset and cleanup.
+- `dist/mother-puff.js`: model poses, effects and gradual/released camera framing.
+- `dist/mother-puff-growth.js`: embedded clay plugs and friendly puff.
+- `dist/mother-puff-environment.js`: selective-to-complete corruption, porous geometry, isolated background materials and original healing winds.
+- `dist/mother-puff-cinematics.js`: opaque model exchange, fading reveal and hit puff.
+- `dist/mother-puff-music.js`: Stone Orchard crossfade lifecycle.
+- `tests/mother-puff.mjs` and `tests/mother-puff-pilot.mjs`: four spore effects, late yellow timing, three ordinary landings, push, input-only replay, save/retry, bounded effects and editor movement. The entrance-to-exit replay takes 8,803 fixed frames without a death or stomp input.
+- `tests/mother-puff-assets.mjs`: three supplied GLBs and maps, grounding, alert pose, cloud coverage, phase silhouettes, porous geometry, absent arches, healing winds, material isolation, effects disposal and portrait framing.
+- `tests/player.mjs`: relaxed idle suppression during the encounter, preserved walking and normal idle after victory.
 
-The current revision is checked by deterministic simulation and CPU scene-graph tests; the earlier browser screenshots cover the previous encounter, not this visual revision. `review.html` remains a local inspection fixture outside the shipped `dist` directory, using the actual World/Game modules and an input replay.
+The browser replay reached the right exit with three successful landings, full health and no console errors. Its view returned from 18.8 to the normal 9.9 units. Static browser inspection verified the affected arena, full cloud cover and friendly form appearing through the fading veil. `review.html` is a local development fixture using the actual World/Game and ordinary-input pilot; it is kept outside the shipped directory.
 
-The original forest traversal is preserved. Older editor backups keep their original finish without inheriting an unreachable boss; new arena drafts retain their boss and move her with the arena floor.
+The original forest traversal is preserved. Older editor backups retain their original finish without inheriting an unreachable boss; new arena drafts keep their boss near the right side when the arena moves.
