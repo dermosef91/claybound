@@ -5,3 +5,6 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Optional production bundle (npm run build); dist/ remains the source.
+build/

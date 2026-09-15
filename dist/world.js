@@ -12,7 +12,7 @@ import {loadSpores} from './spore-puff.js';
 import {loadDrifters} from './drifter.js';
 import {burstDrifterLeaves} from './drifter-leaves.js';
 import {loadCottage,cottageModel} from './cottage.js';
-import {loadClay,clayBox,clayMeshMaterial,sculptClay} from './clay.js';
+import {loadClay,clayBox,clayMeshMaterial,sculptClay,clayShape} from './clay.js';
 import {loadClouds} from './clouds.js';
 import {cameraFraming,cameraTarget} from './camera.js';
 import {syncStream,disposeBranch} from './streaming.js';
@@ -121,36 +121,53 @@ export class World {
     const vA=new THREE.Vector3(...a),vB=new THREE.Vector3(...b),dir=vB.clone().sub(vA),len=dir.length();
     const g=new THREE.Group();g.position.copy(vA);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());parent.add(g);
     this.cylinder(r,len,'rope',g,0,len/2,0);
-    if(twist){const points=[];for(let t=0;t<=len;t+=.065)points.push(new THREE.Vector3(Math.cos(t*24)*r*.77,t,Math.sin(t*24)*r*.77));
-      if(points.length>1)this.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),Math.min(400,Math.ceil(len*18)),r*.37,5,false),'cream',g);}
+    if(twist&&len>=.065){
+      // The twist depends on nothing but its length and radius, so ropes of a
+      // repeated span share one strand.
+      const strand=clayShape(this,`rope-twist:${len.toFixed(3)}:${r.toFixed(3)}`,()=>{
+        const points=[];for(let t=0;t<=len;t+=.065)points.push(new THREE.Vector3(Math.cos(t*24)*r*.77,t,Math.sin(t*24)*r*.77));
+        return sculptClay(this,new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),Math.min(400,Math.ceil(len*18)),r*.37,5,false),{amplitude:.06});
+      });
+      this.mesh(strand,'cream',g);
+    }
     return g;
   }
   flag(x,y,parent,scale=1,checkpointId=null) {
     const g=new THREE.Group();g.name='Checkpoint flag';g.position.set(x,y,-.75);g.scale.setScalar(scale);parent.add(g);
     const pole=this.biome==='desert'?'bark':'orange';
     this.cylinder(.043,2.65,pole,g,0,1.3);this.ball(.1,.1,.1,pole,g,0,2.68,0);
-    const s=new THREE.Shape();s.moveTo(.04,2.52);s.bezierCurveTo(.45,2.6,.7,2.3,1.1,2.43);s.lineTo(.84,2.02);s.lineTo(1.05,1.79);s.bezierCurveTo(.7,1.8,.48,1.95,.04,1.87);s.closePath();
-    const geom=new THREE.ExtrudeGeometry(s,{depth:.055,bevelEnabled:true,bevelThickness:.03,bevelSize:.03,bevelSegments:2,steps:1});
-    geom.translate(0,-2.52,0);
+    // One banner outline for every checkpoint in the game — build it once.
+    const geom=clayShape(this,'checkpoint-banner',()=>{
+      const s=new THREE.Shape();s.moveTo(.04,2.52);s.bezierCurveTo(.45,2.6,.7,2.3,1.1,2.43);s.lineTo(.84,2.02);s.lineTo(1.05,1.79);s.bezierCurveTo(.7,1.8,.48,1.95,.04,1.87);s.closePath();
+      const banner=new THREE.ExtrudeGeometry(s,{depth:.055,bevelEnabled:true,bevelThickness:.03,bevelSize:.03,bevelSegments:2,steps:1});
+      banner.translate(0,-2.52,0);
+      return sculptClay(this,banner,{amplitude:.06});
+    });
     const flag=this.mesh(geom,'orange',g,0,2.52,0);this.flags.push(flag);
     if(checkpointId)checkpointFlag(this,flag,g,checkpointId);
     return g;
   }
   arch(w,h,d,parent,x,y,z,mat='blue') {
-    const s=new THREE.Shape(),aw=Math.min(w*.33,2.7),top=-h*.38;
-    s.moveTo(-w/2,0);s.lineTo(w/2,0);s.lineTo(w/2,-h);s.lineTo(aw,-h);s.lineTo(aw,top-aw*.7);
-    s.bezierCurveTo(aw,top+aw*.6,-aw,top+aw*.6,-aw,top-aw*.7);s.lineTo(-aw,-h);s.lineTo(-w/2,-h);s.closePath();
-    const geo=new THREE.ExtrudeGeometry(s,{depth:d,steps:1,bevelEnabled:true,bevelThickness:.15,bevelSize:.14,bevelSegments:3,curveSegments:16});
-    // In-plane coordinates keep the visible fingerprints at a consistent scale.
-    const uv=geo.attributes.uv, pos=geo.attributes.position;
-    for(let i=0;i<uv.count;i++)uv.setXY(i,pos.getX(i)*.22,pos.getY(i)*.22);
-    return this.mesh(sculptClay(this,geo,{amplitude:.12,subdivide:true}),mat,parent,x,y,z-d/2);
+    const geo=clayShape(this,`arch:${w.toFixed(3)}:${h.toFixed(3)}:${d.toFixed(3)}`,()=>{
+      const s=new THREE.Shape(),aw=Math.min(w*.33,2.7),top=-h*.38;
+      s.moveTo(-w/2,0);s.lineTo(w/2,0);s.lineTo(w/2,-h);s.lineTo(aw,-h);s.lineTo(aw,top-aw*.7);
+      s.bezierCurveTo(aw,top+aw*.6,-aw,top+aw*.6,-aw,top-aw*.7);s.lineTo(-aw,-h);s.lineTo(-w/2,-h);s.closePath();
+      const shape=new THREE.ExtrudeGeometry(s,{depth:d,steps:1,bevelEnabled:true,bevelThickness:.15,bevelSize:.14,bevelSegments:3,curveSegments:16});
+      // In-plane coordinates keep the visible fingerprints at a consistent scale.
+      const uv=shape.attributes.uv, pos=shape.attributes.position;
+      for(let i=0;i<uv.count;i++)uv.setXY(i,pos.getX(i)*.22,pos.getY(i)*.22);
+      const sculpted=sculptClay(this,shape,{amplitude:.12,subdivide:true});
+      if(sculpted!==shape)shape.dispose();
+      return sculpted;
+    });
+    return this.mesh(geo,mat,parent,x,y,z-d/2);
   }
   doorway(parent,x,y,z,scale=1) {
     const g=new THREE.Group();g.position.set(x,y,z);g.scale.setScalar(scale);parent.add(g);
     this.box(.95,1.36,.06,'dark',g,0,.68,0,.12);
     this.ball(.475,.54,.05,'dark',g,0,1.33,0);
-    const arc=new THREE.TorusGeometry(.53,.12,8,28,Math.PI);const m=this.mesh(arc,'blueDark',g,0,1.31,.02);
+    const arc=clayShape(this,'doorway-arc',()=>sculptClay(this,new THREE.TorusGeometry(.53,.12,8,28,Math.PI),{amplitude:.06}));
+    const m=this.mesh(arc,'blueDark',g,0,1.31,.02);
     this.box(.22,1.36,.16,'blueDark',g,-.53,.65,.01);this.box(.22,1.36,.16,'blueDark',g,.53,.65,.01);
   }
   house(parent,x,y,size=1) {
@@ -252,7 +269,7 @@ export class World {
     releaseEnemyViews(this);
     if(!this.depthRoot){this.depthRoot=new THREE.Group();this.depthRoot.name='Sharp side scenery';this.scene.add(this.depthRoot);}
     this.depthViews=new Map();
-    this.levelIndex=index;this.flags=[];this.clouds=[];this.particles=[];this.bell=null;this.streamViews=new Map();this.windViews=new Map();this.circuitViews=new Map();
+    this.levelIndex=index;this.flags=[];this.clouds=[];this.particles=[];this.bell=null;this.streamViews=new Map();this.streamPending=[];this.streamWanted=null;this.streamDebt=0;this.windViews=new Map();this.circuitViews=new Map();
     this.baseGeometry=new Set([...geometries.values(),sphereG,cylG]);
     const sharedGeometry=new Set([...this.baseGeometry,...(this.assetGeometry||[])]);
     const sharedMaterial=new Set([...Object.values(this.mat),...(this.assetMaterials||[])]);
@@ -280,7 +297,7 @@ export class World {
     // Keep shared meshes, textures, lighting and the backdrop while replacing
     // the edited foreground. This avoids reloading the world after each drag.
     for(const v of this.streamViews.values()){v.remove();disposeBranch(this,v.root);}
-    this.streamViews.clear();this.windViews.clear();this.circuitViews.clear();
+    this.streamViews.clear();this.streamPending=[];this.streamWanted=null;this.streamDebt=0;this.windViews.clear();this.circuitViews.clear();
     this.flags=[];this.bell=null;this.coinViews=[];this.stampViews=[];this.crusherViews=[];
     syncStream(this,L,center,true);
   }
