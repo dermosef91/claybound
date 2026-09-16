@@ -84,7 +84,7 @@ The boots are recorded too, and a step now sounds like the deck under it. `scrip
 
 All eighteen wooden direction signs are mounted on named platforms. Posts follow platform motion and editor moves, stay inside resized deck edges, and disappear when their supporting bridge or seal is inactive, broken or deleted.
 
-Gameplay messages are limited to essential mechanic hints, short activation feedback and actionable errors. Checkpoints use the flag-hoisting animation. Chapter introductions, incidental passage messages and repeat collectible/respawn toasts are removed; hints dismiss automatically after 6.5 seconds or on leaving their location. Persistent health, collectible counts and bridge timers remain.
+Gameplay messages are limited to essential mechanic hints and actionable errors. Checkpoints use the flag-hoisting animation. Chapter introductions, incidental passage messages, repeat collectible/respawn toasts and mechanism activation toasts are removed: a raised ropeway or an opened windwell is told by its chime, its clay burst and the mechanism moving. Hints dismiss automatically after 6.5 seconds or on leaving their location. Persistent health, collectible counts and bridge timers remain.
 
 The completion screen is a full-screen clay celebration with four biome scenes, live run statistics and personal-best timing.
 
