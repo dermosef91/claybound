@@ -62,5 +62,6 @@ export function settingsMarkup(soundEnabled,fullscreenActive,{music=.55,effects=
       <button class="title-setting" data-action="fullscreen" data-fullscreen="label" aria-pressed="${fullscreenActive}">${icon(fullscreenActive?'minimize':'expand')}<span>${fullscreenActive?'Exit fullscreen':'Fullscreen'}</span></button>
       <button class="title-setting" data-action="help">${icon('gamepad-2')}<span>How to play</span></button>
       <button class="title-setting" data-action="editor">${icon('pencil-ruler')}<span>Level editor</span></button>
+      <a class="title-setting" href="./animation-playground.html">${icon('orbit')}<span>Animation lab</span><strong>New</strong></a>
     </div><p>Sound preferences and progress save on this device.</p>`;
 }
