@@ -241,7 +241,7 @@ export class Sound {
     // Unlike the footstep, this one plays to its end: the rubble settles over
     // about the second the fragments take to fall. A deck regrows and can break
     // again every few seconds, so the pitch moves a little on each collapse.
-    if(type==='crumble-collapse'&&this.bufferEffect(this.ledgeCollapseBuffer,.26,undefined,.94+Math.random()*.12))return;
+    if(type==='crumble-collapse'&&this.bufferEffect(this.ledgeCollapseBuffer,.13,undefined,.94+Math.random()*.12))return;
     if(type==='mother-open'){
       if(!this.bufferEffect(this.motherGrowlBuffer,.2))this.tone(90,1.5,'sine',.04,.65);
       return;

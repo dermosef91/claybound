@@ -200,7 +200,7 @@ const collapse=collapseSound.ctx.buffers?.at(-1);
 assert(collapse?.started,'a collapsing ledge starts its supplied recording');
 assert.equal(collapse.buffer,collapseSound.ledgeCollapseBuffer);
 assert.equal(collapse.output.output,collapseSound.effectsBus,'the collapse rides the effects bus, so its slider and mute reach it');
-assert.equal(collapse.output.gain.value,.26,'the collapse sits with the other impacts, below the celebration cues');
+assert.equal(collapse.output.gain.value,.13,'a deck breaking underfoot stays restrained: about the finish bell, under every impact cue');
 assert.deepEqual(collapse.startArgs,[],'the rubble tail plays out instead of being clipped like the footstep');
 assert.equal(collapseSound.ctx.oscillators.length,collapseOscillators,'the recording replaces the synthesized collapse tones');
 Math.random=()=>0;collapseSound.effect('crumble-collapse');const lowestCollapse=collapseSound.ctx.buffers.at(-1).playbackRate.value;
