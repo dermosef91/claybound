@@ -44,9 +44,12 @@ console.log('PASS',checkpoints,'checkpoints restore health, collectibles and sol
  console.log('PASS one relay powers its bridge and holds its press; pulse warnings, timeout and pause preserve the machine rhythm');
 }
 for(const L of LEVELS){
- const wide=cameraFraming(844,390,L.biome),portrait=cameraFraming(390,844,L.biome);assert.equal(wide.viewH,L.biome==='citadel'?8.7:9.9);assert.equal(portrait.viewH,18.6);
+ const wide=cameraFraming(844,390,L.biome),portrait=cameraFraming(390,844,L.biome);assert.equal(wide.viewH,L.biome==='citadel'?10.2:11.6);assert.equal(portrait.viewH,14.2);
+ // Portrait may show more world than landscape, but not the near-double it used
+ // to, which spent the top of a phone on whatever sat above the route.
+ assert(portrait.viewH>wide.viewH&&portrait.viewH<wide.viewH*1.45,'portrait and landscape frame comparable amounts of world');
  const p={x:100,y:20,vy:0,groundId:'floor',facing:1},right=cameraTarget(p,wide.viewW,wide.viewH,true),left=cameraTarget({...p,facing:-1},wide.viewW,wide.viewH,true);assert(right.x>100&&left.x<100);
  for(const guide of L.guides)assert([-1,0,1].includes(guide.dir));
  for(const c of L.circuits){assert(L.platforms.some(s=>s.id===c.source));assert(c.targets.every(id=>L.platforms.some(s=>s.id===id)));}
 }
-console.log('PASS 50%-wider landscape framing, portrait framing, directional camera lead, and complete connections for every mechanism');
+console.log('PASS landscape framing, comparable portrait framing, directional camera lead, and complete connections for every mechanism');

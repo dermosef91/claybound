@@ -23,7 +23,7 @@ import {attachForest} from './load-forest.mjs';
 import {attachSpitter} from './load-spitter.mjs';
 import {attachGrotto} from './load-grotto.mjs';
 import {animateDepthScenery} from '../dist/depth-scenery.js';
-import {cameraTarget} from '../dist/camera.js';
+import {cameraTarget,cameraFraming} from '../dist/camera.js';
 import {createCaveLights} from '../dist/cave-lighting.js';
 import {attachDrifter} from './load-drifter.mjs';
 import {repairDraft} from '../dist/editor-model.js';
@@ -132,7 +132,9 @@ for(const index of [0,1,2,3]){
   const center=new THREE.Vector3(editorCamera.x,editorCamera.y,0).project(w.camera);assert(Math.abs(center.x)<1e-7&&Math.abs(center.y)<1e-7);
   assert(w.platforms.has(floor.id));assert(!w.platforms.has('start'));assert.equal(w.platforms.get(floor.id).root.position.y,floor.y);
 }
-w.setEditorCamera(null);assert.equal(w.viewH,8.7);assert.equal(sharedDisposals,0);
+// Derived, not hard-coded: this asserts the editor hands the frame back to
+// normal play framing, whatever that framing currently is.
+w.setEditorCamera(null);assert.equal(w.viewH,cameraFraming(900,600,w.biome).viewH);assert.equal(sharedDisposals,0);
 console.log('PASS editor camera, streamed modified foreground, retained backgrounds/assets, and normal camera restoration');
 
 // Posts must remain on real decks after streaming, movement and editor changes.

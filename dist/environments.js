@@ -117,7 +117,14 @@ export function animateEnvironment(w,dt){
       const xs=layer.items.map(i=>i.x);layer.span=layer.repeat??Math.max(100,Math.max(...xs)-Math.min(...xs)+25);
     }
     layer.group.position.x=w.cameraX*(1-layer.factor);
-    layer.group.position.y=Math.max(0,w.cameraY-1.1)*(layer.heightFollow??1-layer.factor*.35);
+    // Vertical parallax stays gentler than horizontal, because vertical motion
+    // is what makes a backdrop hard to look at. But every layer used to be
+    // pinned to the camera vertically while it scrolled sideways at up to
+    // seven tenths of the playfield, and the two axes disagreeing about how far
+    // away a layer is reads as the background being wrong rather than deep.
+    // A near layer therefore cannot be frozen: its own factor caps the follow.
+    const heightFollow=Math.min(layer.heightFollow??1,1-layer.factor*.35);
+    layer.group.position.y=Math.max(0,w.cameraY-1.1)*heightFollow;
     for(const item of layer.items)item.o.position.x=item.x+Math.round((w.cameraX*layer.factor-item.x)/layer.span)*layer.span;
     if(layer.anchors?.length){
       for(const item of layer.items){item.o.position.y=item.y;item.o.scale.copy(item.scale);}

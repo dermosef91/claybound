@@ -15,7 +15,7 @@ import {burstDrifterLeaves} from './drifter-leaves.js';
 import {loadCottage,cottageModel} from './cottage.js';
 import {loadClay,clayBox,clayMeshMaterial,sculptClay,clayShape} from './clay.js';
 import {loadClouds} from './clouds.js';
-import {cameraFraming,cameraTarget} from './camera.js';
+import {cameraFraming,cameraTarget,cameraAnchorY,anchorDragged,VERTICAL_BIAS} from './camera.js';
 import {syncStream,disposeBranch} from './streaming.js';
 import {landmark,balanceDeck,animateWind} from './setpieces.js';
 import {createShapeHands,animateShapeHands,disposeShapeHands} from './shape-hand.js';
@@ -308,7 +308,7 @@ export class World {
     const ground=L.platforms.find(s=>s.checkpoint&&Math.abs(s.checkpoint-focusX)<.1);
     this.cameraX=focusX+this.viewW*.18;this.cameraY=(ground?.y??L.spawn.y)+this.viewH*.18;
     disposeShapeHands(this);this.shapeHands=createShapeHands(this,L);
-    this.lastPlayerX=focusX;this.cameraLook=0;this.shake=0;heroEvent(this.character,{type:'respawn'});
+    this.lastPlayerX=focusX;this.cameraLook=0;this.shake=0;this.cameraAnchorY=undefined;this.cameraFace=undefined;heroEvent(this.character,{type:'respawn'});
   }
   syncVisible(L,center,force=false){syncStream(this,L,center,force);}
   refreshEditor(L,center){
@@ -396,16 +396,24 @@ export class World {
     }
     syncStream(this,L,edit?.x??p.x);
     if(!edit){
-    if(Math.abs(p.x-(this.lastPlayerX??p.x))>this.viewW*1.5){const snap=cameraTarget(p,this.viewW,this.viewH,this.landscape);this.cameraX=snap.x;this.cameraY=snap.y;}
+    if(Math.abs(p.x-(this.lastPlayerX??p.x))>this.viewW*1.5){this.cameraAnchorY=p.y;this.cameraFace=p.facing;const snap=cameraTarget(p,this.viewW,this.viewH,this.landscape);this.cameraX=snap.x;this.cameraY=snap.y;}
     this.lastPlayerX=p.x;
     this.cameraLook+=(p.vx*.2-this.cameraLook)*(1-Math.exp(-dt*3.5));
+    // Ease the side the frame leans towards, so tapping the other direction
+    // slides the view instead of throwing it across the screen.
+    this.cameraFace=this.cameraFace===undefined?p.facing||1:this.cameraFace+((p.facing||1)-this.cameraFace)*(1-Math.exp(-dt*2.6));
+    this.cameraAnchorY=cameraAnchorY(this.cameraAnchorY,p,this.viewH,dt);
     const citadel=this.biome==='citadel';
-    const target=motherCamera(L.boss,p,this.viewW,this.viewH,this.landscape)||cameraTarget(p,this.viewW,this.viewH,this.landscape,this.cameraLook);
-    const targetX=menu?L.spawn.x+this.viewW*.18:target.x;
-    const targetY=menu?L.spawn.y+this.viewH*.18:target.y;
+    const target=motherCamera(L.boss,p,this.viewW,this.viewH,this.landscape)||cameraTarget(p,this.viewW,this.viewH,this.landscape,this.cameraLook,this.cameraAnchorY,this.cameraFace);
+    const targetX=menu?L.spawn.x+this.viewW*.11:target.x;
+    const targetY=menu?L.spawn.y+this.viewH*VERTICAL_BIAS:target.y;
     const cameraRate=L.boss?.state==='reveal'?2:L.boss?.state==='defeated'?3.5:6.7;
     this.cameraX+=(targetX-this.cameraX)*(1-Math.exp(-dt*cameraRate));
-    this.cameraY+=(targetY-this.cameraY)*(1-Math.exp(-dt*(p.groundId?7:11)));
+    // Standing, the frame settles onto the player. Airborne it is gentle,
+    // because the anchor is already holding still — until a long fall drags the
+    // anchor along, where it has to keep up or the landing leaves the screen.
+    const verticalRate=p.groundId?7:anchorDragged(this.cameraAnchorY,p,this.viewH)?10:4.5;
+    this.cameraY+=(targetY-this.cameraY)*(1-Math.exp(-dt*verticalRate));
     }else{this.cameraX=edit.x;this.cameraY=edit.y;}
     this.shake=Math.max(0,this.shake-dt*.7);const sx=this.reducedMotion?0:Math.sin(t*82)*this.shake,sy=this.reducedMotion?0:Math.cos(t*67)*this.shake*.65;
     this.camera.position.set(this.cameraX+sx,this.cameraY+(edit?0:(this.theme.cameraElevation??(this.biome==='citadel'?1.25:3.05)))+sy,26);this.camera.lookAt(this.cameraX+sx,this.cameraY+sy,0);
