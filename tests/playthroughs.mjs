@@ -1,7 +1,17 @@
 // Execute each complete route through normal inputs. A look-ahead pilot tries
 // take-off timing and jump holds; it never edits position, channels or hazards.
+//
+// Finding a route is a search over take-off points, jump holds and waits, and
+// it costs minutes. Playing one is a few seconds. So a found route is recorded
+// to tests/fixtures/ and replayed on later runs: the assertion that matters —
+// this input stream completes the chapter with hazards, timers and enemies
+// live — is made either way. The search runs again whenever it could reach a
+// different answer, which is whenever the simulation or the chapter layouts
+// change, and also whenever a recording fails to play, so a stale or
+// environment-specific recording heals itself instead of passing. SEARCH=1
+// skips the recordings and searches from scratch.
 import assert from 'node:assert/strict';
-import {writeFile} from 'node:fs/promises';
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {Game,FIXED_DT as dt} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
 import {cloneGame,steer} from './routes.mjs';
@@ -9,6 +19,47 @@ import {nearbyStation} from '../dist/shaping.js';
 import {formSolutionInputs} from '../dist/clay-rules.js';
 import {machineTransfer} from './machine-pilot.mjs';
 import {motherTransfer} from './mother-puff-pilot.mjs';
+import {fingerprint} from './support/fingerprint.mjs';
+import {encode,decode} from './support/trace.mjs';
+
+const FLOWERS=!!process.env.FLOWERS,SEARCH=process.env.SEARCH==='1',VERSION=1;
+// Only what decides how the game answers an input belongs in here. The pilots
+// are deliberately left out: a recording is raw input, so rewriting the search
+// cannot invalidate one.
+const RULES=await fingerprint([new URL('../dist/simulation.js',import.meta.url),new URL('../dist/levels.js',import.meta.url)]);
+const recording=i=>new URL(`./fixtures/playthrough-${i}${FLOWERS?'-flowers':''}.json`,import.meta.url);
+const summarize=(i,g,frames)=>({index:i,seconds:g.elapsed,frames,coins:g.coins,flowers:g.stamps,checkpoint:g.checkpointId,latched:g.latched});
+
+// Play a recording from an untouched game. Returns its trace, or null with a
+// reason to search, having asserted nothing — a recording that does not hold
+// up is a reason to go looking again, not a failure on its own.
+async function fromRecording(i,L){
+  if(SEARCH)return null;
+  let saved;
+  try{saved=JSON.parse(await readFile(recording(i),'utf8'));}
+  catch{return null;}
+  if(saved.version!==VERSION){console.log('SEARCH',L.short,'— this route was recorded in an older format');return null;}
+  if(saved.fingerprint!==RULES){console.log('SEARCH',L.short,'— the simulation or the chapter layouts have changed since this route was recorded');return null;}
+  try{
+    const controls=decode(saved.controls),g=new Game();g.start(i);
+    for(const input of controls)g.tick(dt,input);
+    assert.equal(g.status,'complete');assert.equal(g.deaths,0);
+    if(FLOWERS)assert.equal(g.stamps,L.stamps.length,'all optional flower routes collect their rewards');
+    // The recorded outcome, not merely a completion: the same clock, the same
+    // beads and flowers, the same checkpoint and the same solved systems.
+    const trace=summarize(i,g,controls.length);
+    assert.deepEqual({...trace,index:undefined},{...saved.result,index:undefined});
+    return trace;
+  }catch(err){
+    console.log('SEARCH',L.short,'— the recorded route no longer plays through here:',err.message.split('\n')[0]);
+    return null;
+  }
+}
+
+async function record(i,controls,result){
+  await mkdir(new URL('./fixtures/',import.meta.url),{recursive:true});
+  await writeFile(recording(i),JSON.stringify({version:VERSION,fingerprint:RULES,result,controls:encode(controls)})+'\n');
+}
 
 function attempt(original,link,{offset,wait,hold}){
  if(link.mode==='boss')return motherTransfer(original,link);
@@ -64,6 +115,12 @@ function attempt(original,link,{offset,wait,hold}){
 const traces=[];
 for(const [i,L]of LEVELS.entries()){
  if(process.env.LEVEL!==undefined&&i!==+process.env.LEVEL)continue;
+ const played=await fromRecording(i,L);
+ if(played){
+  traces.push(played);
+  console.log('REPLAY',L.short,played.seconds.toFixed(1)+'s',played.coins,'beads;',played.flowers,'flowers; recorded input, replayed from a clean start');
+  continue;
+ }
  let g=new Game();g.start(i);let attempts=0,furthest=0;
  const links=structuredClone(L.routeLinks);
  // A board or a ride can only be taken when the machine comes round, and some
@@ -83,7 +140,7 @@ for(const [i,L]of LEVELS.entries()){
    return waits;
  };
  const budget=Math.max(6000,links.length*220);
- if(process.env.FLOWERS)for(const detour of L.detours){
+ if(FLOWERS)for(const detour of L.detours){
    const start=links.findIndex(l=>l.from===detour[0].from),end=detour.at(-1).to;
    const count=end===detour[0].from?0:links.findIndex((l,k)=>k>=start&&l.to===end)-start+1;
    assert(start>=0&&count>=0);links.splice(start,count,...detour);
@@ -123,11 +180,13 @@ for(const [i,L]of LEVELS.entries()){
  g=run.g;const controls=run.parts.flat();
  for(let f=0;f<480&&g.status==='playing';f++){const input={right:true,jumpHeld:false};controls.push(input);g.tick(dt,input);}
  assert.equal(g.status,'complete');assert.equal(g.deaths,0);
- if(process.env.FLOWERS)assert.equal(g.stamps,L.stamps.length,'all optional flower routes collect their rewards');
+ if(FLOWERS)assert.equal(g.stamps,L.stamps.length,'all optional flower routes collect their rewards');
  // Replay the recorded input stream from a clean start to prove determinism.
  const replay=new Game();replay.start(i);for(const input of controls)replay.tick(dt,input);
  assert.equal(replay.status,'complete');assert.equal(replay.deaths,0);assert.equal(replay.coins,g.coins);
- traces.push({index:i,seconds:g.elapsed,frames:controls.length,coins:g.coins,flowers:g.stamps,checkpoint:g.checkpointId,latched:g.latched});
+ const trace=summarize(i,g,controls.length);
+ traces.push(trace);
+ await record(i,controls,trace);
  console.log('COMPLETE',L.short,g.elapsed.toFixed(1)+'s',g.coins,'beads;',g.stamps,'flowers; no resets or state edits');
 }
-if(!process.exitCode)await writeFile(new URL(process.env.RESULTS_PATH||(process.env.FLOWERS?'./flower-playthrough-results.json':'./playthrough-results.json'),import.meta.url),JSON.stringify(traces,null,2)+'\n');
+if(!process.exitCode)await writeFile(new URL(process.env.RESULTS_PATH||(FLOWERS?'./flower-playthrough-results.json':'./playthrough-results.json'),import.meta.url),JSON.stringify(traces,null,2)+'\n');
