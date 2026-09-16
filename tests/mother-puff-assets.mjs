@@ -5,15 +5,16 @@ import {parseHTML} from 'linkedom';
 import * as THREE from '../dist/lib/three.module.js';
 import {World} from '../dist/world.js';
 import {Game,FIXED_DT} from '../dist/simulation.js';
-import {prepareMotherPuff,createMotherArenaFloor,createMotherPuff,animateMotherPuff,motherCamera,motherViewHeight} from '../dist/mother-puff.js';
-import {MOTHER_PUFF as M,motherIntroTarget,motherCapHeight} from '../dist/mother-puff-rules.js';
+import {prepareMotherPuff,createMotherArenaFloor,createMotherPuff,animateMotherPuff,motherCamera,motherViewHeight,CLOUD_OPACITY} from '../dist/mother-puff.js';
+import {MOTHER_PUFF as M,motherIntroTarget,motherCapHeight,motherSporePosition} from '../dist/mother-puff-rules.js';
+import {TRAIL} from '../dist/mother-puff-trail.js';
 import {updateMotherAtmosphere} from '../dist/mother-puff-hud.js';
 import {disposeBranch} from '../dist/streaming.js';
 import {readGLB} from './load-player.mjs';
 import {attachForest} from './load-forest.mjs';
 import {attachClay} from './load-clay.mjs';
 
-const w=Object.assign(Object.create(World.prototype),{scene:new THREE.Scene(),levelRoot:new THREE.Group(),mat:{},reducedMotion:false});
+const w=Object.assign(Object.create(World.prototype),{scene:new THREE.Scene(),levelRoot:new THREE.Group(),fxRoot:new THREE.Group(),particles:[],mat:{},reducedMotion:false});
 for(const name of ['cream','bark','top','terrain','terrain2'])w.mat[name]=new THREE.MeshStandardMaterial();
 await attachClay(w);await attachForest(w);
 for(const [pose,triangles]of [['idle',10448],['cast',10428],['friendly',18749]]){
@@ -34,7 +35,7 @@ b.state='release';b.stateTime=.25;game.time=2.5;b.lastShotTime=2.31;animateMothe
 assert(v.pose.scale.y<1&&v.pose.scale.x>1&&v.pose.rotation.x>0,'each shot compresses the body and nods forward');
 game.pause();const pose=()=>JSON.stringify([v.pose.scale.toArray(),v.pose.rotation.toArray()]);const frozen=pose();game.tick(3);animateMotherPuff(w,game);assert.equal(pose(),frozen);game.time+=.5;animateMotherPuff(w,game);assert.equal(v.pose.scale.y,1);assert.equal(v.pose.rotation.x,0,'the firing pulse settles between shots');
 w.reducedMotion=true;b.state='sleeping';animateMotherPuff(w,game);const still=pose();game.time=20;animateMotherPuff(w,game);assert.equal(pose(),still);w.reducedMotion=false;
-b.state='recover';b.spores=[{id:12,color:'orange',x:287,y:39,targetX:285.1,targetY:b.y,age:.4,duration:1.85}];animateMotherPuff(w,game);assert.equal(v.effects.size,1);
+b.state='recover';b.spores=[{id:12,color:'orange',x:287,y:39,startX:b.x,startY:b.y+6.9,targetX:285.1,targetY:b.y,age:.4,duration:1.85}];animateMotherPuff(w,game);assert.equal(v.effects.size,1);
 const air=v.effects.get('air:12');let rings=0;air.marker.traverse(o=>o.geometry?.addEventListener('dispose',()=>rings++));b.spores=[];b.patches=[{id:12,color:'orange',x:285.1,y:b.y,age:1,life:12,bounceAge:10}];animateMotherPuff(w,game);assert.equal(v.effects.size,1);assert(!air.marker.parent&&!air.root.parent);assert.equal(rings,1);
 const cap=v.effects.get('ground:12');assert(cap.springPad?.pad.getObjectByName('Forest springPad'),'orange pads reuse the established bounce-pad model');cap.root.updateWorldMatrix(true,true);const padBox=new THREE.Box3().setFromObject(cap.springPad.pad,true);assert(Math.abs(padBox.max.y-(b.y+M.padHeight))<.001,'the asset top matches the bounce collision plane');b.patches=[];animateMotherPuff(w,game);assert.equal(v.effects.size,0);assert(!cap.root.parent);
 b.state='defeated';b.stateTime=2;animateMotherPuff(w,game);assert(!v.pose.visible);
@@ -98,4 +99,48 @@ b.hits=3;b.state='farewell';b.stateTime=.8;animateMotherPuff(w,game);assert.equa
  assert(frames.models.idle.visible,'a struck boss drops out of the casting pose');
  w.reducedMotion=true;animateMotherPuff(w,g);assert(frames.models.cast.visible,'reduced motion holds the alert pose rather than cutting between frames');w.reducedMotion=false;
 }
-console.log('PASS Mother Puff assets: supplied GLBs, grounding, stop-motion cast/idle frames, pause, effects cleanup, porous corruption, absent arches, opaque transformation, healing winds and gradual/released camera');
+{
+ // A flying spore sheds a trail the simulation never sees: clay motes on its
+ // recorded arc and a translucent powder that lingers past the landing.
+ const g=new Game();g.start(1);const boss=g.level.boss;
+ const fly=(id,color,age)=>{const s={id,color,startX:boss.x,startY:boss.y+motherCapHeight(boss)-.35,targetX:boss.x-14,targetY:boss.y,age,duration:M.flight};return Object.assign(s,motherSporePosition(s,age/s.duration));};
+ const trail=()=>w.particles.filter(q=>q.kind==='mother-trail'),motes=()=>trail().filter(q=>!q.haze),haze=()=>trail().filter(q=>q.haze);
+ const shape=()=>JSON.stringify(trail().map(q=>[q.mesh.position.toArray(),q.mesh.scale.toArray(),q.life,q.mesh.material.opacity]));
+ const begin=()=>{w.particles=[];w.fxRoot.clear();w.motherView=createMotherPuff(w,boss);Object.assign(boss,{state:'recover',stateTime:0,spores:[],patches:[],queue:[]});};
+ begin();const s=fly(40,'purple',.5);boss.spores=[s];animateMotherPuff(w,g);
+ assert.equal(motes().length,Math.floor(s.age/TRAIL.moteGap)+1,'one mote for every shed interval since the crown');assert.equal(haze().length,Math.floor(s.age/TRAIL.hazeGap)+1);
+ for(const [k,q]of motes().entries()){const at=motherSporePosition(s,k*TRAIL.moteGap/s.duration);assert(Math.hypot(q.mesh.position.x-at.x,q.mesh.position.y-at.y)<.45+.75*(s.age-k*TRAIL.moteGap),'motes scatter tightly around the recorded arc and drift with age');}
+ assert(motes().every(q=>q.mesh.material===w.motherMaterials.purple&&!q.mesh.material.transparent),'motes are the spore\'s own clay');
+ assert(haze().every(q=>q.mesh.material.transparent&&!q.mesh.material.depthWrite&&q.mesh.material.opacity<=TRAIL.hazeOpacity&&q.ownedMaterials.has(q.mesh.material)),'powder is translucent and owns its material');
+ assert.equal(w.fxRoot.children.length,trail().length,'the trail lives in the effect root rather than the arena');
+ const first=shape();begin();boss.spores=[fly(40,'purple',.5)];animateMotherPuff(w,g);assert.equal(shape(),first,'the trail is a pure function of the spore');
+ animateMotherPuff(w,g);assert.equal(shape(),first,'a spore that has not aged sheds nothing new');
+ w.updateParticles(0);assert.equal(shape(),first,'pause freezes the trail');
+ const [moteCount,hazeCount]=[motes().length,haze().length];boss.spores=[fly(40,'purple',.62)];animateMotherPuff(w,g);
+ const crossed=gap=>Math.floor(.62/gap)-Math.floor(.5/gap);assert.equal(motes().length,moteCount+crossed(TRAIL.moteGap));assert.equal(haze().length,hazeCount+crossed(TRAIL.hazeGap),'ageing sheds exactly the intervals crossed');
+ const sink=motes()[0].mesh.position.y,rise=haze()[0].mesh.position.y;w.updateParticles(.15);
+ assert(motes()[0].mesh.position.y<sink&&haze()[0].mesh.position.y>rise,'clay settles while powder drifts up');assert(haze()[0].mesh.material.opacity<TRAIL.hazeOpacity,'the oldest powder is already thinning');
+ const owned=haze().map(q=>q.mesh.material);let gone=0,sharedGone=0;for(const m of owned)m.addEventListener('dispose',()=>gone++);for(const m of Object.values(w.motherMaterials))m.addEventListener('dispose',()=>sharedGone++);
+ const linger=trail().length;boss.spores=[];boss.patches=[{id:40,color:'purple',x:boss.x-14,y:boss.y,age:0,life:M.blastLife,radius:2.15,bounceAge:10}];animateMotherPuff(w,g);
+ assert(!w.motherView.effects.has('air:40')&&w.motherView.effects.has('ground:40'));assert.equal(trail().length,linger,'the trail outlives the projectile');
+ for(let i=0;i<120;i++)w.updateParticles(1/60);
+ assert.equal(trail().length,0);assert.equal(w.fxRoot.children.length,0);assert.equal(gone,owned.length,'every powder material is released');assert.equal(sharedGone,0,'shared clay materials are untouched');
+ begin();w.particles=Array.from({length:TRAIL.limit},()=>({kind:'filler'}));boss.spores=[fly(41,'green',.5)];animateMotherPuff(w,g);assert.equal(w.particles.length,TRAIL.limit,'a full pool sheds nothing rather than overflowing');assert.equal(w.fxRoot.children.length,0);
+ begin();w.reducedMotion=true;boss.spores=[fly(42,'green',.5)];animateMotherPuff(w,g);assert.equal(haze().length,0,'reduced motion drops the drifting powder');assert.equal(motes().length,Math.floor(.5/(TRAIL.moteGap*2))+1,'and halves the mote density');w.reducedMotion=false;
+ // Landed white clouds are seen through; the projectile, its ring and every
+ // other colour's ground effect keep their solid clay.
+ begin();boss.spores=[fly(43,'white',.3)];boss.patches=[{id:44,color:'white',x:boss.x-10,y:boss.y,age:.1,life:M.cloudLife,radius:2.6,bounceAge:10},{id:45,color:'purple',x:boss.x-8,y:boss.y,age:.1,life:M.blastLife,radius:2.15,bounceAge:10}];animateMotherPuff(w,g);
+ const air=w.motherView.effects.get('air:43'),cloud=w.motherView.effects.get('ground:44'),blast=w.motherView.effects.get('ground:45');
+ assert(air.parts.length===15&&air.parts.every(p=>p.m.material===w.motherMaterials.white&&!p.m.material.transparent),'the flying white cluster stays solid clay');
+ assert(air.marker.children.every(m=>!m.material.transparent),'the landing ring stays opaque');
+ assert(motes().every(q=>q.mesh.material===w.motherMaterials.white),'white motes stay solid clay');
+ assert(cloud.parts.length===15&&cloud.parts.every(p=>p.m.material===w.motherMaterials.cloud),'a landed white cloud shares one translucent material');
+ assert(CLOUD_OPACITY>.25&&CLOUD_OPACITY<.6,'semi-transparent: the field stays readable through the cloud');
+ const {cloud:mist}=w.motherMaterials;assert(mist.transparent&&!mist.depthWrite&&mist.opacity===CLOUD_OPACITY&&mist.color.getHex()===w.motherMaterials.white.color.getHex());
+ assert(w.assetMaterials.has(mist),'the shared cloud material survives level rebuilds');
+ for(const m of [mist,haze()[0].mesh.material]){const shader={uniforms:{},vertexShader:THREE.ShaderLib.standard.vertexShader,fragmentShader:THREE.ShaderLib.standard.fragmentShader};m.onBeforeCompile(shader);assert(shader.fragmentShader.includes('diffuseColor.a *= pow( saturate( normal.z )'),'billows fade toward their rims instead of ending in a hard silhouette');assert(!shader.fragmentShader.includes('claySurface'),'powder skips the clay relief');}
+ assert.notEqual(mist.customProgramCacheKey(),haze()[0].mesh.material.customProgramCacheKey(),'different rim falloffs compile to different programs');
+ assert(blast.parts.every(p=>p.m.material===w.motherMaterials.purple),'other colours keep opaque ground effects');
+ begin();
+}
+console.log('PASS Mother Puff assets: supplied GLBs, grounding, stop-motion cast/idle frames, pause, effects cleanup, deterministic spore trails, translucent white clouds, porous corruption, absent arches, opaque transformation, healing winds and gradual/released camera');

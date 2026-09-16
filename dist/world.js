@@ -46,6 +46,7 @@ import {CLAY_PALETTE} from './palette.js';
 import {createGoal} from './goal.js';
 import {burstSporePod,updateSporeParticle,disposeSporeParticle} from './spore-effects.js';
 import {loadMotherPuff,createMotherArenaFloor,animateMotherPuff,motherCamera,motherViewHeight} from './mother-puff.js';
+import {updateMotherTrail} from './mother-puff-trail.js';
 
 const C={blue:0x315e96,blueLight:0x3d6da5,blueDark:0x244c7b,orange:CLAY_PALETTE.orange,orangeLight:CLAY_PALETTE.orangeLight,cream:0xf1d8a3,rope:0xdcb985,dark:0x172b3f,gold:0xf8ce75};
 const fract=n=>n-Math.floor(n);
@@ -394,6 +395,7 @@ export class World {
     for(let i=this.particles.length-1;i>=0;i--){
       const q=this.particles[i];q.life-=dt;
       if(q.kind==='spore-shell'||q.kind==='spore-bloom')updateSporeParticle(q,dt);
+      else if(q.kind==='mother-trail')updateMotherTrail(q,dt);
       else if(q.kind==='drifter-leaf'){
         const age=q.maxLife-q.life,drag=Math.exp(-dt*1.8);
         q.vx*=drag;q.vz*=drag;q.vy-=3*dt;

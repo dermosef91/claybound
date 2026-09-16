@@ -8,6 +8,7 @@ import {createMotherEnvironment,animateMotherEnvironment} from './mother-puff-en
 export {createMotherArenaFloor} from './mother-puff-environment.js';
 import {createMotherClouds,animateMotherClouds} from './mother-puff-cinematics.js';
 import {afflictBranch,createGrowths,animateGrowths,createFriendlySpores,animateFriendly} from './mother-puff-growth.js';
+import {emitMotherTrail,powderMaterial} from './mother-puff-trail.js';
 
 export async function loadMotherPuff(w,onProgress){
   if(w.motherAssets?.idle&&w.motherAssets?.cast&&w.motherAssets?.friendly){onProgress?.(1);return;}
@@ -22,11 +23,18 @@ export function prepareMotherPuff(w,pose,gltf){
   w.motherAssets??={};w.motherAssets[pose]={scene,scale:(pose==='friendly'?MOTHER_PUFF.friendlyHeight:MOTHER_PUFF.height)/size.y,bottom:box.min.y,center:box.getCenter(new THREE.Vector3())};
 }
 const COLORS={orange:0xf17836,purple:0x9c66b8,white:0xffedd4,green:0xa0c56f};
+// The player fights from inside a landed white cloud, so its billows are a
+// soft mist seen through rather than solid clay: half opacity at the heart of
+// each billow, fading to nothing at its rim. The flying cluster, its motes and
+// its telegraph ring stay solid clay.
+export const CLOUD_OPACITY=.5;
 function materials(w){
-  w.motherMaterials??=Object.fromEntries(Object.entries(COLORS).map(([key,color])=>{
-    const m=new THREE.MeshStandardMaterial({color,roughness:1,metalness:0});
-    w.assetMaterials??=new Set();w.assetMaterials.add(m);return [key,m];
-  }));return w.motherMaterials;
+  if(!w.motherMaterials){
+    w.motherMaterials=Object.fromEntries(Object.entries(COLORS).map(([key,color])=>[key,new THREE.MeshStandardMaterial({color,roughness:1,metalness:0})]));
+    w.motherMaterials.cloud=powderMaterial(COLORS.white,{opacity:CLOUD_OPACITY,rim:.7});
+    w.assetMaterials??=new Set();for(const m of Object.values(w.motherMaterials))w.assetMaterials.add(m);
+  }
+  return w.motherMaterials;
 }
 export function createMotherPuff(w,b){
   const root=new THREE.Group();root.name='Mother Puff arena';w.levelRoot.add(root);
@@ -47,15 +55,15 @@ export function createMotherPuff(w,b){
 }
 function effectView(w,v,s,flying){
   const root=new THREE.Group();root.name=`${s.color} ${flying?'spore cloud':'ground puff'}`;v.root.add(root);
-  const mat=materials(w)[s.color],parts=[];let springPad;
+  const palette=materials(w),mat=palette[s.color],parts=[];let springPad;
   if(!flying&&s.color==='orange'){
     const width=(s.radius??1.55)*2,anchor=new THREE.Group();anchor.position.set(-width/2,MOTHER_PUFF.padHeight,0);root.add(anchor);
     springPad=createSpringPad(w,{id:'mother-pad-'+s.id,x:s.x-width/2,y:s.y+MOTHER_PUFF.padHeight,w:width},anchor);
   }else{
-    const count=w.reducedMotion?5:s.color==='white'?15:9;
+    const count=w.reducedMotion?5:s.color==='white'?15:9,billow=!flying&&s.color==='white'?palette.cloud:mat;
     for(let i=0;i<count;i++){
       const a=i*2.399+s.id*.73,r=.25+((i+s.id)%4)*.105;
-      const m=w.ball(r,r*.86,r,mat,root);m.castShadow=false;
+      const m=w.ball(r,r*.86,r,billow,root);m.castShadow=false;
       parts.push({m,a,r});
     }
   }
@@ -68,7 +76,7 @@ function effectView(w,v,s,flying){
     if(s.color==='orange')w.ball(.35,.08,.35,'cream',marker,0,.04,0);
     if(s.color==='green')for(const x of [-.3,.3])w.ball(.15,.13,.15,mat,marker,x,.08,0);
   }
-  return {root,parts,marker,springPad};
+  return {root,parts,marker,springPad,shed:flying?{mote:0,haze:0}:null};
 }
 function removeEffect(v){
   // Geometry/materials created through World are shared or retained. Only
@@ -109,6 +117,7 @@ export function animateMotherPuff(w,game){
     const key=(flying?'air:':'ground:')+s.id;wanted.add(key);
     let e=v.effects.get(key);if(!e){e=effectView(w,v,s,flying);v.effects.set(key,e);}
     e.root.position.set(s.x,s.y,flying?.3:.25);
+    if(flying)emitMotherTrail(w,e.shed,s,materials(w)[s.color]);
     if(e.marker){e.marker.position.set(s.targetX,s.targetY+.07,.3);e.marker.scale.setScalar(quiet?1:.93+Math.sin(t*8)*.07);}
     const progress=flying?s.age/s.duration:s.age/s.life;
     const fade=flying?1:Math.min(1,s.age/.18,(s.life-s.age)/.5);
