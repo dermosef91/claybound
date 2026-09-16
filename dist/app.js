@@ -69,7 +69,14 @@ function onEvent(e){
   if(e.type==='press-impact'&&world&&Math.abs(world.cameraX-e.x)>world.viewW*.8)return;
   world?.event(e);sound.effect(e.type==='shape'?'activate':e.type,e);
   if(e.type==='coin'||e.type==='stamp'){const el=$(e.type==='coin'?'coin-count':'stamp-count');el.animate?.([{transform:'scale(1)'},{transform:'scale(1.4)'},{transform:'scale(1)'}],{duration:190});}
-  if(!world?.reducedMotion){if(e.type==='break'||e.type==='squish')hitStop=.035;if(e.type==='hurt')hitStop=.055;}
+  if(!world?.reducedMotion){
+    if(e.type==='break'||e.type==='squish')hitStop=.035;
+    if(e.type==='hurt')hitStop=.055;
+    // A heavy arrival holds the frame for a moment, which is what reads as
+    // weight. The gate sits clear of the median landing rather than on top of
+    // it, so this stays an event and never becomes a stutter under running.
+    if(e.type==='land'&&e.impact>13)hitStop=Math.max(hitStop,Math.min(.055,.02+e.impact*.0014));
+  }
   haptics.pulse(e);
   if(e.type==='checkpoint')saveJourney();
   if(e.type==='mother-defeat')saveJourney();

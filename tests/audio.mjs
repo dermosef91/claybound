@@ -318,3 +318,27 @@ canyonSound.update(.016,false,0);advance(500);assert.equal(canyonSound.windVoice
 canyonSound.update(.016,true,0,false,true);advance(500);assert.equal(canyonSound.windVoices.length,0,'and so is the title');
 canyonSound.update(.016,true,0);assert.equal(canyonSound.windVoices.length,2);
 console.log('PASS canyon wind bed: seamless mono loop, exposure around active wells only, effects routing, mute, focus and pause');
+
+// Jump and land are the two sounds a chapter repeats most. Both vary per hit,
+// and a landing reads its arrival speed the way the squash and the camera do.
+const impactSound=new Sound();impactSound.unlock();await settle();
+const priorRandom=Math.random;
+const tone=(back=1)=>{const o=impactSound.ctx.oscillators.at(-back);return {freq:o.frequency.events[0].value,seconds:o.frequency.events[1].time,gain:o.output.gain.events[1].value};};
+Math.random=()=>.1;impactSound.effect('jump');const lowJump=tone();
+Math.random=()=>.9;impactSound.effect('jump');const highJump=tone();
+assert(highJump.freq>lowJump.freq,'successive jumps vary in pitch');
+assert(highJump.gain>lowJump.gain&&highJump.seconds>lowJump.seconds,'and in weight and length');
+Math.random=()=>.5;
+const beforeHop=impactSound.ctx.oscillators.length;
+impactSound.effect('land',{impact:5});const hop=tone();
+assert.equal(impactSound.ctx.oscillators.length,beforeHop+1,'a short hop stays the single quiet tick it was');
+impactSound.effect('land',{impact:22});
+assert.equal(impactSound.ctx.oscillators.length,beforeHop+3,'a heavy arrival gains a low body underneath');
+const arrival=tone(2),body=tone(1);
+assert(arrival.freq<hop.freq,'a heavier landing sounds lower');
+assert(arrival.gain>hop.gain,'and louder');
+assert(arrival.seconds>hop.seconds,'and longer');
+assert(body.freq<arrival.freq,'the added body sits below the impact itself');
+Math.random=()=>.9;impactSound.effect('land',{impact:22});assert.notEqual(tone(2).freq,arrival.freq,'and no two landings are pitched alike');
+Math.random=priorRandom;
+console.log('PASS jump and landing carry per-hit variation, and a landing follows its arrival speed');

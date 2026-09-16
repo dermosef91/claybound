@@ -13,6 +13,20 @@ const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
 const MODEL_HEIGHT=1.78;
 const SOURCE={idle:'Armature|Idle_9|baselayer',longIdle:'Idle_03',walk:'Walking',run:'Running',jump:'Regular_Jump',leap:'Jump_Over_Obstacle_2',hurt:'Face_Punch_Reaction_2',death:'Knock_Down',victory:'Skip_Forward'};
 const LOOPING=new Set(['idle','walk','run','victory']);
+// The impact response. A landing sets the deformation outright, so its peak is
+// on the frame of contact rather than a twentieth of a second after it, and a
+// damped spring relaxes it with the rebound clay gives back. Jump, spring and
+// hurt still arrive as velocity; the stiffer spring shortens their reach, so
+// their impulses carry a matching scale and keep the stretch they always had.
+const IMPACT_K=620,IMPACT_DAMP=18,IMPACT_LIMIT=.46,IMPACT_GAIN=.45,IMPULSE=1.115;
+// Clay keeps its volume, so a body squashed thinner spreads wider by about the
+// same amount: 1/sqrt(1-q) over this range is within a thousandth of 1+.55q.
+const IMPACT_SPREAD=.55;
+// How far a landing compresses the body, by arrival speed. The cap is reached
+// near 25, the hardest fall any chapter asks for, which keeps the heaviest
+// landings distinguishable from the merely hard ones instead of saturating
+// halfway up the range the levels actually use.
+export const landSquash=impact=>clamp(impact*.0185,.06,IMPACT_LIMIT);
 
 export function createHero(w){
   const root=new THREE.Group(),body=new THREE.Group(),facing=new THREE.Group();
@@ -166,11 +180,11 @@ function transition(c,state,restart=false){
 export function heroEvent(c,e){
   if(e.type==='jump'||e.type==='spring'||e.type==='squish'){
     c.jumpKind=e.type==='jump'&&Math.abs(c.lastVx)>2.4?'leap':'jump';
-    c.springV=e.type==='spring'?-5:-3;c.landing=0;
+    c.springV=(e.type==='spring'?-5:-3)*IMPULSE;c.landing=0;
     transition(c,`${c.jumpKind}Rise`,true);
   }
-  if(e.type==='land'){c.springV=Math.min(6,(e.impact||7)*.35);c.landing=.26;transition(c,'land',true);}
-  if(e.type==='hurt'){c.hurt=.35;c.springV=3;transition(c,'hurt',true);}
+  if(e.type==='land'){c.spring=landSquash(e.impact||7);c.springV=0;c.landing=.26;transition(c,'land',true);}
+  if(e.type==='hurt'){c.hurt=.35;c.springV=3*IMPULSE;transition(c,'hurt',true);}
   if(e.type==='fall'){c.death=true;c.hurt=0;transition(c,'death',true);}
   if(e.type==='stomp')transition(c,'stomp',true);
   if(e.type==='complete')transition(c,'victory');
@@ -235,10 +249,10 @@ export function animateHero(w,game,dt){
     }
     c.mixer.update(step);
     // A small foot-anchored response complements, rather than distorts, the rig.
-    c.springV+=(-320*c.spring-20*c.springV)*step;c.spring+=c.springV*step;c.spring=clamp(c.spring,-.18,.18);
+    c.springV+=(-IMPACT_K*c.spring-IMPACT_DAMP*c.springV)*step;c.spring+=c.springV*step;c.spring=clamp(c.spring,-IMPACT_LIMIT,IMPACT_LIMIT);
     const strength=w.reducedMotion?.25:1,windup=p.stompWindup>0?.07:0;
-    const squash=(c.spring*.45+windup)*strength;
-    c.body.scale.set(1+squash*.35,1-squash,1+squash*.35);
+    const squash=(c.spring*IMPACT_GAIN+windup)*strength;
+    c.body.scale.set(1+squash*IMPACT_SPREAD,1-squash,1+squash*IMPACT_SPREAD);
     const surface=game.level.platforms.find(s=>s.id===p.groundId);
     c.body.position.y=damp(c.body.position.y,surface?.kind==='stone'?.065:.02,24,step);
     const lean=p.skidding?.09:-p.vx*p.facing*.007;

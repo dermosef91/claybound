@@ -4,8 +4,8 @@ import {prepareBatAsset} from '../dist/bats.js';
 // CPU-side geometry validation. This does not claim to test GPU rendering.
 import assert from 'node:assert/strict';
 import * as THREE from '../dist/lib/three.module.js';
-import {World} from '../dist/world.js';
-import {createHero,attachHero,animateHero,heroEvent} from '../dist/hero.js';
+import {World,landTrauma,shakeAmplitude} from '../dist/world.js';
+import {createHero,attachHero,animateHero,heroEvent,landSquash} from '../dist/hero.js';
 import {readPlayer,readGLB} from './load-player.mjs';
 import {prepareEnemyAsset,animateEnemy} from '../dist/enemies.js';
 import {prepareCastleAsset} from '../dist/castle.js';
@@ -91,7 +91,25 @@ for(let index=0;index<LEVELS.length;index++){
   for(let frame=0;frame<120;frame++){g.tick(1/120,{right:true,jumpHeld:true,jumpPressed:frame===15});w.time+=1/120;animateHero(w,g,1/120);animateEnvironment(w,1/120);for(const e of g.level.enemies)animateEnemy(w.enemyViews.get(e.id),e,1/120,g.status);}
   assert(w.character.root.position.toArray().every(Number.isFinite));w.character.root.updateMatrixWorld(true);
   w.character.asset.traverse(o=>assert(o.matrixWorld.elements.every(Number.isFinite)));
-  heroEvent(w.character,{type:'land',impact:20});for(let frame=0;frame<180;frame++){w.time+=1/120;animateHero(w,g,1/120);}assert(Math.abs(w.character.spring)<.01);
+  // A landing deforms the body on the frame it touches down, and keeps scaling
+  // all the way to the hardest arrival the chapters ask for rather than
+  // saturating halfway up the range the levels use.
+  heroEvent(w.character,{type:'land',impact:11});const softLanding=w.character.spring;
+  heroEvent(w.character,{type:'land',impact:25});const hardLanding=w.character.spring;
+  assert.equal(softLanding,landSquash(11),'the squash peak is on the frame of contact');
+  assert.equal(hardLanding,landSquash(25));
+  assert(hardLanding>softLanding*1.8,'a harder arrival squashes distinctly further');
+  // Shake reads that same speed, with no threshold to fall either side of, and
+  // squaring the trauma keeps a heavy landing clearly apart from a light one.
+  w.trauma=0;w.addTrauma(landTrauma(11));const lightShake=shakeAmplitude(w.trauma);
+  w.trauma=0;w.addTrauma(landTrauma(25));const heavyShake=shakeAmplitude(w.trauma);
+  assert(lightShake>0,'an ordinary landing still moves the frame at all');
+  assert(heavyShake/lightShake>3,'and a heavy one moves it several times as far');
+  w.trauma=0;w.addTrauma(.7);w.addTrauma(.7);assert.equal(w.trauma,1,'impacts accumulate, and stay inside the model');
+  heroEvent(w.character,{type:'land',impact:20});
+  let rebound=0;for(let frame=0;frame<180;frame++){w.time+=1/120;animateHero(w,g,1/120);rebound=Math.min(rebound,w.character.spring);}
+  assert(rebound<-.01,'the body springs back past its resting height');
+  assert(Math.abs(w.character.spring)<.01,'and comes to rest');
   if(index===2)assert(w.torches.length>=1);
   let clouds=0;w.backRoot.traverse(o=>{if(o.name==='Ivory cloud'){clouds++;assert(o.scale.x===o.scale.y&&o.scale.y===o.scale.z);const box=new THREE.Box3().setFromObject(o,true),size=box.getSize(new THREE.Vector3());assert(size.z>size.x*.3,'clouds retain their full model depth');}});if(index===0||index===3)assert(clouds>0);
   console.log(`PASS ${g.level.short}: ${meshes} meshes, ${sculptedBlocks} sculpted clay forms, ${solidSurfaces} treated solid surfaces, valid geometry and animation`);

@@ -256,9 +256,19 @@ export class Sound {
     }
     if(type==='squish'&&event.kind==='spore'&&this.bufferEffect(this.sporeBalloonBuffer,.22,.45))return;
     if(type==='squish'&&['bat','spitter','clayling'].includes(event.kind)&&this.bufferEffect(this.enemyHeadImpactBuffer,.36))return;
-    if(type==='jump')this.tone(230,.18,'sine',.06,1.8);
+    // Jump and land are the two sounds a player hears most — a few hundred
+    // times a chapter each — and they were the only frequent ones with no
+    // variation at all. A little jitter is what stops them wearing through.
+    if(type==='jump')this.tone(230*(.95+Math.random()*.1),.17+Math.random()*.025,'sine',.055+Math.random()*.011,1.8);
     if(type==='coin'){const now=performance.now();this.coinRun=now-this.lastCoin<600?(this.coinRun+1)%5:0;this.lastCoin=now;this.tone([659,784,880,988,1175][this.coinRun],.23,'sine',.04,1.1);}
-    if(type==='land')this.tone(110,.07,'sine',.03,.7);
+    if(type==='land'){
+      // Arrival speed picks the pitch, the weight and the length, the way the
+      // squash and the camera already read it. Heavy landings gain a low body
+      // underneath; a short hop stays the quiet tick it was.
+      const weight=Math.min(1,Math.max(0,((event.impact??7)-3)/17)),jitter=.94+Math.random()*.12;
+      this.tone((126-weight*36)*jitter,.06+weight*.05,'sine',.024+weight*.03,.7);
+      if(weight>.5)this.tone(58*jitter,.13+weight*.06,'triangle',.016+weight*.022,.5);
+    }
     if(type==='crumble')this.tone(180,.13,'triangle',.024,.55);
     if(type==='crumble-collapse'){this.tone(95,.28,'triangle',.045,.4);this.tone(260,.13,'triangle',.018,.4);}
     if(type==='press-impact'){this.tone(75,.26,'triangle',.05,.42);this.tone(150,.09,'sine',.025,.5);}

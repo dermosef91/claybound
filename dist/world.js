@@ -72,9 +72,28 @@ for(let i=0;i<sphereG.attributes.position.count;i++){
 sphereG.computeVertexNormals();
 const cylG=new THREE.CylinderGeometry(1,1,1,24);
 
+// Camera shake carries a trauma value in [0,1] that events add to and time
+// drains, and the offset it produces is trauma squared. Squaring is the whole
+// point: it spaces the amplitudes out, so a heavy arrival is felt as heavier
+// instead of every impact landing on one fixed wobble.
+const TRAUMA_DECAY=1.8,SHAKE_MAX=.3,SHAKE_ROLL=.09;
+export const shakeAmplitude=trauma=>trauma*trauma*SHAKE_MAX;
+// A landing's trauma follows its arrival speed with no threshold to cross. The
+// old cutoff sat within a tenth of the median landing, so neighbouring impacts
+// fell on opposite sides of it and shook completely differently.
+export const landTrauma=impact=>Math.min(.62,Math.max(0,impact*.032));
+// Value noise, one independent channel per seed. Noise rather than a fixed
+// sine keeps the shake's character at every amplitude, and being a pure
+// function of time it pauses, slows and replays with the rest of the frame.
+function shakeNoise(seed,t){
+  const hash=n=>{const v=Math.sin(n*127.1+seed*311.7)*43758.5453;return (v-Math.floor(v))*2-1;};
+  const x=t*30+seed*37.3,i=Math.floor(x),f=x-i;
+  return hash(i)+(hash(i+1)-hash(i))*(f*f*(3-2*f));
+}
+
 export class World {
   constructor(canvas,{onProgress,character}={}) {
-    this.canvas=canvas;this.time=0;this.cameraX=8.3;this.cameraY=3.4;this.particles=[];this.clouds=[];this.shake=0;this.cameraLook=0;
+    this.canvas=canvas;this.time=0;this.cameraX=8.3;this.cameraY=3.4;this.particles=[];this.clouds=[];this.shake=0;this.trauma=0;this.cameraLook=0;
     this.reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.65));
@@ -309,7 +328,7 @@ export class World {
     const ground=L.platforms.find(s=>s.checkpoint&&Math.abs(s.checkpoint-focusX)<.1);
     this.cameraX=focusX+this.viewW*.18;this.cameraY=(ground?.y??L.spawn.y)+this.viewH*.18;
     disposeShapeHands(this);this.shapeHands=createShapeHands(this,L);
-    this.lastPlayerX=focusX;this.cameraLook=0;this.shake=0;this.cameraAnchorY=undefined;this.cameraFace=undefined;heroEvent(this.character,{type:'respawn'});
+    this.lastPlayerX=focusX;this.cameraLook=0;this.shake=0;this.trauma=0;this.cameraAnchorY=undefined;this.cameraFace=undefined;heroEvent(this.character,{type:'respawn'});
   }
   syncVisible(L,center,force=false){syncStream(this,L,center,force);}
   refreshEditor(L,center){
@@ -338,16 +357,19 @@ export class World {
       this.particles.push({mesh:m,vx:(Math.random()-.5)*power*5,vy:Math.random()*power*4+1,vz:(Math.random()-.5)*2,life:.55+Math.random()*.4});
     }
   }
+  addTrauma(amount) {
+    if(!this.reducedMotion)this.trauma=Math.min(1,(this.trauma||0)+amount);
+  }
   event(e) {
     if(e.type==='press-impact'&&Math.abs(this.cameraX-e.x)>this.viewW*.8)return;
     heroEvent(this.character,e);
     if(e.type==='checkpoint')raiseCheckpoint(this,e);
-    else if(e.type==='mother-open'){if(!this.reducedMotion)this.shake=Math.max(this.shake,.07);}
-    else if(e.type==='mother-hit'||e.type==='mother-collapse'){this.burst(e.x,e.y,'gold',20,1.3);if(!this.reducedMotion)this.shake=Math.max(this.shake,.08);}
+    else if(e.type==='mother-open')this.addTrauma(.48);
+    else if(e.type==='mother-hit'||e.type==='mother-collapse'){this.burst(e.x,e.y,'gold',20,1.3);this.addTrauma(.52);}
     else if(e.type==='mother-bounce')this.burst(e.x,e.y,'orange',10,.7);
     else if(e.type==='break'&&e.spore)burstSporePod(this,e);
     else if(e.type==='crumble-collapse')clayFragments(this,e.x,e.y,e.w,24,1.1,true);
-    else if(e.type==='press-impact'){clayFragments(this,e.x,e.y,e.w+1,14,.85);if(!this.reducedMotion&&Math.abs(this.cameraX-e.x)<this.viewW*.6)this.shake=.06;}
+    else if(e.type==='press-impact'){clayFragments(this,e.x,e.y,e.w+1,14,.85);if(Math.abs(this.cameraX-e.x)<this.viewW*.6)this.addTrauma(.45);}
     else if(e.type==='squish'&&e.kind==='spore')this.burst(e.x,e.y,'spore',16,.75);
     else if(e.type==='shot-pop'||e.type==='spitter-fire')this.burst(e.x,e.y,'gold',e.type==='shot-pop'?5:3,.4);
     else if(e.type==='squish'&&e.kind==='spitter'){this.burst(e.x,e.y,'accent',12,.9);this.burst(e.x,e.y,'orangeLight',8,.7);}
@@ -355,7 +377,9 @@ export class World {
     else if(e.type==='squish'&&e.kind==='drifter')burstDrifterLeaves(this,e.x,e.y);
     else if(['land','jump','coin','stamp','break','spring','squish','checkpoint','hurt','step','skid','activate','shape','drifter-bump'].includes(e.type))
       this.burst(e.x,e.y,e.type==='coin'||e.type==='stamp'?'gold':e.type==='hurt'||e.type==='break'?'orange':'dust',e.type==='step'?2:e.type==='stamp'||e.type==='break'?23:e.type==='jump'?7:10,e.type==='step'?.3:e.type==='break'?2:1);
-    if(!this.reducedMotion){if(e.type==='land'&&e.impact>12)this.shake=.09;if(e.type==='break'||e.type==='hurt')this.shake=.17;if(e.type==='spring')this.shake=.06;}
+    if(e.type==='land')this.addTrauma(landTrauma(e.impact||7));
+    if(e.type==='break'||e.type==='hurt')this.addTrauma(.75);
+    if(e.type==='spring')this.addTrauma(.45);
     if(e.type==='spring'){const near=this.platforms.get(e.platformId);if(near)near.bounce=1;}
     // A landing gives the slab under it. Environmental motion is exactly what
     // reduced motion asks to be spared, so the deck stays rigid there.
@@ -422,8 +446,12 @@ export class World {
     const verticalRate=p.groundId?7:anchorDragged(this.cameraAnchorY,p,this.viewH)?10:4.5;
     this.cameraY+=(targetY-this.cameraY)*(1-Math.exp(-dt*verticalRate));
     }else{this.cameraX=edit.x;this.cameraY=edit.y;}
-    this.shake=Math.max(0,this.shake-dt*.7);const sx=this.reducedMotion?0:Math.sin(t*82)*this.shake,sy=this.reducedMotion?0:Math.cos(t*67)*this.shake*.65;
-    this.camera.position.set(this.cameraX+sx,this.cameraY+(edit?0:(this.theme.cameraElevation??(this.biome==='citadel'?1.25:3.05)))+sy,26);this.camera.lookAt(this.cameraX+sx,this.cameraY+sy,0);
+    this.trauma=Math.max(0,(this.trauma||0)-dt*TRAUMA_DECAY);this.shake=shakeAmplitude(this.trauma);
+    const sx=this.reducedMotion?0:shakeNoise(0,t)*this.shake,sy=this.reducedMotion?0:shakeNoise(1,t)*this.shake*.65;
+    // A flat pan reads as the world sliding. The small roll is what makes the
+    // frame feel struck; it is the part reduced motion is spared first.
+    const roll=this.reducedMotion?0:shakeNoise(2,t)*this.shake*SHAKE_ROLL;
+    this.camera.position.set(this.cameraX+sx,this.cameraY+(edit?0:(this.theme.cameraElevation??(this.biome==='citadel'?1.25:3.05)))+sy,26);this.camera.lookAt(this.cameraX+sx,this.cameraY+sy,0);if(roll)this.camera.rotation.z+=roll;
     if(this.camera.zoom!==1){this.camera.zoom=1;this.camera.updateProjectionMatrix();}
     this.sun.position.set(this.cameraX-10,this.cameraY+18,12);this.sun.target.position.set(this.cameraX,this.cameraY-2,0);
     animateHero(this,game,heroDt);
