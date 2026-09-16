@@ -259,7 +259,7 @@ export class DraftSession{
           const dock=level.platforms.find(p=>!p.shape&&x>=p.x-2&&x<=p.x+p.w+2)||level.platforms[0];
           (level.shaping??=[]).push({id:station,name:'Press a bridge',verb:'Press down',gesture:'down',parts:[obj.id],
             x:x-10,end:x+10,spawn:{x:dock.x+dock.w/2,y:dock.y,groundId:dock.id},
-            hint:'Press the orange clay down — drag, hold E / KNEAD, or stomp it.'});
+            hint:'Press the orange clay down — drag, hold E, or stomp it.'});
         }}
       else{list=['bat','drifter','spore','spitter'].includes(type)?'enemies':type;obj={x,y};if(type==='spitter')Object.assign(obj,{kind:'spitter',min:x-2,max:x+2,speed:.38});if(type==='spore')Object.assign(obj,{kind:'spore',min:x-1,max:x+1,speed:.5});if(type==='bat')Object.assign(obj,{kind:'bat',min:x-1.6,max:x+1.6,speed:BAT.patrolSpeed,bob:BAT.bob,period:BAT.period});if(type==='drifter')Object.assign(obj,{kind:'drifter',min:x-1.5,max:x+1.5,speed:DRIFTER.patrolSpeed,bob:DRIFTER.bob,period:DRIFTER.period});if(type==='hazards')Object.assign(obj,{x:x-2,w:4});if(type==='enemies')Object.assign(obj,{min:x-1.5,max:x+1.5,speed:1.5});if(type==='winds')Object.assign(obj,{id:id('wind'),x:x-2,w:4,h:7,fx:0,fy:18});if(type==='crushers')Object.assign(obj,{w:1.8,range:3,period:5});}
       if(!EDIT_LISTS.includes(list))throw new Error('Unsupported object type.');

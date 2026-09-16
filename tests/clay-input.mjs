@@ -132,6 +132,34 @@ console.log('PASS dragging clay: the pointer takes hold of it, it follows the th
 }
 console.log('PASS drag and tap stay distinct: a stroke is never nudged on release, a tap still presses');
 
+// A station answers one line — pull right, press down — and a stroke across
+// that line used to do nothing whatsoever, which is how "dragging the clay does
+// not work" happens to a player dragging the clay. Any honest stroke moves it;
+// pulling back along the line still eases it off, drift and all.
+for(const {chapter,dock} of docks){
+  const r=await rig(dock,{chapter});
+  const id=r.station.id,live=r.live,grip=r.grip();
+  // Straight across whichever way this piece is pulled.
+  const across=r.axis==='clientY'?'clientX':'clientY';
+  r.f.emit('pointerdown',{pointerId:31,...grip});
+  r.f.emit('pointermove',{pointerId:31,...grip,[across]:grip[across]+120});
+  r.step(2);
+  assert(live().target>.25,`${chapter}/${id}: a stroke across the pull still works the clay (got ${live().target.toFixed(2)})`);
+  r.f.emit('pointerup',{pointerId:31,...grip,[across]:grip[across]+120});
+
+  // A pull back along the line, with sideways drift in it, still eases it off.
+  const r2=await rig(dock,{chapter}),g2=r2.grip(),axis=r2.axis;
+  const other=axis==='clientY'?'clientX':'clientY';
+  r2.f.emit('pointerdown',{pointerId:32,...g2});
+  r2.f.emit('pointermove',{pointerId:32,...g2,[axis]:g2[axis]+150});
+  r2.step(2);
+  assert.equal(r2.live().target,1,`${chapter}/${id}: the forward stroke still finishes it`);
+  r2.f.emit('pointermove',{pointerId:32,...g2,[axis]:g2[axis]+20,[other]:g2[other]+25});
+  r2.step(2);
+  assert(r2.live().target<.5,`${chapter}/${id}: pulling back eases it off despite the drift (got ${r2.live().target.toFixed(2)})`);
+}
+console.log('PASS a stroke across the pull works the clay, and pulling back still eases it off');
+
 // Holding E is the keyboard's whole way into the clay, and it went untested
 // while the pointer path had this file to itself. The hold has no pointer to
 // aim it, so what it must work is whichever station the player is standing at —

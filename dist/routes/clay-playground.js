@@ -31,11 +31,11 @@ L.platforms.unshift(
 L.hazards.unshift({x:10,w:8,y:-3.7},{x:31,w:7.4,y:-3.5},{x:46,w:10,y:-3.5},{x:84,w:10.2,y:3.5});
 L.coins.unshift(...row(15,2.5,2),...row(34,4.1,3),...row(49,4.7,4),...row(70,7.7,2),...row(87,9.4,5));
 L.shaping=[
-  {id:'lift',icon:'lift',name:'Lower the lift',verb:'Press down',gesture:'down',parts:['soft-support'],lift:'kneaded-lift',liftFrom:5.4,liftTo:1.4,x:3,end:25,spawn:{x:6,y:0,groundId:'workshop-start'},hint:'Drag the orange support down to lower the lift. Or hold E / KNEAD, or stomp it.'},
-  {id:'ramp',icon:'ramp',name:'Stretch a ramp',verb:'Pull right',gesture:'right',parts:['soft-ramp'],x:25,end:44,spawn:{x:28,y:1.1,groundId:'ramp-dock'},hint:'Drag the orange clay right to stretch a ramp. Or hold E / KNEAD.'},
-  {id:'landing',icon:'landing',name:'Widen the landing',verb:'Pull outward',gesture:'out',parts:['soft-landing'],x:44,end:62,spawn:{x:44,y:4.4,groundId:'ramp-roof'},hint:'Pull either edge of the landing outward to widen it. Or hold E / KNEAD.'},
-  {id:'stairs',icon:'stairs',name:'Wall into stairs',verb:'Pull right',gesture:'right',parts:['soft-stair-0','soft-stair-1','soft-stair-2'],x:62,end:80,spawn:{x:64,y:3.1,groundId:'landing-roof'},hint:'Pull the orange wall right to knead out three steps. Or hold E / KNEAD.'},
-  {id:'bridge',icon:'bridge',name:'Press a bridge',verb:'Press down',gesture:'down',parts:['soft-bridge'],x:80,end:103,spawn:{x:81,y:8.4,groundId:'stair-roof'},hint:'Press the tall orange clay down to span the gap. Drag down, hold E / KNEAD, or stomp it.'}
+  {id:'lift',icon:'lift',name:'Lower the lift',verb:'Press down',gesture:'down',parts:['soft-support'],lift:'kneaded-lift',liftFrom:5.4,liftTo:1.4,x:3,end:25,spawn:{x:6,y:0,groundId:'workshop-start'},hint:'Drag the orange support down to lower the lift. Or hold E, or stomp it.'},
+  {id:'ramp',icon:'ramp',name:'Stretch a ramp',verb:'Pull right',gesture:'right',parts:['soft-ramp'],x:25,end:44,spawn:{x:28,y:1.1,groundId:'ramp-dock'},hint:'Drag the orange clay right to stretch a ramp. Or hold E.'},
+  {id:'landing',icon:'landing',name:'Widen the landing',verb:'Pull outward',gesture:'out',parts:['soft-landing'],x:44,end:62,spawn:{x:44,y:4.4,groundId:'ramp-roof'},hint:'Pull either edge of the landing outward to widen it. Or hold E.'},
+  {id:'stairs',icon:'stairs',name:'Wall into stairs',verb:'Pull right',gesture:'right',parts:['soft-stair-0','soft-stair-1','soft-stair-2'],x:62,end:80,spawn:{x:64,y:3.1,groundId:'landing-roof'},hint:'Pull the orange wall right to knead out three steps. Or hold E.'},
+  {id:'bridge',icon:'bridge',name:'Press a bridge',verb:'Press down',gesture:'down',parts:['soft-bridge'],x:80,end:103,spawn:{x:81,y:8.4,groundId:'stair-roof'},hint:'Press the tall orange clay down to span the gap. Drag down, hold E, or stomp it.'}
 ];
 L.hints.unshift(...L.shaping.map(s=>({x:s.x,end:s.end-.001,icon:s.icon,title:s.name,text:s.hint})));
 L.sections.unshift(...L.shaping.map(s=>({x:s.x===3?-8:s.x,name:s.name,landmark:'workshop'})));

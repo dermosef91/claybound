@@ -63,13 +63,26 @@ export class ShapingControls {
         const point=this.point(e);if(!point)return;
         d.point={x:point.x,y:point.y};input.shapeX=point.x;input.shapeY=point.y;return;
       }
-      const gesture=d.station.gesture;
-      const delta=gesture==='down'?e.clientY-d.y:gesture==='up'?d.y-e.clientY:(e.clientX-d.x)*(gesture==='out'?d.side:1);
+      const gesture=d.station.gesture,dx=e.clientX-d.x,dy=e.clientY-d.y;
+      const vertical=gesture==='down'||gesture==='up';
+      // How far the thumb has come the way this piece is pulled, and how far
+      // across that.
+      const along=gesture==='down'?dy:gesture==='up'?-dy:dx*(gesture==='out'?d.side:1),across=vertical?dx:dy;
+      // Travel back along the pull eases the clay off again, which is the only
+      // way a hand undoes one. But a stroke plainly not on that line is not a
+      // player undoing anything — it is a player dragging the clay — and
+      // answering it with nothing at all was the clay's worst habit: a thumb
+      // drawn sideways across the far mound moved it not one bit, and clay that
+      // ignores an honest stroke reads as clay that cannot be dragged. So a
+      // stroke clearly across the line counts towards the pose by how far it
+      // went. Twice over, so that a pull back with a little drift in it is
+      // still a pull back.
+      const travel=Math.abs(across)>Math.abs(along)*2?Math.abs(across):along;
       // How far the thumb travels for a full press. The stroke is the primary
       // verb, so it is sized to be finished comfortably inside one swipe:
       // a short push already moves the clay visibly, rather than needing most
       // of the screen before anything appears to happen.
-      input.shapeAmount=clampShape(d.start+delta/Math.max(64,Math.min(140,innerWidth*.12)));
+      input.shapeAmount=clampShape(d.start+travel/Math.max(64,Math.min(140,innerWidth*.12)));
     });
     // Only the pointer itself going away ends a stroke. Losing capture does not:
     // the browser can take capture back mid-drag, and the clay going dead under
