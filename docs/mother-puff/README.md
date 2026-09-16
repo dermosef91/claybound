@@ -2,7 +2,19 @@
 
 The Still Clearing extends Wildwood from the checkpoint at x=264 to the finish bell at x=315. Mother Puff stands at x=303, toward the right edge. Both idle and casting models turn 45° toward the player on her left. Her body begins mildly desaturated, with the grey tint decreasing after each hit. The entire fight takes place on her left. No black arches or root curtains are created.
 
-Separate eroded clay plugs sit directly in her cap pores. Selected trees and leaves on the left are afflicted while healthy patches remain; ground and scenery become fully dark and desaturated toward the right, including the exit. Some damaged pieces use the same recessed `porousClay` geometry as the crumbling ledges. These arena-owned porous bricks disappear on the final hit, remain absent through saved victory, and return on a failed-attempt reset; ordinary crumbling ledges elsewhere are unchanged. Per-view material uniforms preserve textures and the original shared assets; background shader wrappers restore when the arena unloads.
+Separate eroded clay plugs sit directly in her cap pores. Selected trees and leaves on the left are afflicted while healthy patches remain; ground and scenery become fully dark and desaturated toward the right, including the exit. Damaged pieces use the same recessed `porousClay` geometry *and the same `crumbleGrey` material* as the crumbling ledges, so blighted stone in the clearing is literally the stone the chapter breaks apart underfoot rather than a brown deck greyed out in the shader. These arena-owned porous bricks disappear on the final hit, remain absent through saved victory, and return on a failed-attempt reset; ordinary crumbling ledges elsewhere are unchanged. Per-view material uniforms preserve textures and the original shared assets; background shader wrappers restore when the arena unloads.
+
+## Arrangement of the clearing
+
+A raised, pored shoulder of ground closes each end of the frame, its broken bricks bedded into the face. Both are scenery only, parked behind the fighting plane, so the floor the encounter is tuned against stays flat and the recorded input replay still holds; `tests/mother-puff-assets.mjs` asserts neither shoulder reaches the fighting plane. Healthy crowns stand back along the left approach, small and deep enough that trunks and sky gaps read between them. Tall caps close both edges and a small one breaks up the middle ground between player and boss. Leaf clusters and flower sprays run the length of the ground line; only one flat brick is left out on the player's side of the floor, the rest bedded into the boss's side.
+
+## The blight
+
+Four supplied sculptures carry the corruption itself. Stone-dead tree and cap take the boss's side of the clearing outright, standing in place of the crowns and mushrooms that grew there. Two half-turned pairs mark the ground the blight is still crossing, on the player's side of centre, each yawed so its stone flank faces right, toward the boss it spreads from. The clearing floor is taken too: a crust of pored crumbling stone covers the deck's face and its moss line on the right, with slime clinging to the broken lip. The spatial grey shader still runs over all of it, so the boundary keeps moving with the clearing rather than with any one asset.
+
+Every stone sculpture is built paired with the healthy model it replaces, hidden beside it. The recovered clearing therefore contains no corrupted asset and no corrupted material, not merely an un-greyed one. Because hidden objects are skipped, the two halves of a pair never draw together.
+
+Recovery runs while she is still standing in it. The `healing` ramp opens as the cloud clears off her true form and spans `reveal-form`, `regard`, `farewell` and `bloom` over 7.5 seconds, which leaves her on screen for the first 5.2 of them. The stone-for-tree exchange therefore has to survive being watched, so it is a shrink-and-swell driven by the same ramp rather than a cut, completing about a second into `regard` while her own spore billows are up. By the time the last veil takes her, the blight is already gone. `b.healing` is read only by `animateMotherEnvironment`, so none of this reaches the simulation.
 
 There is no boss title, description, health bar, counter, or instruction toast in the game. Relaxed player idle/yawn clips are suppressed throughout the encounter, while walking and jumping retain their normal animations.
 
@@ -31,7 +43,7 @@ The third landing fills the whole silhouette with a large spore cloud over 1.5 s
 
 Healing reuses `createSporeWind` / `animateSporeWind`: the same gold motes and cream billows found earlier in Wildwood. No new mushrooms or flowers grow on victory. The grey environment regains color. After the recovery sequence, the exit unlocks and the normal camera immediately resumes following the player, before they reach the right side of the stage.
 
-The encounter threshold crossfades the forest music to the supplied **The Stone Orchard** over 2.4 seconds. Stone Orchard remains active throughout recovery and healing, hushed during the covered transformation. Only after healing completes does it crossfade back to the continuing forest track. Pause, mute, hidden-page behavior and stream fallback apply to both tracks.
+The encounter threshold crossfades the forest music to the supplied **The Stone Orchard** over 2.4 seconds. Stone Orchard belongs to the blight, so it covers the collapse, stays hushed under the covered exchange, and then hands back to the continuing forest track over 2.4 seconds the moment the cloud clears off her true form — 3.3 seconds into the ending rather than 13.0, so the theme returns with the healed model instead of after she has gone. It never restarts: the forest stream plays on in place throughout, muted, and only its gain moves. Pause, mute, hidden-page behavior and stream fallback apply to both tracks.
 
 Victory is saved once recovery finishes. Interrupted fights reset growths, spores and children at the checkpoint. Pause freezes the encounter. Reduced motion suppresses incidental breathing, shaking, tremors and cloud oscillation while retaining the essential reveal and healing.
 
@@ -42,10 +54,16 @@ Victory is saved once recovery finishes. Interrupted fights reset growths, spore
 | Idle | `Meshy_AI_Sleepy_Mushroom_Guard_0913143352_texture.glb` | 10,448 | 998,460 |
 | Casting | `Meshy_AI_Mushroom_Hug_0913144326_texture.glb` | 10,428 | 1,029,136 |
 | Healed final form | `mushroom-boss-cured.glb` | 18,749 | 1,239,616 |
+| Blighted tree | `fully-corrupted-tree.glb` | 21,343 | 2,252,176 |
+| Blighted cap | `fully-corrupted-mushroom.glb` | 20,305 | 1,967,688 |
+| Half-turned tree | `semi-corrupted-tree.glb` | 20,850 | 1,809,740 |
+| Half-turned cap | `semi-corrupted-mushroom.glb` | 20,405 | 1,943,692 |
+
+The four blighted sculptures add 7.97 MB to the download and take the clearing from 173,408 to 257,223 GLB triangles while the fight is running, a 1.48× rise concentrated in this one set-piece. They are loaded with the boss rather than with Wildwood, because nothing outside the clearing is blighted. Note that `tests/perf.mjs` samples chapter routes and never streams the arena in, so its Wildwood figures are unchanged by them and are not a measurement of this cost.
 
 All three are static meshes, normalized at load time. The idle sculpture covers the undisturbed clearing and every non-casting battle moment; the casting sculpture appears only around each throw. Procedural firing pulses, clay-plug reactions and spore clouds complement the supplied forms. Their original geometry, UVs and material maps are retained, and all three carry base-colour, normal and roughness maps. Textures are repacked to 1024px JPEGs with normal vectors renormalized. The Downloads originals remain unchanged. The models, music and opening growl were supplied by the user; no provider jobs were used. The two-second growl is copied unchanged to `dist/assets/mother-puff-growl.wav`.
 
-`scripts/prepare-mother-puff.py SOURCE idle|cast|friendly` reproduces that texture repack. The manifests beside the GLBs retain source/output hashes and geometry fingerprints.
+`scripts/prepare-mother-puff.py SOURCE idle|cast|friendly|(corrupt|semi)-(tree|mushroom)` reproduces that texture repack. The manifests beside the GLBs retain source/output hashes and geometry fingerprints.
 
 The healed form previously came from `mushroom+character+3d+model.glb` (19,686 triangles, 1,797,432 bytes), which shipped as a straight copy with a base-colour map only. The replacement is smaller despite its full map set because it is repacked like the battle poses rather than copied.
 
@@ -55,7 +73,7 @@ The healed form previously came from `mushroom+character+3d+model.glb` (19,686 t
 - `dist/mother-puff.js`: stop-motion pose frames, effects, the translucent landed white cloud and gradual/released camera framing.
 - `dist/mother-puff-trail.js`: deterministic spore trails (clay motes and rim-faded powder haze) through the shared particle pool, plus the shared soft `powderMaterial`.
 - `dist/mother-puff-growth.js`: embedded clay plugs and friendly puff.
-- `dist/mother-puff-environment.js`: selective-to-complete corruption, porous geometry, isolated background materials and original healing winds.
+- `dist/mother-puff-environment.js`: clearing arrangement, blighted sculpture loading and placement, selective-to-complete corruption, porous geometry borrowed from the crumbling ledges, isolated background materials, the healed-pair swap and original healing winds.
 - `dist/mother-puff-cinematics.js`: opaque model exchange, fading reveal and hit puff.
 - `dist/mother-puff-music.js`: Stone Orchard crossfade lifecycle.
 - `tests/mother-puff.mjs` and `tests/mother-puff-pilot.mjs`: four spore effects, orange placement, half-second spree restart, release-time targeting, three ordinary landings, push, input-only replay, save/retry, bounded effects and editor movement. The entrance-to-exit replay takes 9,140 fixed frames without a death or stomp input.

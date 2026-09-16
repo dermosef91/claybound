@@ -244,11 +244,19 @@ assert.equal(orchard.plays,plays,'continuous combat does not restart the theme')
 crossing.update(.016,false,1,false,false,false,false,true);assert(orchard.paused);
 crossing.update(.016,true,1,false,false,false,false,true);await settle();assert.equal(orchard.currentTime,14);
 const encounter={level:{boss:{state:'veil',hits:3,triggerX:276}},player:{x:295}};
-for(const state of ['veil','transform','reveal-form','regard','farewell','bloom']){
+// Stone Orchard covers the collapse and stays hushed under the exchange.
+for(const state of ['veil','transform']){
  encounter.level.boss.state=state;crossing.update(.016,true,1,false,false,false,motherQuiet(encounter.level.boss),motherCorrupted(encounter));await settle();advance(2500);
  assert.equal(crossing.trackGain._target,0,'forest music stays silent throughout '+state);assert(!orchard.paused);assert.equal(crossing.orchard.gain._target,motherQuiet(encounter.level.boss)?.008:.26);
 }
-encounter.level.boss.state='defeated';crossing.update(.016,true,1,false,false,false,motherQuiet(encounter.level.boss),motherCorrupted(encounter));assert.equal(crossing.orchard.gain._target,0);assert.equal(crossing.trackGain._target,.26);advance(2500);assert(orchard.paused);assert.equal(crossing.track.currentTime,73,'completed healing returns to the continuing forest theme');
+// Uncovering her true form hands the clearing back to its own theme, rather
+// than holding the boss music until the healing has finished.
+for(const state of ['reveal-form','regard','farewell','bloom']){
+ encounter.level.boss.state=state;crossing.update(.016,true,1,false,false,false,motherQuiet(encounter.level.boss),motherCorrupted(encounter));await settle();advance(2500);
+ assert.equal(crossing.orchard.gain._target,0,'Stone Orchard gives way on the reveal, during '+state);
+ assert.equal(crossing.trackGain._target,.26,'the forest theme is already back during '+state);
+}
+encounter.level.boss.state='defeated';crossing.update(.016,true,1,false,false,false,motherQuiet(encounter.level.boss),motherCorrupted(encounter));assert.equal(crossing.orchard.gain._target,0);assert.equal(crossing.trackGain._target,.26);advance(2500);assert(orchard.paused);assert.equal(crossing.track.currentTime,73,'the forest theme resumes in place, never restarted');
 crossing.update(.016,true,1,false,false,false,false,true);await settle();crossing.enabled=false;assert(orchard.paused);crossing.enabled=true;await settle();assert(!orchard.paused);crossing.setForeground(false);assert(orchard.paused);
 crossing.setForeground(true);await settle();orchard.error={code:3};orchard.dispatchEvent(new Event('error'));assert.equal(crossing.trackGain._target,.26,'a failed orchard stream restores forest music');
 console.log('PASS Stone Orchard crossfade, longer playback, victory return, preserved positions, pause/mute/focus and failed-stream fallback');

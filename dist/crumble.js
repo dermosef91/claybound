@@ -23,7 +23,7 @@ function cells(width,rows,seed){
     return poly;
   });
 }
-function crumbleMaterials(w){
+export function crumbleMaterials(w){
   // Independent of biome palettes, including after a chapter switch.
   for(const [name,color]of [['crumbleGrey',CRUMBLE_GREY],['crumbleLower',0x525254],['crumbleChip',CRUMBLE_GREY]]){
     const material=w.mat[name]??=new THREE.MeshStandardMaterial();

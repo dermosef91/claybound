@@ -20,12 +20,23 @@ export const motherNextCast=b=>{
   const wait={reveal:MOTHER_PUFF.reveal,inhale:0,recover:MOTHER_PUFF.recover,hurt:MOTHER_PUFF.hurt}[b.state];
   return wait===undefined?Infinity:wait-b.stateTime;
 };
-export const motherCorrupted=game=>!!game.level.boss&&game.level.boss.state!=='defeated'&&(game.level.boss.state!=='sleeping'||game.player.x>=game.level.boss.triggerX);
+// Stone Orchard belongs to the blight, so it gives way the moment the cloud
+// clears off her true form rather than holding on until the healing has
+// finished. The forest theme crossfades back in over her reveal, alongside the
+// clearing's own recovery, after the hush that covers the exchange.
+const RECOVERED=['reveal-form','regard','farewell','bloom','defeated'];
+export const motherCorrupted=game=>!!game.level.boss&&!RECOVERED.includes(game.level.boss.state)&&(game.level.boss.state!=='sleeping'||game.player.x>=game.level.boss.triggerX);
 const ENDING=[['veil',1.5],['transform',1.8],['reveal-form',2.6],['regard',1.7],['farewell',1.8],['bloom',3.6]];
+// The clearing comes back while she is still standing in it. The ramp opens as
+// the cloud clears off her true form and completes under the bloom, so
+// recovery is something the player watches her do rather than a change they
+// only discover once she has gone. She is on screen for the first 5.2s of it.
+const HEALING_PHASES=['reveal-form','regard','farewell','bloom'];
+export const HEALING_SPAN=7.5;
 
 export function initializeMotherPuff(L){
   if(!L.boss||L.boss.kind!=='mother-puff')return;
-  Object.assign(L.boss,{state:'sleeping',stateTime:0,hits:0,cycle:0,serial:0,spores:[],patches:[],queue:[],nextShot:0,lastShotTime:-100,healing:0});
+  Object.assign(L.boss,{state:'sleeping',stateTime:0,hits:0,cycle:0,serial:0,spores:[],patches:[],queue:[],nextShot:0,lastShotTime:-100,healing:0,healTime:0});
 }
 export function resetMotherPuff(game,defeated=false){
   const b=game.level.boss;if(!b)return;
@@ -34,7 +45,7 @@ export function resetMotherPuff(game,defeated=false){
   const serial=b.serial;initializeMotherPuff(game.level);b.serial=serial;
   game.level.enemies=game.level.enemies.filter(e=>!e.motherChild);
   game.player.motherBounce=false;game.player.motherPush=0;game.player.sporeSlow=0;
-  if(defeated){b.hits=MOTHER_PUFF.hits;enter(b,'defeated');b.healing=1;}
+  if(defeated){b.hits=MOTHER_PUFF.hits;enter(b,'defeated');b.healing=1;b.healTime=HEALING_SPAN;}
   game.level.dynamicRevision=(game.level.dynamicRevision||0)+1;
 }
 
@@ -93,7 +104,8 @@ export function updateMotherPuff(game,dt){
       if(b.state==='bloom')game.event('mother-bloom',{x:b.x,y:b.y});
       if(b.state==='defeated')game.event('mother-defeat',{x:b.x,y:b.y});
     }
-    b.healing=b.state==='defeated'?1:b.state==='bloom'?clamp(b.stateTime/3.1,0,1):0;
+    if(HEALING_PHASES.includes(b.state))b.healTime=(b.healTime||0)+dt;
+    b.healing=b.state==='defeated'?1:clamp((b.healTime||0)/HEALING_SPAN,0,1);
     return;
   }
   if(b.state==='reveal'&&b.stateTime>=MOTHER_PUFF.reveal){beginSpree(game);game.event('mother-open',{x:b.x,y:b.y});}

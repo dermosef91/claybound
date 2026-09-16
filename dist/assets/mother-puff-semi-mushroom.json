@@ -1,0 +1,24 @@
+{
+  "source": "semi-corrupted-mushroom.glb",
+  "sourceSha256": "22a334e54e447a0d7f251f949c309f178b2c6bd51539ffd1a2c9f30154798a67",
+  "shippedSha256": "c9f9a67f43bc96725a58d757149d273797cc3de983259fca1a5c399182a9f560",
+  "sourceBytes": 18981832,
+  "shippedBytes": 1943692,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryUnchanged": true,
+  "geometrySha256": "b17075bcc9c49690bf98da307abb17c48267310d767d5dc222f88c292bea098d",
+  "triangles": 20405
+}

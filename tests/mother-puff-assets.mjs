@@ -11,12 +11,22 @@ import {TRAIL} from '../dist/mother-puff-trail.js';
 import {updateMotherAtmosphere} from '../dist/mother-puff-hud.js';
 import {disposeBranch} from '../dist/streaming.js';
 import {readGLB} from './load-player.mjs';
-import {attachForest} from './load-forest.mjs';
+import {attachForest,attachBlighted} from './load-forest.mjs';
 import {attachClay} from './load-clay.mjs';
 
 const w=Object.assign(Object.create(World.prototype),{scene:new THREE.Scene(),levelRoot:new THREE.Group(),fxRoot:new THREE.Group(),particles:[],mat:{},reducedMotion:false});
 for(const name of ['cream','bark','top','terrain','terrain2'])w.mat[name]=new THREE.MeshStandardMaterial();
-await attachClay(w);await attachForest(w);
+await attachClay(w);await attachForest(w);await attachBlighted(w);
+for(const [key,triangles]of [['corrupt-tree',21343],['corrupt-mushroom',20305],['semi-tree',20850],['semi-mushroom',20405]]){
+ const url=new URL(`../dist/assets/mother-puff-${key}.glb`,import.meta.url),bytes=await readFile(url);
+ const manifest=JSON.parse(await readFile(new URL(`../dist/assets/mother-puff-${key}.json`,import.meta.url)));
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.shippedSha256);assert.equal(bytes.length,manifest.shippedBytes);
+ assert(bytes.length<2400000,`${key} ships within the scenery budget`);assert.equal(manifest.triangles,triangles);assert(manifest.geometryUnchanged);
+ assert.equal(manifest.textures.length,3);assert(manifest.textures.every(size=>Math.max(...size)<=1024),'blighted sculptures ship mobile-sized textures');
+ const asset=w.blightedAssets[key];assert(asset.size.x>0&&asset.size.y>0);
+ let count=0;asset.scene.traverse(o=>{if(o.isMesh){count+=o.geometry.index.count/3;assert(o.material.map&&o.material.normalMap&&o.material.roughnessMap);assert(w.assetGeometry.has(o.geometry));assert(w.assetMaterials.has(o.material));}});
+ assert.equal(count,triangles);
+}
 for(const [pose,triangles]of [['idle',10448],['cast',10428],['friendly',18749]]){
  const url=new URL(`../dist/assets/mother-puff-${pose}.glb`,import.meta.url),gltf=await readGLB(url),bytes=await readFile(url),manifest=JSON.parse(await readFile(new URL(`../dist/assets/mother-puff-${pose}.json`,import.meta.url)));
  assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.shippedSha256);assert.equal(bytes.length,manifest.shippedBytes);assert(bytes.length<(pose==='friendly'?1300000:1100000));assert.equal(manifest.triangles,triangles);assert(manifest.geometryUnchanged);
@@ -70,6 +80,57 @@ const introHeight=motherViewHeight(b,390,844,false),introWidth=introHeight*390/8
 assert(intro.x-introWidth/2<motherIntroTarget(b)-.32&&intro.x+introWidth/2>b.x+3.5,'portrait reveal contains the entrance destination and the full cap');
 for(const state of ['reveal','inhale','release','recover','hurt']){b.state=state;b.hits=0;animateMotherPuff(w,game);assert(view.pose.visible,'the battle body stays on screen');assert.equal(view.pose.rotation.y,-Math.PI/4);assert(view.environment.porous.every(p=>p.root.visible)&&floor.userData.motherPorous.every(p=>p.root.visible),'retry restores the corrupted brick scenery');}
 b.hits=3;b.state='farewell';b.stateTime=.8;animateMotherPuff(w,game);assert.equal(view.clouds.material.opacity,1);const envelope=view.clouds.parts.map(p=>p.m.position.y+p.m.scale.y);assert(Math.max(...envelope)>M.friendlyHeight,'farewell veil expands to cover the larger healed form');
+{
+ // The four supplied sculptures stand in for the clearing's own trees and
+ // caps on the blighted side, and healing has to put every one of them back.
+ const env=view.environment;
+ assert.equal(env.blighted.length,6,'two stone trees, two stone caps and two half-turned pairs');
+ assert(env.blighted.every(p=>p.stone&&p.green),'every stone sculpture is paired with the healthy model it replaces');
+ assert.deepEqual(env.blighted.map(p=>p.stone.name).sort(),
+   ['Blighted corrupt-mushroom','Blighted corrupt-mushroom','Blighted corrupt-tree','Blighted corrupt-tree','Blighted semi-mushroom','Blighted semi-tree']);
+ // Yaws read off the sculptures themselves: each half-turned pair carries its
+ // stone on one flank, and that flank has to end up facing the boss.
+ for(const p of env.blighted){
+  if(p.stone.name==='Blighted semi-tree')assert.equal(p.stone.rotation.y,0);
+  if(p.stone.name==='Blighted semi-mushroom')assert(Math.abs(p.stone.rotation.y-Math.PI*.75)<1e-9);
+ }
+ // The reference's raised shoulders are scenery only. They must stay behind
+ // the fighting plane, or the recorded encounter no longer holds.
+ view.root.updateMatrixWorld(true);
+ const shoulders=[];env.root.traverse(o=>{if(o.name==='Pored shoulder of the clearing')shoulders.push(o);});
+ assert.equal(shoulders.length,2,'a pored shoulder closes each end of the clearing');
+ for(const s of shoulders)assert(new THREE.Box3().setFromObject(s,true).max.z<1,'a shoulder never reaches the fighting plane');
+ assert(w.mat.crumbleGrey,'the clearing borrows the crumbling ledge stone');
+ const brick=env.porous.find(p=>p.root.isMesh);
+ assert.equal(brick.root.material.color.getHex(),w.mat.crumbleGrey.color.getHex(),'pored bricks use the crumbling ledge grey, not a greyed brown deck');
+ b.hits=0;b.state='release';b.stateTime=.2;b.healing=0;animateMotherPuff(w,game);
+ assert(env.blighted.every(p=>p.stone.visible&&!p.green.visible),'the fight shows stone, never the trees it stands in for');
+ b.hits=3;b.state='bloom';b.stateTime=2;b.healing=.6;animateMotherPuff(w,game);
+ assert(env.blighted.every(p=>!p.stone.visible&&p.green.visible),'the healing breeze swaps every stone sculpture for a healthy one');
+ assert(env.porous.every(p=>!p.root.visible)&&floor.userData.motherPorous.every(p=>!p.root.visible),'healing removes every pored fragment, including the ground crust');
+ b.state='defeated';b.healing=1;b.stateTime=3;animateMotherPuff(w,game);
+ assert(env.blighted.every(p=>!p.stone.visible&&p.green.visible),'the recovered clearing keeps no corrupted asset');
+ assert(env.corruption.every(p=>p.uniform.value<.1),'and no corrupted material tint');
+}
+{
+ // Recovery has to be something the player watches her do. Drive the real
+ // ending and require the blight to be gone before the last veil takes her.
+ const g=new Game();g.start(1);const boss=g.level.boss,v=w.motherView=createMotherPuff(w,boss);
+ Object.assign(g.player,{x:boss.x-6,y:boss.y,groundId:'mother-arena'});
+ Object.assign(boss,{hits:3,state:'veil',stateTime:0,healing:0,healTime:0,spores:[],patches:[],queue:[]});
+ let seen=false,curedWhileSeen=false,healingWhileSeen=0,lastSeenState=null;
+ for(let i=0;i<Math.round(16/FIXED_DT)&&boss.state!=='defeated';i++){
+  g.tick(FIXED_DT);animateMotherPuff(w,g);
+  if(!v.healed.visible)continue;
+  seen=true;lastSeenState=boss.state;healingWhileSeen=Math.max(healingWhileSeen,boss.healing);
+  if(v.environment.blighted.every(p=>!p.stone.visible&&p.green.visible))curedWhileSeen=true;
+ }
+ assert(seen,'the healed form appears during the ending');
+ assert(boss.healing>0&&lastSeenState,'healing runs while she is on screen');
+ assert(curedWhileSeen,'every stone sculpture is already replaced while the healed form is still visible');
+ assert(healingWhileSeen>.6,`recovery is well advanced in her presence, reached ${healingWhileSeen.toFixed(2)}`);
+ assert.equal(boss.state,'defeated');assert.equal(boss.healing,1);
+}
 {
  // The two battle sculptures stand in for animation frames, so drive a real
  // volley and confirm hard cuts: alert only around each cast, resting between.
@@ -143,4 +204,4 @@ b.hits=3;b.state='farewell';b.stateTime=.8;animateMotherPuff(w,game);assert.equa
  assert(blast.parts.every(p=>p.m.material===w.motherMaterials.purple),'other colours keep opaque ground effects');
  begin();
 }
-console.log('PASS Mother Puff assets: supplied GLBs, grounding, stop-motion cast/idle frames, pause, effects cleanup, deterministic spore trails, translucent white clouds, porous corruption, absent arches, opaque transformation, healing winds and gradual/released camera');
+console.log('PASS Mother Puff assets: seven supplied GLBs, grounding, stop-motion cast/idle frames, pause, effects cleanup, deterministic spore trails, translucent white clouds, blighted sculptures and borrowed crumbling stone, scenery-only shoulders, corruption cleared on healing, absent arches, opaque transformation, healing winds and gradual/released camera');

@@ -105,9 +105,12 @@ const patch=(g,color,x=g.player.x)=>{const s={id:100,color,x,y:g.level.boss.y,ag
    g.tick(dt,{right:true,jumpPressed:true,stompPressed:true});
    if(b.state!==state){state=b.state;states.push(state);}
    if(b.state==='defeated')break;
-   assert(motherCorrupted(g),'Stone Orchard remains through every healing stage');assert.equal(g.status,'playing');assert.equal(p.health,3);assert(p.x<b.right,'held input cannot bypass the cloud reveal');
+   // Stone Orchard covers the collapse and the hushed exchange, then hands
+   // back to the forest theme as soon as her true form is uncovered.
+   assert.equal(motherCorrupted(g),['veil','transform'].includes(b.state),'the forest theme returns on the reveal, not after the healing');
+   assert.equal(g.status,'playing');assert.equal(p.health,3);assert(p.x<b.right,'held input cannot bypass the cloud reveal');
  }
- assert.deepEqual(states,['veil','transform','reveal-form','regard','farewell','bloom','defeated']);assert.equal(b.healing,1);assert(!motherCorrupted(g),'forest music returns only after healing completes');assert.equal(events.filter(x=>x==='mother-defeat').length,1);assert.equal(events.filter(x=>x==='mother-bloom').length,1);assert.equal(p.facing,1);assert(g.snapshot().bossDefeated);
+ assert.deepEqual(states,['veil','transform','reveal-form','regard','farewell','bloom','defeated']);assert.equal(b.healing,1);assert(!motherCorrupted(g),'the forest theme is back by the time she is gone');assert.equal(events.filter(x=>x==='mother-defeat').length,1);assert.equal(events.filter(x=>x==='mother-bloom').length,1);assert.equal(p.facing,1);assert(g.snapshot().bossDefeated);
  console.log('PASS Mother Puff: cloud veil, covered transformation, true-form reveal, friendly farewell, healing wind, pause and delayed exit');
 }
 {

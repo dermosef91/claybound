@@ -1,0 +1,24 @@
+{
+  "source": "semi-corrupted-tree.glb",
+  "sourceSha256": "e89539737863ab552ce806998c32d784781ab77796892ec9ba9e91f8763d8575",
+  "shippedSha256": "125769ea086463d1d8b9f4dfd7e823984efb04d353658b734be54331e4793069",
+  "sourceBytes": 9631776,
+  "shippedBytes": 1809740,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryUnchanged": true,
+  "geometrySha256": "659b1490fc4721cab4177cba224d4712586444438952910a7fe0e9727b6e4fec",
+  "triangles": 20850
+}

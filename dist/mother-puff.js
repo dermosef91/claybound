@@ -4,16 +4,16 @@ import {clayModel} from './clay.js';
 import {cameraTarget} from './camera.js';
 import {MOTHER_PUFF,motherNextCast} from './mother-puff-rules.js';
 import {createSpringPad,animateSpringPad} from './spring-pad.js';
-import {createMotherEnvironment,animateMotherEnvironment} from './mother-puff-environment.js';
+import {createMotherEnvironment,animateMotherEnvironment,loadBlightedAssets} from './mother-puff-environment.js';
 export {createMotherArenaFloor} from './mother-puff-environment.js';
 import {createMotherClouds,animateMotherClouds} from './mother-puff-cinematics.js';
 import {afflictBranch,createGrowths,animateGrowths,createFriendlySpores,animateFriendly} from './mother-puff-growth.js';
 import {emitMotherTrail,powderMaterial} from './mother-puff-trail.js';
 
 export async function loadMotherPuff(w,onProgress){
-  if(w.motherAssets?.idle&&w.motherAssets?.cast&&w.motherAssets?.friendly){onProgress?.(1);return;}
-  w.motherLoading??=Promise.all(['idle','cast','friendly'].map(pose=>loadModel(`mother-puff-${pose}.glb`).then(g=>prepareMotherPuff(w,pose,g)))).catch(e=>{w.motherLoading=null;throw e;});
-  await w.motherLoading;onProgress?.(1);
+  const poses=w.motherAssets?.idle&&w.motherAssets?.cast&&w.motherAssets?.friendly;
+  if(!poses)w.motherLoading??=Promise.all(['idle','cast','friendly'].map(pose=>loadModel(`mother-puff-${pose}.glb`).then(g=>prepareMotherPuff(w,pose,g)))).catch(e=>{w.motherLoading=null;throw e;});
+  await Promise.all([w.motherLoading,loadBlightedAssets(w)]);onProgress?.(1);
 }
 export function prepareMotherPuff(w,pose,gltf){
   const scene=gltf.scene;scene.updateMatrixWorld(true);
