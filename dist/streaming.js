@@ -10,6 +10,7 @@ import {createBead} from './beads.js';
 import {greatArchLayout,buildGreatArch} from './great-arch.js';
 import {clayCacheOverBudget,trimClayShapes,clayShape,sculptClay} from './clay.js';
 import {createMotherPuff} from './mother-puff.js';
+import {caveWallDressing} from './cavern.js';
 import {settleSquash,squashPending} from './clay-shatter.js';
 
 const attached=(o,root)=>{for(let p=o;p;p=p.parent)if(p===root)return true;return false;};
@@ -97,6 +98,10 @@ export function syncStream(w,L,center,force=false){
     for(const guide of v.guides)guide.visible=!s.broken&&s.active!==false;
     w.platforms.set(s.id,v);return v.root;
   },()=>w.platforms.delete(s.id),s.baseX??s.x);
+  // A wall's own view keeps collision-aligned bounds (tests/walls.mjs), so the
+  // lobes, lip and hanging moss the cave dresses it with are scenery of their
+  // own, rebuilt with the platform whenever the editor moves it.
+  if(w.biome==='cave')for(const s of L.platforms)if(s.kind==='wall'&&near(s.x,s.w))addScenery('walldress:'+s.id,()=>caveWallDressing(w,s),()=>{},s.x);
   L.hazards.forEach((h,i)=>{if(near(h.x,h.w))add('h:'+i,()=>hazard(w,h),()=>{},h.x);});
   // A defeated creature stays streamed in until its pressed disc has broken.
   // A view dropped before then all the same — one the camera has left far
