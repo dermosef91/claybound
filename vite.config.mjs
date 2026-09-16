@@ -96,11 +96,7 @@ export default defineConfig({
     // The game is one screen: a single chunk beats a waterfall of small ones.
     modulePreload:{polyfill:false},
     reportCompressedSize:true,
-    rollupOptions:{
-      // The animation lab is a second page, not a route inside the game, so the
-      // bundler has to be told it exists or it never reaches the build.
-      input:{index:join(root,'dist/index.html'),animation:join(root,'dist/animation-playground.html')},
-      output:{
+    rollupOptions:{output:{
       manualChunks:undefined,
       // Five files must keep their exact names beside index.html. The web app
       // manifest resolves its own icon list and its start_url/scope against its

@@ -79,7 +79,6 @@ body.is-menu .toast {z-index:25;max-width:90vw;white-space:normal;text-align:cen
 .is-menu .dialog-close {color:#694933;min-width:44px;min-height:44px;top:10px;right:10px;}
 .is-menu .dialog-card .chapter-choice,.is-menu .dialog-card .secondary,.is-menu .dialog-card .quiet-button {color:#503c2d;}
 .title-settings {display:grid;gap:12px;margin:24px 0;}
-a.title-setting {text-decoration:none;}
 .title-setting {display:flex;align-items:center;gap:15px;width:100%;min-height:60px;padding:12px 16px;background:#efdab944;border:1px solid #bd946442;border-radius:14px;text-align:left;font-size:16px;color:#503c2d;}
 .title-setting>svg {width:24px;height:24px;flex-shrink:0;color:#b7592c;}
 .title-setting>span {flex:1;}
