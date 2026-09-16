@@ -202,7 +202,7 @@ console.log('PASS catapult: E and a downward drag pack it and hold the charge, a
   assert(b.x<a.x+a.w+1.1,'the two slabs do share a stretch of grab box');
   const probe=(x,id)=>{
     const at=r.f.screen(x,a.y-.4);
-    r.f.emit('pointerdown',{pointerId:id,...at});const part=r.input.shapePart;r.f.emit('pointercancel',{pointerId:id,...at});
+    r.f.emit('pointerdown',{pointerId:id,...at});const part=r.input.shapePart;r.f.emit('pointerup',{pointerId:id,...at});
     return part;
   };
   assert.equal(probe(b.x+.4,5),2,'a touch on slab 2 inside slab 1\'s grab box takes slab 2');
