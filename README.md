@@ -141,7 +141,7 @@ The simulation runs at a fixed 120 Hz and is independent of rendering. It includ
 - `dist/clouds.js`, `dist/assets/cloud.glb`: the unchanged supplied Ivory Cloud model (3,134 triangles, three embedded texture images), reused at uniform scale with its full depth and normal map.
 - `dist/simulation.js`: game rules and collision.
 - `dist/world.js`: scene, models, materials, animation and effects.
-- `dist/audio.js`, `dist/assets/*.{mp3,wav}`: four supplied chapter soundtracks plus recorded coin pickup, checkpoint flag, finish bell, porous-clay step, flower and spore-balloon effects; synthesized failure fallbacks, footsteps, separate music/effects routing and a shared mute control.
+- `dist/audio.js`, `dist/assets/*.{mp3,wav}`: four supplied chapter soundtracks plus recorded coin pickup, checkpoint flag, finish bell, porous-clay step, ledge collapse, flower and spore-balloon effects; synthesized failure fallbacks, footsteps, separate music/effects routing and a shared mute control.
 - `dist/hero.js`: GLB loading, scale/orientation, animation blending, gameplay pose selection and restrained impact response.
 - `dist/assets/player.glb`: the unchanged, supplied `Meshy_AI_Meshy_Merged_Animations.glb` (5.03 MiB; 10,418 triangles, 24 bones, one embedded 2048px texture, 11 animation clips).
 - `dist/assets/player-motion.json`: precomputed foot-contact corrections for the exact GLB, including its SHA-256 fingerprint.

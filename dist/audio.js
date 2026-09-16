@@ -21,6 +21,7 @@ export const CHECKPOINT_FLAG=new URL('./assets/checkpoint-flag.wav',import.meta.
 export const FINISH_BELL=new URL('./assets/finish-bell.wav',import.meta.url).href;
 export const POROUS_CLAY_STEP=new URL('./assets/porous-clay-step.wav',import.meta.url).href;
 export const ENEMY_HEAD_IMPACT=new URL('./assets/enemy-head-impact.wav',import.meta.url).href;
+export const LEDGE_COLLAPSE=new URL('./assets/ledge-collapse.wav',import.meta.url).href;
 export const CANYON_WIND=new URL('./assets/canyon-wind.wav',import.meta.url).href;
 // World units over which a wind well fades up, so the canyon is heard breathing
 // before the player steps into the column rather than switching on at its edge.
@@ -109,6 +110,9 @@ export class Sound {
     }
     if(!this.enemyHeadImpactLoading&&this.ctx.decodeAudioData){
       this.enemyHeadImpactLoading=fetch(ENEMY_HEAD_IMPACT).then(r=>{if(!r.ok)throw new Error('Enemy head impact sound unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.enemyHeadImpactBuffer=buffer;}).catch(()=>{});
+    }
+    if(!this.ledgeCollapseLoading&&this.ctx.decodeAudioData){
+      this.ledgeCollapseLoading=fetch(LEDGE_COLLAPSE).then(r=>{if(!r.ok)throw new Error('Ledge collapse sound unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.ledgeCollapseBuffer=buffer;}).catch(()=>{});
     }
     if(!this.canyonWindLoading&&this.ctx.decodeAudioData){
       // The bed can arrive with the player already inside a well, so the loop
@@ -234,6 +238,10 @@ export class Sound {
     if(type==='checkpoint'&&this.bufferEffect(this.checkpointBuffer,.25))return;
     if(type==='complete'&&this.bufferEffect(this.completeBuffer))return;
     if(type==='step'&&event.surface==='crumble'&&this.bufferEffect(this.porousStepBuffer,.06,.38,.88+Math.random()*.1,.12))return;
+    // Unlike the footstep, this one plays to its end: the rubble settles over
+    // about the second the fragments take to fall. A deck regrows and can break
+    // again every few seconds, so the pitch moves a little on each collapse.
+    if(type==='crumble-collapse'&&this.bufferEffect(this.ledgeCollapseBuffer,.26,undefined,.94+Math.random()*.12))return;
     if(type==='mother-open'){
       if(!this.bufferEffect(this.motherGrowlBuffer,.2))this.tone(90,1.5,'sine',.04,.65);
       return;

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {motherCorrupted,motherQuiet} from '../dist/mother-puff-rules.js';
 import {STONE_ORCHARD_TRACK} from '../dist/mother-puff-music.js';
-import {Sound,HORIZON_TRACK,CHAPTER_TRACKS,FLOWER_VICTORY,SPORE_BALLOON_BURST,MOTHER_PUFF_GROWL,COIN_PICKUP,CHECKPOINT_FLAG,FINISH_BELL,POROUS_CLAY_STEP,ENEMY_HEAD_IMPACT,CANYON_WIND,windExposure} from '../dist/audio.js';
+import {Sound,HORIZON_TRACK,CHAPTER_TRACKS,FLOWER_VICTORY,SPORE_BALLOON_BURST,MOTHER_PUFF_GROWL,COIN_PICKUP,CHECKPOINT_FLAG,FINISH_BELL,POROUS_CLAY_STEP,ENEMY_HEAD_IMPACT,LEDGE_COLLAPSE,CANYON_WIND,windExposure} from '../dist/audio.js';
 import canyon from '../dist/routes/canyon.js';
 import forest from '../dist/routes/forest.js';
 const jobs=new Map();let next=0;
@@ -126,11 +126,12 @@ const checkpointBytes=await readFile(new URL('../dist/assets/checkpoint-flag.wav
 const completeBytes=await readFile(new URL('../dist/assets/finish-bell.wav',import.meta.url));
 const porousStepBytes=await readFile(new URL('../dist/assets/porous-clay-step.wav',import.meta.url));
 const enemyHeadImpactBytes=await readFile(new URL(ENEMY_HEAD_IMPACT));
+const ledgeCollapseBytes=await readFile(new URL(LEDGE_COLLAPSE));
 assert.equal(victoryBytes.subarray(0,4).toString(),'RIFF');
 assert.equal(sporeBalloonBytes.subarray(0,4).toString(),'RIFF');
-for(const bytes of [coinBytes,checkpointBytes,completeBytes,porousStepBytes,enemyHeadImpactBytes])assert.equal(bytes.subarray(0,4).toString(),'RIFF');
+for(const bytes of [coinBytes,checkpointBytes,completeBytes,porousStepBytes,enemyHeadImpactBytes,ledgeCollapseBytes])assert.equal(bytes.subarray(0,4).toString(),'RIFF');
 const oldFetch=globalThis.fetch;
-const suppliedEffects=new Map([[FLOWER_VICTORY,victoryBytes],[SPORE_BALLOON_BURST,sporeBalloonBytes],[MOTHER_PUFF_GROWL,growlBytes],[COIN_PICKUP,coinBytes],[CHECKPOINT_FLAG,checkpointBytes],[FINISH_BELL,completeBytes],[POROUS_CLAY_STEP,porousStepBytes],[ENEMY_HEAD_IMPACT,enemyHeadImpactBytes]]);
+const suppliedEffects=new Map([[FLOWER_VICTORY,victoryBytes],[SPORE_BALLOON_BURST,sporeBalloonBytes],[MOTHER_PUFF_GROWL,growlBytes],[COIN_PICKUP,coinBytes],[CHECKPOINT_FLAG,checkpointBytes],[FINISH_BELL,completeBytes],[POROUS_CLAY_STEP,porousStepBytes],[ENEMY_HEAD_IMPACT,enemyHeadImpactBytes],[LEDGE_COLLAPSE,ledgeCollapseBytes]]);
 globalThis.fetch=async url=>{const bytes=suppliedEffects.get(url);return {ok:!!bytes,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)};};
 Context.prototype.decodeAudioData=async bytes=>({duration:1,bytes});
 Context.prototype.createBufferSource=function(){const n=new Node();n.playbackRate=new Param();n.start=(...args)=>{n.started=true;n.startArgs=args;};n.stop=()=>{n.stopped=true;};(this.buffers??=[]).push(n);return n;};
@@ -186,8 +187,40 @@ assert.deepEqual(porousStep.startArgs,[0,.12,.38],'porous step uses the compact 
 interactionSound.effect('step',{surface:'stone'});assert.equal(interactionSound.ctx.buffers.length,stepSources+1,'ordinary surfaces do not use the porous-clay recording');assert.equal(interactionSound.ctx.oscillators.length,stepOscillators+1,'ordinary surfaces retain the generic footstep');
 Math.random=originalRandom;
 interactionSound.enabled=false;const mutedCount=interactionSound.ctx.buffers.length;interactionSound.effect('coin');interactionSound.effect('checkpoint');interactionSound.effect('complete');assert.equal(interactionSound.ctx.buffers.length,mutedCount,'supplied interaction sounds respect mute');
-globalThis.fetch=oldFetch;
 console.log('PASS supplied flower, spore-balloon, coin, checkpoint and finish-bell WAV playback, music duck/restore, mute and hidden-page silence');
+
+// A crumbling ledge falling apart plays the supplied granite recording.
+assert.deepEqual([ledgeCollapseBytes.readUInt16LE(22),ledgeCollapseBytes.readUInt16LE(34)],[1,16],'the cue ships folded to mono like the other effects');
+assert(ledgeCollapseBytes.length<1.1e5,`a one-second cue is not worth a stereo download: ${ledgeCollapseBytes.length} bytes`);
+const collapseSound=new Sound();collapseSound.unlock();await collapseSound.ledgeCollapseLoading;
+const collapseOscillators=collapseSound.ctx.oscillators.length;
+Math.random=()=>.5;
+collapseSound.effect('crumble-collapse',{platformId:'crumb1',x:12,y:3.5,w:2.4});
+const collapse=collapseSound.ctx.buffers?.at(-1);
+assert(collapse?.started,'a collapsing ledge starts its supplied recording');
+assert.equal(collapse.buffer,collapseSound.ledgeCollapseBuffer);
+assert.equal(collapse.output.output,collapseSound.effectsBus,'the collapse rides the effects bus, so its slider and mute reach it');
+assert.equal(collapse.output.gain.value,.26,'the collapse sits with the other impacts, below the celebration cues');
+assert.deepEqual(collapse.startArgs,[],'the rubble tail plays out instead of being clipped like the footstep');
+assert.equal(collapseSound.ctx.oscillators.length,collapseOscillators,'the recording replaces the synthesized collapse tones');
+Math.random=()=>0;collapseSound.effect('crumble-collapse');const lowestCollapse=collapseSound.ctx.buffers.at(-1).playbackRate.value;
+Math.random=()=>1;collapseSound.effect('crumble-collapse');const highestCollapse=collapseSound.ctx.buffers.at(-1).playbackRate.value;
+assert(Math.abs(lowestCollapse-.94)<1e-9&&Math.abs(highestCollapse-1.06)<1e-9,`a regrown deck breaks at a new pitch: ${lowestCollapse} to ${highestCollapse}`);
+Math.random=originalRandom;
+// Landing on a deck only arms it; the recording belongs to the break itself.
+const armed=collapseSound.ctx.buffers.length,armedOscillators=collapseSound.ctx.oscillators.length;
+collapseSound.effect('crumble',{platformId:'crumb1'});
+assert.equal(collapseSound.ctx.buffers.length,armed,'arming a deck does not fire the collapse recording');
+assert.equal(collapseSound.ctx.oscillators.length,armedOscillators+1,'the warning creak keeps its own synthesized cue');
+collapseSound.enabled=false;collapseSound.effect('crumble-collapse');
+collapseSound.enabled=true;collapseSound.setForeground(false);collapseSound.effect('crumble-collapse');
+assert.equal(collapseSound.ctx.buffers.length,armed,'collapses respect mute and a hidden page');
+// A deck breaking before the download lands is still heard.
+const earlyCollapse=new Sound();earlyCollapse.unlock();
+const earlyOscillators=earlyCollapse.ctx.oscillators.length;earlyCollapse.effect('crumble-collapse');
+assert.equal(earlyCollapse.ctx.oscillators.length,earlyOscillators+2,'a collapse before the recording arrives keeps the synthesized pair');
+console.log('PASS supplied granite ledge collapse: full rubble tail, varied pitch, effects routing, synthesized fallback, mute and hidden-page silence');
+globalThis.fetch=oldFetch;
 
 const motherSound=new Sound();motherSound.unlock();await settle();
 motherSound.update(.016,true,1);await settle();motherSound.track.currentTime=35;
