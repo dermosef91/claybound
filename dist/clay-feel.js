@@ -12,7 +12,7 @@
 // A spring with one visible overshoot: stiff enough to finish before the
 // player's next step, damped enough not to ring. Compression is capped so a
 // long fall reads as heavy without the deck appearing to fold in half.
-export const DENT=Object.freeze({stiffness:190,damping:12,kick:.2,maxCompress:.15,maxStretch:.07});
+export const DENT=Object.freeze({stiffness:190,damping:12,kick:.04,maxCompress:.03,maxStretch:.014});
 
 // Only slabs the player stands on and whose view nothing else rescales every
 // frame. Stone floors carry houses and landmarks; lifts hang from ropes; timed,

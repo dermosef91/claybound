@@ -16,9 +16,9 @@ const settle=(view,seconds,dt=1/60)=>{const trace=[];for(let t=0;t<seconds;t+=dt
   assert(view.dentV<0,'a landing pushes down');
   const trace=settle(view,1.2);
   const deepest=Math.min(...trace),highest=Math.max(...trace);
-  assert(deepest<-.04,`the slab visibly gives (${deepest.toFixed(3)})`);
+  assert(deepest<-.008,`the slab visibly gives (${deepest.toFixed(4)})`);
   assert(deepest>=-DENT.maxCompress,'but never past its compression cap');
-  assert(highest>0,`it springs back past rest once — the clay overshoot (${highest.toFixed(3)})`);
+  assert(highest>0,`it springs back past rest once — the clay overshoot (${highest.toFixed(4)})`);
   assert(highest<=DENT.maxStretch);
   const firstRest=trace.findIndex((d,i)=>i>5&&d===0);
   assert(firstRest>0&&firstRest/60<.9,`and settles in under a second (${(firstRest/60).toFixed(2)}s)`);
@@ -82,7 +82,7 @@ console.log('PASS volume is kept, the slab spreads about its centre, and only fr
   assert(land.impact>2,`with a real impact (${land.impact.toFixed(2)})`);
   const view={root:new THREE.Group()};
   assert(dentable(ledge,view));kickDent(view,{impact:land.impact,width:ledge.w,strong:land.strong});
-  assert(Math.min(...settle(view,.6))<-.02,'and that landing is enough to see the slab give');
+  assert(Math.min(...settle(view,.6))<-.004,'and that landing is enough to see the slab give');
 }
 console.log('PASS a real landing names its slab and carries enough impact to dent it');
 
