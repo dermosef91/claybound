@@ -1,10 +1,15 @@
-import {chapter,p,path} from '../route-authoring.js';
+import {chapter,makeRoom,p,path} from '../route-authoring.js';
 const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,to},...extra});
-export default chapter({
-  layoutVersion:9,
+// Two thirds of the way up, the brittle canopy gives out entirely: a tear in
+// the leaves too wide to cross. The chapter below is the route as it was walked
+// before that tear opened; everything from TEAR rightwards is pushed along by
+// GAP, and the Weaver's Gap is built into the space afterwards.
+const TEAR=192,GAP=38;
+const L=makeRoom({
+  layoutVersion:10,
   name:'The Wildwood',short:'Wildwood',label:'Bounce, burrow & bloom',biome:'forest',
   intro:'Climb the living tree. Break its sealed roots and let the forest breathe.',
-  sky:'#b2d2b7',fog:'#b7d2bc',spawn:{x:1.5,y:0},end:315,previousDistance:875,cameraY:3,
+  sky:'#b2d2b7',fog:'#b7d2bc',spawn:{x:1.5,y:0},end:315,previousDistance:1000,cameraY:3,
   boss:{kind:'mother-puff',x:303,y:33.4,left:275,right:307,triggerX:276},
   sections:[{x:-8,name:'Mushroom Choir',landmark:'mushroom'},{x:48,name:'Under the Roots',landmark:'rootarch'},{x:99,name:'The Breathing Tree',landmark:'sporepod'},{x:157,name:'Brittle Canopy',landmark:'birdhouse'},{x:213,name:'Heartwood Bloom',landmark:'mushroom'},{x:264,name:'The Still Clearing',landmark:'mushroom'}],
   platforms:[
@@ -18,7 +23,6 @@ export default chapter({
     p("choir-crown",42,6,7.8,"ledge"),
     p("root-entry",48,7,7.8,"ledge",{"checkpoint":51,"landmark":"rootarch"}),
     p("root-floor",55,12,2.6,"ledge",{"checkpoint":64,"landmark":"sporepod"}),
-    part('forest-root',{x:67,w:1.4,y:6.2,h:4.2},{x:67,w:2.2,y:2.6,h:1.2,slope:.9},{station:'forest-root',clayRole:'ramp'}),
     p("root-bridge",69,4,3.5,"ledge"),
     p("root-spring-base",75,5,3.8,"stone"),
     p("root-spring",77,1.8,4.24,"spring"),
@@ -66,7 +70,9 @@ export default chapter({
     p("clay-8",194.5,3,36.5,"ledge"),
     p("clay-9",194.75,2.25,37,"spring")
   ],
-  route:['start',['spring1','walk'],'first-bough','choir-step','choir-perch',['choir-base','fall'],['choir-spring','walk'],'choir-crown',['root-entry','walk'],['root-floor','fall'],['forest-root','walk'],['root-bridge','walk'],'root-spring-base',['root-spring','walk'],'root-upper','root-crumble','tree-foot',['tree-spring','walk'],'tree-east','tree-west',['tree-west-spring','walk'],'tree-top',['clay-1','walk'],'tree-seal',['tree-heart','drop'],'spore1','spore2','spore-crown','bird-rest',['canopy-entry','walk'],'crumb1','crumb2','canopy-rest','crumb3','crumb4','canopy-nest',['nest-spring','walk'],'bloom-entry',['bloom-spring','walk'],'bloom1','bloom-seal',['bloom-root','drop'],'bloom-rise','bloom-cloud','bloom-perch','bloom-last','heart-bell',['mother-arena','walk'],['mother-bell','boss']],
+  route:['start',['spring1','walk'],'first-bough','choir-step','choir-perch',['choir-base','fall'],['choir-spring','walk'],'choir-crown',['root-entry','walk'],['root-floor','fall'],'root-bridge','root-spring-base',['root-spring','walk'],'root-upper','root-crumble','tree-foot',['tree-spring','walk'],'tree-east','tree-west',['tree-west-spring','walk'],'tree-top',['clay-1','walk'],'tree-seal',['tree-heart','drop'],'spore1','spore2','spore-crown','bird-rest',['canopy-entry','walk'],'crumb1','crumb2','canopy-rest','crumb3','crumb4',
+    'gap-brink','weave-bough','weave-perch',['weave-spring','walk'],'weave-mound',
+    'canopy-nest',['nest-spring','walk'],'bloom-entry',['bloom-spring','walk'],'bloom1','bloom-seal',['bloom-root','drop'],'bloom-rise','bloom-cloud','bloom-perch','bloom-last','heart-bell',['mother-arena','walk'],['mother-bell','boss']],
   detours:[path(['bloom1','clay-5','clay-6','clay-7','clay-8',['clay-9','walk'],['bloom-entry','fall'],['bloom-spring','walk'],'bloom1'])],
   recoveries:[path(['bloom-root','clay-4','bloom1'])],
   winds:[{"x":60,"y":0,"w":6,"h":7,"fx":0,"fy":16,"id":"root-breath","channel":"root-a","spores":true},{"x":126,"y":13,"w":14,"h":11,"fx":0,"fy":19,"id":"heart-breath","channel":"tree-spores","spores":true},{"x":231,"y":23,"w":14,"h":12,"fx":0,"fy":19,"id":"bloom-breath","channel":"bloom-spores","spores":true}],
@@ -80,14 +86,44 @@ export default chapter({
     {kind:'spore',x:196.5,y:20.5,min:195.1,max:197.3,speed:.55}
   ],
   hazards:[{"x":11,"y":-4,"w":22},{"x":67,"y":-1,"w":8},{"x":80,"y":3,"w":16},{"x":104,"y":3.8,"w":12},{"x":231,"y":19,"w":26.5}],
-  shaping:[
-    // A swollen root at the end of the root floor. The canyon taught pressing
-    // down; this one is pulled sideways, and stretches into the ramp out.
-    {id:'forest-root',icon:'ramp',name:'Pull the root out',verb:'Pull right',gesture:'right',parts:['forest-root'],x:55,end:72,
-     spawn:{x:60,y:2.6,groundId:'root-floor'},
-     hint:'Pull the violet root to the right to stretch a ramp. Or hold E / KNEAD.'}
-  ],
+  shaping:[],
   hints:[{x:0,end:11,icon:'mushroom',title:'Mushroom bounce',text:'Land on the orange target to jump higher.'},
-    {x:60,end:72,icon:'ramp',title:'Pull the clay',text:'Drag the violet root sideways, or hold E, to stretch it.',touchText:'Drag the violet root sideways to stretch it.'},{x:115,end:126,y:13,icon:'balloon',title:'Spore balloon',text:'Stomp the balloon. Spores lift you up.'}],
+    {x:115,end:126,y:13,icon:'balloon',title:'Spore balloon',text:'Stomp the balloon. Spores lift you up.'}],
   guides:[{platformId:'tree-east',offset:1,dir:-1},{platformId:'tree-west',offset:2.7,dir:1},{platformId:'tree-top',offset:4.5,dir:1}]
-});
+},TEAR,GAP);
+
+// --- The Weaver's Gap (192 – 232) --------------------------------------------
+// The canopy has torn open and the far side is forty units away, with nothing
+// under it but the forest floor. Two pieces of clay, each worked on its own,
+// and neither gains or loses any clay: what gets longer gets thinner. A bough
+// stub on the brink is pulled out into the first half of the crossing. The
+// second half is a mushroom bounce onto a mound that is far too tall to land
+// on — so it has to be squashed flat from across the gap before you jump.
+L.platforms.push(
+  p('gap-brink',192,4.5,21.6,'ledge',{landmark:'birdhouse'}),
+  p('bough-stump',196.5,2.2,21.6,'wall',{h:4}),
+  part('weave-bough',{x:196.5,w:2.2,y:27.6,h:6},{x:196.5,w:13,y:22.6,h:1.015},{station:'weave-bough',clayRole:'bridge'}),
+  p('weave-perch',211,5.5,23.4,'ledge',{checkpoint:212,landmark:'sporepod',rest:true}),
+  p('weave-spring',214.5,1.8,23.84,'spring'),
+  p('mound-stump',222.7,.6,23.5,'wall',{h:4}),
+  part('weave-mound',{x:222.2,w:1.6,y:30.06,h:6.56},{x:219,w:8,y:24.81,h:1.31},{station:'weave-mound',clayRole:'landing'})
+);
+L.sections.splice(4,0,{x:TEAR,name:"The Weaver's Gap",landmark:'birdhouse'});
+L.shaping.push(
+  {id:'weave-bough',icon:'bridge',name:'Draw out the bough',verb:'Pull right',gesture:'right',parts:['weave-bough'],x:192,end:210.5,
+   spawn:{x:194,y:21.6,groundId:'gap-brink'},
+   hint:'Pull the violet bough to the right until it reaches across. Drag it, or hold E / KNEAD.'},
+  // Worked from the perch, across the gap: the one piece of clay in the game
+  // you have to finish before you can reach it.
+  {id:'weave-mound',icon:'landing',name:'Squash the far mound',verb:'Press down',gesture:'down',parts:['weave-mound'],x:210.5,end:231,
+   spawn:{x:212,y:23.4,groundId:'weave-perch'},
+   hint:'Press the far mound flat before you bounce. Drag it down, or hold E / KNEAD, from the perch.'}
+);
+L.hints.push(
+  {x:192,end:210.5,icon:'bridge',title:'Draw out the bough',text:'Drag the violet bough right, or hold E, until it spans the tear.',touchText:'Drag the violet bough right until it spans the tear.'},
+  {x:210.5,end:231,icon:'landing',title:'Land where you shaped',text:'Press the far mound flat first, then bounce onto it.',touchText:'Press the far mound flat first, then bounce onto it.'}
+);
+// The tear goes all the way down to the forest floor.
+L.hazards.push({x:196.5,w:35,y:12});
+L.coins.push({x:194.25,y:23},{x:200,y:24},{x:204.5,y:24},{x:209,y:24},{x:217.75,y:28.6},{x:221,y:29.8},{x:223.5,y:26.4});
+export default chapter(L);

@@ -1,12 +1,17 @@
-import {chapter,p} from '../route-authoring.js';
+import {chapter,makeRoom,p} from '../route-authoring.js';
 const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,to},...extra});
-export default chapter({
-  layoutVersion:9,
+// A fifth of the way in, the tunnel out of the spark hub opens into a kiln
+// shaft. The chapter below is the route as it was walked before that shaft
+// existed; everything from KILN rightwards is pushed along by GAP, and the
+// Kiln Stair is built into the space afterwards.
+const KILN=59,GAP=34;
+const L=makeRoom({
+  layoutVersion:10,
   name:"The Ember Caverns",short:"Ember Caverns",label:"Wake the heart of the mountain",biome:"cave",
   intro:"Follow the light cables. The way forward sometimes begins above — or below.",sky:"#253c57",fog:"#496d91",spawn:{
   "x": 1.5,
   "y": 0
-},end:292,previousDistance:965,cameraY:3,
+},end:292,previousDistance:1080,cameraY:3,
   sections:[
   {
     "x": -8,
@@ -14,7 +19,7 @@ export default chapter({
     "landmark": "beacon"
   },
   {
-    "x": 57,
+    "x": 59.75,
     "name": "The Furnace Ferry",
     "landmark": "kiln"
   },
@@ -56,7 +61,6 @@ export default chapter({
     "id": "spark-hub",
     "kind": "stone"
   },
-    part('cave-plug',{x:42,w:1.4,y:3.3,h:3.3},{x:42,w:2.7,y:.5,h:1.4},{station:'cave-plug',clayRole:'bridge'}),
   {
     "x": 24.5,
     "y": 3.7,
@@ -549,7 +553,7 @@ export default chapter({
   {
     "x": 37.25,
     "y": 19.75,
-    "w": 30,
+    "w": 64,
     "h": 11.25,
     "id": "clay-7-copy-1",
     "kind": "wall"
@@ -887,13 +891,7 @@ export default chapter({
     "kind": "stone"
   }
 ],
-  shaping:[
-    // The third gesture, and the last one chapter four needs the player to know:
-    // a pillar across the tunnel mouth that is spread outward until it is floor.
-    {id:'cave-plug',icon:'landing',name:'Spread the pillar',verb:'Pull outward',gesture:'out',parts:['cave-plug'],x:34,end:48,
-     spawn:{x:38,y:0,groundId:'spark-hub'},
-     hint:'Pull either edge of the violet pillar outward until it is floor. Or hold E / KNEAD.'}
-  ],
+  shaping:[],
   routeLinks:[
   {
     "from": "start",
@@ -932,11 +930,6 @@ export default chapter({
   },
   {
     "from": "spark-hub",
-    "to": "cave-plug",
-    "mode": "jump"
-  },
-  {
-    "from": "cave-plug",
     "to": "clay-2",
     "mode": "jump"
   },
@@ -950,11 +943,15 @@ export default chapter({
     "to": "clay-2-copy-1-copy-1-copy-1",
     "mode": "jump"
   },
-  {
-    "from": "clay-2-copy-1-copy-1-copy-1",
-    "to": "ferry-dock",
-    "mode": "jump"
-  },
+  {"from":"clay-2-copy-1-copy-1-copy-1","to":"kiln-floor","mode":"jump"},
+  {"from":"kiln-floor","to":"kiln-ledge","mode":"walk"},
+  {"from":"kiln-ledge","to":"kiln-tower","mode":"fall"},
+  {"from":"kiln-tower","to":"kiln-tunnel","mode":"walk"},
+  {"from":"kiln-tunnel","to":"kiln-plug","mode":"walk"},
+  {"from":"kiln-plug","to":"kiln-run","mode":"jump"},
+  {"from":"kiln-run","to":"kiln-step","mode":"jump"},
+  {"from":"kiln-step","to":"kiln-sill","mode":"jump"},
+  {"from":"kiln-sill","to":"ferry-dock","mode":"jump"},
   {
     "from": "ferry-dock",
     "to": "furnace-ferry",
@@ -1636,7 +1633,6 @@ export default chapter({
   }
 ],
   hints:[
-    {x:34,end:48,icon:'landing',title:'Spread the clay',text:'Drag either edge of the violet clay outward, or hold E.',touchText:'Drag either edge of the violet clay outward.'},
   {
     "x": 24,
     "end": 32,
@@ -1645,7 +1641,7 @@ export default chapter({
     "text": "The switch above opens the gate."
   },
   {
-    "x": 58,
+    "x": 59.75,
     "end": 67,
     "icon": "ferry",
     "title": "Steer the ferry",
@@ -1683,4 +1679,43 @@ export default chapter({
     "dir": -1
   }
 ]
-});
+},KILN,GAP);
+
+// --- The Kiln (57 – 93) -----------------------------------------------------
+// Two pieces of clay, each worked on its own, and neither gains or loses any
+// clay: what gets wider gets lower. The way on runs under a rock lintel far
+// below the tunnel mouth, and a clay tower stands hard against that rock and
+// seals it. Climb on and press it, and it squats back away from the lintel into
+// the kiln floor with you still standing on it — its rock-side face never moves,
+// so the ride can only ever carry you away from the rock, never into it.
+// Under the lintel a second lump fills the tunnel from floor to rock; there is
+// no going over it, so it is spread flat and walked across.
+L.platforms.push(
+  p('kiln-floor',59,6,-1.75,'stone',{checkpoint:61,landmark:'kiln'}),
+  p('kiln-ledge',65,5,-1.75,'ledge'),
+  p('tower-foot',71.6,2.4,-8.6,'wall',{h:6}),
+  part('kiln-tower',{x:71.6,w:2.4,y:-.35,h:8.25},{x:65,w:9,y:-6.4,h:2.2},{station:'kiln-tower',clayRole:'stairs'}),
+  p('kiln-lintel',74.5,9.5,8.5,'wall',{h:12.8}),
+  p('kiln-tunnel',74.3,2.2,-6.4,'stone'),
+  p('plug-foot',77,2,-7.2,'wall',{h:5}),
+  part('kiln-plug',{x:77,w:2,y:-4.4,h:2.8},{x:74.5,w:7,y:-6.4,h:.8},{station:'kiln-plug',clayRole:'landing'}),
+  p('kiln-run',82,4.5,-6.4,'stone'),
+  p('kiln-step',87,2.5,-4.2,'ledge'),
+  p('kiln-sill',90.5,2.4,-2.1,'ledge')
+);
+L.sections.splice(1,0,{x:57,name:'The Kiln',landmark:'kiln'});
+L.shaping.push(
+  {id:'kiln-tower',icon:'stairs',name:'Ride the tower down',verb:'Press down',gesture:'down',parts:['kiln-tower'],x:59,end:74.3,
+   spawn:{x:62,y:-1.75,groundId:'kiln-floor'},
+   hint:'Stand on the violet tower and press it down. Hold E / KNEAD, drag it, or stomp — it takes you with it.'},
+  {id:'kiln-plug',icon:'landing',name:'Flatten the plug',verb:'Pull outward',gesture:'out',parts:['kiln-plug'],x:74.3,end:86,
+   spawn:{x:75.4,y:-6.4,groundId:'kiln-tunnel'},
+   hint:'The lump fills the tunnel. Pull it apart until it lies flat, then walk over it. Or hold E / KNEAD.'}
+);
+L.hints.push(
+  {x:59,end:74.3,icon:'stairs',title:'Ride it down',text:'Stand on the tower and press it down. Hold E, drag it, or stomp.',touchText:'Stand on the tower and press it down. Drag it, or stomp.'},
+  {x:74.3,end:86,icon:'landing',title:'Flatten it',text:'Drag the plug apart, or hold E, until it lies flat.',touchText:'Drag the plug apart until it lies flat.'}
+);
+L.hazards.push({x:65,w:28.75,y:-12});
+L.coins.push({x:62,y:-.4},{x:67.5,y:-.4},{x:72.8,y:1.3},{x:72,y:-4.9},{x:78,y:-4.9},{x:84,y:-4.9},{x:88.25,y:-2.7},{x:91.7,y:-.6});
+export default chapter(L);

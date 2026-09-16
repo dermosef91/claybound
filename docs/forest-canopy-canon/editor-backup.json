@@ -2,9 +2,9 @@
   "format": "claybound-level",
   "version": 1,
   "chapter": 1,
-  "baseVersion": 5,
+  "baseVersion": 10,
   "level": {
-    "layoutVersion": "editor-5-gns96z",
+    "layoutVersion": "editor-10-i8qe38",
     "winds": [
       {
         "x": 60,
@@ -29,7 +29,7 @@
         "spores": true
       },
       {
-        "x": 231,
+        "x": 269,
         "y": 23,
         "w": 14,
         "h": 12,
@@ -78,7 +78,50 @@
         "dir": 1
       }
     ],
-    "detours": [],
+    "detours": [
+      [
+        {
+          "from": "bloom1",
+          "to": "clay-5",
+          "mode": "jump"
+        },
+        {
+          "from": "clay-5",
+          "to": "clay-6",
+          "mode": "jump"
+        },
+        {
+          "from": "clay-6",
+          "to": "clay-7",
+          "mode": "jump"
+        },
+        {
+          "from": "clay-7",
+          "to": "clay-8",
+          "mode": "jump"
+        },
+        {
+          "from": "clay-8",
+          "to": "clay-9",
+          "mode": "walk"
+        },
+        {
+          "from": "clay-9",
+          "to": "bloom-entry",
+          "mode": "fall"
+        },
+        {
+          "from": "bloom-entry",
+          "to": "bloom-spring",
+          "mode": "walk"
+        },
+        {
+          "from": "bloom-spring",
+          "to": "bloom1",
+          "mode": "jump"
+        }
+      ]
+    ],
     "recoveries": [
       [
         {
@@ -104,8 +147,8 @@
       "x": 1.5,
       "y": 0
     },
-    "end": 264,
-    "previousDistance": 875,
+    "end": 302,
+    "previousDistance": 1000,
     "cameraY": 3,
     "sections": [
       {
@@ -134,14 +177,28 @@
         "name": "Brittle Canopy",
         "landmark": "birdhouse",
         "id": 3,
-        "end": 213
+        "end": 192
       },
       {
-        "x": 213,
+        "x": 192,
+        "name": "The Weaver's Gap",
+        "landmark": "birdhouse",
+        "id": 4,
+        "end": 251
+      },
+      {
+        "x": 251,
         "name": "Heartwood Bloom",
         "landmark": "mushroom",
-        "id": 4,
-        "end": 272
+        "id": 5,
+        "end": 302
+      },
+      {
+        "x": 302,
+        "name": "The Still Clearing",
+        "landmark": "mushroom",
+        "id": 6,
+        "end": 361
       }
     ],
     "platforms": [
@@ -228,31 +285,6 @@
         "id": "root-floor",
         "landmark": "sporepod",
         "kind": "ledge",
-        "section": 1
-      },
-      {
-        "id": "forest-root",
-        "x": 67,
-        "w": 1.4,
-        "y": 6.2,
-        "kind": "clay",
-        "shape": {
-          "from": {
-            "x": 67,
-            "w": 1.4,
-            "y": 6.2,
-            "h": 4.2
-          },
-          "to": {
-            "x": 67,
-            "w": 2.2,
-            "y": 2.6,
-            "h": 1.2,
-            "slope": 0.9
-          }
-        },
-        "station": "forest-root",
-        "clayRole": "ramp",
         "section": 1
       },
       {
@@ -454,102 +486,102 @@
         "section": 3
       },
       {
-        "x": 194,
+        "x": 232,
         "y": 20.5,
         "w": 6,
         "id": "canopy-nest",
         "landmark": "birdhouse",
         "kind": "ledge",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 198,
+        "x": 236,
         "y": 20.94,
         "w": 1.8,
         "id": "nest-spring",
         "kind": "spring",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 204,
+        "x": 242,
         "y": 25,
         "w": 9,
-        "checkpoint": 208,
+        "checkpoint": 246,
         "id": "bloom-entry",
         "landmark": "mushroom",
-        "kind": "ledge",
-        "section": 3
-      },
-      {
-        "x": 211,
-        "y": 25.44,
-        "w": 1.8,
-        "id": "bloom-spring",
-        "kind": "spring",
-        "section": 3
-      },
-      {
-        "x": 217,
-        "y": 29.8,
-        "w": 4.2,
-        "id": "bloom1",
         "kind": "ledge",
         "section": 4
       },
       {
-        "x": 223.2,
+        "x": 249,
+        "y": 25.44,
+        "w": 1.8,
+        "id": "bloom-spring",
+        "kind": "spring",
+        "section": 4
+      },
+      {
+        "x": 255,
+        "y": 29.8,
+        "w": 4.2,
+        "id": "bloom1",
+        "kind": "ledge",
+        "section": 5
+      },
+      {
+        "x": 261.2,
         "y": 29.8,
         "w": 4,
         "id": "bloom-seal",
         "releases": "bloom-spores",
         "kind": "break",
-        "section": 4
+        "section": 5
       },
       {
-        "x": 223,
+        "x": 261,
         "y": 24.5,
         "w": 8,
-        "checkpoint": 229,
+        "checkpoint": 267,
         "id": "bloom-root",
         "landmark": "sporepod",
         "kind": "ledge",
-        "section": 4
+        "section": 5
       },
       {
-        "x": 233,
+        "x": 271,
         "y": 26.3,
         "w": 4,
         "id": "bloom-rise",
         "kind": "ledge",
-        "section": 4
+        "section": 5
       },
       {
-        "x": 239,
+        "x": 277,
         "y": 30.8,
         "w": 4,
         "delay": 1.2,
         "id": "bloom-cloud",
         "kind": "crumble",
-        "section": 4
+        "section": 5
       },
       {
-        "x": 245,
+        "x": 283,
         "y": 32.3,
         "w": 5,
         "id": "bloom-perch",
         "kind": "ledge",
-        "section": 4
+        "section": 5
       },
       {
-        "x": 252,
+        "x": 290,
         "y": 33.4,
         "w": 3.5,
         "id": "bloom-last",
         "kind": "ledge",
-        "section": 4
+        "section": 5
       },
       {
-        "x": 257.5,
+        "x": 295.5,
         "y": 33.4,
         "w": 14,
         "bellX": 6.5,
@@ -557,7 +589,7 @@
         "landmark": "bellgate",
         "goal": true,
         "kind": "ledge",
-        "section": 4
+        "section": 5
       },
       {
         "x": 112.5,
@@ -576,63 +608,157 @@
         "section": 2
       },
       {
-        "x": 219,
+        "x": 257,
         "y": 26,
         "w": 3.25,
         "id": "clay-3",
         "kind": "ledge",
-        "section": 4
+        "section": 5
       },
       {
-        "x": 219.5,
+        "x": 257.5,
         "y": 26.5,
         "w": 2,
         "id": "clay-4",
         "kind": "spring",
-        "section": 4
+        "section": 5
       },
       {
-        "x": 210.5,
+        "x": 248.5,
         "y": 32,
         "w": 2.5,
         "delay": 0.35,
         "id": "clay-5",
         "kind": "crumble",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 205.25,
+        "x": 243.25,
         "y": 33,
         "w": 2.25,
         "delay": 0.35,
         "id": "clay-6",
         "kind": "crumble",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 199.75,
+        "x": 237.75,
         "y": 34.75,
         "w": 2.5,
         "delay": 0.35,
         "id": "clay-7",
         "kind": "crumble",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 194.5,
+        "x": 232.5,
         "y": 36.5,
         "w": 3,
         "id": "clay-8",
         "kind": "ledge",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 194.75,
+        "x": 232.75,
         "y": 37,
         "w": 2.25,
         "id": "clay-9",
         "kind": "spring",
-        "section": 3
+        "section": 4
+      },
+      {
+        "x": 192,
+        "y": 21.6,
+        "w": 4.5,
+        "id": "gap-brink",
+        "landmark": "birdhouse",
+        "kind": "ledge",
+        "section": 4
+      },
+      {
+        "x": 196.5,
+        "y": 21.6,
+        "w": 2.2,
+        "h": 4,
+        "id": "bough-stump",
+        "kind": "wall",
+        "section": 4
+      },
+      {
+        "x": 196.5,
+        "y": 27.6,
+        "w": 2.2,
+        "shape": {
+          "from": {
+            "x": 196.5,
+            "y": 27.6,
+            "w": 2.2,
+            "h": 6
+          },
+          "to": {
+            "x": 196.5,
+            "y": 22.6,
+            "w": 13,
+            "h": 1.015
+          }
+        },
+        "station": "weave-bough",
+        "clayRole": "bridge",
+        "id": "weave-bough",
+        "kind": "clay",
+        "section": 4
+      },
+      {
+        "x": 211,
+        "y": 23.4,
+        "w": 5.5,
+        "checkpoint": 212,
+        "id": "weave-perch",
+        "landmark": "sporepod",
+        "rest": true,
+        "kind": "ledge",
+        "section": 4
+      },
+      {
+        "x": 214.5,
+        "y": 23.84,
+        "w": 1.8,
+        "id": "weave-spring",
+        "kind": "spring",
+        "section": 4
+      },
+      {
+        "x": 222.7,
+        "y": 23.5,
+        "w": 0.6,
+        "h": 4,
+        "id": "mound-stump",
+        "kind": "wall",
+        "section": 4
+      },
+      {
+        "x": 222.2,
+        "y": 30.06,
+        "w": 1.6,
+        "shape": {
+          "from": {
+            "x": 222.2,
+            "y": 30.06,
+            "w": 1.6,
+            "h": 6.56
+          },
+          "to": {
+            "x": 219,
+            "y": 24.81,
+            "w": 8,
+            "h": 1.31
+          }
+        },
+        "station": "weave-mound",
+        "clayRole": "landing",
+        "id": "weave-mound",
+        "kind": "clay",
+        "section": 4
       }
     ],
     "coins": [
@@ -745,52 +871,80 @@
         "y": 23.5
       },
       {
-        "x": 212.25,
+        "x": 250.25,
         "y": 28
       },
       {
-        "x": 215,
+        "x": 253,
         "y": 31
       },
       {
-        "x": 217.83333333333334,
+        "x": 255.83333333333334,
         "y": 30.633333333333333
       },
       {
-        "x": 225.25,
+        "x": 263.25,
         "y": 30.75
       },
       {
-        "x": 235.75,
+        "x": 273.75,
         "y": 29.5
       },
       {
-        "x": 237.25,
+        "x": 275.25,
         "y": 31.5
       },
       {
-        "x": 238.75,
+        "x": 276.75,
         "y": 33
       },
       {
-        "x": 258,
+        "x": 296,
         "y": 34.4
       },
       {
-        "x": 259.1,
+        "x": 297.1,
         "y": 34.4
       },
       {
-        "x": 260.2,
+        "x": 298.2,
         "y": 34.4
       },
       {
-        "x": 261.3,
+        "x": 299.3,
         "y": 34.4
       },
       {
-        "x": 262.4,
+        "x": 300.4,
         "y": 34.4
+      },
+      {
+        "x": 194.25,
+        "y": 23
+      },
+      {
+        "x": 200,
+        "y": 24
+      },
+      {
+        "x": 204.5,
+        "y": 24
+      },
+      {
+        "x": 209,
+        "y": 24
+      },
+      {
+        "x": 217.75,
+        "y": 28.6
+      },
+      {
+        "x": 221,
+        "y": 29.8
+      },
+      {
+        "x": 223.5,
+        "y": 26.4
       }
     ],
     "stamps": [
@@ -799,7 +953,7 @@
         "y": 25
       },
       {
-        "x": 195.75,
+        "x": 233.75,
         "y": 43
       }
     ],
@@ -829,11 +983,11 @@
         "kind": "spore"
       },
       {
-        "x": 196.5,
+        "x": 234.5,
         "y": 20.5,
         "speed": 0.55,
-        "min": 195.1,
-        "max": 197.3,
+        "min": 233.1,
+        "max": 235.3,
         "kind": "spore"
       }
     ],
@@ -859,24 +1013,47 @@
         "w": 12
       },
       {
-        "x": 231,
+        "x": 269,
         "y": 19,
         "w": 26.5
+      },
+      {
+        "x": 196.5,
+        "y": 12,
+        "w": 35
       }
     ],
     "hints": [
       {
         "x": 0,
         "end": 11,
-        "title": "Play the mushroom",
-        "text": "Run onto the orange target. Hold jump for the highest bounce."
+        "icon": "mushroom",
+        "title": "Mushroom bounce",
+        "text": "Land on the orange target to jump higher."
       },
       {
         "x": 115,
         "end": 126,
         "y": 13,
-        "title": "Let the tree breathe",
-        "text": "Stomp the golden spore balloon above. Released spores carry the next climb."
+        "icon": "balloon",
+        "title": "Spore balloon",
+        "text": "Stomp the balloon. Spores lift you up."
+      },
+      {
+        "x": 192,
+        "end": 210.5,
+        "icon": "bridge",
+        "title": "Draw out the bough",
+        "text": "Drag the violet bough right, or hold E, until it spans the tear.",
+        "touchText": "Drag the violet bough right until it spans the tear."
+      },
+      {
+        "x": 210.5,
+        "end": 231,
+        "icon": "landing",
+        "title": "Land where you shaped",
+        "text": "Press the far mound flat first, then bounce onto it.",
+        "touchText": "Press the far mound flat first, then bounce onto it."
       }
     ],
     "routeLinks": [
@@ -927,13 +1104,8 @@
       },
       {
         "from": "root-floor",
-        "to": "forest-root",
-        "mode": "walk"
-      },
-      {
-        "from": "forest-root",
         "to": "root-bridge",
-        "mode": "walk"
+        "mode": "jump"
       },
       {
         "from": "root-bridge",
@@ -1052,6 +1224,31 @@
       },
       {
         "from": "crumb4",
+        "to": "gap-brink",
+        "mode": "jump"
+      },
+      {
+        "from": "gap-brink",
+        "to": "weave-bough",
+        "mode": "jump"
+      },
+      {
+        "from": "weave-bough",
+        "to": "weave-perch",
+        "mode": "jump"
+      },
+      {
+        "from": "weave-perch",
+        "to": "weave-spring",
+        "mode": "walk"
+      },
+      {
+        "from": "weave-spring",
+        "to": "weave-mound",
+        "mode": "jump"
+      },
+      {
+        "from": "weave-mound",
         "to": "canopy-nest",
         "mode": "jump"
       },
@@ -1111,26 +1308,42 @@
         "mode": "jump"
       }
     ],
-    "originalDistance": 87.5,
+    "originalDistance": 100,
     "custom": true,
     "shaping": [
       {
-        "id": "forest-root",
-        "icon": "ramp",
-        "name": "Pull the root out",
+        "id": "weave-bough",
+        "name": "Draw out the bough",
         "verb": "Pull right",
         "gesture": "right",
         "parts": [
-          "forest-root"
+          "weave-bough"
         ],
-        "x": 55,
-        "end": 72,
+        "x": 192,
+        "end": 210.5,
         "spawn": {
-          "x": 60,
-          "y": 2.6,
-          "groundId": "root-floor"
+          "x": 194,
+          "y": 21.6,
+          "groundId": "gap-brink"
         },
-        "hint": "Pull the violet root to the right to stretch a ramp. Or hold E / KNEAD."
+        "hint": "Pull the violet bough to the right until it reaches across. Drag it, or hold E / KNEAD."
+      },
+      {
+        "id": "weave-mound",
+        "name": "Squash the far mound",
+        "verb": "Press down",
+        "gesture": "down",
+        "parts": [
+          "weave-mound"
+        ],
+        "x": 210.5,
+        "end": 231,
+        "spawn": {
+          "x": 212,
+          "y": 23.4,
+          "groundId": "weave-perch"
+        },
+        "hint": "Press the far mound flat before you bounce. Drag it down, or hold E / KNEAD, from the perch."
       }
     ]
   }

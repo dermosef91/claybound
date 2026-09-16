@@ -2,13 +2,13 @@
   "format": "claybound-level",
   "version": 1,
   "chapter": 2,
-  "baseVersion": 7,
+  "baseVersion": 10,
   "level": {
-    "layoutVersion": "editor-7-bcx3jv",
+    "layoutVersion": "editor-10-14jh7cf",
     "winds": [],
     "crushers": [
       {
-        "x": 77,
+        "x": 111,
         "y": 5.2,
         "w": 2,
         "period": 5.4,
@@ -17,7 +17,7 @@
         "holdChannel": "press-a"
       },
       {
-        "x": 88,
+        "x": 122,
         "y": 5.2,
         "w": 2,
         "period": 5.4,
@@ -27,7 +27,7 @@
         "holdChannel": "press-a"
       },
       {
-        "x": 94,
+        "x": 128,
         "y": 5.25,
         "w": 2,
         "period": 5.4,
@@ -234,8 +234,8 @@
       "x": 1.5,
       "y": 0
     },
-    "end": 292,
-    "previousDistance": 965,
+    "end": 326,
+    "previousDistance": 1080,
     "cameraY": 3,
     "sections": [
       {
@@ -247,39 +247,46 @@
       },
       {
         "x": 57,
-        "name": "The Furnace Ferry",
+        "name": "The Kiln",
         "landmark": "kiln",
         "id": 1,
-        "end": 112
+        "end": 93.75
       },
       {
-        "x": 112,
+        "x": 93.75,
+        "name": "The Furnace Ferry",
+        "landmark": "kiln",
+        "id": 2,
+        "end": 146
+      },
+      {
+        "x": 146,
         "name": "The Turning Heart",
         "landmark": "pulsedrum",
-        "id": 2,
-        "end": 163
+        "id": 3,
+        "end": 197
       },
       {
-        "x": 163,
+        "x": 197,
         "name": "The Sunken Relay",
         "landmark": "crystal",
         "quiet": true,
-        "id": 3,
-        "end": 221
+        "id": 4,
+        "end": 255
       },
       {
-        "x": 221,
+        "x": 255,
         "name": "The Spitters’ Gallery",
         "landmark": "crystal",
-        "id": 4,
-        "end": 253
+        "id": 5,
+        "end": 287
       },
       {
-        "x": 253,
+        "x": 287,
         "name": "The Last Light",
         "landmark": "bellgate",
-        "id": 5,
-        "end": 300
+        "id": 6,
+        "end": 334
       }
     ],
     "platforms": [
@@ -298,30 +305,6 @@
         "w": 24,
         "id": "spark-hub",
         "kind": "stone",
-        "section": 0
-      },
-      {
-        "id": "cave-plug",
-        "x": 42,
-        "w": 1.4,
-        "y": 3.3,
-        "kind": "clay",
-        "shape": {
-          "from": {
-            "x": 42,
-            "w": 1.4,
-            "y": 3.3,
-            "h": 3.3
-          },
-          "to": {
-            "x": 42,
-            "w": 2.7,
-            "y": 0.5,
-            "h": 1.4
-          }
-        },
-        "station": "cave-plug",
-        "clayRole": "bridge",
         "section": 0
       },
       {
@@ -353,54 +336,54 @@
         "section": 0
       },
       {
-        "x": 59.75,
+        "x": 93.75,
         "y": 0,
         "w": 7.25,
-        "checkpoint": 62,
+        "checkpoint": 96,
         "id": "ferry-dock",
         "landmark": "kiln",
         "kind": "stone",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 66,
+        "x": 100,
         "y": 0,
         "w": 5,
         "travel": 26,
         "speed": 3.2,
         "id": "furnace-ferry",
         "kind": "ferry",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 97,
+        "x": 131,
         "y": 0,
         "w": 3.5,
-        "checkpoint": 98.25,
+        "checkpoint": 132.25,
         "id": "ferry-exit",
         "landmark": "beacon",
         "kind": "stone",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 112.75,
+        "x": 146.75,
         "y": 0,
         "w": 10.25,
         "id": "heart-entry",
         "landmark": "pulsedrum",
         "kind": "stone",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 124.75,
+        "x": 158.75,
         "y": 0.75,
         "w": 4,
         "id": "heart-boarding",
         "kind": "ledge",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 132,
+        "x": 166,
         "y": 6,
         "w": 3.4,
         "moveX": 5.4,
@@ -409,10 +392,10 @@
         "phase": -1.5707963267948966,
         "id": "heart-paddle",
         "kind": "orbit",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 132,
+        "x": 166,
         "y": 6,
         "w": 3.4,
         "moveX": 5.4,
@@ -421,84 +404,84 @@
         "phase": 1.5707963267948966,
         "id": "heart-paddle-back",
         "kind": "orbit",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 152,
+        "x": 186,
         "y": 10,
         "w": 5.5,
         "id": "heart-balcony",
         "landmark": "beacon",
         "kind": "ledge",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 154.25,
+        "x": 188.25,
         "y": 16,
         "w": 1.8,
         "id": "heart-relay",
         "channel": "heart-lock",
         "latch": true,
         "kind": "switch",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 153.25,
+        "x": 187.25,
         "y": 15.75,
         "w": 3.25,
         "id": "heart-descent",
         "kind": "ledge",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 157.75,
+        "x": 191.75,
         "y": 0,
         "w": 5.25,
         "id": "heart-floor",
         "kind": "stone",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 158.1,
+        "x": 192.1,
         "y": 16.25,
         "w": 2.75,
         "h": 6,
         "id": "heart-gate",
         "channel": "heart-lock",
         "kind": "gate",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 163,
+        "x": 197,
         "y": 0,
         "w": 11,
         "id": "vault-entry",
         "landmark": "crystal",
         "rest": true,
         "kind": "stone",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 174,
+        "x": 208,
         "y": 0,
         "w": 2.25,
-        "checkpoint": 175.125,
+        "checkpoint": 209.125,
         "id": "sluice-hatch",
         "kind": "ledge",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 204,
+        "x": 238,
         "y": 12.75,
         "w": 2.75,
         "id": "sluice-relay",
         "channel": "sluice-lock",
         "latch": true,
         "kind": "switch",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 186,
+        "x": 220,
         "y": 1.5,
         "w": 4,
         "moveY": 4.7,
@@ -506,144 +489,144 @@
         "phase": -1.5707963267948966,
         "id": "sluice-lift",
         "kind": "lift",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 191,
+        "x": 225,
         "y": 5,
         "w": 8,
-        "checkpoint": 194,
+        "checkpoint": 228,
         "id": "sluice-balcony",
         "landmark": "crystal",
         "kind": "ledge",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 181.25,
+        "x": 215.25,
         "y": 6.75,
         "w": 4,
         "id": "sluice-branch",
         "optional": true,
         "kind": "ledge",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 171,
+        "x": 205,
         "y": 9.75,
         "w": 3.5,
         "id": "sluice-flower",
         "optional": true,
         "kind": "ledge",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 210.75,
+        "x": 244.75,
         "y": 4.75,
         "w": 10,
         "id": "sluice-floor",
         "kind": "stone",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 209,
+        "x": 243,
         "y": 16,
         "w": 1.6,
         "h": 5,
         "id": "sluice-gate",
         "channel": "sluice-lock",
         "kind": "gate",
-        "section": 3
-      },
-      {
-        "x": 221,
-        "y": 3,
-        "w": 10,
-        "checkpoint": 226,
-        "id": "gallery-entry",
-        "landmark": "crystal",
-        "kind": "stone",
         "section": 4
       },
       {
-        "x": 234,
+        "x": 255,
+        "y": 3,
+        "w": 10,
+        "checkpoint": 260,
+        "id": "gallery-entry",
+        "landmark": "crystal",
+        "kind": "stone",
+        "section": 5
+      },
+      {
+        "x": 268,
         "y": 1.8,
         "w": 4,
         "delay": 1,
         "id": "gallery-crumble",
         "kind": "crumble",
-        "section": 4
+        "section": 5
       },
       {
-        "x": 240,
+        "x": 274,
         "y": 1.8,
         "w": 8,
         "id": "gallery-watch",
         "kind": "stone",
-        "section": 4
+        "section": 5
       },
       {
-        "x": 250,
+        "x": 284,
         "y": 0.4,
         "w": 7,
-        "checkpoint": 254,
+        "checkpoint": 288,
         "id": "gallery-out",
         "kind": "stone",
-        "section": 4
+        "section": 5
       },
       {
-        "x": 258,
+        "x": 292,
         "y": 2,
         "w": 4,
         "id": "last-step",
         "kind": "ledge",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 253,
+        "x": 287,
         "y": 3.8,
         "w": 4,
         "id": "last-turn",
         "kind": "ledge",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 259,
+        "x": 293,
         "y": 5.6,
         "w": 6.5,
         "id": "last-relay-floor",
         "landmark": "beacon",
         "kind": "ledge",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 274,
+        "x": 308,
         "y": 5.5,
         "w": 1.8,
         "id": "last-relay",
         "channel": "last-light",
         "latch": true,
         "kind": "switch",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 268,
+        "x": 302,
         "y": 4,
         "w": 5.75,
         "id": "last-return",
         "kind": "ledge",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 253.75,
+        "x": 287.75,
         "y": 7.25,
         "w": 3.75,
         "id": "last-bridge",
         "channel": "last-light",
         "kind": "timed",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 259,
+        "x": 293,
         "y": 9.25,
         "w": 4,
         "period": 4.8,
@@ -651,10 +634,10 @@
         "duty": 0.78,
         "id": "last-pulse",
         "kind": "pulse",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 288,
+        "x": 322,
         "y": 0,
         "w": 12,
         "bellX": 4,
@@ -662,7 +645,7 @@
         "landmark": "bellgate",
         "goal": true,
         "kind": "stone",
-        "section": 5
+        "section": 6
       },
       {
         "x": 19.75,
@@ -746,122 +729,122 @@
         "section": 0
       },
       {
-        "x": 79.75,
+        "x": 113.75,
         "y": 2.5,
         "w": 2,
         "delay": 0.45,
         "id": "clay-3",
         "kind": "crumble",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 84,
+        "x": 118,
         "y": 4.75,
         "w": 2,
         "delay": 0.35,
         "id": "clay-3-copy-1",
         "kind": "crumble",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 79,
+        "x": 113,
         "y": 7,
         "w": 2,
         "delay": 0.35,
         "id": "clay-3-copy-1-copy-1",
         "kind": "crumble",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 69,
+        "x": 103,
         "y": 7.25,
         "w": 5.75,
         "delay": 0.55,
         "id": "clay-3-copy-1-copy-1-copy-1",
         "kind": "crumble",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 102,
+        "x": 136,
         "y": 1,
         "w": 2.25,
         "moveY": 1.2,
         "period": 5,
         "id": "clay-4",
         "kind": "lift",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 106,
+        "x": 140,
         "y": 3.75,
         "w": 2.25,
         "delay": 0.45,
         "id": "clay-5",
         "kind": "crumble",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 109.25,
+        "x": 143.25,
         "y": 5.75,
         "w": 2.25,
         "delay": 0.45,
         "id": "clay-5-copy-1",
         "kind": "crumble",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 105.75,
+        "x": 139.75,
         "y": 8,
         "w": 2.25,
         "delay": 0.45,
         "id": "clay-5-copy-1-copy-1",
         "kind": "crumble",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 110.25,
+        "x": 144.25,
         "y": 10.25,
         "w": 2.25,
         "delay": 0.45,
         "id": "clay-5-copy-1-copy-1-copy-1",
         "kind": "crumble",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 106,
+        "x": 140,
         "y": 12.75,
         "w": 2.25,
         "delay": 0.45,
         "id": "clay-5-copy-1-copy-1-copy-1-copy-1",
         "kind": "crumble",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 110.25,
+        "x": 144.25,
         "y": 15,
         "w": 2.25,
         "delay": 0.45,
         "id": "clay-5-copy-1-copy-1-copy-1-copy-1-copy-1",
         "kind": "crumble",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 102.25,
+        "x": 136.25,
         "y": 23,
         "w": 13,
         "h": 4,
         "id": "clay-6",
         "kind": "wall",
-        "section": 1
+        "section": 2
       },
       {
-        "x": 94.75,
+        "x": 128.75,
         "y": 19,
         "w": 11,
         "h": 4,
         "id": "clay-6-copy-1",
         "kind": "wall",
-        "section": 1
+        "section": 2
       },
       {
         "x": 23.75,
@@ -875,7 +858,7 @@
       {
         "x": 37.25,
         "y": 19.75,
-        "w": 30,
+        "w": 64,
         "h": 11.25,
         "id": "clay-7-copy-1",
         "kind": "wall",
@@ -890,235 +873,235 @@
         "section": 0
       },
       {
-        "x": 157.5,
+        "x": 191.5,
         "y": 10,
         "w": 4,
         "h": 10.25,
         "id": "clay-9",
         "kind": "wall",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 112.5,
+        "x": 146.5,
         "y": 20,
         "w": 13,
         "h": 15,
         "id": "clay-10",
         "kind": "wall",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 146.5,
+        "x": 180.5,
         "y": 11.25,
         "w": 3.5,
         "id": "clay-11-copy-1-copy-1",
         "kind": "crumble",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 141.25,
+        "x": 175.25,
         "y": 9.5,
         "w": 3,
         "id": "clay-12",
         "kind": "stone",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 157.5,
+        "x": 191.5,
         "y": 26.75,
         "w": 4,
         "h": 10,
         "id": "clay-11",
         "kind": "wall",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 134.5,
+        "x": 168.5,
         "y": 15,
         "w": 6.25,
         "id": "clay-13",
         "kind": "ledge",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 143.75,
+        "x": 177.75,
         "y": 16,
         "w": 2.5,
         "id": "clay-11-copy-1-copy-1-copy-1",
         "kind": "crumble",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 142.75,
+        "x": 176.75,
         "y": 13,
         "w": 2.5,
         "id": "clay-11-copy-1-copy-1-copy-2",
         "kind": "crumble",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 148.75,
+        "x": 182.75,
         "y": 15.5,
         "w": 2.5,
         "id": "clay-11-copy-1-copy-1-copy-1-copy-1",
         "kind": "crumble",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 161.5,
+        "x": 195.5,
         "y": 10,
         "w": 8.25,
         "delay": 0.15,
         "id": "clay-14",
         "kind": "crumble",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 161.25,
+        "x": 195.25,
         "y": 7.5,
         "w": 4,
         "delay": 0.15,
         "id": "clay-14-copy-1-copy-1",
         "kind": "crumble",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 161.75,
+        "x": 195.75,
         "y": 4.75,
         "w": 5.75,
         "delay": 0.15,
         "id": "clay-14-copy-1-copy-1-copy-1-copy-1",
         "kind": "crumble",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 161.5,
+        "x": 195.5,
         "y": 1.75,
         "w": 6.5,
         "id": "clay-15",
         "kind": "stone",
-        "section": 2
+        "section": 3
       },
       {
-        "x": 175.75,
+        "x": 209.75,
         "y": -1.5,
         "w": 3.5,
         "delay": 0.15,
         "id": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1",
         "kind": "crumble",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 178,
+        "x": 212,
         "y": -3,
         "w": 3.5,
         "delay": 0.15,
         "id": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
         "kind": "crumble",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 180.75,
+        "x": 214.75,
         "y": -4.5,
         "w": 3.5,
         "delay": 0.15,
         "id": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1-copy-1",
         "kind": "crumble",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 176,
+        "x": 210,
         "y": 8,
         "w": 3.5,
         "delay": 0.25,
         "id": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-2",
         "kind": "crumble",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 200.5,
+        "x": 234.5,
         "y": 7.25,
         "w": 2.75,
         "period": 4.8,
         "duty": 0.76,
         "id": "clay-16",
         "kind": "pulse",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 196.75,
+        "x": 230.75,
         "y": 9,
         "w": 2.75,
         "delay": 0.25,
         "id": "clay-14-copy-1-copy-1-copy-1-copy-1-copy-1-copy-2-copy-1",
         "kind": "crumble",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 200.5,
+        "x": 234.5,
         "y": 10.75,
         "w": 2.75,
         "period": 4.8,
         "duty": 0.76,
         "id": "clay-16-copy-1",
         "kind": "pulse",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 208.5,
+        "x": 242.5,
         "y": 10.75,
         "w": 2.75,
         "id": "clay-17",
         "kind": "stone",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 211.25,
+        "x": 245.25,
         "y": 10.75,
         "w": 2.75,
         "delay": 0.15,
         "id": "clay-14-copy-1",
         "kind": "crumble",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 211.25,
+        "x": 245.25,
         "y": 7.5,
         "w": 7.25,
         "delay": 0.15,
         "id": "clay-14-copy-1-copy-2",
         "kind": "crumble",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 211.25,
+        "x": 245.25,
         "y": 8.75,
         "w": 6.25,
         "delay": 0.15,
         "id": "clay-14-copy-1-copy-2-copy-1",
         "kind": "crumble",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 211.25,
+        "x": 245.25,
         "y": 9.75,
         "w": 4.25,
         "delay": 0.15,
         "id": "clay-14-copy-1-copy-2-copy-1-copy-1",
         "kind": "crumble",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 211.25,
+        "x": 245.25,
         "y": 6.25,
         "w": 8.25,
         "delay": 0.15,
         "id": "clay-14-copy-1-copy-2-copy-2",
         "kind": "crumble",
-        "section": 3
+        "section": 4
       },
       {
-        "x": 271.5,
+        "x": 305.5,
         "y": 10.5,
         "w": 4,
         "period": 4.8,
@@ -1126,81 +1109,81 @@
         "duty": 0.78,
         "id": "last-pulse-copy-1",
         "kind": "pulse",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 265.5,
+        "x": 299.5,
         "y": 10,
         "w": 4,
         "delay": 0.35,
         "id": "clay-19",
         "kind": "crumble",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 280,
+        "x": 314,
         "y": 10.5,
         "w": 2.75,
         "delay": 0.35,
         "id": "clay-19-copy-1",
         "kind": "crumble",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 280.75,
+        "x": 314.75,
         "y": 8.5,
         "w": 3.25,
         "delay": 0.35,
         "id": "clay-19-copy-1-copy-1",
         "kind": "crumble",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 282,
+        "x": 316,
         "y": 6.5,
         "w": 3.5,
         "delay": 0.35,
         "id": "clay-19-copy-1-copy-1-copy-1",
         "kind": "crumble",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 283.25,
+        "x": 317.25,
         "y": 4.5,
         "w": 3.75,
         "delay": 0.35,
         "id": "clay-19-copy-1-copy-1-copy-1-copy-1",
         "kind": "crumble",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 284.5,
+        "x": 318.5,
         "y": 2.75,
         "w": 3.75,
         "delay": 0.35,
         "id": "clay-19-copy-1-copy-1-copy-1-copy-1-copy-1",
         "kind": "crumble",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 273.75,
+        "x": 307.75,
         "y": 5.25,
         "w": 2.25,
         "id": "clay-18",
         "kind": "stone",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 281,
+        "x": 315,
         "y": 15.5,
         "w": 2.25,
         "delay": 0.35,
         "id": "clay-19-copy-2",
         "kind": "crumble",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 284,
+        "x": 318,
         "y": 17,
         "w": 2.5,
         "period": 4.8,
@@ -1208,51 +1191,176 @@
         "duty": 0.78,
         "id": "last-pulse-copy-1-copy-1",
         "kind": "pulse",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 284,
+        "x": 318,
         "y": 20.5,
         "w": 2.25,
         "delay": 0.35,
         "id": "clay-19-copy-2-copy-1",
         "kind": "crumble",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 281,
+        "x": 315,
         "y": 18.75,
         "w": 2.25,
         "delay": 0.35,
         "id": "clay-19-copy-2-copy-2",
         "kind": "crumble",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 283,
+        "x": 317,
         "y": 13,
         "w": 3,
         "delay": 0.35,
         "id": "clay-19-copy-2-copy-3",
         "kind": "crumble",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 277.75,
+        "x": 311.75,
         "y": 10.5,
         "w": 2.25,
-        "checkpoint": 278.875,
+        "checkpoint": 312.875,
         "id": "clay-20",
         "kind": "ledge",
-        "section": 5
+        "section": 6
       },
       {
-        "x": 109.75,
+        "x": 143.75,
         "y": 0,
         "w": 3,
-        "checkpoint": 111.25,
+        "checkpoint": 145.25,
         "id": "clay-21",
         "kind": "stone",
+        "section": 2
+      },
+      {
+        "x": 59,
+        "y": -1.75,
+        "w": 6,
+        "checkpoint": 61,
+        "id": "kiln-floor",
+        "landmark": "kiln",
+        "kind": "stone",
+        "section": 1
+      },
+      {
+        "x": 65,
+        "y": -1.75,
+        "w": 5,
+        "id": "kiln-ledge",
+        "kind": "ledge",
+        "section": 1
+      },
+      {
+        "x": 71.6,
+        "y": -8.6,
+        "w": 2.4,
+        "h": 6,
+        "id": "tower-foot",
+        "kind": "wall",
+        "section": 1
+      },
+      {
+        "x": 71.6,
+        "y": -0.35,
+        "w": 2.4,
+        "shape": {
+          "from": {
+            "x": 71.6,
+            "y": -0.35,
+            "w": 2.4,
+            "h": 8.25
+          },
+          "to": {
+            "x": 65,
+            "y": -6.4,
+            "w": 9,
+            "h": 2.2
+          }
+        },
+        "station": "kiln-tower",
+        "clayRole": "stairs",
+        "id": "kiln-tower",
+        "kind": "clay",
+        "section": 1
+      },
+      {
+        "x": 74.5,
+        "y": 8.5,
+        "w": 9.5,
+        "h": 12.8,
+        "id": "kiln-lintel",
+        "kind": "wall",
+        "section": 1
+      },
+      {
+        "x": 74.3,
+        "y": -6.4,
+        "w": 2.2,
+        "id": "kiln-tunnel",
+        "kind": "stone",
+        "section": 1
+      },
+      {
+        "x": 77,
+        "y": -7.2,
+        "w": 2,
+        "h": 5,
+        "id": "plug-foot",
+        "kind": "wall",
+        "section": 1
+      },
+      {
+        "x": 77,
+        "y": -4.4,
+        "w": 2,
+        "shape": {
+          "from": {
+            "x": 77,
+            "y": -4.4,
+            "w": 2,
+            "h": 2.8
+          },
+          "to": {
+            "x": 74.5,
+            "y": -6.4,
+            "w": 7,
+            "h": 0.8
+          }
+        },
+        "station": "kiln-plug",
+        "clayRole": "landing",
+        "id": "kiln-plug",
+        "kind": "clay",
+        "section": 1
+      },
+      {
+        "x": 82,
+        "y": -6.4,
+        "w": 4.5,
+        "id": "kiln-run",
+        "kind": "stone",
+        "section": 1
+      },
+      {
+        "x": 87,
+        "y": -4.2,
+        "w": 2.5,
+        "id": "kiln-step",
+        "kind": "ledge",
+        "section": 1
+      },
+      {
+        "x": 90.5,
+        "y": -2.1,
+        "w": 2.4,
+        "id": "kiln-sill",
+        "kind": "ledge",
         "section": 1
       }
     ],
@@ -1294,11 +1402,6 @@
       },
       {
         "from": "spark-hub",
-        "to": "cave-plug",
-        "mode": "jump"
-      },
-      {
-        "from": "cave-plug",
         "to": "clay-2",
         "mode": "jump"
       },
@@ -1314,6 +1417,46 @@
       },
       {
         "from": "clay-2-copy-1-copy-1-copy-1",
+        "to": "kiln-floor",
+        "mode": "jump"
+      },
+      {
+        "from": "kiln-floor",
+        "to": "kiln-ledge",
+        "mode": "walk"
+      },
+      {
+        "from": "kiln-ledge",
+        "to": "kiln-tower",
+        "mode": "fall"
+      },
+      {
+        "from": "kiln-tower",
+        "to": "kiln-tunnel",
+        "mode": "walk"
+      },
+      {
+        "from": "kiln-tunnel",
+        "to": "kiln-plug",
+        "mode": "walk"
+      },
+      {
+        "from": "kiln-plug",
+        "to": "kiln-run",
+        "mode": "jump"
+      },
+      {
+        "from": "kiln-run",
+        "to": "kiln-step",
+        "mode": "jump"
+      },
+      {
+        "from": "kiln-step",
+        "to": "kiln-sill",
+        "mode": "jump"
+      },
+      {
+        "from": "kiln-sill",
         "to": "ferry-dock",
         "mode": "jump"
       },
@@ -1339,6 +1482,11 @@
       },
       {
         "from": "clay-5",
+        "to": "clay-21",
+        "mode": "jump"
+      },
+      {
+        "from": "clay-21",
         "to": "heart-entry",
         "mode": "jump"
       },
@@ -1384,6 +1532,11 @@
       },
       {
         "from": "clay-9",
+        "to": "clay-14",
+        "mode": "fall"
+      },
+      {
+        "from": "clay-14",
         "to": "vault-entry",
         "mode": "jump"
       },
@@ -1555,136 +1708,168 @@
         "y": -0.75
       },
       {
-        "x": 70,
+        "x": 104,
         "y": 1
       },
       {
-        "x": 73.4,
+        "x": 107.4,
         "y": 1
       },
       {
-        "x": 76.8,
+        "x": 110.8,
         "y": 1
       },
       {
-        "x": 80.2,
+        "x": 114.2,
         "y": 1
       },
       {
-        "x": 83.6,
+        "x": 117.6,
         "y": 1
       },
       {
-        "x": 87,
+        "x": 121,
         "y": 1
       },
       {
-        "x": 90.4,
+        "x": 124.4,
         "y": 1
       },
       {
-        "x": 98,
+        "x": 132,
         "y": 1
       },
       {
-        "x": 110.5,
+        "x": 144.5,
         "y": 6.5
       },
       {
-        "x": 116.2,
+        "x": 150.2,
         "y": 1
       },
       {
-        "x": 141.5,
+        "x": 175.5,
         "y": 6.5
       },
       {
-        "x": 187,
+        "x": 221,
         "y": -1
       },
       {
-        "x": 187,
+        "x": 221,
         "y": 0.5
       },
       {
-        "x": 188,
+        "x": 222,
         "y": 2
       },
       {
-        "x": 188,
+        "x": 222,
         "y": 3.5
       },
       {
-        "x": 192,
+        "x": 226,
         "y": 6
       },
       {
-        "x": 193.1,
+        "x": 227.1,
         "y": 6
       },
       {
-        "x": 194.2,
+        "x": 228.2,
         "y": 6
       },
       {
-        "x": 198,
+        "x": 232,
         "y": 10
       },
       {
-        "x": 205.5,
+        "x": 239.5,
         "y": 13.75
       },
       {
-        "x": 212,
+        "x": 246,
         "y": 5.5
       },
       {
-        "x": 230.75,
+        "x": 264.75,
         "y": 4
       },
       {
-        "x": 235.75,
+        "x": 269.75,
         "y": 2.75
       },
       {
-        "x": 242.1,
+        "x": 276.1,
         "y": 2.8
       },
       {
-        "x": 255.1,
+        "x": 289.1,
         "y": 4.8
       },
       {
-        "x": 261.1,
+        "x": 295.1,
         "y": 6.6
       },
       {
-        "x": 274.75,
+        "x": 308.75,
         "y": 6.5
       },
       {
-        "x": 255.5,
+        "x": 289.5,
         "y": 8.25
       },
       {
-        "x": 267.5,
+        "x": 301.5,
         "y": 10.75
       },
       {
-        "x": 213.5,
+        "x": 247.5,
         "y": 5.5
       },
       {
-        "x": 215.25,
+        "x": 249.25,
         "y": 5.5
       },
       {
-        "x": 217,
+        "x": 251,
         "y": 5.5
       },
       {
-        "x": 219,
+        "x": 253,
         "y": 5.5
+      },
+      {
+        "x": 62,
+        "y": -0.4
+      },
+      {
+        "x": 67.5,
+        "y": -0.4
+      },
+      {
+        "x": 72.8,
+        "y": 1.3
+      },
+      {
+        "x": 72,
+        "y": -4.9
+      },
+      {
+        "x": 78,
+        "y": -4.9
+      },
+      {
+        "x": 84,
+        "y": -4.9
+      },
+      {
+        "x": 88.25,
+        "y": -2.7
+      },
+      {
+        "x": 91.7,
+        "y": -0.6
       }
     ],
     "stamps": [
@@ -1693,48 +1878,48 @@
         "y": 9.75
       },
       {
-        "x": 74,
+        "x": 108,
         "y": 8.25
       },
       {
-        "x": 172.7,
+        "x": 206.7,
         "y": 10.75
       },
       {
-        "x": 111.25,
+        "x": 145.25,
         "y": 16.5
       },
       {
-        "x": 285.25,
+        "x": 319.25,
         "y": 21.5
       }
     ],
     "enemies": [
       {
-        "x": 198,
+        "x": 232,
         "y": 5,
         "speed": 0.38,
-        "min": 192,
-        "max": 198,
+        "min": 226,
+        "max": 232,
         "kind": "spitter"
       },
       {
-        "x": 245,
+        "x": 279,
         "y": 1.8,
         "speed": 0.38,
-        "min": 241,
-        "max": 247,
+        "min": 275,
+        "max": 281,
         "kind": "spitter"
       },
       {
-        "x": 270.5,
+        "x": 304.5,
         "y": 4.25,
         "period": 5,
         "phase": 1.5,
         "bob": 0.3,
         "speed": 1.1,
-        "min": 268.5,
-        "max": 273,
+        "min": 302.5,
+        "max": 307,
         "kind": "bat"
       },
       {
@@ -1748,64 +1933,69 @@
         "kind": "bat"
       },
       {
-        "x": 121,
+        "x": 155,
         "y": 0,
         "speed": 0.38,
-        "min": 119,
-        "max": 123,
+        "min": 153,
+        "max": 157,
         "kind": "spitter"
       },
       {
-        "x": 155.5,
+        "x": 189.5,
         "y": 10.5,
         "period": 4.6,
         "bob": 0.55,
         "speed": 1.25,
-        "min": 152.25,
-        "max": 157.1,
+        "min": 186.25,
+        "max": 191.1,
         "kind": "bat"
       },
       {
-        "x": 136.75,
+        "x": 170.75,
         "y": 15.5,
         "period": 4.6,
         "bob": 0.55,
         "speed": 1.25,
-        "min": 135.15,
-        "max": 140,
+        "min": 169.15,
+        "max": 174,
         "kind": "bat"
       }
     ],
     "hazards": [
       {
-        "x": 67,
+        "x": 101,
         "y": -4.6,
         "w": 29.75
       },
       {
-        "x": 123,
+        "x": 157,
         "y": -5.5,
         "w": 19
       },
       {
-        "x": 231,
+        "x": 265,
         "y": -3.5,
         "w": 9
       },
       {
-        "x": 248,
+        "x": 282,
         "y": -3.5,
         "w": 2
       },
       {
-        "x": 257,
+        "x": 291,
         "y": -4.8,
         "w": 30
       },
       {
-        "x": 174,
+        "x": 208,
         "y": -7.5,
         "w": 15.25
+      },
+      {
+        "x": 65,
+        "y": -12,
+        "w": 28.75
       }
     ],
     "hints": [
@@ -1814,58 +2004,68 @@
         "end": 32,
         "icon": "relay",
         "title": "Relay",
-        "text": "The relay above opens the grate below. Go up, then come back."
+        "text": "The switch above opens the gate."
       },
       {
-        "x": 58,
-        "end": 67,
+        "x": 93.75,
+        "end": 101,
         "icon": "ferry",
         "title": "Steer the ferry",
-        "text": "Stand at an end to move, at the centre to stop. Watch the press lamps."
+        "text": "Stand at the edges to move."
       },
       {
-        "x": 124,
-        "end": 132,
-        "icon": "wheel",
-        "title": "Turning heart",
-        "text": "Board a cradle, stay near its centre, step off at the upper balcony."
+        "x": 59,
+        "end": 74.3,
+        "icon": "stairs",
+        "title": "Ride it down",
+        "text": "Stand on the tower and press it down. Hold E, drag it, or stomp.",
+        "touchText": "Stand on the tower and press it down. Drag it, or stomp."
       },
       {
-        "x": 170,
-        "end": 180,
-        "icon": "drop",
-        "title": "Drop through",
-        "text": "Stomp on the thin shelf to drop through. The lift brings you back."
-      },
-      {
-        "x": 110,
-        "end": 114,
-        "y": 0,
-        "icon": "spitter",
-        "title": "Spitter",
-        "text": "A swelling mouth means a shot is coming. Take cover, then jump on it."
+        "x": 74.3,
+        "end": 86,
+        "icon": "landing",
+        "title": "Flatten it",
+        "text": "Drag the plug apart, or hold E, until it lies flat.",
+        "touchText": "Drag the plug apart until it lies flat."
       }
     ],
-    "originalDistance": 96.5,
+    "originalDistance": 108,
     "custom": true,
     "shaping": [
       {
-        "id": "cave-plug",
-        "icon": "landing",
-        "name": "Spread the pillar",
+        "id": "kiln-tower",
+        "name": "Ride the tower down",
+        "verb": "Press down",
+        "gesture": "down",
+        "parts": [
+          "kiln-tower"
+        ],
+        "x": 59,
+        "end": 74.3,
+        "spawn": {
+          "x": 62,
+          "y": -1.75,
+          "groundId": "kiln-floor"
+        },
+        "hint": "Stand on the violet tower and press it down. Hold E / KNEAD, drag it, or stomp — it takes you with it."
+      },
+      {
+        "id": "kiln-plug",
+        "name": "Flatten the plug",
         "verb": "Pull outward",
         "gesture": "out",
         "parts": [
-          "cave-plug"
+          "kiln-plug"
         ],
-        "x": 34,
-        "end": 48,
+        "x": 74.3,
+        "end": 86,
         "spawn": {
-          "x": 38,
-          "y": 0,
-          "groundId": "spark-hub"
+          "x": 75.4,
+          "y": -6.4,
+          "groundId": "kiln-tunnel"
         },
-        "hint": "Pull either edge of the violet pillar outward until it is floor. Or hold E / KNEAD."
+        "hint": "The lump fills the tunnel. Pull it apart until it lies flat, then walk over it. Or hold E / KNEAD."
       }
     ]
   }

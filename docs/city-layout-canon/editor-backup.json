@@ -2,9 +2,9 @@
   "format": "claybound-level",
   "version": 1,
   "chapter": 3,
-  "baseVersion": 5,
+  "baseVersion": 6,
   "level": {
-    "layoutVersion": "editor-5-1cmpllj",
+    "layoutVersion": "editor-6-12yve5a",
     "winds": [
       {
         "x": 80,
@@ -216,14 +216,14 @@
       },
       {
         "x": 23.05,
-        "y": 7.1,
-        "w": 2.3,
+        "y": 9.23,
+        "w": 3,
         "shape": {
           "from": {
             "x": 23.05,
-            "y": 7.1,
-            "w": 2.3,
-            "h": 3.05,
+            "y": 9.23,
+            "w": 3,
+            "h": 5.98,
             "slope": 0
           },
           "to": {
@@ -402,72 +402,25 @@
       {
         "x": 144,
         "y": 27.9,
-        "w": 0.85,
+        "w": 2.45,
         "shape": {
           "from": {
             "x": 144,
             "y": 27.9,
-            "w": 0.85,
+            "w": 2.45,
             "h": 8.5
           },
           "to": {
             "x": 144,
-            "y": 24.3,
-            "w": 2.4,
-            "h": 4.9
+            "y": 22.6,
+            "w": 7.2,
+            "h": 2.9,
+            "slope": 5.5
           }
         },
         "station": "laundry-stairs",
-        "clayRole": "stairs",
-        "id": "laundry-stair-0",
-        "kind": "clay",
-        "section": 2
-      },
-      {
-        "x": 144.8,
-        "y": 27.9,
-        "w": 0.85,
-        "shape": {
-          "from": {
-            "x": 144.8,
-            "y": 27.9,
-            "w": 0.85,
-            "h": 8.5
-          },
-          "to": {
-            "x": 146.4,
-            "y": 26.1,
-            "w": 2.4,
-            "h": 6.7
-          }
-        },
-        "station": "laundry-stairs",
-        "clayRole": "stairs",
-        "id": "laundry-stair-1",
-        "kind": "clay",
-        "section": 2
-      },
-      {
-        "x": 145.6,
-        "y": 27.9,
-        "w": 0.85,
-        "shape": {
-          "from": {
-            "x": 145.6,
-            "y": 27.9,
-            "w": 0.85,
-            "h": 8.5
-          },
-          "to": {
-            "x": 148.8,
-            "y": 27.900000000000002,
-            "w": 2.4,
-            "h": 8.5
-          }
-        },
-        "station": "laundry-stairs",
-        "clayRole": "stairs",
-        "id": "laundry-stair-2",
+        "clayRole": "bridge",
+        "id": "laundry-wall",
         "kind": "clay",
         "section": 2
       },
@@ -732,7 +685,7 @@
             "x": 295.6,
             "y": 44.2,
             "w": 1.9,
-            "h": 0.65
+            "h": 4.8
           }
         },
         "station": "belfry-span",
@@ -863,13 +816,11 @@
       },
       {
         "id": "laundry-stairs",
-        "name": "Wall into stairs",
+        "name": "Pull the wall over",
         "verb": "Pull right",
         "gesture": "right",
         "parts": [
-          "laundry-stair-0",
-          "laundry-stair-1",
-          "laundry-stair-2"
+          "laundry-wall"
         ],
         "x": 138,
         "end": 152,
@@ -878,7 +829,7 @@
           "y": 22.6,
           "groundId": "stair-dock"
         },
-        "hint": "Pull the tall clay wall to the right, or hold E / KNEAD, to knead out three steps."
+        "hint": "Pull the tall clay wall over to the right, or hold E / KNEAD, until it lies down as a slope to the roof."
       },
       {
         "id": "belfry-span",
@@ -1500,21 +1451,11 @@
       },
       {
         "from": "stair-dock",
-        "to": "laundry-stair-0",
-        "mode": "jump"
+        "to": "laundry-wall",
+        "mode": "walk"
       },
       {
-        "from": "laundry-stair-0",
-        "to": "laundry-stair-1",
-        "mode": "jump"
-      },
-      {
-        "from": "laundry-stair-1",
-        "to": "laundry-stair-2",
-        "mode": "jump"
-      },
-      {
-        "from": "laundry-stair-2",
+        "from": "laundry-wall",
         "to": "laundry-roof",
         "mode": "walk"
       },

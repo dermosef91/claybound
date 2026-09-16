@@ -466,7 +466,7 @@ console.log('PASS all four Dust Drifter models remain loaded and in view after f
   }
 }
 {
-  const g=new Game();g.start(2);g.onEvent=e=>w.event(e);Object.assign(g.player,{x:62,y:0,groundId:'ferry-dock'});w.build(g.level,2,77);
+  const g=new Game();g.start(2);g.onEvent=e=>w.event(e);const dock=g.level.platforms.find(p=>p.id==='ferry-dock');Object.assign(g.player,{x:dock.x+2.25,y:0,groundId:dock.id});w.build(g.level,2,dock.x+17.25);
   const c=g.level.crushers[0],root=w.crusherViews[0],head=root.userData.press.head;
   let impacted=false;
   for(let i=0;i<600;i++){g.tick(1/120);w.render(g,1/120);if(c.state==='impact'){impacted=true;break;}}
@@ -548,14 +548,17 @@ console.log('PASS cradle deck/axle transforms, visible opening grates, projectil
 // the route, hide the play lane, or dispose its source when streamed out.
 {
   const g=new Game();g.start(0);const original=JSON.stringify(g.level);
-  w.build(g.level,0,160);
+  // The room follows the arch wherever the route puts it; the editor move below
+  // shifts these platforms, so their authored positions are read once here.
+  const at=id=>g.level.platforms.find(p=>p.id===id),ARCH=at('arch-entry').x,ROOF_END=at('arch-roof').x+at('arch-roof').w;
+  w.build(g.level,0,ARCH+23);
   const inspect=()=>{
     w.scene.updateMatrixWorld(true);
     const room=w.levelRoot.getObjectByName('Inside the Great Arch: canyon cave');assert(room);
     const shell=room.getObjectByName('Supplied sandstone cave');assert(shell);
     const box=new THREE.Box3().setFromObject(shell,true);
     assert(box.max.z<-2.59,'all supplied cave stone stays behind the play lane');
-    assert(box.min.x<150&&box.max.x>176&&box.max.y>24,'the enclosure covers both banks and the flower route');
+    assert(box.min.x<ARCH+13&&box.max.x>ROOF_END&&box.max.y>24,'the enclosure covers both banks and the flower route');
     let triangles=0;shell.traverse(o=>{if(o.isMesh){
       triangles+=o.geometry.index.count/3;
       assert(w.assetGeometry.has(o.geometry)&&w.assetMaterials.has(o.material));
@@ -572,19 +575,19 @@ console.log('PASS cradle deck/axle transforms, visible opening grates, projectil
   const lift=g.level.platforms.find(s=>s.id==='arch-lift'),startY=lift.y;
   const endpoints=[];
   for(const y of [startY,startY+2.2,startY-2.2]){
-    lift.y=y;Object.assign(g.player,{x:160,y,groundId:lift.id});w.render(g,0);w.scene.updateMatrixWorld(true);
+    lift.y=y;Object.assign(g.player,{x:ARCH+23,y,groundId:lift.id});w.render(g,0);w.scene.updateMatrixWorld(true);
     endpoints.push(w.platforms.get(lift.id).ropes.map(rope=>rope.localToWorld(new THREE.Vector3(0,rope.userData.ceiling.rest,0)).y));
   }
   for(const end of endpoints)for(let i=0;i<end.length;i++)assert(Math.abs(end[i]-endpoints[0][i])<1e-6,'lift motion never moves the ceiling end of its ropes');
   lift.y=startY;
   w.syncVisible(g.level,10,true);assert(!w.levelRoot.getObjectByName('Inside the Great Arch: canyon cave'));
-  w.syncVisible(g.level,160,true);inspect();w.refreshEditor(g.level,160);inspect();
+  w.syncVisible(g.level,ARCH+23,true);inspect();w.refreshEditor(g.level,ARCH+23);inspect();
   const roomCount=()=>w.levelRoot.children.filter(o=>o.name==='Inside the Great Arch: canyon cave').length;assert.equal(roomCount(),1);
   for(const s of g.level.platforms.filter(s=>s.id.startsWith('arch-'))){s.x+=12;s.baseX+=12;s.y+=3;s.baseY+=3;}
-  w.refreshEditor(g.level,172);w.scene.updateMatrixWorld(true);
+  w.refreshEditor(g.level,ARCH+35);w.scene.updateMatrixWorld(true);
   const moved=new THREE.Box3().setFromObject(w.levelRoot.getObjectByName('Supplied sandstone cave'),true);
   assert(Math.abs(moved.min.x-initial.min.x-12)<1e-5&&Math.abs(moved.min.y-initial.min.y-3)<1e-5,'moving the section in the editor moves its enclosure');
   const forest=new Game();forest.start(1);w.build(forest.level,1,118);assert(!w.levelRoot.getObjectByName('Inside the Great Arch: canyon cave'));
-  g.start(0);w.build(g.level,0,160);inspect();assert.equal(sharedDisposals,0);
+  g.start(0);w.build(g.level,0,ARCH+23);inspect();assert.equal(sharedDisposals,0);
 }
 console.log('PASS Great Arch model/maps, cavity shade, clear play lane, fixed rope anchors, streaming, editor moves and chapter reuse');

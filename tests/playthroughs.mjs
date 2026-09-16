@@ -58,6 +58,23 @@ for(const [i,L]of LEVELS.entries()){
  if(process.env.LEVEL!==undefined&&i!==+process.env.LEVEL)continue;
  let g=new Game();g.start(i);let attempts=0,furthest=0;
  const links=structuredClone(L.routeLinks);
+ // A board or a ride can only be taken when the machine comes round, and some
+ // of those boardings launch from a crumbling ledge that gives way in a sixth
+ // of a second — there is nowhere to wait except the step before it. So the
+ // step before a machine searches waits across one full cycle of that machine;
+ // sampling less turns an ordinary "stand and watch it come back" into a false
+ // block, and which side of that line a route falls on changes every time the
+ // route before it gets longer. Every other step keeps the short ladder.
+ const SHORT=[0,24,60,120,180,240,330];
+ const waitsBefore=li=>{
+   const l=links[li+1];if(!l)return SHORT;
+   const from=L.platforms.find(s=>s.id===l.from),to=L.platforms.find(s=>s.id===l.to);
+   const machine=from?.kind==='ferry'||l.mode==='ride'?from:l.mode==='board'?to:null;
+   if(!machine)return SHORT;
+   const waits=[...SHORT];for(let f=420;f<=Math.ceil((machine.period||5)*120);f+=90)waits.push(f);
+   return waits;
+ };
+ const budget=Math.max(6000,links.length*220);
  if(process.env.FLOWERS)for(const detour of L.detours){
    const start=links.findIndex(l=>l.from===detour[0].from),end=detour.at(-1).to;
    const count=end===detour[0].from?0:links.findIndex((l,k)=>k>=start&&l.to===end)-start+1;
@@ -68,7 +85,7 @@ for(const [i,L]of LEVELS.entries()){
  // instead of reporting a false block. Every candidate still uses real input.
  function journey(state,li){
   if(li>furthest&&process.env.TRACE)console.log('Reached',li,links[li]?.from||'bell');furthest=Math.max(furthest,li);if(li===links.length)return {g:state,parts:[]};
-  if(attempts>=6000)return null;
+  if(attempts>=budget)return null;
   // Machine transfers ignore jump offsets/holds/waits. Repeating their exact
   // input search 112 times cannot discover another result; backtrack upstream.
   const link=links[li],from=state.level.platforms.find(p=>p.id===link.from);
@@ -77,8 +94,8 @@ for(const [i,L]of LEVELS.entries()){
    attempts++;const r=machineTransfer(state,link);if(!r)return null;
    const rest=journey(r.g,li+1);return rest?{g:rest.g,parts:[r.controls,...rest.parts]}:null;
   }
-  for(const wait of [0,24,60,120,180,240,330])for(const offset of [.55,1.1,1.75,2.4])for(const hold of [600,48,30,18]){
-   if(++attempts>6000)return null;
+  for(const wait of waitsBefore(li))for(const offset of [.55,1.1,1.75,2.4])for(const hold of [600,48,30,18]){
+   if(++attempts>budget)return null;
    const r=attempt(state,links[li],{wait,offset,hold});if(!r)continue;
    const rest=journey(r.g,li+1);if(rest)return {g:rest.g,parts:[r.controls,...rest.parts]};
   }return null;

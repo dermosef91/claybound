@@ -10,7 +10,8 @@ import {LevelEditor,jumpGuide} from '../dist/editor.js';
 // Walk down from the original high perch to the checkpoint without a jump.
 const game=new Game();game.start(0);
 const s=game.level.platforms.find(p=>p.id==='arch-drop');
-Object.assign(game.player,{x:175.4,y:16,vx:0,vy:0,groundId:'arch-roof'});
+const roof=game.level.platforms.find(p=>p.id==='arch-roof');
+Object.assign(game.player,{x:roof.x+roof.w-.6,y:roof.y,vx:0,vy:0,groundId:roof.id});
 let bridgeFrames=0,lowest=Infinity;
 for(let i=0;i<280;i++){
   game.tick(dt,{right:true});

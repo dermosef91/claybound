@@ -4,14 +4,17 @@ import {MOTHER_PUFF as M,resetMotherPuff,motherCapHeight,motherCorrupted,motherI
 import {LEVELS} from '../dist/levels.js';
 import {validateDraft} from '../dist/editor-model.js';
 import {motherTransfer} from './mother-puff-pilot.mjs';
+// Read from the chapter rather than written down, so the clearing can move
+// along the route without every fixture below going stale.
+const ENTRY=LEVELS[1].boss.triggerX,HOME=LEVELS[1].platforms.find(s=>s.id==='heart-bell').checkpoint;
 const step=(g,n,input={})=>{for(let i=0;i<n;i++)g.tick(dt,input);};
 const until=(g,test,max=2400,input={})=>{for(let i=0;i<max&&!test();i++)g.tick(dt,input);assert(test(),'state reached within bounded time');};
-function fixture(state='inhale'){const g=new Game();g.start(1);Object.assign(g.player,{x:276,y:33.4,groundId:'mother-arena'});g.checkpoint={x:264,y:33.4};g.checkpointId='heart-bell';g.level.boss.state=state;return g;}
+function fixture(state='inhale'){const g=new Game();g.start(1);Object.assign(g.player,{x:ENTRY,y:33.4,groundId:'mother-arena'});g.checkpoint={x:HOME,y:33.4};g.checkpointId='heart-bell';g.level.boss.state=state;return g;}
 const patch=(g,color,x=g.player.x)=>{const s={id:100,color,x,y:g.level.boss.y,age:0,life:color==='orange'?12:5,radius:2.2,bounceAge:10};g.level.boss.patches.push(s);return s;};
 
 {
  const g=new Game(),events=[];g.onEvent=e=>events.push(e.type);g.start(1);step(g,180);assert.equal(g.level.boss.state,'sleeping');assert.equal(g.level.boss.spores.length,0);
- Object.assign(g.player,{x:276,y:33.4,groundId:'mother-arena'});g.tick(dt);const b=g.level.boss,p=g.player;assert.equal(b.state,'reveal');
+ Object.assign(g.player,{x:ENTRY,y:33.4,groundId:'mother-arena'});g.tick(dt);const b=g.level.boss,p=g.player;assert.equal(b.state,'reveal');
  assert(motherCorrupted(g));const start=p.x;step(g,Math.floor(M.reveal*.45/dt),{left:true,jumpPressed:true,stompPressed:true});
  assert(p.x>start+3&&p.x<motherIntroTarget(b),'the reveal walks toward the center gradually despite opposing input');assert.equal(p.groundId,'mother-arena');assert.equal(b.spores.length,0);
  g.pause();const frozen=JSON.stringify([b,p,g.time]);step(g,600,{right:true,jumpPressed:true});assert.equal(JSON.stringify([b,p,g.time]),frozen);g.resume();
@@ -66,7 +69,7 @@ const patch=(g,color,x=g.player.x)=>{const s={id:100,color,x,y:g.level.boss.y,ag
  const g=fixture();g.tick(dt);const b=g.level.boss,p=g.player;
  patch(g,'purple',p.x-.3);g.tick(dt);assert.equal(p.health,2);assert(p.vx>8&&p.vy>7,'blast pushes away and upward');
  const hp=p.health;step(g,15);assert.equal(p.health,hp,'one cloud cannot repeatedly damage an invulnerable player');
- resetMotherPuff(g);b.state='inhale';g.tick(dt);Object.assign(p,{x:278,y:b.y,vx:0,vy:0,groundId:'mother-arena',invuln:0});patch(g,'white');step(g,45,{right:true});
+ resetMotherPuff(g);b.state='inhale';g.tick(dt);Object.assign(p,{x:ENTRY+2,y:b.y,vx:0,vy:0,groundId:'mother-arena',invuln:0});patch(g,'white');step(g,45,{right:true});
  assert(p.sporeSlow);assert(Math.abs(p.vx-RULES.speed*.73)<.01);assert(Math.abs((1-M.slow)-(1-.46)/2)<1e-9,'white slowdown is halved');assert.equal(p.health,2,'white clouds slow without dealing damage');
  b.patches=[];step(g,40,{right:true});assert(!p.sporeSlow);assert(p.vx>6.5);
  console.log('PASS Mother Puff: purple damage/directional knockback/grace; white contact slowdown and recovery');
@@ -88,7 +91,7 @@ const patch=(g,color,x=g.player.x)=>{const s={id:100,color,x,y:g.level.boss.y,ag
  assert(run.controls.every(input=>!input.stompPressed),'the full encounter needs no stomp input');
  const replay=fixture('sleeping');for(const input of run.controls)replay.tick(dt,input);assert.equal(replay.level.boss.hits,3);assert.equal(replay.player.x,run.g.player.x);assert(!replay.level.boss.patches.length&&!replay.level.boss.spores.length);assert(!replay.level.enemies.some(e=>e.motherChild));
  const save=replay.snapshot(),resumed=new Game();resumed.start(1);assert(resumed.restore(save));assert.equal(resumed.level.boss.state,'defeated');step(replay,130,{right:true});assert.equal(replay.status,'complete');
- const failed=fixture();step(failed,500);failed.level.boss.hits=2;failed.player.health=1;failed.player.invuln=0;failed.damage();step(failed,65);assert.equal(failed.level.boss.state,'sleeping');assert.equal(failed.level.boss.hits,0);assert.equal(failed.player.health,3);assert.equal(failed.player.x,264);assert(!failed.level.enemies.some(e=>e.motherChild));assert(!failed.level.boss.patches.length);assert(!failed.player.motherPush);
+ const failed=fixture();step(failed,500);failed.level.boss.hits=2;failed.player.health=1;failed.player.invuln=0;failed.damage();step(failed,65);assert.equal(failed.level.boss.state,'sleeping');assert.equal(failed.level.boss.hits,0);assert.equal(failed.player.health,3);assert.equal(failed.player.x,HOME);assert(!failed.level.enemies.some(e=>e.motherChild));assert(!failed.level.boss.patches.length);assert(!failed.player.motherPush);
  const partial=fixture();partial.level.boss.hits=2;const s=partial.snapshot();const fresh=new Game();fresh.start(1);assert(fresh.restore(s));assert.equal(fresh.level.boss.hits,0);
  console.log(`PASS Mother Puff: ${run.controls.length} input-only frames, three ordinary head landings, no deaths, cleanup, unlocked bell, saved victory and clean retry`);
 }
@@ -108,9 +111,9 @@ const patch=(g,color,x=g.player.x)=>{const s={id:100,color,x,y:g.level.boss.y,ag
  console.log('PASS Mother Puff: cloud veil, covered transformation, true-form reveal, friendly farewell, healing wind, pause and delayed exit');
 }
 {
- const g=fixture();Object.assign(g.player,{x:277,y:46,groundId:null});g.tick(dt);const b=g.level.boss;
- for(let i=0;i<120*130;i++){Object.assign(g.player,{x:277,y:46,vy:0,groundId:null});g.tick(dt);assert(b.spores.length<=2);assert(b.patches.length<=8);assert(g.level.enemies.filter(e=>e.motherChild).length<=M.maxChildren);}
- const draft=validateDraft(LEVELS[1],LEVELS[1]);assert.equal(draft.boss.x,303);assert(draft.platforms.find(s=>s.motherArena));
- draft.platforms.find(s=>s.motherArena).x+=3;const moved=validateDraft(draft,LEVELS[1]);assert.equal(moved.boss.x,306);
+ const g=fixture();Object.assign(g.player,{x:ENTRY+1,y:46,groundId:null});g.tick(dt);const b=g.level.boss;
+ for(let i=0;i<120*130;i++){Object.assign(g.player,{x:ENTRY+1,y:46,vy:0,groundId:null});g.tick(dt);assert(b.spores.length<=2);assert(b.patches.length<=8);assert(g.level.enemies.filter(e=>e.motherChild).length<=M.maxChildren);}
+ const draft=validateDraft(LEVELS[1],LEVELS[1]);assert.equal(draft.boss.x,LEVELS[1].boss.x);assert(draft.platforms.find(s=>s.motherArena));
+ draft.platforms.find(s=>s.motherArena).x+=3;const moved=validateDraft(draft,LEVELS[1]);assert.equal(moved.boss.x,LEVELS[1].boss.x+3);
  console.log('PASS Mother Puff: bounded recurring effects/minions and right-side boss editor movement');
 }

@@ -8,7 +8,7 @@ import {chapter,p,row,arc,path} from '../route-authoring.js';
 const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,to},...extra});
 
 export default chapter({
-  layoutVersion:5,
+  layoutVersion:6,
   name:'The Hanging Quarter',short:'Hanging Quarter',label:'Weights, draughts & your own hands',biome:'citadel',
   intro:'Everything you have learned hangs over this city. Knead the last bridge to the sky bell.',
   sky:'#86a6c5',fog:'#91abc3',spawn:{x:4.75,y:0},end:305.5,previousDistance:1002.5,cameraY:2.15,
@@ -24,7 +24,7 @@ export default chapter({
     p('start',-8,18,0,'stone',{arch:true,entrance:true}),
     p('lift1',9,4,1.65,'lift',{moveY:.9,period:5.6}),
     p('roof1',14.55,8.5,3.9,'stone',{house:true,checkpoint:16.5}),
-    part('roof-ramp',{x:23.05,w:2.3,y:7.1,h:3.05,slope:0},{x:23.05,w:7.8,y:3.9,h:.65,slope:3.3},{station:'roof-ramp',clayRole:'ramp'}),
+    part('roof-ramp',{x:23.05,w:3,y:9.23,h:5.98,slope:0},{x:23.05,w:7.8,y:3.9,h:.65,slope:3.3},{station:'roof-ramp',clayRole:'ramp'}),
     p('tile-dock',30.85,3,7.2,'stone'),
     p('tile1',35,3.4,7.6,'crumble',{delay:1.2}),
     p('tile2',40,3.4,8.2,'crumble',{delay:1.1}),
@@ -47,9 +47,10 @@ export default chapter({
     p('awning1',128,3.2,15.4,'spring'),
     p('laundry-high',132.5,4,20.6,'ledge'),
     p('stair-dock',138.5,5.5,22.6,'stone'),
-    ...[0,1,2].map(i=>part('laundry-stair-'+i,
-      {x:144+i*.8,w:.85,y:27.9,h:8.5},
-      {x:144+i*2.4,w:2.4,y:24.3+i*1.8,h:4.9+i*1.8},{station:'laundry-stairs',clayRole:'stairs'})),
+    // One wall, pulled over into one sloping slab. It used to be three slices
+    // that moved together from a single pull, which reads as three objects. The
+    // slab lands a shade above the roof so its edge never catches a boot.
+    part('laundry-wall',{x:144,w:2.45,y:27.9,h:8.5},{x:144,w:7.2,y:22.6,h:2.9,slope:5.5},{station:'laundry-stairs',clayRole:'bridge'}),
     p('laundry-roof',151.2,6,27.9,'stone',{arch:true,house:true}),
     p('laundry-drop',158.5,4,24.8,'ledge'),
     p('laundry-lift',164,4,24.4,'lift',{moveY:1.8,period:5.4,phase:-1.57}),
@@ -81,7 +82,7 @@ export default chapter({
     p('bell-rest',283,4,38.4,'stone',{checkpoint:285}),
     p('belfry-step',288.5,3,39.4,'ledge'),
     p('belfry-crown',293,2.6,44.2,'ledge'),
-    part('belfry-span',{x:295.6,w:1.9,y:48.5,h:4.8},{x:295.6,w:1.9,y:44.2,h:.65},{station:'belfry-span',clayRole:'bridge'}),
+    part('belfry-span',{x:295.6,w:1.9,y:48.5,h:4.8},{x:295.6,w:1.9,y:44.2,h:4.8},{station:'belfry-span',clayRole:'bridge'}),
     p('sky-bell',297.5,16,44.2,'stone',{goal:true,house:true,arch:true}),
 
     // Editor-authored revision: alternate high route through the court and laundry approach.
@@ -99,7 +100,7 @@ export default chapter({
     'start','lift1','roof1',['roof-ramp','walk'],['tile-dock','walk'],'tile1','tile2','lookout',
     ['lower-court','fall'],'weight1','counter1','court-roof',['draught-valve','walk'],'draught-step','draught-crown','draught-exit',
     ['garden','fall'],['laundry-entry','fall'],'laundry1','awning1','laundry-high','stair-dock',
-    'laundry-stair-0','laundry-stair-1','laundry-stair-2',['laundry-roof','walk'],['laundry-drop','fall'],'laundry-lift','laundry-return','laundry-home',
+    ['laundry-wall','walk'],['laundry-roof','walk'],['laundry-drop','fall'],'laundry-lift','laundry-return','laundry-home',
     ['exchange-step','fall'],['exchange-entry','fall'],'lamp1','lamp2','exchange1','exchange2','weight2','counter2','gallery-low',
     'gallery-high','weight3','counter3','bell-court',['belfry-valve','walk'],'stair1','stair2','bell-rest','belfry-step','belfry-crown',
     ['belfry-span','walk'],['sky-bell','walk']
@@ -117,9 +118,9 @@ export default chapter({
     {id:'roof-ramp',name:'Stretch a ramp',verb:'Pull right',gesture:'right',parts:['roof-ramp'],x:14,end:31,
      spawn:{x:18,y:3.9,groundId:'roof1'},
      hint:'Drag the orange clay to the right, or hold E / KNEAD, to stretch a walkable ramp. R resets it.'},
-    {id:'laundry-stairs',name:'Wall into stairs',verb:'Pull right',gesture:'right',parts:['laundry-stair-0','laundry-stair-1','laundry-stair-2'],x:138,end:152,
+    {id:'laundry-stairs',name:'Pull the wall over',verb:'Pull right',gesture:'right',parts:['laundry-wall'],x:138,end:152,
      spawn:{x:141,y:22.6,groundId:'stair-dock'},
-     hint:'Pull the tall clay wall to the right, or hold E / KNEAD, to knead out three steps.'},
+     hint:'Pull the tall clay wall over to the right, or hold E / KNEAD, until it lies down as a slope to the roof.'},
     {id:'belfry-span',name:'Press the last bridge',verb:'Press down',gesture:'down',parts:['belfry-span'],x:288,end:300,
      spawn:{x:294,y:44.2,groundId:'belfry-crown'},
      hint:'Press the clay plug down — drag, hold E / KNEAD, or stomp it — and walk your own bridge to the bell.'}
