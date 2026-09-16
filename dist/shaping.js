@@ -57,7 +57,7 @@ export function updateShaping(game,dt,input){
     // below, exactly as it always has.
     if(station.rule){handRule(game,station,dt,input,{live:live&&!input.shapeReset});applyRule(game,station,dt,{near:station===near});}
     if(live){
-      if(input.shapeReset)resetStation(station);
+      if(input.shapeReset)resetStation(station,game);
       // Ruled clay never falls through to here, whatever its rule returns, so
       // handRule is the only way a hand reaches it.
       else if(!station.rule){
@@ -126,13 +126,16 @@ export function nudgeClay(game,id,part,point){
   station.target=clampShape(station.target+.3);station.kneadPending=true;return true;
 }
 
-// Softening a station back, whatever kind it is.
-export function resetStation(station){
+// Softening a station back, whatever kind it is. A station that opened a
+// channel when it was done closes it again, so the door it opened is shut and
+// the experiment can be run afresh.
+export function resetStation(station,game=null){
   station.target=0;station.amount=0;station.announced=false;
   station.charge=0;station.launched=0;
   if(perPart(station)){station.targets.fill(0);station.amounts.fill(0);}
   if(station.give){resetGive(station.give);station.pressed=false;station.press=0;station.fall=0;station.punch=0;}
   if(station.rule==='form')resetFormStation(station);
+  if(station.channel&&game){game.latched[station.channel]=false;game.channels[station.channel]=0;}
 }
 
 // --- walking on clay that has walls ------------------------------------------
@@ -196,7 +199,7 @@ export function resolveFormBody(s,p,prevX,radius){
 export function visitStation(game,id,{reset=false}={}){
   if(!game.level.playground||!['playing','paused'].includes(game.status))return false;
   const station=game.level.shaping.find(s=>s.id===id);if(!station)return false;
-  if(reset)resetStation(station);
+  if(reset)resetStation(station,game);
   game.checkpoint={x:station.spawn.x,y:station.spawn.y};game.checkpointId=station.spawn.groundId;game.respawnTimer=0;
   game.respawn();Object.assign(game.player,station.spawn,{health:3,invuln:1.4});
   game.sectionId=game.level.sections.findLast(s=>game.player.x>=s.x)?.id??0;

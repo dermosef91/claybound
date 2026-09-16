@@ -8,7 +8,8 @@
 // set can be driven headlessly.
 import {clampShape} from './shaping.js';
 import {GIVE,createGive,pressGive,kickGive,holdUnder,stepGive,giveDepth,giveVelocity,giveShare} from './clay-give.js';
-import {FORM,createForm,resetForm,formHeight,formShare,pullForm,pressForm,pokeForm,sagForm,stepForm,beginForm} from './clay-form.js';
+import {FORM,MOULD,createForm,resetForm,formHeight,formShare,pullForm,pressForm,pokeForm,sagForm,stepForm,beginForm,mouldProfile,mouldClump,formMatch} from './clay-form.js';
+import {createMarble,resetMarble,stepMarble} from './clay-marble.js';
 
 export const RULES=Object.freeze(['sag','catapult','stamp','form']);
 export const isRule=name=>RULES.includes(name);
@@ -28,8 +29,25 @@ export function initializeRule(station,L){
   // it, so it is built here rather than lazily like the sag block's springs.
   if(station.rule==='form'){
     station.grip=null;station.poke=null;station.pressed=false;station.punch=0;station.fall=0;station.stomped=false;
+    station.done=false;station.open=0;
     const s=L?.platforms.find(q=>q.id===station.parts[0]);
-    if(s)station.form=s.form=createForm(s.w,s.h,station.clump,{free:!!station.free});
+    if(s){
+      const make=clump=>createForm(s.w,s.h,clump,{free:!!station.free,pace:station.pace});
+      let f=make(station.clump);
+      // A mould is a target the clay is cast into, authored as knots like a
+      // clump and legalised like one, so it is always a shape a hand can make.
+      // Unless the station says otherwise the mass starts as the flat slab that
+      // holds exactly the mould's volume: every bit of the cast is in there.
+      if(station.mould){
+        const cast=mouldProfile(f,station.mould);
+        if(!station.clump)f=make(mouldClump(f,cast));
+        station.cast=s.mould=cast;
+      }
+      station.form=s.form=f;
+      // A marble run: the ball starts where the station says, in the form's
+      // own x, and is home in the station's socket.
+      if(station.marble)station.ball=s.marble=createMarble(station.marble.x);
+    }
   }
   if(perPart(station)){
     station.amounts=station.parts.map(()=>0);
@@ -251,10 +269,32 @@ export function applyRule(game,station,dt,{near=false}={}){
       game.event('spring',{platformId:s.id,x:p.x,y:p.y});
       station.pressed=false;station.fall=p.vy;
     } else {station.pressed=on;station.fall=on?0:p.vy;}
-    station.amount=station.target=formShare(f);
+    if(station.ball)stepMarble(station.ball,f,dt,station.marble?.socket);
+    // What counts as progress. A mould reads how close the cast is, a marble
+    // run how far the marble has come towards its socket, and everything else
+    // how much clay has moved. A cast or a seated marble is done, and done
+    // stays done — the clay may slump afterwards, the door it opened does not
+    // close — until R. Done opens whatever channel the station names, the way
+    // a switch or a counterweight would.
+    let share;
+    if(station.cast){share=formMatch(f,station.cast);s.mouldMatch=share;if(share>=MOULD.cast)station.done=true;}
+    else if(station.ball){share=marbleShare(station);if(station.ball.home)station.done=true;}
+    else share=formShare(f);
+    station.open=Math.min(1,Math.max(0,station.open+(station.done?dt:-dt)*CHASE));
+    if(station.done&&station.channel)game.activate(station.channel,s.x+s.w/2,s.y,station.message||station.name+' · done');
+    station.amount=station.target=station.done?1:Math.min(share,station.cast||station.ball?.99:1);
     return true;
   }
   return false;
+}
+
+// How far along the marble is: from where it started to the middle of its
+// socket, as a share, never quite one until it is seated.
+function marbleShare(station){
+  const m=station.ball,socket=station.marble?.socket;
+  if(!m||!Array.isArray(socket))return 0;
+  const goal=(socket[0]+socket[1])/2,span=Math.abs(m.start-goal)||1;
+  return Math.min(.99,Math.max(0,1-Math.abs(m.x-goal)/span));
 }
 
 // The hand on the formable mass. A pointer carries a world point every tick it
@@ -301,5 +341,7 @@ function formHand(game,station,dt,input){
 // Flatten the formable mass back to its clump and forget every hand on it.
 export function resetFormStation(station){
   if(station.form)resetForm(station.form);
+  if(station.ball)resetMarble(station.ball);
   station.grip=null;station.poke=null;station.pressed=false;station.punch=0;station.fall=0;station.stomped=false;
+  station.done=false;station.open=0;
 }

@@ -32,7 +32,7 @@ const hopTo=(g,x,frames=1400)=>{
 {
   assert.equal(new Set(lab.platforms.map(p=>p.id)).size,lab.platforms.length,'platform ids are unique');
   assert(lab.playground,'the lab is a playground, so the station teleport works');
-  assert.deepEqual(lab.shaping.map(s=>s.id),['sag','catapult','stamp','form','lump']);
+  assert.deepEqual(lab.shaping.map(s=>s.id),['sag','catapult','stamp','form','lump','dig','lintel','mould','wet','marble']);
   for(const s of lab.shaping){
     assert(isRule(s.rule),`${s.id} carries a known rule`);
     assert(s.end>s.x,`${s.id} owns a stretch of the bench`);

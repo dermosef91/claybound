@@ -100,10 +100,25 @@ export function restProfile(knots,u,depth){
   return depth+ya+(yb-ya)*s;
 }
 
-export function createForm(width,depth,knots,{free=false}={}){
+// How a mass slumps home when left alone. The lab's clay waits `settle`
+// seconds with no hand on it and nobody standing on it, then relaxes with
+// the time constant `relaxTime`, never slower than `relaxMin` a second. A
+// station may hand in its own pace: wet clay settles in well under a second,
+// slumps in seconds rather than a minute, and — the one real difference — is
+// not held by the weight of someone standing on it, so a stair built in it
+// melts under the boots that climb it. A hand on it always holds it.
+export const PACE=Object.freeze({settle:FORM.settle,relaxTime:FORM.relaxTime,relaxMin:FORM.relaxMin,holdUnderfoot:true});
+export function formPace(pace){
+  const p={...PACE};
+  if(pace&&typeof pace==='object')for(const k of ['settle','relaxTime','relaxMin'])if(real(pace[k])&&pace[k]>0)p[k]=pace[k];
+  if(pace&&typeof pace==='object'&&pace.holdUnderfoot!==undefined)p.holdUnderfoot=!!pace.holdUnderfoot;
+  return Object.freeze(p);
+}
+
+export function createForm(width,depth,knots,{free=false,pace=null}={}){
   const w=Math.max(1,finite(width)),n=Math.max(3,Math.round(w/FORM.spacing)+1),dx=w/(n-1);
   const make=()=>new Float64Array(n);
-  const f={w,n,dx,free:!!free,floor:free?0:FORM.minThick,depth:Math.max(0,finite(depth)),h:make(),prev:make(),rest:make(),dent:make(),low:make(),scratch:make(),q:make(),volume:0,ref:0,idle:Infinity,settled:true,version:0};
+  const f={w,n,dx,free:!!free,floor:free?0:FORM.minThick,depth:Math.max(0,finite(depth)),pace:formPace(pace),h:make(),prev:make(),rest:make(),dent:make(),low:make(),scratch:make(),q:make(),volume:0,ref:0,idle:Infinity,settled:true,version:0};
   f.low.fill(f.floor);
   // The authored clump, then made to keep the same promises every shape the
   // hand makes keeps: no face too steep, no corner too sharp, nothing thinner
@@ -370,10 +385,10 @@ export function beginForm(f){f.prev.set(f.h);}
 export function stepForm(f,dt,{hand=false,standing=false}={}){
   const step=clamp(finite(dt),0,1/30);
   if(!step)return false;
-  const eased=easeForm(f);
-  f.idle=hand||standing?0:f.idle+step;
-  if(f.idle<=FORM.settle)return eased;
-  const {h,rest,dent,n}=f,k=1-Math.exp(-step/FORM.relaxTime),floor=FORM.relaxMin*step;
+  const eased=easeForm(f),pace=f.pace||PACE;
+  f.idle=hand||(standing&&pace.holdUnderfoot)?0:f.idle+step;
+  if(f.idle<=pace.settle)return eased;
+  const {h,rest,dent,n}=f,k=1-Math.exp(-step/pace.relaxTime),floor=pace.relaxMin*step;
   let moved=0;
   for(let i=0;i<n;i++){
     const gap=rest[i]-h[i];
@@ -394,4 +409,34 @@ export function stepForm(f,dt,{hand=false,standing=false}={}){
     return true;
   }
   return eased;
+}
+
+// --- a mould to cast ------------------------------------------------------------
+
+// A target surface for the clay to be shaped into, authored the same way a
+// clump is (knots of [across, top]) and legalised the same way, so the target
+// is always a shape the hand can actually make: nothing steeper, sharper,
+// taller or thinner than the clay itself allows. Returned as one height per
+// column of `f`.
+export function mouldProfile(f,knots){
+  const m=createForm(f.w,f.depth,knots,{free:f.free});
+  return Float64Array.from(m.rest);
+}
+// The flat clump that holds exactly the volume the mould does, as knots: the
+// mass starts as a plain slab and every bit of the mould has to be found in it.
+export function mouldClump(f,target){
+  let s=0;for(let i=0;i<f.n;i++)s+=target[i];
+  const top=s/f.n-f.depth;
+  return [[0,top],[1,top]];
+}
+// How well the surface matches the mould, from 0 to 1: the mean gap between
+// the clay and the target, read as a share between `MOULD.good` (a cast) and
+// `MOULD.bad` (not started). A hand can settle a surface to within a fifth of
+// a unit of the target everywhere; a slab has a mean gap of a unit or more.
+export const MOULD=Object.freeze({good:.25,bad:1.2,cast:.995});
+export function formMatch(f,target){
+  if(!target||target.length!==f.n)return 0;
+  let gap=0;for(let i=0;i<f.n;i++)gap+=Math.abs(f.h[i]-target[i]);
+  gap/=f.n;
+  return clamp((MOULD.bad-gap)/(MOULD.bad-MOULD.good),0,1);
 }
