@@ -381,8 +381,13 @@ function updateHUD(now){
   if(hintKey&&key!==hintKey)dismissed.add(hintKey);
   if(key&&key===hintKey&&now>=hintUntil)dismissed.add(key);
   const visible=!!hint&&!dismissed.has(key);show('hint',visible);
-  if(visible&&hintKey!==key){hintKey=key;hintUntil=now+6500;$('hint-mark').innerHTML=hintIcon(hint.icon);$('hint-title').textContent=hint.title;const touch=matchMedia('(pointer:coarse), (max-width:850px)').matches;$('hint-text').textContent=touch?(hint.touchText||hint.text.replace('A / D or arrows to move.','Drag the joystick to move.').replace('↓ / S or STOMP','STOMP')):hint.text;}
+  if(visible&&hintKey!==key){hintKey=key;hintUntil=now+hintDuration(hint.text);$('hint-mark').innerHTML=hintIcon(hint.icon);$('hint-title').textContent=hint.title;const touch=matchMedia('(pointer:coarse), (max-width:850px)').matches;$('hint-text').textContent=touch?(hint.touchText||hint.text.replace('A / D or arrows to move.','Drag the joystick to move.').replace('↓ / S or STOMP','STOMP')):hint.text;}
 }
+// A hint card stays up long enough to be read: a short chapter prompt for the
+// six and a half seconds it always had, a longer lab prompt for about a
+// quarter of a second a word, never past sixteen seconds. It can be dismissed
+// sooner, and walking away from its stretch dismisses it too.
+const hintDuration=text=>Math.min(16000,Math.max(6500,2500+String(text||'').split(/\s+/).filter(Boolean).length*240));
 // A controller drives the same axis-and-edges input the touch stick produces.
 // Keyboard keeps priority: a stick resting slightly off centre must never fight
 // a held key, so the pad only steers while nothing is pressed.

@@ -168,32 +168,32 @@ const shaping=[
   {id:'dig',rule:'form',icon:'drop',name:'Buried in the slab',verb:'Dig it out',gesture:'down',
    parts:['dig-mass'],x:166,end:198,spawn:{x:169,y:0,groundId:'dig-dock'},
    clump:[[0,-.5],[1,-.5]],
-   hint:'Five beads and a flower are buried in this slab, deepest in the middle. Press in from the air and drag down to dig, or stomp for a quick crater. The clay keeps its volume, so what you dig out piles up beside the hole: pull the spoil together and it is the step up to the perch. Left alone the slab slumps level and buries everything again. R fills it in.'},
+   hint:'Five beads and a flower are buried here. Press in from the air and drag down to dig. Spoil piles up beside the hole (volume is kept); pull it into a step to the perch. Slumps back when left; R refills it.'},
   // Flush with the dock, so the lintel is met at a walk.
   {id:'lintel',rule:'form',icon:'ramp',name:'Under & over',verb:'Dig under, pile up',gesture:'down',
    parts:['lintel-mass'],x:198,end:234,spawn:{x:201,y:0,groundId:'lintel-dock'},
    clump:[[0,0],[1,0]],
-   hint:'A stone lintel lies across the clay with too little air beneath to walk under, and past it the bench stands a wall too high to jump. Press in from the air and drag along under the lintel to dig a trench deep enough to duck through; the clay keeps its volume, so what you dig out piles up beyond it. Pull that spoil up into a step, or hold E facing the wall, and climb out. Left alone it slumps level again. R undoes it all.'},
+   hint:'A lintel too low to walk under, then a wall too high to jump. Press in and drag along to trench under the lintel; the spoil piles up beyond (volume is kept). Pull it into a step, or hold E, and climb. Slumps level when left; R undoes it.'},
   // A mould is knots like a clump; the mass starts as the flat slab that holds
   // exactly the mould's volume, so every bit of the cast is already in it.
   {id:'mould',rule:'form',icon:'stairs',name:'Cast the mould',verb:'Shape it to the outline',gesture:'up',
    parts:['mould-mass'],x:234,end:268,spawn:{x:237,y:0,groundId:'mould-dock'},
    mould:[[0,-.8],[.1,-.8],[.17,.7],[.36,.7],[.43,2.1],[.6,2.1],[.67,-1.6],[.8,-1.6],[.87,-.8],[1,-.8]],
    channel:'mould-cast',message:'Cast · the vault is open',
-   hint:'The pale outline over the clay is a mould: two steps and a dip. Grab the clay and pull it up, push it down and drag it sideways until its surface lies along the line; the slab keeps its volume, and holds exactly what the mould needs. The outline brightens as you get close and turns green when it is cast, and the grate on the vault lifts. Left alone the cast slumps, but the grate stays open. R resets both.'},
+   hint:'The pale outline is a mould. Pull, push and drag the clay until its surface lies along the line; the slab holds exactly enough and keeps its volume. The line turns green when cast and the grate lifts, staying open as the cast slumps. R resets both.'},
   // Wet clay: settles in well under a second, slumps in seconds, and is not
   // held by the weight of a rider, only by a hand.
   {id:'wet',rule:'form',icon:'spark',name:'Wet clay',verb:'Build fast, climb faster',gesture:'up',
    parts:['wet-mass'],x:268,end:309,spawn:{x:271,y:0,groundId:'wet-dock'},
    clump:[[0,-.8],[1,-.8]],pace:{settle:.6,relaxTime:5,relaxMin:.4,holdUnderfoot:false},
-   hint:'This clay is wet: whatever you pull up slumps back within seconds, and it does not hold under your feet, only under your hand. Grab it and drag a step up, or hold E, and climb before it melts; the far bench is a wall. Pull a pillar up under yourself and it carries you with it: let go, stomp from its top before it sinks, and the throw reaches the perch. It keeps its volume all the while. R resets it.'},
+   hint:'Wet clay slumps back in seconds unless a hand is on it. Drag a step up, or hold E, and climb before it melts. For the perch: pull a pillar up under yourself, let go, stomp from its top before it sinks. Volume is kept. R resets it.'},
   // The marble starts in the near hollow, in the form's own x; its socket is
   // the far hollow. The ridge between is too tall to roll over.
   {id:'marble',rule:'form',icon:'wheel',name:'The marble run',verb:'Roll it home',gesture:'up',
    parts:['marble-mass'],x:309,end:350,spawn:{x:312,y:0,groundId:'marble-dock'},
    clump:[[0,-.8],[.06,-.8],[.12,-1.7],[.18,-.8],[.4,-.8],[.46,.9],[.54,.9],[.6,-.8],[.85,-.8],[.9,-1.8],[.95,-.8],[1,-.8]],
    marble:{x:2.4,socket:[17,19]},channel:'marble-home',message:'The marble is home · the lift rises',
-   hint:'A marble rests in the hollow at this end; its socket is the hollow at the far end, past a ridge too tall to roll over. You cannot touch the marble, only the clay: pull the ground up under it and it rides up, lean that mound over and it rolls; hold E behind it to raise a step, or stomp just ahead of it and it rolls into your crater. The clay keeps its volume, so a ramp here is a trench there. Seat it in the socket and the lift on the bench rises. Left alone the clay slumps back, and R puts the marble back too.'},
+   hint:'The marble sits in the near hollow; its socket is the far one. Only the clay moves it: pull the ground up under it and lean it, hold E behind it, or stomp just ahead so it rolls into your crater. Seat it and the lift rises. Volume is kept; it slumps back when left. R resets the marble too.'},
 ];
 
 const L={
