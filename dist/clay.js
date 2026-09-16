@@ -158,14 +158,26 @@ export function clayShape(w,key,build){
   return retainClayShape(w,key,geo);
 }
 
+// How finely a constructed block is divided before it is sculpted. The pressed
+// fingerprints and pigment come from the triplanar shader, not from the mesh,
+// so these two numbers buy silhouette: the waver along a long edge and the
+// softness of a corner. They also set almost everything about build cost, since
+// a rounded box at five segments is 1,452 triangles before sculpting even
+// begins and longest-edge subdivision multiplies from there.
+const BOX_SEGMENTS=3;
+// Longest edge left unsplit, in world units. Below about 2 the split count
+// climbs steeply across a wide deck for silhouette detail far finer than the
+// orthographic framing resolves.
+const MAX_EDGE=2;
+
 export function clayBox(w,width,height,depth,radius,variant=0){
   const c=w.clay;if(!c)return null;
   const min=Math.min(width,height,depth),max=Math.max(width,height,depth);
   const key=[width,height,depth,radius].map(n=>n.toFixed(3)).join(':');
   const cached=cachedClayShape(w,key);
   if(cached)return cached;
-  const base=new RoundedBoxGeometry(width,height,depth,5,Math.min(radius,width/3,height/3,depth/3));
-  const g=sculptClay(w,base,{amplitude:Math.min(.065,min*.055),subdivide:max>3&&min>.15,maxEdge:Math.max(1.05,max/60)});
+  const base=new RoundedBoxGeometry(width,height,depth,BOX_SEGMENTS,Math.min(radius,width/3,height/3,depth/3));
+  const g=sculptClay(w,base,{amplitude:Math.min(.065,min*.055),subdivide:max>3&&min>.15,maxEdge:Math.max(MAX_EDGE,max/60)});
   base.dispose();g.computeBoundingBox();g.computeBoundingSphere();
   return retainClayShape(w,key,g);
 }
