@@ -63,6 +63,7 @@ export function animateClayView(view,s,dt,{near=false,playing=true,reducedMotion
   if(clay.block){
     view.root.scale.set(1,1,1);view.root.position.set(s.x,s.y,0);
     if(clay.marble)animateMarbleView(clay.marble,s);
+    if(clay.socket)animateSocketView(clay.socket,s,playing?dt:0);
     if(clay.mould)animateMouldView(clay.mould,s);
     return;
   }
@@ -227,6 +228,7 @@ function createBlockView(w,s,root,{form=false}={}){
   const view={root,clay:{pieces:[{mesh,rest:block.rest}],block,breath:0,time:0},ropes:[],bounce:0};
   if(form&&s.mould)view.clay.mould=createMouldView(s,root,D,base);
   if(form&&s.marble)view.clay.marble=createMarbleView(w,s,root);
+  if(form&&s.marble&&s.socket)view.clay.socket=createSocketView(w,s,root);
   updateBlockView(view,s);return view;
 }
 
@@ -268,6 +270,26 @@ function createMarbleView(w,s,root){
   const mesh=new THREE.Mesh(new THREE.SphereGeometry(m.r,28,20),material);
   mesh.name='Marble · '+s.id;mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
   animateMarbleView(mesh,s);return mesh;
+}
+// The socket the marble is bound for is marked so the goal reads from the far
+// end of the trough: a gold hoop the marble's colour standing over the hollow,
+// facing the camera (flat on the clay it would be a line from the side), just
+// big enough that the seated marble sits inside it. It rides the surface as
+// the clay is worked, turns slowly until the marble is home, and glows green
+// once it is.
+const SOCKET_HOME=0x9be7a8;
+function createSocketView(w,s,root){
+  const m=s.marble,material=new THREE.MeshStandardMaterial({color:MARBLE_GOLD,roughness:.4,metalness:.15,emissive:MARBLE_GOLD,emissiveIntensity:.35});
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(m.r*1.5,.07,10,40),material);
+  ring.name='Socket · '+s.id;ring.castShadow=true;root.add(ring);
+  animateSocketView(ring,s,0);return ring;
+}
+function animateSocketView(ring,s,dt){
+  const f=s.form,socket=s.socket,m=s.marble;if(!f||!socket)return;
+  const x=(socket[0]+socket[1])/2,home=!!m?.home;
+  ring.position.set(x,-(s.h||0)+formHeight(f,x)+m.r,0);
+  ring.rotation.y+=home?0:dt*.9;
+  ring.material.color.setHex(home?SOCKET_HOME:MARBLE_GOLD);ring.material.emissive.setHex(home?SOCKET_HOME:MARBLE_GOLD);
 }
 function animateMarbleView(mesh,s){
   const m=s.marble,f=s.form;if(!m||!f)return;

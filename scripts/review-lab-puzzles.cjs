@@ -10,16 +10,17 @@ fs.mkdirSync(out,{recursive:true});
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1500,height:850}}),errors=[],badRequests=[];
- page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('response',r=>{if(r.status()>=400)badRequests.push(r.url());});
- await page.route('**/app.js',async route=>{
+ page.on('pageerror',e=>{errors.push(e.message);console.error('PAGEERROR',e.message);});page.on('console',m=>{if(m.type()==='error'){errors.push(m.text());console.error('CONSOLE',m.text().slice(0,300));}});page.on('response',r=>{if(r.status()>=400)badRequests.push(r.url());});
+ await page.route(/\/app\.js(\?.*)?$/,async route=>{
   let body=fs.readFileSync(root+'/dist/app.js','utf8');
   body=body.replace('function frame(now){','function frame(now){ if(window.playtest?.manual){shapingControls.update();requestAnimationFrame(frame);return;}');
   body+='\nwindow.playtest={manual:false,get game(){return game},get world(){return world},get input(){return input},begin,home,stationPicker,draw(){for(let i=0;i<20;i++)world.render(game,.05);healthHUD.draw(game,0);updateHUD(performance.now());shapingControls.update();},step(n,extra={}){for(let i=0;i<n;i++){game.tick(FIXED_DT,{...input,...extra});input.jumpPressed=false;input.stompPressed=false;}this.draw();}};';
   await route.fulfill({contentType:'text/javascript',body});
  });
  await page.goto('http://127.0.0.1:5174');await page.waitForFunction(()=>document.body.classList.contains('title-scene-ready'),null,{timeout:120000});
- await page.locator('#chapters').click();await page.locator('[data-action="playground"]').click();
- await page.waitForFunction(()=>window.playtest?.game.level.playground&&document.getElementById('loading').classList.contains('hidden'),null,{timeout:120000});
+ await page.locator('#chapters').click();await page.keyboard.press('ß');await page.locator('[data-action="playground"]').click();
+ try{await page.waitForFunction(()=>window.playtest?.game.level.playground&&document.getElementById('loading').classList.contains('hidden'),null,{timeout:60000});}
+ catch(e){await page.screenshot({path:out+'/debug-load.png'});console.error('LOADSTATE',await page.evaluate(()=>({playground:window.playtest?.game?.level?.playground,status:window.playtest?.game?.status,loading:document.getElementById('loading').className,text:document.body.innerText.slice(0,300)})));throw e;}
  await page.evaluate(()=>{playtest.manual=true;playtest.draw();});
  // The picker, with ten entries; choosing one resumes the game at it.
  await page.keyboard.press('Escape');await page.locator('[data-action="stations"]').click();
@@ -45,7 +46,7 @@ fs.mkdirSync(out,{recursive:true});
  const form=async fn=>page.evaluate(async fn=>{const mod=await import('/clay-form.js');const marble=await import('/clay-marble.js');const g=playtest.game;const run=new Function('mod','marble','g','playtest',`return (${fn})(mod,marble,g,playtest)`);return run(mod,marble,g,playtest);},fn.toString());
 
  // 06 · buried: at rest, then a hole dug to the flower.
- await goTo('dig',8);await shot('06-buried-rest');
+ await goTo('dig',3.5);await shot('06-buried-rest');
  await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='dig'),s=g.level.platforms.find(q=>q.id==='dig-mass'),f=s.form;for(let i=0;i<30;i++)mod.pressForm(f,8,Math.max(mod.FORM.minThick+.3,mod.formHeight(f,8)-.2)+mod.FORM.tool);pt.step(40);});
  await shot('06-buried-dug');
  // 07 · under & over: at rest against the lintel, then trenched.
@@ -67,7 +68,7 @@ fs.mkdirSync(out,{recursive:true});
  await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='marble'),s=g.level.platforms.find(q=>q.id==='marble-mass'),f=s.form;for(let i=0;i<10;i++)mod.pullForm(f,1.6,0,.3);pt.step(45);});
  await shot('10-marble-rolling');
  await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='marble');st.ball.x=18;st.ball.vx=0;pt.step(400);});
- await goTo('marble',null);await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='marble');st.ball.x=18;st.ball.vx=0;pt.step(400);Object.assign(g.player,{x:344.5,y:4.02,vx:0,vy:0,groundId:null});pt.step(20);});
+ await goTo('marble',null);await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='marble');st.ball.x=18;st.ball.vx=0;pt.step(400);const lift=g.level.platforms.find(q=>q.id==='marble-lift');Object.assign(g.player,{x:344.5,y:lift.y+.02,vx:0,vy:0,groundId:null});pt.step(20);});
  await shot('10-marble-home');
  await browser.close();
  assert.deepEqual(badRequests,[],'no failed requests');

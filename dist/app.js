@@ -228,10 +228,12 @@ function pause(){
 function chapters(){
   const choices=LEVELS.map((base,i)=>{const L=activeLevel(i),edited=drafts.has(i),run=(L.custom?saved.customRuns:saved.runs)[i],r=chapterCollections(L,i,saved);return `<div class="chapter-option"><button class="chapter-choice" data-level="${i}"><span>${String(i+1).padStart(2,'0')}</span><div><strong>${L.short}${edited?L.custom?' · Your edit':' · Original':''}</strong><small>${L.sections.length} passages${run?.version===L.layoutVersion?' · Checkpoint saved':''}</small><span class="chapter-collectibles"><img src="./assets/completion/flower.webp" alt="" class="chapter-flower" width="16" height="16">${r.stamps}/${r.stampTotal}<img src="./assets/completion/bead.webp" alt="" class="chapter-bead" width="16" height="16">${r.coins}/${r.coinTotal}</span></div>${icon('arrow-up-right')}</button>${edited?`<button class="quiet-button chapter-alternate" data-level="${i}" data-source="${L.custom?'original':'edited'}">${icon(L.custom?'refresh-cw':'pencil-ruler')} ${L.custom?'Play updated original':'Play your edit'}</button>`:''}</div>`;}).join('');
   // The lab is not a chapter and keeps no record: it is a bench of ideas that
-  // are not in the game yet, so it sits under the four rather than among them.
-  const lab=`<button class="chapter-choice playground-choice" data-action="playground"><span>${icon('pencil-ruler')}</span><div><strong>${clayLab.short}</strong><small>${clayLab.label}</small></div>${icon('arrow-up-right')}</button>`;
-  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">FOUR CHAPTERS &amp; A CLAY LAB</span><h2>Choose your path.</h2><div class="chapters-list">${choices}${lab}</div>`);
+  // are not in the game yet, so it sits under the four rather than among them —
+  // and, like the cast, only once someone has typed ß with this list open.
+  const lab=saved.labUnlocked?labMarkup():'';
+  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">${saved.labUnlocked?'FOUR CHAPTERS &amp; A CLAY LAB':'FOUR CHAPTERS'}</span><h2>Choose your path.</h2><div class="chapters-list">${choices}${lab}</div>`);
 }
+const labMarkup=()=>`<button class="chapter-choice playground-choice" data-action="playground"><span>${icon('pencil-ruler')}</span><div><strong>${clayLab.short}</strong><small>${clayLab.label}</small></div>${icon('arrow-up-right')}</button>`;
 function help(){
   openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run. A controller's left stick or d-pad steers too.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them. On a controller, A or Y.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms. On a controller, B, X or a trigger.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Violet clay can be shaped</strong><span>Tap or drag it, hold E, or stomp it — violet clay breathes when you are beside it and stretches into ramps, stairs and bridges. R softens it back.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
 }
@@ -241,13 +243,28 @@ function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active,{m
 // stays: an unlock you have to rediscover on every visit is a nuisance, not a
 // secret. The volume sliders are the panel's landmark, and the picker belongs
 // directly beneath them.
+// The Clay Lab is hidden the same way: ß with the chapter list open adds it
+// under the four, and keeps it there.
 window.addEventListener('keydown',e=>{
-  if(e.key!=='ß'||saved.charactersUnlocked||$('dialog').classList.contains('hidden'))return;
-  const sliders=$('dialog-content').querySelector('.title-levels');
-  if(!sliders||!$('dialog-content').querySelector('[data-action="settings-rumble"]'))return;
-  saved.charactersUnlocked=true;persist();
-  sliders.insertAdjacentHTML('afterend',characterMarkup(CHARACTERS,saved.character));
-  icons();toast('Characters unlocked.');
+  if(e.key!=='ß'||$('dialog').classList.contains('hidden'))return;
+  const content=$('dialog-content');
+  if(!saved.charactersUnlocked){
+    const sliders=content.querySelector('.title-levels');
+    if(sliders&&content.querySelector('[data-action="settings-rumble"]')){
+      saved.charactersUnlocked=true;persist();
+      sliders.insertAdjacentHTML('afterend',characterMarkup(CHARACTERS,saved.character));
+      icons();toast('Characters unlocked.');return;
+    }
+  }
+  if(!saved.labUnlocked){
+    const list=content.querySelector('.chapters-list');
+    if(list&&content.querySelector('.chapter-choice[data-level]')){
+      saved.labUnlocked=true;persist();
+      list.insertAdjacentHTML('beforeend',labMarkup());
+      const eyebrow=content.querySelector('.eyebrow');if(eyebrow)eyebrow.innerHTML='FOUR CHAPTERS &amp; A CLAY LAB';
+      icons();toast('Clay Lab unlocked.');
+    }
+  }
 });
 // The choice is kept even when there is no world yet to show it in: whoever is
 // chosen here is who the renderer loads when it starts.

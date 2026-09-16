@@ -46,7 +46,7 @@ export function initializeRule(station,L){
       station.form=s.form=f;
       // A marble run: the ball starts where the station says, in the form's
       // own x, and is home in the station's socket.
-      if(station.marble)station.ball=s.marble=createMarble(station.marble.x);
+      if(station.marble){station.ball=s.marble=createMarble(station.marble.x);s.socket=station.marble.socket;}
     }
   }
   if(perPart(station)){

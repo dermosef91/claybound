@@ -119,12 +119,18 @@ console.log('PASS wet clay melts under boots and not under a hand, a mould is a 
     const m=plat('dig-mass'),f=createForm(m.w,m.shape.from.h,by.dig.clump),base=m.y-m.shape.from.h;
     const beads=lab.coins.filter(c=>c.x>m.x&&c.x<m.x+m.w&&c.y<m.y),flower=lab.stamps.find(c=>c.x>m.x&&c.x<m.x+m.w&&c.y<m.y);
     assert.equal(beads.length,5,'five beads in the slab');
-    for(const c of [...beads,flower]){
+    for(const c of beads){
       const top=base+formHeight(f,c.x-m.x);
-      assert(c.y<top-.6,`treasure at ${c.x} is buried (${(top-c.y).toFixed(2)} under)`);
+      assert(c.y<top-.6,`bead at ${c.x} is buried (${(top-c.y).toFixed(2)} under)`);
       assert(c.y>base+FORM.minThick+.4,'and above the floor, so it can be dug to');
     }
-    assert(flower.y<beads.reduce((lo,c)=>Math.min(lo,c.y),Infinity),'the flower is the deepest of all');
+    // The flower is just under the surface: its centre buried, the tip of a
+    // petal (the flower reaches .43 from its centre) breaking through, and
+    // wanting at least the full sink of a stand, a hop or a stomp to take.
+    const over=base+formHeight(f,flower.x-m.x);
+    assert(flower.y<over-.25&&flower.y+.43>over,`the flower sits just under the slab, a petal showing (${(over-flower.y).toFixed(2)} under)`);
+    assert(flower.y+.1<=over-FORM.sag+.01,'and standing on the slab does not simply hand it over');
+    assert(flower.y>beads.reduce((hi,c)=>Math.max(hi,c.y),-Infinity),'the beads are the deep dig');
     const perch=plat('dig-perch'),slab=base+f.rest[0],cap=base+FORM.maxHeight;
     assert(perch.optional&&perch.x>m.x&&perch.x+perch.w<m.x+m.w,'a perch over the slab');
     assert(perch.y>slab+JUMP&&perch.y<cap+JUMP,`out of a jump from the slab (${(slab+JUMP).toFixed(2)}), in one from a mound at the ceiling (${(cap+JUMP).toFixed(2)})`);
@@ -176,17 +182,17 @@ console.log('PASS wet clay melts under boots and not under a hand, a mould is a 
   // 10 · The marble run: hollows either end, a ridge between, a lift that
   // rises on the marble's channel, and a flower only the risen lift reaches.
   {
-    const s=by.marble,m=plat('marble-mass'),lift=plat('marble-counter'),f=createForm(m.w,m.shape.from.h,s.clump);
+    const s=by.marble,m=plat('marble-mass'),lift=plat('marble-lift'),f=createForm(m.w,m.shape.from.h,s.clump);
     const {x,socket}=s.marble,slope=u=>(formHeight(f,u+.3)-formHeight(f,u-.3))/.6;
     assert(Math.abs(slope(x))<.05&&formHeight(f,x)<formHeight(f,x-1)&&formHeight(f,x)<formHeight(f,x+1),'the marble starts at the bottom of a hollow');
     const mid=(socket[0]+socket[1])/2;
     assert(formHeight(f,mid)<formHeight(f,socket[0]-.5)&&formHeight(f,mid)<formHeight(f,socket[1]+.5),'the socket is a hollow');
     let ridge=0;for(let u=x;u<mid;u+=.25)ridge=Math.max(ridge,formHeight(f,u));
     assert(ridge>formHeight(f,x)+1.5&&ridge>formHeight(f,mid)+1.5,`a ridge between them (${(ridge-formHeight(f,x)).toFixed(2)} over the hollow)`);
-    assert.equal(lift.kind,'counter');assert.equal(lift.channel,s.channel);
+    assert.equal(lift.kind,'lift');assert.equal(lift.channel,s.channel);assert(lift.moveY>2&&lift.period>=4,'a lift that runs on the marble\'s channel');
     assert(lift.x>m.x+m.w+5,'the lift stands well clear of the trough');
     const flower=lab.stamps.find(c=>c.x>lift.x&&c.x<lift.x+lift.w);
-    assert(flower&&flower.y>flowerReach(lift.y)&&flower.y<flowerReach(lift.y+lift.rise)-.4,'the flower is reached from the risen lift and from nowhere else on the bench');
+    assert(flower&&flower.y>flowerReach(lift.y)&&flower.y<flowerReach(lift.y+lift.moveY)-.4,'the flower is reached from the top of the lift\'s run and from nowhere else on the bench');
     assert(flower.y>flowerReach(0),'not from the bench');
   }
 }
@@ -391,9 +397,10 @@ console.log('PASS wet clay: E builds the step to the far bench in time and it me
 // --- 10 · the marble run: herd the marble home, and the lift rises --------------------
 {
   const {g,st,s,p,tick,hold,walk,jump,stomp,place,drag,top,taken}=rig('marble');
-  const m=st.ball,socket=st.marble.socket,lift=g.level.platforms.find(q=>q.id==='marble-counter');
+  const m=st.ball,socket=st.marble.socket,lift=g.level.platforms.find(q=>q.id==='marble-lift');
   const events=[];g.onEvent=e=>{if(['shape','activate'].includes(e.type))events.push(e);};
   assert(s.marble===m&&close(m.x,2.4)&&!m.home,'the view is handed the marble, in its hollow');
+  assert.deepEqual(s.socket,socket,'and the socket, so the goal can be marked');
   // Nothing moves it but the ground. A player walking through does nothing.
   walk(s.x+6,frames(3));walk(s.x+1,frames(3));hold(20);
   assert(close(m.x,2.4,1e-6),'the player walks through the marble and leaves it be');
@@ -419,16 +426,25 @@ console.log('PASS wet clay: E builds the step to the far bench in time and it me
   assert(m.home&&st.done,`the marble is home after ${(g.time-t0).toFixed(1)}s and ${lifts} lifts (${m.x.toFixed(2)})`);
   assert(m.x>=socket[0]&&m.x<=socket[1]);
   assert(shapedShare(st)===1&&events.some(e=>e.type==='shape')&&events.some(e=>e.type==='activate'&&e.channel==='marble-home'),'announced, and the channel opened');
-  hold(frames(2.5));
-  assert(close(lift.y,lift.baseY+lift.rise,.01),`the lift has risen (${lift.y.toFixed(2)})`);
-  // From the risen lift a hop takes the flower.
-  place(lift.x+lift.w/2,lift.y+.02);hold(10);
-  assert.equal(p.groundId,'marble-counter');
+  // The lift runs while the marble sits: up to the top of its travel, back to
+  // its base, and up again, never stopping.
+  assert(close(lift.y,lift.baseY,.05),'the lift waited at its base until now');
+  let peak=lift.y,bottomAgain=false,upAgain=false;
+  for(let i=0;i<frames(lift.period*2.1);i++){tick();peak=Math.max(peak,lift.y);if(peak>lift.baseY+lift.moveY-.05&&lift.y<lift.baseY+.05)bottomAgain=true;if(bottomAgain&&lift.y>lift.baseY+1)upAgain=true;}
+  assert(peak>lift.baseY+lift.moveY-.05,`the lift reaches the top of its run (${peak.toFixed(2)})`);
+  assert(bottomAgain&&upAgain,'and comes back down and goes up again');
+  // From the top of its run a hop takes the flower.
+  for(let i=0;i<frames(lift.period)&&lift.y<lift.baseY+lift.moveY-.1;i++)tick();
+  place(lift.x+lift.w/2,lift.y+.02);hold(3);
+  assert.equal(p.groundId,'marble-lift');
   jump();
   assert.equal(taken().flowers,1,'the flower over the lift is taken from it');
-  // R puts the marble back and lowers the lift.
+  // R puts the marble back and the lift eases down and waits.
+  place(s.x-2,0);hold(3);assert.equal(p.groundId,'marble-dock');
   tick({shapeReset:true});hold(frames(3));
-  assert(close(m.x,2.4)&&!m.home&&!st.done&&!g.latched['marble-home']&&close(lift.y,lift.baseY,.01),'R resets the run and the lift');
+  assert(close(m.x,2.4)&&!m.home&&!st.done&&!g.latched['marble-home'],'R resets the run');
+  assert(close(lift.y,lift.baseY,.05),`and the lift is back at its base (${lift.y.toFixed(2)})`);
+  hold(frames(2));assert(close(lift.y,lift.baseY,.05),'where it stays');
   assert.equal(g.deaths,0);
 }
 console.log('PASS the marble run: the marble ignores the player and answers only the ground, a stomp just ahead of it draws it into the crater, lifting the ground behind it herds it home, the lift rises to the flower, and R resets it all');

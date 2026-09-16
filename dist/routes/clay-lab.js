@@ -67,8 +67,9 @@ const platforms=[
   // carried into a chapter. Every one is solvable from its dock with a pointer;
   // E, a stomp and the boots still work every mass as they always have.
 
-  // 06 · BURIED — the slab is an archive. Five beads and a flower sit inside a
-  // deep slab, deeper towards the middle; digging is pressing in from the air
+  // 06 · BURIED — the slab is an archive. Five beads sit inside a deep slab,
+  // deeper towards the middle, and a flower just under its surface with a
+  // petal breaking through to say so; digging is pressing in from the air
   // and dragging down, or stomping a crater. The clay keeps its volume, so the
   // spoil piles up beside the hole, and gathered together it is the step up to
   // the perch, which nothing on the flat slab reaches. The trough is deep so the
@@ -117,11 +118,12 @@ const platforms=[
   // at the near end; its socket is the hollow at the far end, past a ridge too
   // tall to roll over. It rides the clay up when the ground under it is raised,
   // rolls down whatever lean it is given, and rolls into the crater a stomp
-  // leaves ahead of it. Seated, it raises the lift on the exit bench to the flower.
+  // leaves ahead of it. Seated, it sets the lift on the exit bench running up
+  // to the flower and back, for as long as it sits there.
   bench('marble-dock',309,8,0,{checkpoint:312}),
   part('marble-mass',{x:317,w:20,y:0,h:4.5},{x:317,w:20,y:0,h:4.5},{station:'marble',clayRole:'mass'}),
   bench('marble-exit',337,12,0,{checkpoint:340}),
-  p('marble-counter',343,3,1.2,'counter',{channel:'marble-home',rise:2.8}),
+  p('marble-lift',343,3,1.2,'lift',{channel:'marble-home',moveY:2.8,period:5}),
 
   // The bell sits on the bench, so a lap of the lab ends like a chapter does.
   bench('lab-bell',351,14,0,{goal:true,bellX:8}),
@@ -168,7 +170,7 @@ const shaping=[
   {id:'dig',rule:'form',icon:'drop',name:'Buried in the slab',verb:'Dig it out',gesture:'down',
    parts:['dig-mass'],x:166,end:198,spawn:{x:169,y:0,groundId:'dig-dock'},
    clump:[[0,-.5],[1,-.5]],
-   hint:'Five beads and a flower are buried here. Press in from the air and drag down to dig. Spoil piles up beside the hole (volume is kept); pull it into a step to the perch. Slumps back when left; R refills it.'},
+   hint:'Five beads and a flower are buried here; the flower shows a petal. Press in from the air and drag down to dig. Spoil piles up beside the hole (volume is kept); pull it into a step to the perch. Slumps back when left; R refills it.'},
   // Flush with the dock, so the lintel is met at a walk.
   {id:'lintel',rule:'form',icon:'ramp',name:'Under & over',verb:'Dig under, pile up',gesture:'down',
    parts:['lintel-mass'],x:198,end:234,spawn:{x:201,y:0,groundId:'lintel-dock'},
@@ -192,8 +194,8 @@ const shaping=[
   {id:'marble',rule:'form',icon:'wheel',name:'The marble run',verb:'Roll it home',gesture:'up',
    parts:['marble-mass'],x:309,end:350,spawn:{x:312,y:0,groundId:'marble-dock'},
    clump:[[0,-.8],[.06,-.8],[.12,-1.7],[.18,-.8],[.4,-.8],[.46,.9],[.54,.9],[.6,-.8],[.85,-.8],[.9,-1.8],[.95,-.8],[1,-.8]],
-   marble:{x:2.4,socket:[17,19]},channel:'marble-home',message:'The marble is home · the lift rises',
-   hint:'The marble sits in the near hollow; its socket is the far one. Only the clay moves it: pull the ground up under it and lean it, hold E behind it, or stomp just ahead so it rolls into your crater. Seat it and the lift rises. Volume is kept; it slumps back when left. R resets the marble too.'},
+   marble:{x:2.4,socket:[17,19]},channel:'marble-home',message:'The marble is home · the lift is running',
+   hint:'The marble sits in the near hollow; its socket is the ringed hollow at the far end. Only the clay moves it: pull the ground up under it and lean it, hold E behind it, or stomp just ahead so it rolls into your crater. Seat it and the lift starts running. Volume is kept; it slumps back when left. R resets the marble too.'},
 ];
 
 const L={
@@ -216,11 +218,12 @@ const L={
     {x:286.5,y:2},{x:286.5,y:4},{x:286.5,y:6},{x:286.5,y:8},
     // The marble run: along the flat the marble crosses, and two in the socket.
     ...row(322,.4,3,2),{x:334.6,y:-1.4},{x:335.4,y:-1.4},...row(352,1.6,4)],
-  // The buried flower wants a dig nearly to the trough floor; the lintel's sits
-  // under the lintel, so only the trench reaches it; the vault's is behind the
+  // The buried flower sits just under the slab with a petal or two breaking
+  // the surface, so a player knows it is there; the beads are the deep dig.
+  // The lintel's sits under the lintel, so only the trench reaches it; the vault's is behind the
   // grate; the wet perch's needs the pillar and the throw; the marble's is over
-  // the lift, which only the seated marble raises.
-  stamps:[{x:60.4,y:13},{x:22.8,y:2.9},{x:124.1,y:9},{x:151,y:13},{x:182,y:-4.8},{x:214.5,y:.3},{x:259,y:1.5},{x:286.5,y:10.3},{x:344.5,y:6.6}],
+  // the lift, which only the seated marble sets running.
+  stamps:[{x:60.4,y:13},{x:22.8,y:2.9},{x:124.1,y:9},{x:151,y:13},{x:182,y:-.9},{x:214.5,y:0},{x:259,y:1.5},{x:286.5,y:10.3},{x:344.5,y:6.6}],
   hints:shaping.map(s=>({x:s.x,end:s.end-.001,icon:s.icon,title:s.name,text:s.hint})),
   routeLinks:path([
     'lab-start','sag-perch',['sag-block','fall'],['sag-exit','walk'],
@@ -232,7 +235,7 @@ const L={
     ['lintel-dock','walk'],['lintel-mass','walk'],'lintel-exit',['lintel-steps','fall'],
     ['mould-dock','fall'],['mould-mass','fall'],'mould-roof',['mould-exit','fall'],
     ['wet-dock','walk'],['wet-mass','fall'],'wet-perch',['wet-mass','fall'],'wet-exit',['wet-steps','fall'],
-    ['marble-dock','fall'],['marble-mass','fall'],'marble-exit','marble-counter',['marble-exit','fall'],'lab-bell',
+    ['marble-dock','fall'],['marble-mass','fall'],'marble-exit','marble-lift',['marble-exit','fall'],'lab-bell',
   ]),
 };
 
