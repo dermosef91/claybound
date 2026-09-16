@@ -4,9 +4,9 @@ import {createHash} from 'node:crypto';
 import {parseHTML} from 'linkedom';
 import * as THREE from '../dist/lib/three.module.js';
 import {World} from '../dist/world.js';
-import {Game} from '../dist/simulation.js';
+import {Game,FIXED_DT} from '../dist/simulation.js';
 import {prepareMotherPuff,createMotherArenaFloor,createMotherPuff,animateMotherPuff,motherCamera,motherViewHeight} from '../dist/mother-puff.js';
-import {MOTHER_PUFF as M,motherIntroTarget} from '../dist/mother-puff-rules.js';
+import {MOTHER_PUFF as M,motherIntroTarget,motherCapHeight} from '../dist/mother-puff-rules.js';
 import {updateMotherAtmosphere} from '../dist/mother-puff-hud.js';
 import {disposeBranch} from '../dist/streaming.js';
 import {readGLB} from './load-player.mjs';
@@ -16,11 +16,12 @@ import {attachClay} from './load-clay.mjs';
 const w=Object.assign(Object.create(World.prototype),{scene:new THREE.Scene(),levelRoot:new THREE.Group(),mat:{},reducedMotion:false});
 for(const name of ['cream','bark','top','terrain','terrain2'])w.mat[name]=new THREE.MeshStandardMaterial();
 await attachClay(w);await attachForest(w);
-for(const [pose,triangles]of [['idle',10448],['cast',10428],['friendly',19686]]){
+for(const [pose,triangles]of [['idle',10448],['cast',10428],['friendly',18749]]){
  const url=new URL(`../dist/assets/mother-puff-${pose}.glb`,import.meta.url),gltf=await readGLB(url),bytes=await readFile(url),manifest=JSON.parse(await readFile(new URL(`../dist/assets/mother-puff-${pose}.json`,import.meta.url)));
- assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.shippedSha256);assert.equal(bytes.length,manifest.shippedBytes);assert(bytes.length<(pose==='friendly'?1900000:1100000));assert.equal(manifest.triangles,triangles);assert(manifest.geometryUnchanged);
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.shippedSha256);assert.equal(bytes.length,manifest.shippedBytes);assert(bytes.length<(pose==='friendly'?1300000:1100000));assert.equal(manifest.triangles,triangles);assert(manifest.geometryUnchanged);
+ assert.equal(manifest.textures.length,3);assert(manifest.textures.every(size=>Math.max(...size)<=1024),'every pose ships mobile-sized textures');
  prepareMotherPuff(w,pose,gltf);const asset=w.motherAssets[pose];assert(asset.scale>0);assert.equal(gltf.animations.length,0);
- let count=0;asset.scene.traverse(o=>{if(o.isMesh){count+=o.geometry.index.count/3;assert(o.material.map);if(pose!=='friendly')assert(o.material.normalMap&&o.material.roughnessMap);assert(w.assetGeometry.has(o.geometry));assert(w.assetMaterials.has(o.material));}});assert.equal(count,triangles);
+ let count=0;asset.scene.traverse(o=>{if(o.isMesh){count+=o.geometry.index.count/3;assert(o.material.map&&o.material.normalMap&&o.material.roughnessMap);assert(w.assetGeometry.has(o.geometry));assert(w.assetMaterials.has(o.material));}});assert.equal(count,triangles);
 }
 const game=new Game();game.start(1);w.currentLevel=game.level;const b=game.level.boss;Object.assign(game.player,{x:281.5,y:b.y,groundId:'mother-arena'});
 const floor=new THREE.Group();createMotherArenaFloor(w,game.level.platforms.find(p=>p.motherArena),floor);w.platforms=new Map([['mother-arena',{root:floor}]]);
@@ -38,7 +39,7 @@ const air=v.effects.get('air:12');let rings=0;air.marker.traverse(o=>o.geometry?
 const cap=v.effects.get('ground:12');assert(cap.springPad?.pad.getObjectByName('Forest springPad'),'orange pads reuse the established bounce-pad model');cap.root.updateWorldMatrix(true,true);const padBox=new THREE.Box3().setFromObject(cap.springPad.pad,true);assert(Math.abs(padBox.max.y-(b.y+M.padHeight))<.001,'the asset top matches the bounce collision plane');b.patches=[];animateMotherPuff(w,game);assert.equal(v.effects.size,0);assert(!cap.root.parent);
 b.state='defeated';b.stateTime=2;animateMotherPuff(w,game);assert(!v.pose.visible);
 disposeBranch(w,v.root);assert.equal(disposed,0,'unloading the clearing retains the supplied models and shared materials');
-w.motherView=createMotherPuff(w,b);animateMotherPuff(w,game);assert(!w.motherView.models.idle.visible);assert.equal(disposed,0);
+w.motherView=createMotherPuff(w,b);animateMotherPuff(w,game);assert(!w.motherView.pose.visible,'a rebuilt arena stays hidden after victory');assert.equal(disposed,0);
 const {document}=parseHTML(await readFile(new URL('../dist/index.html',import.meta.url),'utf8')),mist=document.getElementById('mother-mist');
 assert.equal(document.getElementById('mother-hud'),null,'no boss name, description or health bar');
 b.state='recover';b.hits=1;game.player.sporeSlow=1;game.status='playing';updateMotherAtmosphere(game,mist,true);assert(!mist.classList.contains('hidden'));
@@ -66,6 +67,35 @@ b.stateTime=M.reveal/2;assert.equal(motherViewHeight(b,1280,720,true,14),16.4,'c
 b.stateTime=M.reveal;
 const introHeight=motherViewHeight(b,390,844,false),introWidth=introHeight*390/844,intro=motherCamera(b,{x:motherIntroTarget(b),y:b.y},introWidth,introHeight,false);
 assert(intro.x-introWidth/2<motherIntroTarget(b)-.32&&intro.x+introWidth/2>b.x+3.5,'portrait reveal contains the entrance destination and the full cap');
-for(const state of ['reveal','inhale','release','recover','hurt']){b.state=state;b.hits=0;animateMotherPuff(w,game);assert(!view.models.idle.visible&&view.models.cast.visible,'battle never switches to sleepy model');assert.equal(view.pose.rotation.y,-Math.PI/4);assert(view.environment.porous.every(p=>p.root.visible)&&floor.userData.motherPorous.every(p=>p.root.visible),'retry restores the corrupted brick scenery');}
+for(const state of ['reveal','inhale','release','recover','hurt']){b.state=state;b.hits=0;animateMotherPuff(w,game);assert(view.pose.visible,'the battle body stays on screen');assert.equal(view.pose.rotation.y,-Math.PI/4);assert(view.environment.porous.every(p=>p.root.visible)&&floor.userData.motherPorous.every(p=>p.root.visible),'retry restores the corrupted brick scenery');}
 b.hits=3;b.state='farewell';b.stateTime=.8;animateMotherPuff(w,game);assert.equal(view.clouds.material.opacity,1);const envelope=view.clouds.parts.map(p=>p.m.position.y+p.m.scale.y);assert(Math.max(...envelope)>M.friendlyHeight,'farewell veil expands to cover the larger healed form');
-console.log('PASS Mother Puff assets: supplied GLBs, grounding, alert battle pose, pause, effects cleanup, porous corruption, absent arches, opaque transformation, healing winds and gradual/released camera');
+{
+ // The two battle sculptures stand in for animation frames, so drive a real
+ // volley and confirm hard cuts: alert only around each cast, resting between.
+ const g=new Game();g.start(1);const boss=g.level.boss,frames=w.motherView=createMotherPuff(w,boss);
+ g.tick(FIXED_DT);animateMotherPuff(w,g);
+ assert.equal(boss.state,'sleeping');assert(frames.models.idle.visible&&!frames.models.cast.visible,'the undisturbed clearing rests on the idle sculpture');
+ Object.assign(g.player,{x:boss.triggerX,y:boss.y,groundId:'mother-arena'});g.tick(FIXED_DT);assert.equal(boss.state,'reveal');
+ for(let i=0;i<Math.round(M.reveal*.6/FIXED_DT);i++)g.tick(FIXED_DT);
+ animateMotherPuff(w,g);assert(frames.models.idle.visible,'the walk-in holds the idle sculpture until the first wind-up');
+ const seen=new Set(),held=[];let casts=0,total=0,alert=0,run=0;
+ while(casts<10&&total<Math.round(20/FIXED_DT)){
+  // Park above the combat plane: this measures pose timing, not survival.
+  Object.assign(g.player,{x:boss.left+2,y:boss.y+12,vy:0,groundId:null});
+  g.tick(FIXED_DT);animateMotherPuff(w,g);total++;
+  const casting=frames.models.cast.visible;
+  assert.equal(frames.models.idle.visible,!casting,'exactly one battle sculpture is on screen');
+  for(const s of boss.spores)if(!seen.has(s.id)){seen.add(s.id);casts++;assert(casting,'the alert sculpture is on screen as each spore leaves the crown');}
+  if(casting){alert++;run++;}else if(run){held.push(run*FIXED_DT);run=0;}
+ }
+ assert.equal(casts,10,'the loop covers a full ten-cast volley');
+ assert.equal(held.length,9,'each cast holds its own alert frame, then cuts back to rest');
+ assert(held.slice(1).every(seconds=>seconds>.5&&seconds<.7),'an alert frame lasts the wind-up plus the throw, well inside the 1.4s gap');
+ assert(alert<total*.55,'the idle sculpture holds the majority of the volley');
+ Object.assign(boss,{state:'recover',stateTime:0,spores:[],patches:[],queue:[]});
+ Object.assign(g.player,{x:boss.x-1,y:boss.y+motherCapHeight(boss)+.05,vx:0,vy:-15,groundId:null,motherBounce:false,stomping:false,motherPush:0});
+ g.tick(FIXED_DT);assert.equal(boss.state,'hurt');animateMotherPuff(w,g);
+ assert(frames.models.idle.visible,'a struck boss drops out of the casting pose');
+ w.reducedMotion=true;animateMotherPuff(w,g);assert(frames.models.cast.visible,'reduced motion holds the alert pose rather than cutting between frames');w.reducedMotion=false;
+}
+console.log('PASS Mother Puff assets: supplied GLBs, grounding, stop-motion cast/idle frames, pause, effects cleanup, porous corruption, absent arches, opaque transformation, healing winds and gradual/released camera');

@@ -1,8 +1,24 @@
 {
-  "source": "mushroom+character+3d+model.glb",
-  "sourceSha256": "4afd6de800bbefdf4c021d71120bcf9855306a9ccdc047bf856871d5a9f6692f",
-  "shippedSha256": "4afd6de800bbefdf4c021d71120bcf9855306a9ccdc047bf856871d5a9f6692f",
-  "shippedBytes": 1797432,
+  "source": "mushroom-boss-cured.glb",
+  "sourceSha256": "d739aff7ea913bdff20dbbbfbc888af9ecec69047d361b2189a7347d4d7ff4f5",
+  "shippedSha256": "e943de1539fac85212095c54f9bf6264851b0f7997380dffc5c2858b10adfbc8",
+  "sourceBytes": 6660888,
+  "shippedBytes": 1239616,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
   "geometryUnchanged": true,
-  "triangles": 19686
+  "geometrySha256": "b1f1123cde2eee4cf208f306dfa9444de24192badbd1f0b7d5fc05a65072f07a",
+  "triangles": 18749
 }

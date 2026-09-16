@@ -12,6 +12,14 @@ export const motherCinematic=b=>!!b&&(b.state==='reveal'||b.hits===3&&b.state!==
 export const motherQuiet=b=>!!b&&['veil','transform'].includes(b.state);
 export const motherIntroTarget=b=>b.left+(b.x-b.left)*.43;
 export const motherCapHeight=b=>[7.25,7.0,6.8,6.4][b.hits];
+// Seconds until the next spore leaves the crown, so a view can wind up before
+// it appears. Infinity while no cast is pending.
+export const motherNextCast=b=>{
+  if(!b||b.hits>=MOTHER_PUFF.hits)return Infinity;
+  if(b.state==='release')return b.queue.length?b.nextShot-b.stateTime:Infinity;
+  const wait={reveal:MOTHER_PUFF.reveal,inhale:0,recover:MOTHER_PUFF.recover,hurt:MOTHER_PUFF.hurt}[b.state];
+  return wait===undefined?Infinity:wait-b.stateTime;
+};
 export const motherCorrupted=game=>!!game.level.boss&&game.level.boss.state!=='defeated'&&(game.level.boss.state!=='sleeping'||game.player.x>=game.level.boss.triggerX);
 const ENDING=[['veil',1.5],['transform',1.8],['reveal-form',2.6],['regard',1.7],['farewell',1.8],['bloom',3.6]];
 

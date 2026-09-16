@@ -1,6 +1,6 @@
 """Repack the supplied mother-puff's textures for mobile, preserving its sculpture.
 
-Usage: python scripts/prepare-mother-puff.py PATH_TO_ORIGINAL_GLB idle|cast
+Usage: python scripts/prepare-mother-puff.py PATH_TO_ORIGINAL_GLB idle|cast|friendly
 Geometry, normals, UVs and the uploaded source file are never changed.
 """
 from pathlib import Path
@@ -11,7 +11,7 @@ import numpy as np
 
 root=Path(__file__).resolve().parents[1]
 source=Path(sys.argv[1]);pose=sys.argv[2]
-assert pose in ('idle','cast')
+assert pose in ('idle','cast','friendly')
 data=source.read_bytes()
 size=struct.unpack_from('<I',data,12)[0]
 doc=json.loads(data[20:20+size]);binary=data[28+size:]

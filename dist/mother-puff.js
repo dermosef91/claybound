@@ -2,7 +2,7 @@ import * as THREE from './lib/three.module.js';
 import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel} from './clay.js';
 import {cameraTarget} from './camera.js';
-import {MOTHER_PUFF} from './mother-puff-rules.js';
+import {MOTHER_PUFF,motherNextCast} from './mother-puff-rules.js';
 import {createSpringPad,animateSpringPad} from './spring-pad.js';
 import {createMotherEnvironment,animateMotherEnvironment} from './mother-puff-environment.js';
 export {createMotherArenaFloor} from './mother-puff-environment.js';
@@ -76,6 +76,10 @@ function removeEffect(v){
   v.marker?.traverse(o=>{if(o.geometry?.type==='TorusGeometry')o.geometry.dispose();});
   v.marker?.removeFromParent();v.root.removeFromParent();
 }
+// The two supplied battle sculptures act as stop-motion frames rather than a
+// blend: she snaps into the casting pose to wind up, throws, then cuts back to
+// the resting pose. Both windows sit inside the 1.4s gap between casts.
+const CAST_LEAD=.2,CAST_HOLD=.4;
 export function animateMotherPuff(w,game){
   const v=w.motherView,b=game.level.boss;if(!v||!b)return;
   const t=game.time,quiet=w.reducedMotion,hurt=b.state==='hurt',ending=b.hits===3;
@@ -87,10 +91,15 @@ export function animateMotherPuff(w,game){
   v.pose.scale.set(1+breath+pulse*.06,1-breath*.35-pulse*.045,1+breath+pulse*.04);v.pose.position.y=b.y;
   v.pose.rotation.set(pulse*.035,-Math.PI/4,hurt&&!quiet?Math.sin(b.stateTime*23)*.035*Math.exp(-b.stateTime*2):0);
   if(!quiet&&!ending&&!asleep&&b.hits)v.pose.rotation.z+=Math.sin(t*8)*.009*b.hits;
-  // Keep the alert casting model through the entire encounter. The sleepy
-  // model belongs only to the undisturbed clearing.
-  if(v.models.idle)v.models.idle.visible=asleep;
-  if(v.models.cast)v.models.cast.visible=!asleep;
+  // The alert model appears only while a cast is being thrown; every other
+  // moment — the clearing, the walk-in, recoils and the collapse — rests on the
+  // idle model. Reduced motion holds the alert pose instead of cutting between
+  // frames, matching how it already suppresses the firing pulse.
+  const fighting=v.pose.visible&&!asleep&&!ending;
+  const casting=fighting&&(!hurt&&shotAge>=0&&shotAge<CAST_HOLD||motherNextCast(b)<=CAST_LEAD);
+  const alert=quiet?fighting:casting;
+  if(v.models.idle)v.models.idle.visible=!alert;
+  if(v.models.cast)v.models.cast.visible=alert;
   v.healed.scale.setScalar(1);v.healed.position.y=b.y;v.healed.rotation.y=-Math.PI/4;
   v.bodyGrey.value=[.38,.25,.12,0][b.hits];
   animateGrowths(v.growth,b,quiet);animateMotherEnvironment(w,v.environment,b,quiet);
