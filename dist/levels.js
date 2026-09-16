@@ -2,12 +2,13 @@ import canyon from './routes/canyon.js';
 import forest from './routes/forest.js';
 import cave from './routes/cave.js';
 import city from './routes/city.js';
+import dream from './routes/dream.js';
 import {initializeShaping} from './shaping.js';
 import {initializeEnemy} from './enemy-rules.js';
 import {initializePress} from './presses.js';
 import {updateCavernMachine} from './cavern-machines.js';
 import {initializeMotherPuff} from './mother-puff-rules.js';
-export const LEVELS=[canyon,forest,cave,city];
+export const LEVELS=[canyon,forest,cave,city,dream];
 export function instantiateLevel(index,source=LEVELS[index]){
   const d=structuredClone(source);
   d.decor??=[];

@@ -7,7 +7,7 @@ export function renderCitadelDepth(w){
   // Draw canyon and cavern scenery together with the playfield. The offscreen
   // blur/composite path can disappear on mobile, leaving only the clear color.
   // These environments already use depth-separated meshes and distance fog.
-  if(w.biome==='desert'||w.biome==='cave'){
+  if(w.biome==='desert'||w.biome==='cave'||w.biome==='dream'){
     if(w.biome==='cave')cullCaveCells(w);
     if(w.citadelDepth)w.citadelDepth.quad.visible=false;
     w.backRoot.visible=true;w.renderer.setRenderTarget(null);

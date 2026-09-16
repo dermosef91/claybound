@@ -4,7 +4,10 @@ const THEMES=[
   {root:220,beat:.45,type:'sine',scale:[0,2,4,7,9,12],patterns:[[0,-1,2,-1,3,2,-1,1],[0,2,4,-1,3,-1,1,-1],[2,-1,3,4,2,-1,0,-1],[3,2,-1,1,0,-1,-1,-1]]},
   {root:293.66,beat:.34,type:'triangle',scale:[0,2,4,7,9,12],patterns:[[0,2,-1,3,4,-1,2,-1],[2,3,4,-1,5,4,-1,2],[0,-1,1,2,3,-1,2,1],[4,3,-1,2,0,-1,-1,-1]]},
   {root:146.83,beat:.62,type:'sine',scale:[0,2,3,7,10,12],patterns:[[0,-1,-1,3,-1,-1,2,-1],[0,-1,4,-1,-1,3,-1,-1],[2,-1,-1,1,-1,3,-1,-1],[0,-1,-1,-1,3,-1,-1,-1]]},
-  {root:261.63,beat:.43,type:'sine',scale:[0,2,4,7,9,12],patterns:[[0,-1,2,3,4,-1,3,-1],[2,3,5,-1,4,-1,2,-1],[3,-1,4,5,3,2,-1,1],[0,2,3,-1,2,-1,0,-1]]}
+  {root:261.63,beat:.43,type:'sine',scale:[0,2,4,7,9,12],patterns:[[0,-1,2,3,4,-1,3,-1],[2,3,5,-1,4,-1,2,-1],[3,-1,4,5,3,2,-1,1],[0,2,3,-1,2,-1,0,-1]]},
+  // The Soft Dream has no recording yet: a slow, low pad on a minor scale with
+  // long rests, so the chapter has its own placeholder rather than the canyon's.
+  {root:174.61,beat:.9,type:'sine',scale:[0,3,5,7,10,12],patterns:[[0,-1,-1,2,-1,-1,-1,-1],[3,-1,-1,-1,1,-1,-1,-1],[-1,-1,2,-1,-1,4,-1,-1],[0,-1,-1,-1,-1,-1,-1,-1]]}
 ];
 export const HORIZON_TRACK=new URL('./assets/above-the-clay-horizon.mp3',import.meta.url).href;
 export const CHAPTER_TRACKS=[

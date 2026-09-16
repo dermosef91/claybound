@@ -172,7 +172,7 @@ async function begin(index=0,restart=false,sourceChoice,playgroundSource=null){
   const choice=['original','edited'].includes(sourceChoice)?sourceChoice:saved.chapterSource[index];
   const nextLevel=playgroundSource||(choice==='original'?LEVELS[index]:drafts.get(index));
   {
-    const assetName={forest:'woodland',cave:'glowing caverns',citadel:'cloudtop castle',desert:'canyon'}[nextLevel.biome]||'chapter';
+    const assetName={forest:'woodland',cave:'glowing caverns',citadel:'cloudtop castle',desert:'canyon',dream:'soft dream'}[nextLevel.biome]||'chapter';
     clearInput();game.pause();hideLoading();$('loading').style.opacity='1';show('loading',true);
     // A response with no Content-Length reports a null ratio, so start on the
     // indeterminate sweep rather than a bar sitting dead at zero per cent.
@@ -198,7 +198,7 @@ async function begin(index=0,restart=false,sourceChoice,playgroundSource=null){
   const resumed=!nextLevel.playground&&!restart&&game.restore(runStore()[index]);world.build(game.level,index,game.player.x);if(!nextLevel.playground)saved.last=index;
   if(choice&&!nextLevel.playground)saved.chapterSource[index]=choice;persist();
   const L=game.level;world.clayDone=new Set(saved.clayDone||[]);warmCompletionAssets(L.biome);document.body.dataset.biome=L.biome;
-  $('coin-total').textContent=L.coins.length;$('intro-number').textContent=['CHAPTER ONE','CHAPTER TWO','CHAPTER THREE','CHAPTER FOUR'][index];
+  $('coin-total').textContent=L.coins.length;$('intro-number').textContent=['CHAPTER ONE','CHAPTER TWO','CHAPTER THREE','CHAPTER FOUR','CHAPTER FIVE'][index];
   $('intro-name').textContent=resumed?game.level.sections[game.sectionId].name:L.name;$('intro-text').textContent=resumed?'Your checkpoint is safe. The journey continues.':L.intro;
   show('chapter-intro',false);introUntil=0;
   show('hint',false);$('fade').classList.remove('active');$('play').blur();
@@ -228,10 +228,10 @@ function pause(){
 function chapters(){
   const choices=LEVELS.map((base,i)=>{const L=activeLevel(i),edited=drafts.has(i),run=(L.custom?saved.customRuns:saved.runs)[i],r=chapterCollections(L,i,saved);return `<div class="chapter-option"><button class="chapter-choice" data-level="${i}"><span>${String(i+1).padStart(2,'0')}</span><div><strong>${L.short}${edited?L.custom?' · Your edit':' · Original':''}</strong><small>${L.sections.length} passages${run?.version===L.layoutVersion?' · Checkpoint saved':''}</small><span class="chapter-collectibles"><img src="./assets/completion/flower.webp" alt="" class="chapter-flower" width="16" height="16">${r.stamps}/${r.stampTotal}<img src="./assets/completion/bead.webp" alt="" class="chapter-bead" width="16" height="16">${r.coins}/${r.coinTotal}</span></div>${icon('arrow-up-right')}</button>${edited?`<button class="quiet-button chapter-alternate" data-level="${i}" data-source="${L.custom?'original':'edited'}">${icon(L.custom?'refresh-cw':'pencil-ruler')} ${L.custom?'Play updated original':'Play your edit'}</button>`:''}</div>`;}).join('');
   // The lab is not a chapter and keeps no record: it is a bench of ideas that
-  // are not in the game yet, so it sits under the four rather than among them —
+  // are not in the game yet, so it sits under the five rather than among them —
   // and, like the cast, only once someone has typed ß with this list open.
   const lab=saved.labUnlocked?labMarkup():'';
-  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">${saved.labUnlocked?'FOUR CHAPTERS &amp; A CLAY LAB':'FOUR CHAPTERS'}</span><h2>Choose your path.</h2><div class="chapters-list">${choices}${lab}</div>`);
+  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">${saved.labUnlocked?'FIVE CHAPTERS &amp; A CLAY LAB':'FIVE CHAPTERS'}</span><h2>Choose your path.</h2><div class="chapters-list">${choices}${lab}</div>`);
 }
 const labMarkup=()=>`<button class="chapter-choice playground-choice" data-action="playground"><span>${icon('pencil-ruler')}</span><div><strong>${clayLab.short}</strong><small>${clayLab.label}</small></div>${icon('arrow-up-right')}</button>`;
 function help(){
@@ -244,7 +244,7 @@ function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active,{m
 // secret. The volume sliders are the panel's landmark, and the picker belongs
 // directly beneath them.
 // The Clay Lab is hidden the same way: ß with the chapter list open adds it
-// under the four, and keeps it there.
+// under the five, and keeps it there.
 window.addEventListener('keydown',e=>{
   if(e.key!=='ß'||$('dialog').classList.contains('hidden'))return;
   const content=$('dialog-content');
@@ -261,7 +261,7 @@ window.addEventListener('keydown',e=>{
     if(list&&content.querySelector('.chapter-choice[data-level]')){
       saved.labUnlocked=true;persist();
       list.insertAdjacentHTML('beforeend',labMarkup());
-      const eyebrow=content.querySelector('.eyebrow');if(eyebrow)eyebrow.innerHTML='FOUR CHAPTERS &amp; A CLAY LAB';
+      const eyebrow=content.querySelector('.eyebrow');if(eyebrow)eyebrow.innerHTML='FIVE CHAPTERS &amp; A CLAY LAB';
       icons();toast('Clay Lab unlocked.');
     }
   }

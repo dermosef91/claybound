@@ -47,6 +47,10 @@ function nearScenery(w,g,variant){
   }else if(w.biome==='forest'){
     forestUnderstory(w,g);
     forestModel(w,'hills',g,-2.0,-1.7,-.4,2.2,0);
+  }else if(w.biome==='dream'){
+    // Placeholder: a rolled pastel mound with two beads, nothing that names a
+    // section. The dream's visual modules decide what really stands here.
+    w.ball(2.1,1.35,1.6,'terrain2',g,0,-.9,0);w.ball(.7,.5,.6,'accent',g,-.9,.35,.4);w.ball(.45,.32,.4,'top',g,1.1,.28,.5);
   }else{
     terrace(w,g,3.8,'terrain2');boulder(w,g,-.82,0,-.2,1.4);boulder(w,g,.65,0,.4,.57);
     crystals(w,g,.7,1.1);crystals(w,g,-1.52,.53);

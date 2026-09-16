@@ -1,5 +1,7 @@
 const artRoot='./assets/completion/';
-const sceneNames={desert:'canyon',forest:'forest',cave:'cave',citadel:'citadel'};
+// The dream has no completion art yet; the blue citadel plate reads closer
+// to a dream than the canyon fallback would.
+const sceneNames={desert:'canyon',forest:'forest',cave:'cave',citadel:'citadel',dream:'citadel'};
 const escape=text=>String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icon=name=>`<i data-lucide="${name}" aria-hidden="true"></i>`;
 const clock=seconds=>`${Math.floor(seconds/60)}:${String(Math.floor(seconds%60)).padStart(2,'0')}`;

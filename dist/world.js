@@ -48,6 +48,7 @@ import {burstSporePod,updateSporeParticle,disposeSporeParticle} from './spore-ef
 import {settleSquash,updateClayClump} from './clay-shatter.js';
 import {loadMotherPuff,createMotherArenaFloor,animateMotherPuff,motherCamera,motherViewHeight} from './mother-puff.js';
 import {updateMotherTrail} from './mother-puff-trail.js';
+import {dreamPlatformView,animateDream} from './dream.js';
 
 const C={blue:0x315e96,blueLight:0x3d6da5,blueDark:0x244c7b,orange:CLAY_PALETTE.orange,orangeLight:CLAY_PALETTE.orangeLight,cream:0xf1d8a3,rope:0xdcb985,dark:0x172b3f,gold:0xf8ce75};
 const fract=n=>n-Math.floor(n);
@@ -253,6 +254,9 @@ export class World {
     if(this.biome==='citadel'&&(s.kind==='lift'||s.kind==='counter'))return makeCitadelLift(this,s,g);
     if(this.biome==='desert'&&s.kind==='lift')return makeCanyonLift(this,s,g);
     if(s.kind==='balance')return balanceDeck(this,s,g);
+    // The dream's own kinds and dressings come from dream-views.js; whatever it
+    // declines is built by the ordinary branches below.
+    if(this.biome==='dream'){const v=dreamPlatformView(this,s,g);if(v)return v;}
     let ropes=[],springPad,fracture;
     if(s.kind==='wall'){
       const height=s.h??4;
@@ -322,10 +326,13 @@ export class World {
     oldGeometry.forEach(g=>g.dispose());oldMaterial.forEach(m=>m.dispose());
     this.levelRoot.clear();this.backRoot.clear();this.fxRoot.clear();this.depthRoot.clear();
     this.scene.background.set(L.sky);this.scene.fog.color.set(L.fog);applyEnvironment(this,L);
+    // The dream's render-only state starts over with the world: no roll, no
+    // zoom request, no palette written yet, and no props leaning.
+    this.dreamRoll=0;this.dreamViewH=null;this.dreamPaletteKey=null;this.dreamLeaners=[];this.dreamSwirls=[];
     this.platforms=new Map();this.enemyViews=new Map();this.coinViews=[];this.stampViews=[];this.crusherViews=[];this.decorViews=[];
     this.shotViews=new Map();
     this.buildBackground(L);
-    if(this.canvas)this.resize();else Object.assign(this,cameraFraming(1280,720,this.biome));
+    if(this.canvas)this.resize();else{Object.assign(this,cameraFraming(1280,720,this.biome));this.baseViewH=this.viewH;}
     syncStream(this,L,focusX,true);
     const ground=L.platforms.find(s=>s.checkpoint&&Math.abs(s.checkpoint-focusX)<.1);
     this.cameraX=focusX+this.viewW*.18;this.cameraY=(ground?.y??L.spawn.y)+this.viewH*.18;
@@ -350,6 +357,8 @@ export class World {
     const rect=this.canvas.getBoundingClientRect(),w=Math.max(1,rect.width||window.innerWidth),h=Math.max(1,rect.height||window.innerHeight);this.renderer.setSize(w,h,false);
     Object.assign(this,cameraFraming(w,h,this.biome));
     if(this.currentLevel?.playground){const scale=this.landscape?1.4:1.15;this.viewH*=scale;this.viewW*=scale;}
+    // What the dream's camera list means by "the ordinary height".
+    this.baseViewH=this.viewH;
     if(this.editorCamera){this.viewH=this.editorCamera.viewH;this.viewW=this.viewH*w/h;}
     this.camera.left=-this.viewW/2;this.camera.right=this.viewW/2;this.camera.top=this.viewH/2;this.camera.bottom=-this.viewH/2;this.camera.updateProjectionMatrix();
   }
@@ -434,6 +443,15 @@ export class World {
         this.viewW=this.viewH*rect.width/Math.max(1,rect.height);this.camera.left=-this.viewW/2;this.camera.right=this.viewW/2;this.camera.top=this.viewH/2;this.camera.bottom=-this.viewH/2;this.camera.updateProjectionMatrix();
       }
     }
+    // The dream's camera list asks for a view height by x (dream.js sets
+    // dreamViewH, or null for the ordinary one); ease toward it like the boss.
+    if(!edit&&!L.boss&&this.dreamViewH!=null&&this.canvas){
+      const rect=this.canvas.getBoundingClientRect(),height=this.dreamViewH;
+      if(Math.abs(height-this.viewH)>1e-6){
+        this.viewH=this.reducedMotion||Math.abs(height-this.viewH)<.02?height:this.viewH+(height-this.viewH)*(1-Math.exp(-dt*2));
+        this.viewW=this.viewH*rect.width/Math.max(1,rect.height);this.camera.left=-this.viewW/2;this.camera.right=this.viewW/2;this.camera.top=this.viewH/2;this.camera.bottom=-this.viewH/2;this.camera.updateProjectionMatrix();
+      }
+    }
     if(edit){
       const rect=this.canvas.getBoundingClientRect(),viewW=edit.viewH*rect.width/Math.max(1,rect.height);
       if(this.viewH!==edit.viewH||this.viewW!==viewW){this.viewH=edit.viewH;this.viewW=viewW;this.camera.left=-viewW/2;this.camera.right=viewW/2;this.camera.top=edit.viewH/2;this.camera.bottom=-edit.viewH/2;this.camera.updateProjectionMatrix();}
@@ -463,7 +481,8 @@ export class World {
     const sx=this.reducedMotion?0:shakeNoise(0,t)*this.shake,sy=this.reducedMotion?0:shakeNoise(1,t)*this.shake*.65;
     // A flat pan reads as the world sliding. The small roll is what makes the
     // frame feel struck; it is the part reduced motion is spared first.
-    const roll=this.reducedMotion?0:shakeNoise(2,t)*this.shake*SHAKE_ROLL;
+    // The dream adds its authored camera roll on top (dream.js, L.camera).
+    const roll=(this.reducedMotion?0:shakeNoise(2,t)*this.shake*SHAKE_ROLL)+(this.dreamRoll||0);
     this.camera.position.set(this.cameraX+sx,this.cameraY+(edit?0:(this.theme.cameraElevation??(this.biome==='citadel'?1.25:3.05)))+sy,26);this.camera.lookAt(this.cameraX+sx,this.cameraY+sy,0);if(roll)this.camera.rotation.z+=roll;
     if(this.camera.zoom!==1){this.camera.zoom=1;this.camera.updateProjectionMatrix();}
     this.sun.position.set(this.cameraX-10,this.cameraY+18,12);this.sun.target.position.set(this.cameraX,this.cameraY-2,0);
@@ -522,6 +541,7 @@ export class World {
     L.crushers?.forEach((c,i)=>animatePressView(this.crusherViews[i],c));
     for(const view of this.circuitViews.values())animateCircuit(view,game,this.reducedMotion);
     animateForest(this,game);
+    animateDream(this,game,dt);
     for(const view of this.windViews.values())animateWind(view,game.time,this.reducedMotion);
     // Only windmill rotors spin. Locate them once per view rather than walking
     // every platform's meshes on every frame.
