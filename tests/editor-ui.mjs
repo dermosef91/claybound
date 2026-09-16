@@ -31,7 +31,7 @@ class WorldStub{
  setEditorCamera(c){this.editorCamera=c;}
  prepareLevel(L){this.prepared=(this.prepared||0)+1;if(L.biome==='desert'||L.enemies.some(e=>e.kind==='drifter'))this.drifterAsset??={};if(L.biome==='forest'){this.forestAssets??={};this.sporeAsset??={};}if(L.biome==='cave'){this.batAsset??={};this.cavernAssets??={};}return Promise.resolve();}event(){}resize(){}render(){}
 }
-class SoundStub{enabled=true;unlock(){}effect(){}update(){}setForeground(){}}
+class SoundStub{enabled=true;unlock(){}effect(){}update(){}wind(){}setForeground(){}}
 class HealthHUDStub{draw(){}}
 class TitleSceneStub{constructor(w){this.world=w;w.titleView=this;}show(){this.active=true;}hide(){this.active=false;}render(){}}
 class FullscreenStub{active=false;pending=false;sync(){}toggle(){}enter(){return Promise.resolve();}}
@@ -40,7 +40,7 @@ vm.runInContext(await readFile(new URL('../dist/lib/lucide.min.js',import.meta.u
 const source=await readFile(new URL('../dist/app.js',import.meta.url),'utf8');
 const appModule=new vm.SourceTextModule(source+'\nglobalThis.appTest={get game(){return game;},get editor(){return editor;},get saved(){return saved;},input,get joystick(){return joystick;},begin,home,pause,chapters,onEvent,result};',{context});
 const linkApp=async specifier=>{
- let exports;if(specifier==='./world.js')exports={World:WorldStub};else if(specifier==='./title-scene.js')exports={TitleScene:TitleSceneStub};else if(specifier==='./title-assets.js')exports={loadTitleAssets:async w=>{w.titleMesa={};}};else if(specifier==='./health-hud.js')exports={HealthHUD:HealthHUDStub};else if(specifier==='./audio.js')exports={Sound:SoundStub};else if(specifier==='./fullscreen.js')exports={Fullscreen:FullscreenStub};else exports=await import(new URL('../dist/'+specifier,import.meta.url));
+ let exports;if(specifier==='./world.js')exports={World:WorldStub};else if(specifier==='./title-scene.js')exports={TitleScene:TitleSceneStub};else if(specifier==='./title-assets.js')exports={loadTitleAssets:async w=>{w.titleMesa={};}};else if(specifier==='./health-hud.js')exports={HealthHUD:HealthHUDStub};else if(specifier==='./audio.js')exports={Sound:SoundStub,windExposure:()=>0};else if(specifier==='./fullscreen.js')exports={Fullscreen:FullscreenStub};else exports=await import(new URL('../dist/'+specifier,import.meta.url));
  const names=Object.keys(exports);return new vm.SyntheticModule(names,function(){for(const name of names)this.setExport(name,exports[name]);},{context});
 };
 await appModule.link(linkApp);

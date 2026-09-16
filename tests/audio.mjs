@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {motherCorrupted,motherQuiet} from '../dist/mother-puff-rules.js';
 import {STONE_ORCHARD_TRACK} from '../dist/mother-puff-music.js';
-import {Sound,HORIZON_TRACK,CHAPTER_TRACKS,FLOWER_VICTORY,SPORE_BALLOON_BURST,MOTHER_PUFF_GROWL,COIN_PICKUP,CHECKPOINT_FLAG,FINISH_BELL,POROUS_CLAY_STEP,ENEMY_HEAD_IMPACT} from '../dist/audio.js';
+import {Sound,HORIZON_TRACK,CHAPTER_TRACKS,FLOWER_VICTORY,SPORE_BALLOON_BURST,MOTHER_PUFF_GROWL,COIN_PICKUP,CHECKPOINT_FLAG,FINISH_BELL,POROUS_CLAY_STEP,ENEMY_HEAD_IMPACT,CANYON_WIND,windExposure} from '../dist/audio.js';
+import canyon from '../dist/routes/canyon.js';
+import forest from '../dist/routes/forest.js';
 const jobs=new Map();let next=0;
 globalThis.setTimeout=(fn,ms)=>{jobs.set(++next,{fn,ms});return next;};
 globalThis.clearTimeout=id=>jobs.delete(id);
@@ -131,7 +133,7 @@ const oldFetch=globalThis.fetch;
 const suppliedEffects=new Map([[FLOWER_VICTORY,victoryBytes],[SPORE_BALLOON_BURST,sporeBalloonBytes],[MOTHER_PUFF_GROWL,growlBytes],[COIN_PICKUP,coinBytes],[CHECKPOINT_FLAG,checkpointBytes],[FINISH_BELL,completeBytes],[POROUS_CLAY_STEP,porousStepBytes],[ENEMY_HEAD_IMPACT,enemyHeadImpactBytes]]);
 globalThis.fetch=async url=>{const bytes=suppliedEffects.get(url);return {ok:!!bytes,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)};};
 Context.prototype.decodeAudioData=async bytes=>({duration:1,bytes});
-Context.prototype.createBufferSource=function(){const n=new Node();n.playbackRate=new Param();n.start=(...args)=>{n.started=true;n.startArgs=args;};(this.buffers??=[]).push(n);return n;};
+Context.prototype.createBufferSource=function(){const n=new Node();n.playbackRate=new Param();n.start=(...args)=>{n.started=true;n.startArgs=args;};n.stop=()=>{n.stopped=true;};(this.buffers??=[]).push(n);return n;};
 const rewardSound=new Sound();rewardSound.unlock();await rewardSound.flowerLoading;
 rewardSound.effect('stamp');assert.equal(rewardSound.ctx.buffers.length,1);assert(rewardSound.ctx.buffers[0].started);
 assert.equal(rewardSound.ctx.buffers[0].output.output,rewardSound.effectsBus);
@@ -217,3 +219,69 @@ encounter.level.boss.state='defeated';crossing.update(.016,true,1,false,false,fa
 crossing.update(.016,true,1,false,false,false,false,true);await settle();crossing.enabled=false;assert(orchard.paused);crossing.enabled=true;await settle();assert(!orchard.paused);crossing.setForeground(false);assert(orchard.paused);
 crossing.setForeground(true);await settle();orchard.error={code:3};orchard.dispatchEvent(new Event('error'));assert.equal(crossing.trackGain._target,.26,'a failed orchard stream restores forest music');
 console.log('PASS Stone Orchard crossfade, longer playback, victory return, preserved positions, pause/mute/focus and failed-stream fallback');
+
+// The canyon wind: a recorded bed under the wind wells, not a one-shot cue.
+const windBytes=await readFile(new URL(CANYON_WIND));
+assert.equal(windBytes.subarray(0,4).toString(),'RIFF');assert.equal(windBytes.subarray(36,40).toString(),'data');
+const windChannels=windBytes.readUInt16LE(22),windRate=windBytes.readUInt32LE(24),windBits=windBytes.readUInt16LE(34),windFrames=windBytes.readUInt32LE(40)/2;
+assert.deepEqual([windChannels,windBits,windRate],[1,16,12000],'the bed ships as a mono 12 kHz recording');
+assert(windBytes.length<6e4,`an ambient bed is not worth a large download: ${windBytes.length} bytes`);
+assert(windFrames/windRate>1.5,'a loop shorter than this would be heard repeating');
+// Wrapping from the last sample to the first must not click: the largest step
+// across the join stays within the steps the recording already takes.
+const sample=i=>windBytes.readInt16LE(44+i*2);
+const step=(from,to)=>{let most=0;for(let i=from;i<to;i++)most=Math.max(most,Math.abs(sample((i+1)%windFrames)-sample(i%windFrames)));return most;};
+assert(step(windFrames-120,windFrames+119)<=step(0,windFrames-1),'the loop seam is smoother than the recording itself');
+
+const well=canyon.winds.find(w=>w.id==='well-a'),tail=canyon.winds.find(w=>w.id==='tailwind');
+assert.equal(windExposure(canyon,{x:well.x+1,y:well.y+1}),1,'standing in a well is full exposure');
+assert.equal(windExposure(canyon,{x:tail.x+tail.w/2,y:tail.y+tail.h/2}),1);
+const approach=windExposure(canyon,{x:well.x-4,y:well.y});
+assert(approach>.5&&approach<1,`the well is heard on approach: ${approach}`);
+assert.equal(windExposure(canyon,{x:well.x-30,y:well.y}),0,'the canyon is otherwise still');
+assert.equal(windExposure({...canyon,winds:[{...well,active:false}]},{x:well.x+1,y:well.y+1}),0,'a windwell waiting on its switch is silent');
+assert.equal(windExposure(forest,{x:forest.winds[0].x+1,y:forest.winds[0].y+1}),0,'other chapters keep their own weather');
+assert.equal(windExposure(canyon,null),0);assert.equal(windExposure(null,{x:0,y:0}),0);
+
+const canyonSound=new Sound();canyonSound.unlock();await settle();
+canyonSound.update(.016,true,0);await settle();
+canyonSound.wind(.5);assert.equal(canyonSound.windVoices.length,0,'no bed before the recording arrives');
+canyonSound.canyonWindBuffer={duration:1.9};canyonSound.syncWind();
+const [first,second]=canyonSound.windVoices;
+assert.equal(canyonSound.windVoices.length,2);
+for(const voice of canyonSound.windVoices){
+  assert(voice.started&&voice.loop&&voice.buffer===canyonSound.canyonWindBuffer);
+  assert.equal(voice.output.output,canyonSound.windSwellGain,'voices feed the gust swell before the exposure fade');
+}
+assert.equal(canyonSound.windSwellGain.output,canyonSound.windGain,'swell and exposure fade in series, not fighting one gain');
+assert.equal(canyonSound.windGain.output,canyonSound.effectsBus,'the bed rides the effects bus, so its slider and mute reach it');
+assert.notEqual(first.playbackRate.value,second.playbackRate.value,'the two voices drift apart instead of repeating together');
+assert.notDeepEqual(first.startArgs,second.startArgs,'and they do not start on the same gust');
+assert.equal(canyonSound.windGain._target,Sound.WIND_BED*.5);
+canyonSound.wind(1);assert.equal(canyonSound.windGain._target,Sound.WIND_BED);
+assert(Sound.WIND_BED<.26,'the bed stays under the chapter soundtrack');
+// The swell has already scheduled its first random ramp on its own gain,
+// entirely separate from the exposure changes just made above.
+const [swellLow,swellHigh]=[.4,1];
+assert(canyonSound.windSwellGain.gain.events.length>=1,'the swell schedules a ramp as soon as the bed starts');
+const swellRamp=canyonSound.windSwellGain.gain.events.at(-1);
+assert(swellRamp.value>=swellLow&&swellRamp.value<=swellHigh,`swell target ${swellRamp.value} outside its range`);
+assert(swellRamp.time>canyonSound.ctx.currentTime,'the swell ramps toward the future, not an instant jump');
+const swellTarget=canyonSound.windSwellGain.gain.value;canyonSound.windSwellGain.gain.value=swellRamp.value;
+advance((swellRamp.time-canyonSound.ctx.currentTime)*1000+1);
+assert.notEqual(canyonSound.windSwellGain.gain.events.at(-1).value,swellTarget,'a finished swell schedules its next, different level');
+const events=canyonSound.windGain.gain.events.length;canyonSound.wind(1.0001);
+assert.equal(canyonSound.windGain.gain.events.length,events,'an unchanged exposure does not re-ramp every frame');
+canyonSound.wind(0);assert.equal(canyonSound.windGain._target,0);
+assert.equal(canyonSound.windVoices.length,2,'the bed plays on through its fade');
+advance(500);assert.equal(canyonSound.windVoices.length,0);assert(first.stopped&&second.stopped);
+
+canyonSound.wind(.8);assert.equal(canyonSound.windVoices.length,2,'walking back in starts the bed again');
+canyonSound.enabled=false;assert.equal(canyonSound.windGain._target,0);advance(500);assert.equal(canyonSound.windVoices.length,0,'mute stops the bed');
+canyonSound.enabled=true;assert.equal(canyonSound.windVoices.length,2);
+canyonSound.setForeground(false);advance(500);assert.equal(canyonSound.windVoices.length,0,'a hidden page stops the bed');
+canyonSound.setForeground(true);assert.equal(canyonSound.windVoices.length,2);
+canyonSound.update(.016,false,0);advance(500);assert.equal(canyonSound.windVoices.length,0,'a paused chapter is silent');
+canyonSound.update(.016,true,0,false,true);advance(500);assert.equal(canyonSound.windVoices.length,0,'and so is the title');
+canyonSound.update(.016,true,0);assert.equal(canyonSound.windVoices.length,2);
+console.log('PASS canyon wind bed: seamless mono loop, exposure around active wells only, effects routing, mute, focus and pause');

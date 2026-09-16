@@ -21,15 +21,45 @@ export const CHECKPOINT_FLAG=new URL('./assets/checkpoint-flag.wav',import.meta.
 export const FINISH_BELL=new URL('./assets/finish-bell.wav',import.meta.url).href;
 export const POROUS_CLAY_STEP=new URL('./assets/porous-clay-step.wav',import.meta.url).href;
 export const ENEMY_HEAD_IMPACT=new URL('./assets/enemy-head-impact.wav',import.meta.url).href;
+export const CANYON_WIND=new URL('./assets/canyon-wind.wav',import.meta.url).href;
+// World units over which a wind well fades up, so the canyon is heard breathing
+// before the player steps into the column rather than switching on at its edge.
+const WIND_REACH=9;
+// Two voices of the same short recording at unrelated rates and offsets. Their
+// gusts drift in and out of step, so a two-second loop stops sounding like one;
+// uncorrelated, they sum to about the bed gain at these weights.
+const WIND_VOICES=[[1,0,.72],[1.29,.5,.72]];
+// The bed itself never repeats identically, but a fixed loop still breathes at
+// a fixed rate. This ebbs its level between quiet and full over an irregular
+// few seconds at a time, so a gust settling in reads as weather, not a switch.
+const WIND_SWELL=[.4,1];
+const WIND_SWELL_SECONDS=[2.5,6.5];
+// How loudly the canyon wind is heard, from nowhere near a well to standing in
+// one. `wind.active` is maintained by the simulation, so a windwell waiting on
+// its switch is as silent as it is still.
+export function windExposure(level,player){
+  if(!level||level.biome!=='desert'||!player)return 0;
+  let loudest=0;
+  for(const wind of level.winds||[]){
+    if(wind.active===false)continue;
+    const dx=Math.max(wind.x-player.x,0,player.x-(wind.x+wind.w)),dy=Math.max(wind.y-player.y,0,player.y-(wind.y+wind.h));
+    loudest=Math.max(loudest,1-Math.min(1,Math.hypot(dx,dy)/WIND_REACH));
+  }
+  return loudest;
+}
 export class Sound {
   // Music and effects sit on their own buses so either can be silenced without
   // the other. Music defaults below effects: it is background, they are not.
   static DEFAULT_MUSIC=.55;
   static DEFAULT_EFFECTS=1;
+  // Full exposure to a wind well, at the swell's loudest moment. A bed, not a
+  // cue: it sits under the chapter soundtrack rather than beside the footsteps.
+  static WIND_BED=.07;
   constructor(){
     this.ctx=null;this._enabled=true;this.foreground=true;this.title=true;this.playing=false;this.chapter=0;this.quiet=false;
     this._musicLevel=Sound.DEFAULT_MUSIC;this._effectsLevel=Sound.DEFAULT_EFFECTS;
     this.lastCoin=0;this.coinRun=0;this.musicTimer=0;this.note=0;this.theme=-1;
+    this.windTarget=0;this.windVoices=[];this.windGain=null;this.windSwellGain=null;this.windTimer=null;this.windSwellTimer=null;
     this.track=null;this.trackGain=null;this.playPending=false;this.trackBlocked=false;this.failedTracks=new Set();this.trackURL=null;this.trackGeneration=0;this.pauseTimer=null;
   }
   get musicLevel(){return this._musicLevel;}
@@ -43,8 +73,8 @@ export class Sound {
     }
   }
   get enabled(){return this._enabled;}
-  set enabled(value){this._enabled=!!value;this.setMaster();if(!this._enabled)this.stopTrack();else this.syncTrack();}
-  setForeground(value){this.foreground=!!value;this.setMaster();if(!this.foreground)this.stopTrack();else this.syncTrack();}
+  set enabled(value){this._enabled=!!value;this.setMaster();if(!this._enabled)this.stopTrack();else this.syncTrack();this.syncWind();}
+  setForeground(value){this.foreground=!!value;this.setMaster();if(!this.foreground)this.stopTrack();else this.syncTrack();this.syncWind();}
   setMaster(){if(this.master){this.master.gain.cancelScheduledValues(this.ctx.currentTime);this.master.gain.setValueAtTime(this.enabled&&this.foreground?1:0,this.ctx.currentTime);}}
   unlock(){
     if(!this.ctx){
@@ -79,6 +109,11 @@ export class Sound {
     }
     if(!this.enemyHeadImpactLoading&&this.ctx.decodeAudioData){
       this.enemyHeadImpactLoading=fetch(ENEMY_HEAD_IMPACT).then(r=>{if(!r.ok)throw new Error('Enemy head impact sound unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.enemyHeadImpactBuffer=buffer;}).catch(()=>{});
+    }
+    if(!this.canyonWindLoading&&this.ctx.decodeAudioData){
+      // The bed can arrive with the player already inside a well, so the loop
+      // starts itself rather than waiting for the next change in exposure.
+      this.canyonWindLoading=fetch(CANYON_WIND).then(r=>{if(!r.ok)throw new Error('Canyon wind unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.canyonWindBuffer=buffer;this.syncWind();}).catch(()=>{});
     }
   }
   musicVolume(){return this.title?.3:this.motherQuiet?.008:this.celebrating?.08:this.quiet?.19:.26;}
@@ -139,6 +174,53 @@ export class Sound {
     if(this.orchardActive()&&!this.orchard&&this.enabled&&this.foreground&&this.playing)this.orchard=new OrchardMusic(this);
     this.orchard?.update(this.orchardActive(),this.musicVolume(),musicFade);
   }
+  // Exposure to the canyon wind, 0 to 1. Quantized, because it is recomputed
+  // every frame and an unchanged target must not re-ramp the gain.
+  wind(exposure){
+    const target=Math.round(Math.min(1,Math.max(0,Number(exposure)||0))*64)/64;
+    if(target===this.windTarget)return;
+    this.windTarget=target;this.syncWind();
+  }
+  wantsWind(){return this.enabled&&this.foreground&&this.playing&&!this.title&&this.windTarget>0;}
+  syncWind(){
+    if(!this.ctx||!this.canyonWindBuffer)return;
+    const wanted=this.wantsWind();
+    if(wanted&&!this.windVoices.length){
+      // Exposure (windGain) and the gust swell (windSwellGain) fade
+      // independently in series, so approaching a well and a lull passing
+      // through it never fight the same AudioParam.
+      this.windGain=this.ctx.createGain();this.windGain.gain.value=0;this.windGain.connect(this.effectsBus);
+      this.windSwellGain=this.ctx.createGain();this.windSwellGain.gain.value=WIND_SWELL[1];this.windSwellGain.connect(this.windGain);
+      for(const [rate,offset,weight] of WIND_VOICES){
+        const voice=this.ctx.createBufferSource(),gain=this.ctx.createGain();
+        voice.buffer=this.canyonWindBuffer;voice.loop=true;voice.playbackRate.value=rate;gain.gain.value=weight;
+        voice.connect(gain);gain.connect(this.windSwellGain);voice.start(0,this.canyonWindBuffer.duration*offset);
+        this.windVoices.push(voice);
+      }
+      this.scheduleWindSwell();
+    }
+    if(!this.windVoices.length)return;
+    this.fade(this.windGain,wanted?Sound.WIND_BED*this.windTarget:0,wanted?.6:.4);
+    clearTimeout(this.windTimer);this.windTimer=null;
+    if(!wanted)this.windTimer=setTimeout(()=>{this.windTimer=null;if(!this.wantsWind())this.stopWind();},430);
+  }
+  // Ramps the swell gain to a new random level over a new random duration,
+  // then reschedules itself — an endless, irregular sequence of fades while
+  // the bed keeps playing, independent of whether exposure itself changes.
+  scheduleWindSwell(){
+    if(!this.windSwellGain)return;
+    const [lowLevel,highLevel]=WIND_SWELL,[lowSeconds,highSeconds]=WIND_SWELL_SECONDS;
+    const level=lowLevel+Math.random()*(highLevel-lowLevel),seconds=lowSeconds+Math.random()*(highSeconds-lowSeconds);
+    const gain=this.windSwellGain.gain,now=this.ctx.currentTime;
+    gain.cancelScheduledValues(now);gain.setValueAtTime(gain.value,now);gain.linearRampToValueAtTime(level,now+seconds);
+    clearTimeout(this.windSwellTimer);this.windSwellTimer=setTimeout(()=>this.scheduleWindSwell(),seconds*1000);
+  }
+  stopWind(){
+    clearTimeout(this.windTimer);this.windTimer=null;
+    clearTimeout(this.windSwellTimer);this.windSwellTimer=null;
+    for(const voice of this.windVoices)voice.stop();
+    this.windVoices=[];this.windGain=null;this.windSwellGain=null;
+  }
   tone(freq,duration=.12,type='sine',volume=.04,slide=1,music=false){if(!this.enabled||!this.foreground||!this.ctx)return;const now=this.ctx.currentTime;const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,now);o.frequency.exponentialRampToValueAtTime(Math.max(30,freq*slide),now+duration);g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(volume,now+.012);g.gain.exponentialRampToValueAtTime(.001,now+duration);o.connect(g);g.connect(music?this.motifGain:this.effectsBus);o.start(now);o.stop(now+duration+.02);}
   bufferEffect(buffer,volume=.5,duration,playbackRate=1,offset=0){
     if(!buffer)return false;
@@ -197,7 +279,7 @@ export class Sound {
     if(type==='stamp'||type==='checkpoint'||type==='complete') [523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.tone(f,.6,'sine',.047),i*95));
   }
   update(dt,playing,chapter=0,quiet=false,title=false,celebrating=false,motherQuiet=false,corrupted=false){
-    this.corrupted=corrupted;this.motherQuiet=motherQuiet;this.celebrating=celebrating;this.playing=playing;this.chapter=chapter;this.quiet=quiet;this.title=title;this.syncTrack();
+    this.corrupted=corrupted;this.motherQuiet=motherQuiet;this.celebrating=celebrating;this.playing=playing;this.chapter=chapter;this.quiet=quiet;this.title=title;this.syncTrack();this.syncWind();
     if(motherQuiet||title||!playing||!this.enabled||!this.foreground||!this.ctx||this.selectedTrack()&&!this.trackFailed)return;
     if(this.theme!==chapter){this.theme=chapter;this.note=0;this.musicTimer=.3;}
     this.musicTimer-=dt;if(this.musicTimer>0)return;

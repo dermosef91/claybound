@@ -2,7 +2,7 @@ import {Game,FIXED_DT} from './simulation.js';
 import {HealthHUD} from './health-hud.js';
 import {LEVELS} from './levels.js';
 import {World} from './world.js';
-import {Sound} from './audio.js';
+import {Sound,windExposure} from './audio.js';
 import {Fullscreen} from './fullscreen.js';
 import {VirtualJoystick} from './controls.js';
 import {completionMarkup,completionRecord,warmCompletionAssets} from './completion.js';
@@ -395,6 +395,7 @@ function frame(now){
   shapingControls?.update();
   const dt=Math.min((now-prev)/1000,.06);prev=now;
   sound.update(dt,game.status==='playing',game.index,game.level.sections[game.sectionId]?.quiet,menu,!!game.flowerCelebration,motherQuiet(game.level.boss),motherCorrupted(game));
+  sound.wind(menu?0:windExposure(game.level,game.player));
   readGamepad();
   if(!assetsReady||document.hidden){accum=0;requestAnimationFrame(frame);return;}
   if(menu){accum=0;titleScene?.render(dt);requestAnimationFrame(frame);return;}
