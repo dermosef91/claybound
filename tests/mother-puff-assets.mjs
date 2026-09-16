@@ -34,6 +34,18 @@ for(const [pose,triangles]of [['idle',10448],['cast',10428],['friendly',18749]])
  prepareMotherPuff(w,pose,gltf);const asset=w.motherAssets[pose];assert(asset.scale>0);assert.equal(gltf.animations.length,0);
  let count=0;asset.scene.traverse(o=>{if(o.isMesh){count+=o.geometry.index.count/3;assert(o.material.map&&o.material.normalMap&&o.material.roughnessMap);assert(w.assetGeometry.has(o.geometry));assert(w.assetMaterials.has(o.material));}});assert.equal(count,triangles);
 }
+// The fifth sculpture, the arch behind the boss, was supplied with a single
+// colour map at twice the size; it ships repacked to the same texture budget,
+// its geometry untouched.
+{
+ const bytes=await readFile(new URL('../dist/assets/mother-puff-arch.glb',import.meta.url)),manifest=JSON.parse(await readFile(new URL('../dist/assets/mother-puff-arch.json',import.meta.url)));
+ assert.equal(createHash('sha256').update(bytes).digest('hex'),manifest.shippedSha256);assert.equal(bytes.length,manifest.shippedBytes);
+ assert(bytes.length<1000000,'the arch ships well inside the scenery budget');assert.equal(manifest.triangles,11052);assert(manifest.geometryUnchanged);
+ assert.deepEqual(manifest.textures,[[1024,1024]],'one colour map, mobile-sized');
+ const asset=w.blightedAssets.arch;assert(asset.size.x>0&&asset.size.y>0);
+ let count=0;asset.scene.traverse(o=>{if(o.isMesh){count+=o.geometry.index.count/3;assert(o.material.map,'the arch keeps its painted stone and moss');assert(/-blight-arch$/.test(o.material.customProgramCacheKey()),'its stone is brought down to the blight\'s charcoal in the shader, moss spared');assert(w.assetGeometry.has(o.geometry));}});
+ assert.equal(count,11052);
+}
 const game=new Game();game.start(1);w.currentLevel=game.level;const b=game.level.boss;Object.assign(game.player,{x:281.5,y:b.y,groundId:'mother-arena'});
 const floor=new THREE.Group();createMotherArenaFloor(w,game.level.platforms.find(p=>p.motherArena),floor);w.platforms=new Map([['mother-arena',{root:floor}]]);
 assert.equal(floor.userData.motherCorruption.length,2);assert(floor.userData.motherPorous.every(p=>p.poreCount>0),'ground uses the actual porous ledge geometry');
@@ -81,13 +93,15 @@ assert(intro.x-introWidth/2<motherIntroTarget(b)-.32&&intro.x+introWidth/2>b.x+3
 for(const state of ['reveal','inhale','release','recover','hurt']){b.state=state;b.hits=0;animateMotherPuff(w,game);assert(view.pose.visible,'the battle body stays on screen');assert.equal(view.pose.rotation.y,-Math.PI/4);assert(view.environment.porous.every(p=>p.root.visible)&&floor.userData.motherPorous.every(p=>p.root.visible),'retry restores the corrupted brick scenery');}
 b.hits=3;b.state='farewell';b.stateTime=.8;animateMotherPuff(w,game);assert.equal(view.clouds.material.opacity,1);const envelope=view.clouds.parts.map(p=>p.m.position.y+p.m.scale.y);assert(Math.max(...envelope)>M.friendlyHeight,'farewell veil expands to cover the larger healed form');
 {
- // The four supplied sculptures stand in for the clearing's own trees and
- // caps on the blighted side, and healing has to put every one of them back.
+ // The five supplied sculptures stand in for the clearing's own trees and
+ // caps on the blighted side, and healing has to put every one of them back:
+ // the arch behind the boss, three pored canopies at the frame's edge and
+ // high behind the middle, a stone cap, and the two half-turned pairs.
  const env=view.environment;
- assert.equal(env.blighted.length,6,'two stone trees, two stone caps and two half-turned pairs');
+ assert.equal(env.blighted.length,7,'the arch, three stone trees, a stone cap and two half-turned pairs');
  assert(env.blighted.every(p=>p.stone&&p.green),'every stone sculpture is paired with the healthy model it replaces');
  assert.deepEqual(env.blighted.map(p=>p.stone.name).sort(),
-   ['Blighted corrupt-mushroom','Blighted corrupt-mushroom','Blighted corrupt-tree','Blighted corrupt-tree','Blighted semi-mushroom','Blighted semi-tree']);
+   ['Blighted arch','Blighted corrupt-mushroom','Blighted corrupt-tree','Blighted corrupt-tree','Blighted corrupt-tree','Blighted semi-mushroom','Blighted semi-tree']);
  // Yaws read off the sculptures themselves: each half-turned pair carries its
  // stone on one flank, and that flank has to end up facing the boss.
  for(const p of env.blighted){
