@@ -160,7 +160,7 @@ export function createMotherArenaFloor(w,s,g){
   // there. The collider under all of it stays the flat deck the encounter is
   // tuned against.
   const deck=new THREE.Group();deck.name='Clearing ground';g.add(deck);
-  w.box(s.w,1.45,7,'terrain',deck,s.w/2,-.8,-1.8,.36);
+  w.box(s.w,2,7,'terrain',deck,s.w/2,-1.05,-1.8,.36);
   w.box(s.w,.35,7.1,'top',deck,s.w/2,-.15,-1.8,.15);
   for(let i=0;i<15;i++){
     const x=.8+i*(s.w-1.6)/14;
@@ -270,10 +270,14 @@ export function createMotherEnvironment(w,root,b){
       blighted.push({stone:arch,green,stoneScale:arch.scale.x,greenScale:green.scale.x});
     }
     // Near enough that the fog does not pale them: the blight has to stay charcoal.
-    for(const [dx,z,width,dy]of [[22,-12,15,-3],[15,-14,11,6.5],[7.5,-15.5,10,5]]){
+    // Nothing floats: the camera looks down a little, so a thing further back
+    // sits higher on screen by about an eighth of its depth, and each base is
+    // set that much below the deck's top to read as standing on it.
+    const footing=z=>b.y-.12*-z+.3;
+    for(const [dx,z,width]of [[22,-12,15],[19,-14,11],[6.5,-12,10]]){
       const x=center+dx;
-      pair(x,1,'tree',blightedModel(w,'corrupt-tree',scenery,x,b.y+dy,z,width),
-        forestModel(w,'canopy',scenery,x,b.y+dy,z,width,-.15,true));
+      pair(x,1,'tree',blightedModel(w,'corrupt-tree',scenery,x,footing(z),z,width),
+        forestModel(w,'canopy',scenery,x,footing(z),z,width,-.15,true));
     }
     for(const [dx,width]of [[24.5,3.8]]){
       const x=center+dx;
@@ -282,12 +286,13 @@ export function createMotherEnvironment(w,root,b){
     }
     // Half-turned pairs mark the ground the blight is still crossing, in the
     // middle of the clearing, each with its stone flank turned toward the boss.
-    for(const [key,dx,z,width,healthy,healthyWidth]of [['semi-tree',-4,-16,11,'canopy',11],['semi-mushroom',3,-7,4.2,'heroMushroom',4.2]]){
-      const x=center+dx,dy=key==='semi-tree'?-4:0;
-      // Everything on the boss's side of centre is wholly hers, half-turned or not.
-      pair(x,x>=center?1:key==='semi-tree'?.7:.6,key==='semi-tree'?'tree':'mushroom',
-        blightedModel(w,key,scenery,x,b.y+dy,z,width),
-        forestModel(w,healthy,scenery,x,b.y+dy,z,healthyWidth,.18,true));
+    // The half-turned sculptures already carry their stone on one flank, so
+    // they are only lightly afflicted: their healthy side stays visible, which
+    // is what makes them read as clay caught mid-hardening.
+    for(const [key,dx,z,width,healthy,healthyWidth,amount]of [['semi-tree',-4,-16,11,'canopy',11,.45],['semi-mushroom',3,-10,4.2,'heroMushroom',4.2,.4]]){
+      const x=center+dx,y=footing(z);
+      pair(x,amount,key,blightedModel(w,key,scenery,x,y,z,width),
+        forestModel(w,healthy,scenery,x,y,z,healthyWidth,.18,true));
     }
   }
   const stone=new THREE.Group();stone.name='Pored erosion in the clearing';scenery.add(stone);
