@@ -17,7 +17,7 @@ export function makeRoom(data,seam,gap){
     if(s.checkpoint!==undefined)s.checkpoint=move(s.checkpoint);
     for(const pose of [s.shape?.from,s.shape?.to])if(pose)pose.x=move(pose.x);
   }
-  for(const name of ['coins','stamps','enemies','hazards','hints','sections','winds','crushers','decor'])
+  for(const name of ['coins','stamps','enemies','hazards','hints','sections','winds','crushers','decor','triggers','palettes','camera'])
     for(const item of d[name]||[]){
       // A span that starts before the seam and ends after it now covers the new
       // ground too: a chasm opened up is a longer chasm, not a shifted one.
@@ -32,6 +32,9 @@ export function makeRoom(data,seam,gap){
     if(station.cueX!==undefined)station.cueX=move(station.cueX);
     for(const stroke of station.solution||[])stroke.x=move(stroke.x);
   }
+  // The dream's finale keeps its own coordinates: where the flower stands and
+  // where the player wakes.
+  if(d.finale){for(const key of ['x','cueX'])if(d.finale[key]!==undefined)d.finale[key]=move(d.finale[key]);if(d.finale.flower?.x!==undefined)d.finale.flower.x=move(d.finale.flower.x);if(d.finale.wake?.x!==undefined)d.finale.wake.x=move(d.finale.wake.x);}
   d.end=move(d.end);
   return d;
 }
