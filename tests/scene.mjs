@@ -455,6 +455,16 @@ console.log('PASS all four Dust Drifter models remain loaded and in view after f
   assert.equal(huts.length,1);assert.equal(flags.length,1);assert(flags[0].parent===laundry.root,'the front checkpoint flag is retained');
   const box=new THREE.Box3().setFromObject(huts[0],true);assert(box.max.x-box.min.x>3.5,'the larger cottage is retained');
 }
+// A flag is the checkpoint mechanic, so the Hanging Quarter cannot wear one as scenery.
+{
+  const g=new Game();g.start(3);w.build(g.level,3);
+  for(const s of g.level.platforms){
+    w.syncVisible(g.level,s.x+s.w/2,true);
+    const root=w.platforms.get(s.id)?.root;if(!root)continue;
+    let flags=0;root.traverse(o=>{if(o.name==='Checkpoint flag')flags++;});
+    assert.equal(flags,s.checkpoint?1:0,s.id+' carries a flag only if it holds a checkpoint');
+  }
+}
 {
   const g=new Game();g.start(2);g.onEvent=e=>w.event(e);Object.assign(g.player,{x:62,y:0,groundId:'ferry-dock'});w.build(g.level,2,77);
   const c=g.level.crushers[0],root=w.crusherViews[0],head=root.userData.press.head;
@@ -476,7 +486,7 @@ console.log('PASS all four Dust Drifter models remain loaded and in view after f
   for(let i=0;i<150;i++)w.updateParticles(1/60);assert.equal(w.particles.length,0,'debris expires and leaves no live particle meshes');
   s.active=true;s.timer=0;w.render(g,0);assert(v.fracture.pieces.every(p=>p.mesh.position.equals(p.rest)),'reforming restores every chunk');
 }
-console.log('PASS anchored moving presses, visible spring targets, single front flag/larger cottage, fractured slabs, bounded debris, pause and recovery');
+console.log('PASS anchored moving presses, visible spring targets, city flags only at checkpoints, larger cottage, fractured slabs, bounded debris, pause and recovery');
 
 // The new scenery must remain grounded, behind the hero, and survive streaming
 // without editing the gameplay layout or disposing its shared source model.

@@ -104,8 +104,8 @@ export function buildCitadelTerrain(w,s,g){
       doorway(w,g,width*.4,-6.1,1.77,1.1);
       banner(w,g,width*.28,-.11,1.85,.82,2.35);
     }
+    // A flag on a roof means a checkpoint and nothing else.
     if(s.checkpoint)w.flag(s.checkpoint-s.x,.08,g,1.04,s.id);
-    else if(!s.goal)w.flag(.9,.07,g,.82);
     if(s.goal)w.makeBell(g,s.bellX??width-5.2,.1);
     crease(w,g,[[width*.32,-1.0,1.77],[width*.31,-1.5,1.77],[width*.35,-2.1,1.78]],.011);
     cityStory(w,s,g);
