@@ -9,6 +9,7 @@ import {completionMarkup,completionRecord,warmCompletionAssets} from './completi
 import {DraftLibrary} from './editor-model.js';
 import {LevelEditor} from './editor.js';
 import {chapterCollections,settingsMarkup,characterMarkup} from './title-menu.js';
+import clayLab from './routes/clay-lab.js';
 import {CHARACTERS,characterChoice} from './characters.js';
 import {TitleScene} from './title-scene.js';
 import {loadTitleAssets} from './title-assets.js';
@@ -86,7 +87,7 @@ function onEvent(e){
   if(e.type==='respawn')$('fade').classList.remove('active');
   if(e.type==='complete'){
     clearInput();show('hint',false);show('touch-controls',false);show('desktop-controls',false);show('timer',false);
-    if(game.level.playground){openDialog(`<span class="eyebrow">CLAY PLAYGROUND</span><h2>A world shaped by you.</h2><p>You reached the Hanging Quarter’s bell. Keep experimenting with the five clay stations.</p><button class="primary" data-action="playground">Play again</button><button class="secondary" data-action="home">Return to title</button>`);return;}
+    if(game.level.playground){openDialog(`<span class="eyebrow">CLAY LAB</span><h2>A bench well used.</h2><p>You rang the lab bell. Every experiment is still there — jump straight to any of them from the pause menu.</p><button class="primary" data-action="playground">Back to the bench</button><button class="secondary" data-action="home">Return to title</button>`);return;}
     if(editor?.testing){openDialog(`<span class="eyebrow">WORKSHOP PLAYTEST</span><h2>You reached the bell.</h2><p>Your design is saved. Return to the workshop to keep shaping the next leap.</p><button class="primary" data-action="back-editor">${icon('pencil-ruler')} Back to editor</button><button class="secondary" data-action="restart-test">${icon('rotate-ccw')} Test again</button>`,'test');return;}
     const bestStore=game.level.custom?saved.customBest:saved.best;
     const record=completionRecord(e,game.level,bestStore[e.index]);
@@ -213,7 +214,10 @@ function pause(){
 }
 function chapters(){
   const choices=LEVELS.map((base,i)=>{const L=activeLevel(i),edited=drafts.has(i),run=(L.custom?saved.customRuns:saved.runs)[i],r=chapterCollections(L,i,saved);return `<div class="chapter-option"><button class="chapter-choice" data-level="${i}"><span>0${i+1}</span><div><strong>${L.short}${edited?L.custom?' · Your edit':' · Original':''}</strong><small>${L.sections.length} passages${run?.version===L.layoutVersion?' · Checkpoint saved':''}</small><span class="chapter-collectibles"><img src="./assets/completion/flower.webp" alt="" class="chapter-flower" width="16" height="16">${r.stamps}/${r.stampTotal}<img src="./assets/completion/bead.webp" alt="" class="chapter-bead" width="16" height="16">${r.coins}/${r.coinTotal}</span></div>${icon('arrow-up-right')}</button>${edited?`<button class="quiet-button chapter-alternate" data-level="${i}" data-source="${L.custom?'original':'edited'}">${icon(L.custom?'refresh-cw':'pencil-ruler')} ${L.custom?'Play updated original':'Play your edit'}</button>`:''}</div>`;}).join('');
-  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">FOUR CHAPTERS</span><h2>Choose your path.</h2><div class="chapters-list">${choices}</div>`);
+  // The lab is not a chapter and keeps no record: it is a bench of ideas that
+  // are not in the game yet, so it sits under the four rather than among them.
+  const lab=`<button class="chapter-choice playground-choice" data-action="playground"><span>${icon('pencil-ruler')}</span><div><strong>${clayLab.short}</strong><small>${clayLab.label}</small></div>${icon('arrow-up-right')}</button>`;
+  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">FOUR CHAPTERS &amp; A CLAY LAB</span><h2>Choose your path.</h2><div class="chapters-list">${choices}${lab}</div>`);
 }
 function help(){
   openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run. A controller's left stick or d-pad steers too.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them. On a controller, A or Y.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms. On a controller, B, X or a trigger.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Violet clay can be shaped</strong><span>Tap or drag it, hold E, or stomp it — violet clay breathes when you are beside it and stretches into ramps, stairs and bridges. R softens it back.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
@@ -293,7 +297,8 @@ $('dialog-content').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;sound.unlock();
   if(b.hasAttribute('data-level')){begin(Number(b.dataset.level),false,b.dataset.source);return;}
   const a=b.dataset.action;
-  if(a==='resume'||a==='close')closeDialog();if(a==='play')begin(saved.last);if(a==='restart')begin(game.index,true);if(a==='next')begin(game.index+1);if(a==='chapters')chapters();if(a==='home')home();
+  if(a==='resume'||a==='close')closeDialog();if(a==='play')begin(saved.last);if(a==='restart')begin(game.index,true,undefined,game.level.lab?clayLab:null);if(a==='next')begin(game.index+1);if(a==='chapters')chapters();if(a==='home')home();
+  if(a==='playground')begin(3,true,'original',clayLab);
   if(a==='stations')stationPicker();
   if(b.dataset.station){visitStation(game,b.dataset.station);closeDialog();show('touch-controls',true);}
   if(a==='editor')openEditor();if(a==='back-editor')editor.returnToEditor();if(a==='restart-test')editor.playtest(false);
@@ -347,7 +352,7 @@ window.addEventListener('contextmenu',e=>e.preventDefault());
 $('world').addEventListener('webglcontextlost',e=>{e.preventDefault();game.pause();clearInput();$('error-text').textContent='The graphics connection was interrupted. Reload to continue — your latest checkpoint is saved.';show('error',true);});
 function stationPicker(){
   if(!game.level.playground)return;
-  openDialog(`<button class="dialog-close" data-action="resume" aria-label="Resume game">${icon('x')}</button><span class="eyebrow">CLAY PLAYGROUND</span><h2>Try a different shape.</h2><p>Drag the orange clay or hold E / KNEAD. R resets a station. Shapes stay until you restart the playground.</p><div class="chapters-list">${game.level.shaping.map((s,i)=>`<button class="chapter-choice" data-station="${s.id}"><span>0${i+1}</span><div><strong>${s.name}</strong><small>${s.verb} · ${Math.round(s.amount*100)}% shaped</small></div>${icon('arrow-up-right')}</button>`).join('')}</div>`);
+  openDialog(`<button class="dialog-close" data-action="resume" aria-label="Resume game">${icon('x')}</button><span class="eyebrow">CLAY LAB</span><h2>Jump to an experiment.</h2><p>Each bench works differently: read its prompt. R softens whatever you are standing beside, and sends you back to its start.</p><div class="chapters-list">${game.level.shaping.map((s,i)=>`<button class="chapter-choice" data-station="${s.id}"><span>0${i+1}</span><div><strong>${s.name}</strong><small>${s.verb} · ${Math.round(s.amount*100)}% shaped</small></div>${icon('arrow-up-right')}</button>`).join('')}</div>`);
 }
 shapingControls=new ShapingControls({game,world:()=>world,input,picker:stationPicker});
 function updateHUD(now){
