@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {motherCorrupted,motherQuiet} from '../dist/mother-puff-rules.js';
 import {STONE_ORCHARD_TRACK} from '../dist/mother-puff-music.js';
-import {Sound,HORIZON_TRACK,CHAPTER_TRACKS,FLOWER_VICTORY,SPORE_BALLOON_BURST,MOTHER_PUFF_GROWL,COIN_PICKUP,CHECKPOINT_FLAG,FINISH_BELL,POROUS_CLAY_STEP,ENEMY_HEAD_IMPACT,LEDGE_COLLAPSE,CANYON_WIND,CLAY_KNEAD,windExposure} from '../dist/audio.js';
+import {Sound,HORIZON_TRACK,CHAPTER_TRACKS,FLOWER_VICTORY,SPORE_BALLOON_BURST,MOTHER_PUFF_GROWL,COIN_PICKUP,CHECKPOINT_FLAG,FINISH_BELL,POROUS_CLAY_STEP,ENEMY_HEAD_IMPACT,LEDGE_COLLAPSE,CANYON_WIND,CLAY_KNEAD,JUMP,CLAY_STEP,WOOD_STEP,TIMBER,windExposure} from '../dist/audio.js';
 import canyon from '../dist/routes/canyon.js';
 import forest from '../dist/routes/forest.js';
+import city from '../dist/routes/city.js';
+import cave from '../dist/routes/cave.js';
 const jobs=new Map();let next=0;
 globalThis.setTimeout=(fn,ms)=>{jobs.set(++next,{fn,ms});return next;};
 globalThis.clearTimeout=id=>jobs.delete(id);
@@ -127,11 +129,15 @@ const completeBytes=await readFile(new URL('../dist/assets/finish-bell.wav',impo
 const porousStepBytes=await readFile(new URL('../dist/assets/porous-clay-step.wav',import.meta.url));
 const enemyHeadImpactBytes=await readFile(new URL(ENEMY_HEAD_IMPACT));
 const ledgeCollapseBytes=await readFile(new URL(LEDGE_COLLAPSE));
+const jumpBytes=await readFile(new URL(JUMP));
+const clayStepBytes=await Promise.all(CLAY_STEP.map(url=>readFile(new URL(url))));
+const woodStepBytes=await Promise.all(WOOD_STEP.map(url=>readFile(new URL(url))));
 assert.equal(victoryBytes.subarray(0,4).toString(),'RIFF');
 assert.equal(sporeBalloonBytes.subarray(0,4).toString(),'RIFF');
 for(const bytes of [coinBytes,checkpointBytes,completeBytes,porousStepBytes,enemyHeadImpactBytes,ledgeCollapseBytes])assert.equal(bytes.subarray(0,4).toString(),'RIFF');
 const oldFetch=globalThis.fetch;
-const suppliedEffects=new Map([[FLOWER_VICTORY,victoryBytes],[SPORE_BALLOON_BURST,sporeBalloonBytes],[MOTHER_PUFF_GROWL,growlBytes],[COIN_PICKUP,coinBytes],[CHECKPOINT_FLAG,checkpointBytes],[FINISH_BELL,completeBytes],[POROUS_CLAY_STEP,porousStepBytes],[ENEMY_HEAD_IMPACT,enemyHeadImpactBytes],[LEDGE_COLLAPSE,ledgeCollapseBytes]]);
+const suppliedEffects=new Map([[FLOWER_VICTORY,victoryBytes],[SPORE_BALLOON_BURST,sporeBalloonBytes],[MOTHER_PUFF_GROWL,growlBytes],[COIN_PICKUP,coinBytes],[CHECKPOINT_FLAG,checkpointBytes],[FINISH_BELL,completeBytes],[POROUS_CLAY_STEP,porousStepBytes],[ENEMY_HEAD_IMPACT,enemyHeadImpactBytes],[LEDGE_COLLAPSE,ledgeCollapseBytes],[JUMP,jumpBytes],
+  ...CLAY_STEP.map((url,i)=>[url,clayStepBytes[i]]),...WOOD_STEP.map((url,i)=>[url,woodStepBytes[i]])]);
 globalThis.fetch=async url=>{const bytes=suppliedEffects.get(url);return {ok:!!bytes,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)};};
 Context.prototype.decodeAudioData=async bytes=>({duration:1,bytes});
 Context.prototype.createBufferSource=function(){const n=new Node();n.playbackRate=new Param();n.start=(...args)=>{n.started=true;n.startArgs=args;};n.stop=()=>{n.stopped=true;};(this.buffers??=[]).push(n);return n;};
@@ -151,17 +157,20 @@ assert.equal(sporeSound.ctx.oscillators.length,0,'the supplied recording replace
 sporeSound.effect('squish',{kind:'spore'});const enemyPuff=sporeSound.ctx.buffers[1];
 assert.equal(enemyPuff.buffer,sporeSound.sporeBalloonBuffer);assert.equal(enemyPuff.output.gain.value,.22,'Spore Puff defeat is quieter than the balloon burst');
 assert.deepEqual(enemyPuff.startArgs,[0,0,.45],'Spore Puff defeat uses only the short opening of the recording');
-sporeSound.effect('squish',{kind:'drifter'});assert.equal(sporeSound.ctx.buffers.length,2,'other level enemies keep their own defeat sound');
-sporeSound.enabled=false;sporeSound.effect('break',{spore:true});assert.equal(sporeSound.ctx.buffers.length,2,'muted spore sounds stay silent');
+await sporeSound.enemyHeadImpactLoading;
+sporeSound.effect('squish',{kind:'drifter'});assert.equal(sporeSound.ctx.buffers.at(-1).buffer,sporeSound.enemyHeadImpactBuffer,'a drifter is a head landing, not a balloon');
+const sporeSounds=sporeSound.ctx.buffers.length;
+sporeSound.enabled=false;sporeSound.effect('break',{spore:true});assert.equal(sporeSound.ctx.buffers.length,sporeSounds,'muted spore sounds stay silent');
 const headImpactSound=new Sound();headImpactSound.unlock();await headImpactSound.enemyHeadImpactLoading;
-for(const kind of ['bat','spitter','clayling']){
+for(const kind of ['bat','spitter','clayling','drifter']){
   const sourceCount=headImpactSound.ctx.buffers?.length||0,oscillatorCount=headImpactSound.ctx.oscillators.length;
   headImpactSound.effect('squish',{kind});const impact=headImpactSound.ctx.buffers[sourceCount];
   assert.equal(impact.buffer,headImpactSound.enemyHeadImpactBuffer);assert.equal(impact.output.gain.value,.36);assert(impact.started);
   assert.equal(headImpactSound.ctx.oscillators.length,oscillatorCount,`${kind} head landing uses the supplied impact instead of the synthesized cue`);
 }
-headImpactSound.effect('squish',{kind:'drifter'});assert.equal(headImpactSound.ctx.buffers.length,3,'other enemy defeats keep their existing cue');
-console.log('PASS supplied bat, spitter and clayling head-impact cue');
+await headImpactSound.sporeBalloonLoading;
+headImpactSound.effect('squish',{kind:'spore'});assert.equal(headImpactSound.ctx.buffers.at(-1).buffer,headImpactSound.sporeBalloonBuffer,'the spore balloon keeps its own burst');
+console.log('PASS supplied bat, spitter, clayling and Dust Drifter head-impact cue');
 const bossSound=new Sound();bossSound.unlock();await Promise.all([bossSound.motherGrowlLoading,bossSound.sporeBalloonLoading]);
 bossSound.effect('mother-open');const growl=bossSound.ctx.buffers[0];assert.equal(growl.buffer,bossSound.motherGrowlBuffer);assert.equal(growl.output.gain.value,.2,'opening growl plays at a restrained 20% gain');
 for(const event of ['mother-hit','mother-hit','mother-collapse']){bossSound.effect(event);const hit=bossSound.ctx.buffers.at(-1);assert.equal(hit.buffer,bossSound.sporeBalloonBuffer);assert.equal(hit.output.gain.value,.4);assert(hit.started);}
@@ -170,21 +179,24 @@ bossSound.enabled=false;bossSound.effect('mother-open');bossSound.effect('mother
 console.log('PASS Mother Puff quiet supplied growl, three balloon-pop hit cues, mute and background silence');
 const interactionSound=new Sound();interactionSound.unlock();await Promise.all([interactionSound.coinLoading,interactionSound.checkpointLoading,interactionSound.completeLoading]);
 const originalRandom=Math.random;Math.random=()=>.25;
-for(const [type,buffer,gain]of [['coin',interactionSound.coinBuffer,.0135],['checkpoint',interactionSound.checkpointBuffer,.25],['complete',interactionSound.completeBuffer,.5]]){
+for(const [type,buffer,gain]of [['coin',interactionSound.coinBuffer,.02025],['checkpoint',interactionSound.checkpointBuffer,.25],['complete',interactionSound.completeBuffer,.5]]){
   const oscillatorCount=interactionSound.ctx.oscillators.length,sourceCount=interactionSound.ctx.buffers?.length||0;
   interactionSound.effect(type);const source=interactionSound.ctx.buffers[sourceCount];
   assert(source?.started,`${type} starts its supplied recording`);assert.equal(source.buffer,buffer);assert.equal(source.output.output,interactionSound.effectsBus);
-  assert.equal(source.output.gain.value,gain,`${type} uses its tuned playback volume`);
+  assert(Math.abs(source.output.gain.value-gain)<1e-9,`${type} uses its tuned playback volume`);
   assert.equal(interactionSound.ctx.oscillators.length,oscillatorCount,`${type} recording replaces its synthesized cue`);
 }
 const firstCoin=interactionSound.ctx.buffers.at(-3);assert.equal(firstCoin.playbackRate.value,.62,'coin pitch is lowered and varied');
 Math.random=()=>.75;interactionSound.effect('coin');const variedCoin=interactionSound.ctx.buffers.at(-1);
-assert.equal(variedCoin.output.gain.value,.0165);assert.equal(variedCoin.playbackRate.value,.7);assert.notEqual(variedCoin.output.gain.value,firstCoin.output.gain.value,'successive coin pickups vary volume');assert.notEqual(variedCoin.playbackRate.value,firstCoin.playbackRate.value,'successive coin pickups vary pitch');
+assert(Math.abs(variedCoin.output.gain.value-.02475)<1e-9);assert.equal(variedCoin.playbackRate.value,.7);assert.notEqual(variedCoin.output.gain.value,firstCoin.output.gain.value,'successive coin pickups vary volume');assert.notEqual(variedCoin.playbackRate.value,firstCoin.playbackRate.value,'successive coin pickups vary pitch');
 await interactionSound.porousStepLoading;const stepSources=interactionSound.ctx.buffers.length,stepOscillators=interactionSound.ctx.oscillators.length;
 interactionSound.effect('step',{surface:'crumble'});const porousStep=interactionSound.ctx.buffers[stepSources];
 assert.equal(porousStep.buffer,interactionSound.porousStepBuffer);assert.equal(porousStep.output.gain.value,.06,'porous step stays quiet');assert(Math.abs(porousStep.playbackRate.value-.955)<1e-9,'porous step pitch is varied and slightly lowered');
 assert.deepEqual(porousStep.startArgs,[0,.12,.38],'porous step uses the compact first impact instead of overlapping its two-second tail');assert.equal(interactionSound.ctx.oscillators.length,stepOscillators,'porous clay replaces the generic synthesized step');
-interactionSound.effect('step',{surface:'stone'});assert.equal(interactionSound.ctx.buffers.length,stepSources+1,'ordinary surfaces do not use the porous-clay recording');assert.equal(interactionSound.ctx.oscillators.length,stepOscillators+1,'ordinary surfaces retain the generic footstep');
+await interactionSound.clayStepLoading;
+interactionSound.effect('step',{surface:'stone'});const ordinaryStep=interactionSound.ctx.buffers.at(-1);
+assert.notEqual(ordinaryStep.buffer,interactionSound.porousStepBuffer,'ordinary surfaces do not use the porous-clay recording');
+assert(interactionSound.clayStepBuffers.includes(ordinaryStep.buffer),'they step on the clay-ground takes instead');
 Math.random=originalRandom;
 interactionSound.enabled=false;const mutedCount=interactionSound.ctx.buffers.length;interactionSound.effect('coin');interactionSound.effect('checkpoint');interactionSound.effect('complete');assert.equal(interactionSound.ctx.buffers.length,mutedCount,'supplied interaction sounds respect mute');
 console.log('PASS supplied flower, spore-balloon, coin, checkpoint and finish-bell WAV playback, music duck/restore, mute and hidden-page silence');
@@ -327,8 +339,10 @@ canyonSound.update(.016,true,0,false,true);advance(500);assert.equal(canyonSound
 canyonSound.update(.016,true,0);assert.equal(canyonSound.windVoices.length,2);
 console.log('PASS canyon wind bed: seamless mono loop, exposure around active wells only, effects routing, mute, focus and pause');
 
-// Jump and land are the two sounds a chapter repeats most. Both vary per hit,
-// and a landing reads its arrival speed the way the squash and the camera do.
+// Jump and land are the two sounds a chapter repeats most. With no recording
+// to hand — nothing downloaded yet — both keep the synthesized cues they had:
+// varied per hit, and a landing reading its arrival speed the way the squash
+// and the camera do.
 const impactSound=new Sound();impactSound.unlock();await settle();
 const priorRandom=Math.random;
 const tone=(back=1)=>{const o=impactSound.ctx.oscillators.at(-back);return {freq:o.frequency.events[0].value,seconds:o.frequency.events[1].time,gain:o.output.gain.events[1].value};};
@@ -387,3 +401,123 @@ console.log('PASS jump and landing carry per-hit variation, and a landing follow
   const bare=new Sound();bare.unlock();bare.kneadBuffers=[];const tones=bare.ctx.oscillators.length;bare.effect('knead');assert.equal(bare.ctx.oscillators.length,tones+1,'a knead before the takes arrive falls back to a soft tone');
   console.log('PASS kneading violet clay cycles three supplied takes at random without repeating one, at footstep level, and respects mute');
 }
+
+// The boots. One supplied thud serves both leaving the ground and arriving
+// back on it, and two supplied runs of footsteps are cut into three takes
+// each: timber for the decks a chapter builds out of timber, clay ground for
+// everywhere else.
+{
+  assert.deepEqual([CLAY_STEP.length,WOOD_STEP.length],[3,3]);
+  for(const bytes of [jumpBytes,...clayStepBytes,...woodStepBytes]){
+    assert.equal(bytes.subarray(0,4).toString(),'RIFF');
+    assert.equal(bytes.subarray(36,40).toString(),'data');
+    assert.deepEqual([bytes.readUInt16LE(22),bytes.readUInt16LE(34)],[1,16],'each cue ships folded to mono like the other effects');
+    assert(bytes.length<4e4,`a cue of a fifth of a second is not worth a large download: ${bytes.length} bytes`);
+    // A cue that opens with the room it was recorded in is pure latency on the
+    // sounds a chapter plays most; the supplied jump carried 35 ms of it.
+    const rate=bytes.readUInt32LE(24),frames=bytes.readUInt32LE(40)/2,sample=i=>bytes.readInt16LE(44+i*2);
+    let peak=0;for(let i=0;i<frames;i++)peak=Math.max(peak,Math.abs(sample(i)));
+    let attack=0;while(attack<frames&&Math.abs(sample(attack))<peak*.25)attack++;
+    assert(attack/rate<.012,`the boot lands ${(attack/rate*1e3).toFixed(0)} ms into the cue`);
+  }
+  globalThis.fetch=async url=>{const bytes=suppliedEffects.get(url);return {ok:!!bytes,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)};};
+  const boots=new Sound();boots.unlock();
+  await Promise.all([boots.jumpLoading,boots.clayStepLoading,boots.woodStepLoading,boots.porousStepLoading]);
+  assert.deepEqual([boots.clayStepBuffers.length,boots.woodStepBuffers.length],[3,3],'both sets of takes are loaded');
+  const priorRandom=Math.random;Math.random=()=>.5;
+
+  const tones=boots.ctx.oscillators.length;
+  boots.effect('jump');const push=boots.ctx.buffers.at(-1);
+  assert(push?.started&&push.buffer===boots.jumpBuffer,'a jump plays the supplied thud');
+  assert.equal(push.output.output,boots.effectsBus,'on the effects bus, so its slider and mute reach it');
+  assert.equal(boots.ctx.oscillators.length,tones,'the recording replaces the synthesized jump tone');
+  boots.effect('land',{impact:5});const hop=boots.ctx.buffers.at(-1);
+  assert.equal(boots.ctx.oscillators.length,tones,'a hop stays the single quiet thud it was');
+  boots.effect('land',{impact:22});const heavy=boots.ctx.buffers.at(-1);
+  assert.equal(boots.ctx.oscillators.length,tones+1,'a heavy arrival keeps its low body underneath');
+  assert(hop.buffer===boots.jumpBuffer&&heavy.buffer===boots.jumpBuffer,'both arrivals are the same boot as the push-off');
+  assert(hop.playbackRate.value<push.playbackRate.value,'an arrival is pitched below the push-off, so a hop is not one sound twice');
+  assert(heavy.playbackRate.value<hop.playbackRate.value,'and a heavy arrival below a light one');
+  assert(heavy.output.gain.value>hop.output.gain.value,'a heavy arrival is louder');
+  assert(Math.max(push.output.gain.value,heavy.output.gain.value)<.08,'and none of the three is loud: a chapter plays these a few hundred times');
+
+  // A step sounds like the deck under it, and every deck a shipped chapter
+  // actually has answers with a recording rather than the synthesized tick.
+  const kinds=new Set([canyon,forest,city,cave].flatMap(route=>route.platforms.map(s=>s.kind)));
+  for(const kind of TIMBER)assert(kinds.has(kind),`${kind} is a deck some chapter actually has`);
+  for(const surface of [...kinds,undefined]){
+    if(surface==='wall')continue;   // a wall block is climbed past, never walked on
+    const before=boots.ctx.buffers.length,oscillators=boots.ctx.oscillators.length;
+    boots.effect('step',{surface});
+    const step=boots.ctx.buffers[before];
+    assert(step?.started,`a step on ${surface??'an unnamed surface'} plays a recording`);
+    assert.equal(boots.ctx.oscillators.length,oscillators,`and ${surface??'it'} never falls back to the tick`);
+    if(surface==='crumble'){assert.equal(step.buffer,boots.porousStepBuffer,'porous clay keeps its own step');continue;}
+    const timber=TIMBER.has(surface);
+    assert((timber?boots.woodStepBuffers:boots.clayStepBuffers).includes(step.buffer),`${surface??'an unnamed surface'} steps on ${timber?'timber':'clay ground'}`);
+    assert.equal(step.output.gain.value,timber?.028:.038,'at its set level, under the tick it replaced');
+    assert(step.playbackRate.value>=.94&&step.playbackRate.value<=1.06,'pitched a little differently each time');
+  }
+
+  let roll=0;Math.random=()=>roll;
+  const picks=[];
+  for(const value of [.1,.1,.5,.5,.9,.9,.2]){
+    roll=value;const before=boots.ctx.buffers.length;
+    boots.effect('step',{surface:'stone'});
+    picks.push(boots.clayStepBuffers.indexOf(boots.ctx.buffers[before].buffer));
+  }
+  assert(picks.every(i=>i>=0)&&new Set(picks).size===3,`all three takes are used (${picks.join(' ')})`);
+  for(let i=1;i<picks.length;i++)assert.notEqual(picks[i],picks[i-1],'never the same take twice running');
+  // Each set keeps its own place in that shuffle: crossing a bridge cannot
+  // make the ground repeat a take, or the other way round.
+  roll=.1;boots.effect('step',{surface:'stone'});const ground=boots.ctx.buffers.at(-1).buffer;
+  boots.effect('step',{surface:'bridge'});boots.effect('step',{surface:'stone'});
+  assert.notEqual(boots.ctx.buffers.at(-1).buffer,ground,'a step between two decks is still a new take on each');
+  Math.random=priorRandom;
+
+  boots.enabled=false;const muted=boots.ctx.buffers.length;
+  boots.effect('jump');boots.effect('land',{impact:9});boots.effect('step',{surface:'stone'});
+  assert.equal(boots.ctx.buffers.length,muted,'muted boots are silent');
+  boots.enabled=true;boots.setForeground(false);
+  boots.effect('jump');boots.effect('step',{surface:'bridge'});
+  assert.equal(boots.ctx.buffers.length,muted,'and so is a hidden page');
+  // Walking and jumping before the downloads land keeps the cues they had.
+  const bare=new Sound();bare.unlock();
+  const bareTones=bare.ctx.oscillators.length;
+  bare.effect('jump');bare.effect('land',{impact:22});bare.effect('step',{surface:'stone'});bare.effect('step',{surface:'bridge'});
+  assert.equal(bare.ctx.oscillators.length,bareTones+5,'a jump, a heavy landing with its body and two steps all still sound');
+  console.log('PASS supplied boot thud on jumps and arrivals pitched apart by weight, three timber and three clay-ground takes routed by deck without repeating one, quiet levels, mute, hidden-page silence and synthesized fallbacks');
+}
+
+// Every spore Mother Puff throws bursts where it lands, with the balloon
+// recording the player already hears popping one.
+{
+  const volley=new Sound();volley.unlock();await volley.sporeBalloonLoading;
+  const priorRandom=Math.random;Math.random=()=>.5;
+  const tones=volley.ctx.oscillators.length,before=volley.ctx.buffers?.length||0;
+  volley.effect('mother-puff',{x:31,y:6,color:'purple'});
+  const burst=volley.ctx.buffers[before];
+  assert(burst?.started,'a landed spore starts the balloon recording');
+  assert.equal(burst.buffer,volley.sporeBalloonBuffer);
+  assert.equal(burst.output.output,volley.effectsBus,'on the effects bus, so its slider and mute reach it');
+  assert.equal(burst.output.gain.value,.1,'a spore landing is a fraction of the pop the player makes');
+  assert.deepEqual(burst.startArgs,[0,0,.45],'and only its opening, so a spree of ten does not pile up');
+  assert.equal(volley.ctx.oscillators.length,tones,'the recording replaces the synthesized puff');
+  volley.effect('break',{spore:true});
+  assert(volley.ctx.buffers.at(-1).output.gain.value>burst.output.gain.value*3,'popping one yourself stays much the louder of the two');
+  volley.effect('mother-hit');
+  assert(volley.ctx.buffers.at(-1).output.gain.value>burst.output.gain.value,'and so does a hit on her cap');
+  Math.random=()=>0;volley.effect('mother-puff',{color:'white'});const lowest=volley.ctx.buffers.at(-1).playbackRate.value;
+  Math.random=()=>1;volley.effect('mother-puff',{color:'green'});const highest=volley.ctx.buffers.at(-1).playbackRate.value;
+  assert(Math.abs(lowest-.92)<1e-9&&Math.abs(highest-1.08)<1e-9,`ten landings in a row are ten bursts, not one with an echo: ${lowest} to ${highest}`);
+  Math.random=priorRandom;
+  const quiet=volley.ctx.buffers.length;
+  volley.enabled=false;volley.effect('mother-puff',{});
+  volley.enabled=true;volley.setForeground(false);volley.effect('mother-puff',{});
+  assert.equal(volley.ctx.buffers.length,quiet,'landings respect mute and a hidden page');
+  const early=new Sound();early.unlock();const earlyTones=early.ctx.oscillators.length;
+  early.effect('mother-puff',{});
+  assert.equal(early.ctx.oscillators.length,earlyTones+1,'a spore landing before the download keeps the soft synthesized puff');
+  console.log('PASS Mother Puff spore landings burst with the supplied balloon, under the pop the player makes, at a varied pitch, with mute, hidden-page silence and a synthesized fallback');
+}
+globalThis.fetch=oldFetch;

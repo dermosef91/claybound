@@ -104,7 +104,7 @@ export function updateShaping(game,dt,input){
       const lift=L.platforms.find(p=>p.id===station.lift),whole=station.amount*station.amount*(3-2*station.amount);
       if(lift)lift.y=lerp(station.liftFrom,station.liftTo,whole);
     }
-    if(station.amount>.995&&!station.announced){station.announced=true;game.event('shape',{id:station.id,x:p.x,y:p.y,message:station.name+' · shaped'});}
+    if(station.amount>.995&&!station.announced){station.announced=true;game.event('shape',{id:station.id,x:p.x,y:p.y});}
     // Kneading is heard. `worked` is raised by whatever moved the clay this
     // tick and cleared here, heard or not, so work that stops is not heard on
     // after it stops; `kneadPending` is a stomp or a tap that landed between

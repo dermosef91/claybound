@@ -1,0 +1,21 @@
+{
+  "source": "apprentice-rig.glb",
+  "sourceSha256": "4f208031753f984c1c7ce699e5b705222a236dcc44ea4739a2cbaf1fe788a10d",
+  "shippedSha256": "5da651995e72dc402b8ee8c210b838da1da6e6206ca7f6e8549de712e81483cc",
+  "sourceBytes": 1856688,
+  "shippedBytes": 1319984,
+  "textures": [
+    {
+      "role": "baseColor",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "textureLimit": 1024,
+  "geometryUnchanged": true,
+  "geometrySha256": "ae9f35afd1ef93fd2b801f51d4469bad2cf11b14be95729c8b222aebdb4cde38",
+  "animations": 0,
+  "triangles": 21448
+}

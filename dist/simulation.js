@@ -32,9 +32,9 @@ export class Game {
   pause() {if(this.status==='playing'){this.status='paused';this.event('pause');}}
   resume() {if(this.status==='paused'){this.status='playing';this.event('resume');}}
   start(index=0,source) {this.load(index,source);}
-  activate(channel,x,y,message){
+  activate(channel,x,y){
     if(this.latched[channel])return;
-    this.latched[channel]=true;this.channels[channel]=1;this.event('activate',{channel,x,y,message});
+    this.latched[channel]=true;this.channels[channel]=1;this.event('activate',{channel,x,y});
   }
   snapshot(){return {bossDefeated:this.level.boss?.state==='defeated',version:this.level.layoutVersion,index:this.index,checkpointId:this.checkpointId,activatedCheckpoints:[...this.activatedCheckpoints],elapsed:this.elapsed,deaths:this.deaths,latched:Object.keys(this.latched).filter(c=>this.latched[c]),broken:this.level.platforms.filter(s=>s.broken).map(s=>s.id),shaped:(this.level.shaping||[]).filter(s=>s.amount>.995).map(s=>s.id),coins:this.level.coins.filter(c=>c.taken).map(c=>c.id),stamps:this.level.stamps.filter(c=>c.taken).map(c=>c.id)};}
   restore(save){
@@ -127,7 +127,7 @@ export class Game {
         s.angle=approach(s.angle,p.groundId===s.id?Math.max(-.14,Math.min(.14,-(p.x-s.x-s.w/2)*.065)):0,dt*.28);
         if(s.channel&&!this.latched[s.channel]){
           s.charge=s.angle<-.075&&p.groundId===s.id?Math.min(1,s.charge+dt/.65):Math.max(0,s.charge-dt);
-          if(s.charge>=1)this.activate(s.channel,s.x+s.w-.7,s.y,'Ropeway raised · the counterweight is locked');
+          if(s.charge>=1)this.activate(s.channel,s.x+s.w-.7,s.y);
         }
       }
       if(s.kind==='crumble'&&s.timer>0) {
@@ -216,7 +216,7 @@ export class Game {
       const s=candidates[0],impact=p.vy;
       if(s.kind==='break'&&p.stomping) {
         s.broken=true;s.active=false;this.event('break',{platformId:s.id,w:s.w,x:p.x,y:s.y,spore:L.biome==='forest'});p.vy=-14;p.stomping=false;
-        if(s.releases)this.activate(s.releases,p.x,s.y,'The roots are breathing · follow the rising spores');
+        if(s.releases)this.activate(s.releases,p.x,s.y);
       } else {
         if(s.shape&&p.stomping)stompClay(this,s);
         p.y=surfaceAt(s,p.x);p.vy=0;p.groundId=s.id;p.coyote=.135;p.springing=false;
@@ -226,7 +226,7 @@ export class Game {
           this.event('spring',{platformId:s.id,x:p.x,y:p.y});
         }
         if(s.kind==='crumble'&&!s.timer){s.timer=.001;this.event('crumble',{platformId:s.id,x:s.x+s.w/2,y:s.y,w:s.w});}
-        if(s.kind==='switch'&&s.latch)this.activate(s.channel,p.x,p.y,L.biome==='cave'?'Passage unlocked':'Windwell open · ride the rising ribbons');
+        if(s.kind==='switch'&&s.latch)this.activate(s.channel,p.x,p.y);
         else if(s.kind==='switch') {
           const duration=s.duration||10;
           if(this.channels[s.channel]<duration-1.5)this.event('switch',{x:p.x,y:p.y,channel:s.channel,duration});

@@ -125,7 +125,7 @@ console.log('PASS the bench is well formed, its stations are ruled, and the chap
   assert(Math.min(...sinking)>=settled*1.05,`at most one small overshoot (${Math.min(...sinking).toFixed(2)} vs ${settled.toFixed(2)})`);
   assert(turns<=1&&still<=.6,`and no ringing: ${turns} turns, settled after ${still.toFixed(2)}s`);
   assert.equal(shapedShare(s),1,'a good stand sets the clay: 100% shaped');
-  assert.deepEqual(shaped.map(e=>e.message),['Sag & set · shaped'],'announced once');
+  assert.deepEqual(shaped.map(e=>e.id),['sag'],'announced once');
 
   // The trough follows a walker and lags behind them.
   hold(45,{moveAxis:1});

@@ -24,7 +24,7 @@ export function createSporeView(w,e){
   const feet=['Bone_016','Bone_019','Bone_022','Bone_025'].map(name=>{const bone=model.getObjectByName(name);return {bone,rest:bone.quaternion.clone()};});
   const cloud=new THREE.Group();cloud.name='Clay spore puff';root.add(cloud);
   const motes=Array.from({length:w.reducedMotion?5:11},(_,i)=>{const m=w.ball(.1,.1,.1,'spore',cloud);m.castShadow=false;return m;});
-  const view={kind:'spore',root,pose,model,feet,cloud,motes,loaded:true,id:e.id,turn:e.dir*.8,clock:0,deathTime:0};
+  const view={kind:'spore',root,pose,model,feet,cloud,motes,loaded:true,id:e.id,turn:e.dir*.8,clock:0,deathTime:0,squashNode:pose,reducedMotion:!!w.reducedMotion};
   animateSpore(view,e,0,'editing');return view;
 }
 // One cloud for both moments a puff lets go of its spores: thrown forward at
@@ -52,9 +52,11 @@ export function animateSpore(v,e,dt,status){
   const step=status==='playing'?Math.min(dt,.05):0;v.clock+=step;v.root.position.set(e.x,e.y,.3);
   if(!e.alive){
     v.deathTime+=step;
-    // Only the body is pressed flat; the cloud keeps its own shape and drifts
-    // off the disc as it peels away.
-    applyFlatten(v.pose,v.deathTime);
+    // Only the body is pressed flat — straight down whatever wiggle or leap it
+    // died in, the yaw kept and the roll dropped; the cloud keeps its own shape
+    // and drifts off the disc until clay-shatter.js breaks it.
+    v.pose.rotation.set(0,v.turn,0);
+    applyFlatten(v.pose,v.deathTime,{reducedMotion:v.reducedMotion});
     v.cloud.visible=v.deathTime<PUFF.life&&status!=='editing';
     if(v.cloud.visible){v.cloud.position.set(0,PUFF.center,.1);poseCloud(v,v.deathTime,0);}
     return;

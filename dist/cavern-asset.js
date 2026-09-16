@@ -27,7 +27,7 @@ export async function loadCavernAssets(w,onProgress){
   }
   await w.cavernLoading;onProgress?.(1);
 }
-export function cavernModel(w,key,parent,x,y,z,width,turn=0,{lights=true}={}){
+export function cavernModel(w,key,parent,x,y,z,width,turn=0,{lights=true,power=1}={}){
   const a=w.cavernAssets?.[key];if(!a)throw new Error('Load the cavern models before building the cave.');
   const root=new THREE.Group(),model=a.scene.clone(true);root.name=key==='grotto'?'Supplied glowing grotto':'Supplied crystalcap cavern';root.position.set(x,y,z);root.rotation.y=turn;root.scale.setScalar(width/a.size.x);
   // Instances of the supplied models share one copy of their geometry and
@@ -37,7 +37,7 @@ export function cavernModel(w,key,parent,x,y,z,width,turn=0,{lights=true}={}){
   model.position.set(-a.center.x,-a.box.min.y,-a.center.z);root.add(model);parent.add(root);
   for(const lamp of a.lamps){
     const anchor=new THREE.Object3D();anchor.name=lamp.kind+' light anchor';anchor.position.set(lamp.x,lamp.y,lamp.z);model.add(anchor);
-    if(lights)w.torches.push({flame:anchor,position:new THREE.Vector3(),phase:x*.17,kind:lamp.kind,color:lamp.color,power:lamp.kind==='mushroom'?23:20,range:9});
+    if(lights)w.torches.push({flame:anchor,position:new THREE.Vector3(),phase:x*.17,kind:lamp.kind,color:lamp.color,power:(lamp.kind==='mushroom'?23:20)*power,range:9});
   }
   return root;
 }

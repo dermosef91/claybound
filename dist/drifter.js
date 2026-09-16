@@ -2,6 +2,7 @@ import * as THREE from './lib/three.module.js';
 import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel} from './clay.js';
 import {DRIFTER} from './drifter-rules.js';
+import {applyFlatten} from './clay-feel.js';
 
 export async function loadDrifters(w,onProgress){
   if(w.drifterAsset){onProgress?.(1);return;}
@@ -32,7 +33,7 @@ export function createDrifterView(w,e){
   const grains=Array.from({length:5},(_,i)=>{
     const m=w.ball(.052,.066,.048,i%2?'cream':'orangeLight',root);m.name='Drifting clay grain';m.castShadow=false;return m;
   });
-  const view={kind:'drifter',root,pose,grains,id:e.id,turn:0,trail:e.dir,loaded:false};
+  const view={kind:'drifter',root,pose,grains,id:e.id,turn:0,trail:e.dir,loaded:false,deathTime:0,reducedMotion:!!w.reducedMotion};
   if(w.drifterAsset)attachDrifter(w,view);animateDrifter(view,e,0,'editing');return view;
 }
 function attachDrifter(w,view){
@@ -43,8 +44,25 @@ function attachDrifter(w,view){
 }
 export function animateDrifter(view,e,dt,status){
   const step=status==='playing'?Math.min(dt,.05):0,t=e.animationTime??e.phase??0;
-  view.root.position.set(e.x,e.y,.35);view.root.visible=e.alive;
-  if(!view.loaded||!e.alive)return;
+  view.root.position.set(e.x,e.y,.35);
+  if(!e.alive){
+    // Pressed flat about its centre like every other creature. The root is
+    // squashed, not the rolling pose, so the press is straight down whatever
+    // the roll angle; the grains it trails stop with it, and clay-shatter.js
+    // breaks the disc into clumps from world.render.
+    for(const m of view.grains)m.visible=false;
+    view.deathTime+=step;
+    const pose=applyFlatten(view.root,view.deathTime,{reducedMotion:view.reducedMotion});
+    // A rolling drifter's centre is a body-radius above the deck, so the disc
+    // is brought down to lie on it; a hovering one sinks slowly, like the bat,
+    // but never below the deck settleSquash found under it.
+    const air=e.airBlend??1,fall=view.reducedMotion?0:3*view.deathTime*view.deathTime*air;
+    view.root.position.y=Math.max(e.y-(1-pose.sy)*DRIFTER.groundRadius*(1-air)-fall,view.squashFloorY!==undefined?view.squashFloorY+.12:-Infinity);
+    return;
+  }
+  view.deathTime=0;view.root.visible=true;view.root.scale.setScalar(1);
+  for(const m of view.grains)m.visible=true;
+  if(!view.loaded)return;
   const direction=Math.abs(e.vx)>.08?Math.sign(e.vx):e.dir;
   view.turn+=(direction*.28-view.turn)*(1-Math.exp(-step*5.5));
   view.trail+=(direction-view.trail)*(1-Math.exp(-step*5.5));

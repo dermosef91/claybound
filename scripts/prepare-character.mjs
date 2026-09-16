@@ -34,13 +34,28 @@ const JOINTS={
 // The joint each bone aims at. Taken explicitly rather than from the first
 // child, because which child comes first at a branch — chest to neck or chest
 // to shoulder — is an accident of how the rig was exported.
+//
+// The ankle is deliberately not among them. Aiming a bone assumes the two rigs
+// disagree about the pose they rest in, which for the arms is exactly true: one
+// rests in an A-pose and the other in a T-pose. The feet rest in the same pose
+// on both — flat on the floor the character was modelled standing on — and the
+// line from ankle to toe describes the shape of a shoe rather than the
+// direction of a limb. Aiming one at the other therefore transfers a difference
+// that is not a difference, and it lands on the one joint that decides where the
+// floor is: the original's toe sits a third of a foot below its ankle and this
+// rig's barely at all, so aiming pointed the new character's toes down and its
+// sole corrections then stood it on them.
 const AIMS={
   Hips:'Spine02',Spine02:'Spine01',Spine01:'Spine',Spine:'neck',neck:'Head',Head:'head_end',
   LeftShoulder:'LeftArm',LeftArm:'LeftForeArm',LeftForeArm:'LeftHand',
   RightShoulder:'RightArm',RightArm:'RightForeArm',RightForeArm:'RightHand',
-  LeftUpLeg:'LeftLeg',LeftLeg:'LeftFoot',LeftFoot:'LeftToeBase',
-  RightUpLeg:'RightLeg',RightLeg:'RightFoot',RightFoot:'RightToeBase'
+  LeftUpLeg:'LeftLeg',LeftLeg:'LeftFoot',
+  RightUpLeg:'RightLeg',RightLeg:'RightFoot'
 };
+// Every joint above is anatomy a humanoid rig has to have. The crown is not: it
+// is a marker some exporters leave above the head and others end without, so a
+// rig may arrive without one and the head is then aimed like any other tip.
+const OPTIONAL=new Set(['head_end']);
 const PREFIX='mixamorig';
 // Every clip hero.js names, plus the floor-corrected subset. Airborne excerpts
 // are cut from Regular_Jump and Jump_Over_Obstacle_2, whose vertical travel the
@@ -59,7 +74,8 @@ const [donor,target,idle,manifest]=await Promise.all([
 target.scene.traverse(o=>{if(o.name.startsWith(PREFIX))o.name=o.name.slice(PREFIX.length);});
 donor.scene.updateMatrixWorld(true);target.scene.updateMatrixWorld(true);
 const bone=(scene,name)=>{const b=scene.getObjectByName(name);if(!b?.isBone)throw new Error(`Missing joint: ${name}`);return b;};
-const pairs=Object.entries(JOINTS).map(([from,to])=>({from,source:bone(donor.scene,from),joint:bone(target.scene,to)}));
+const carried=from=>!OPTIONAL.has(from)||!!target.scene.getObjectByName(JOINTS[from])?.isBone;
+const pairs=Object.keys(JOINTS).filter(carried).map(from=>({from,source:bone(donor.scene,from),joint:bone(target.scene,JOINTS[from])}));
 // Parent before child: a joint's local rotation is only meaningful once the
 // chain above it already holds its retargeted pose.
 const chain=[];target.scene.traverse(o=>{if(o.isBone)chain.push(o);});
@@ -81,14 +97,20 @@ for(const joint of chain)restLocal.set(joint,joint.quaternion.clone());
 // swung into line. Aim the joint the same way the animator aimed the original,
 // and turn it the way this rig expects to be turned.
 const aim=(from,to)=>to.getWorldPosition(new THREE.Vector3()).sub(from.getWorldPosition(new THREE.Vector3())).normalize();
+// A joint with nothing to aim — a hand, a foot, a toe, or a head on a rig that
+// marks no crown — keeps the alignment of the limb it finishes, which is the
+// nearest joint above it that was aimed. On a rig with spare links between the
+// neck and the head, that is not always its own parent.
+const inherit=(swings,joint)=>{
+  for(let above=joint.parent;above;above=above.parent)if(swings.has(above))return swings.get(above).clone();
+  return new THREE.Quaternion();
+};
 const frame=new Map(),swings=new Map();
 for(const {from,source,joint} of pairs){
-  const at=AIMS[from];
-  // A fingertip or toe tip has no bone of its own to aim, so it keeps the
-  // alignment of the limb it finishes.
+  const at=AIMS[from]&&carried(AIMS[from])?AIMS[from]:null;
   const swing=at
     ?new THREE.Quaternion().setFromUnitVectors(aim(source,bone(donor.scene,at)),aim(joint,bone(target.scene,JOINTS[at])))
-    :swings.get(joint.parent)?.clone()||new THREE.Quaternion();
+    :inherit(swings,joint);
   swings.set(joint,swing);
   frame.set(joint,rest.get(source).clone().invert().multiply(swing.clone().invert()).multiply(rest.get(joint)));
 }

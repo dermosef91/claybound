@@ -30,6 +30,27 @@ export const CLAY_KNEAD=[
   new URL('./assets/clay-knead-2.wav',import.meta.url).href,
   new URL('./assets/clay-knead-3.wav',import.meta.url).href
 ];
+// One boot leaving the ground and arriving back on it: the same supplied thud
+// serves both, pitched apart so a hop is not one sound played twice.
+export const JUMP=new URL('./assets/jump.wav',import.meta.url).href;
+// Three takes of a boot on clay ground, and three of a boot on a plank deck,
+// cut out of two supplied runs by scripts/prepare-boot-cues.py.
+export const CLAY_STEP=[
+  new URL('./assets/clay-step-1.wav',import.meta.url).href,
+  new URL('./assets/clay-step-2.wav',import.meta.url).href,
+  new URL('./assets/clay-step-3.wav',import.meta.url).href
+];
+export const WOOD_STEP=[
+  new URL('./assets/wood-step-1.wav',import.meta.url).href,
+  new URL('./assets/wood-step-2.wav',import.meta.url).href,
+  new URL('./assets/wood-step-3.wav',import.meta.url).href
+];
+// The decks a player walks on that are built out of timber: the rope bridge's
+// plank deck, and the beam the rope lift and the citadel's counterweight lift
+// both hang under (dist/moving-platform.js). The switched bridge is named for
+// what it does rather than what it is made of — its deck is the biome's own
+// clay slab — so it steps like the ground, which is what it looks like.
+export const TIMBER=new Set(['bridge','lift','counter']);
 // World units over which a wind well fades up, so the canyon is heard breathing
 // before the player steps into the column rather than switching on at its edge.
 const WIND_REACH=9;
@@ -124,6 +145,17 @@ export class Sound {
     if(!this.kneadLoading&&this.ctx.decodeAudioData){
       this.kneadBuffers=[];
       this.kneadLoading=Promise.all(CLAY_KNEAD.map(url=>fetch(url).then(r=>{if(!r.ok)throw new Error('Kneading sound unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.kneadBuffers.push(buffer);}).catch(()=>{})));
+    }
+    if(!this.jumpLoading&&this.ctx.decodeAudioData){
+      this.jumpLoading=fetch(JUMP).then(r=>{if(!r.ok)throw new Error('Jump sound unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.jumpBuffer=buffer;}).catch(()=>{});
+    }
+    if(!this.clayStepLoading&&this.ctx.decodeAudioData){
+      this.clayStepBuffers=[];
+      this.clayStepLoading=Promise.all(CLAY_STEP.map(url=>fetch(url).then(r=>{if(!r.ok)throw new Error('Clay footstep unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.clayStepBuffers.push(buffer);}).catch(()=>{})));
+    }
+    if(!this.woodStepLoading&&this.ctx.decodeAudioData){
+      this.woodStepBuffers=[];
+      this.woodStepLoading=Promise.all(WOOD_STEP.map(url=>fetch(url).then(r=>{if(!r.ok)throw new Error('Timber footstep unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.woodStepBuffers.push(buffer);}).catch(()=>{})));
     }
     if(!this.canyonWindLoading&&this.ctx.decodeAudioData){
       // The bed can arrive with the player already inside a well, so the loop
@@ -243,12 +275,35 @@ export class Sound {
     source.playbackRate.value=playbackRate;
     if(duration)source.start(0,offset,duration);else source.start();return true;
   }
+  // One take of a set at random, never the same one twice running, pitched a
+  // little differently each time — what keeps a sound that fires every stride
+  // from wearing through. Each set remembers its own last pick, so footsteps
+  // and kneading cannot push each other into a repeat.
+  take(name,takes,volume){
+    if(!takes?.length)return false;
+    const last=this.lastTake??={};
+    let pick=Math.floor(Math.random()*takes.length);
+    if(takes.length>1&&pick===last[name])pick=(pick+1)%takes.length;
+    last[name]=pick;
+    return this.bufferEffect(takes[pick],volume,undefined,.94+Math.random()*.12);
+  }
   effect(type,event={}){if(!this.enabled||!this.foreground)return;
     if(type==='stamp'&&this.bufferEffect(this.flowerBuffer))return;
-    if(type==='coin'&&this.bufferEffect(this.coinBuffer,.012+Math.random()*.006,undefined,.58+Math.random()*.16))return;
+    // Half again as loud as it shipped: a coin run was sitting under the
+    // footsteps. Still the quietest recording in the game, and still varied in
+    // level and pitch per pickup so a row of them does not turn into one tone.
+    if(type==='coin'&&this.bufferEffect(this.coinBuffer,.018+Math.random()*.009,undefined,.58+Math.random()*.16))return;
     if(type==='checkpoint'&&this.bufferEffect(this.checkpointBuffer,.25))return;
     if(type==='complete'&&this.bufferEffect(this.completeBuffer))return;
     if(type==='step'&&event.surface==='crumble'&&this.bufferEffect(this.porousStepBuffer,.06,.38,.88+Math.random()*.1,.12))return;
+    // Every other step is a recorded boot: on a plank deck where the deck is
+    // timber, on clay ground everywhere else. Both sets are levelled to the
+    // same loudness, a few decibels under the tick they replace — this is the
+    // sound a chapter plays most, and the one that can least afford to be loud.
+    if(type==='step'){
+      const timber=TIMBER.has(event.surface);
+      if(this.take(timber?'wood':'clay',timber?this.woodStepBuffers:this.clayStepBuffers,timber?.028:.038))return;
+    }
     // Unlike the footstep, this one plays to its end: the rubble settles over
     // about the second the fragments take to fall. A deck regrows and can break
     // again every few seconds, so the pitch moves a little on each collapse.
@@ -257,19 +312,18 @@ export class Sound {
       if(!this.bufferEffect(this.motherGrowlBuffer,.2))this.tone(90,1.5,'sine',.04,.65);
       return;
     }
+    // A spore of hers reaching the ground bursts with the same balloon
+    // recording the player hears popping one, at a fraction of that gain and
+    // only its opening: a spree is ten landings, and the one the player makes
+    // themselves has to stay the louder of the two. The pitch moves a little,
+    // so ten of them in a row are ten bursts rather than one with an echo.
+    if(type==='mother-puff'&&this.bufferEffect(this.sporeBalloonBuffer,.1,.45,.92+Math.random()*.16))return;
     // Violet clay being kneaded, however it is worked — dragged, held under E,
     // tapped, stood on, stomped — and wherever it is, lab or chapter: one of
-    // the three takes at random, never the same one twice running, at a
-    // slightly different pitch each time. The simulation spaces the events, so
-    // a long knead is a run of takes rather than a pile of them.
+    // the three takes. The simulation spaces the events, so a long knead is a
+    // run of takes rather than a pile of them.
     if(type==='knead'){
-      const takes=this.kneadBuffers||[];
-      if(takes.length){
-        let pick=Math.floor(Math.random()*takes.length);
-        if(takes.length>1&&pick===this.lastKnead)pick=(pick+1)%takes.length;
-        this.lastKnead=pick;
-        if(this.bufferEffect(takes[pick],.3,undefined,.92+Math.random()*.16))return;
-      }
+      if(this.take('knead',this.kneadBuffers,.3))return;
       this.tone(170*(.95+Math.random()*.1),.16,'triangle',.02,.6);return;
     }
     if(type==='break'&&event.spore||type==='mother-hit'||type==='mother-collapse'){
@@ -281,18 +335,27 @@ export class Sound {
       return;
     }
     if(type==='squish'&&event.kind==='spore'&&this.bufferEffect(this.sporeBalloonBuffer,.22,.45))return;
-    if(type==='squish'&&['bat','spitter','clayling'].includes(event.kind)&&this.bufferEffect(this.enemyHeadImpactBuffer,.36))return;
+    // One cue for a head landing on anything with a head: the bat, the
+    // spitter, the clayling and the Dust Drifter are all defeated the same way
+    // and now sound the same way. Only the spore balloon keeps its own.
+    if(type==='squish'&&['bat','spitter','clayling','drifter'].includes(event.kind)&&this.bufferEffect(this.enemyHeadImpactBuffer,.36))return;
     // Jump and land are the two sounds a player hears most — a few hundred
-    // times a chapter each — and they were the only frequent ones with no
-    // variation at all. A little jitter is what stops them wearing through.
+    // times a chapter each. Both are the supplied boot thud, and the two are
+    // pitched apart so a hop is not one sound played twice within half a
+    // second: the push-off plays tight and a little above the recording, the
+    // arrival below it. A little jitter on each stops them wearing through.
+    if(type==='jump'&&this.bufferEffect(this.jumpBuffer,.055+Math.random()*.012,undefined,1.14+Math.random()*.09))return;
     if(type==='jump')this.tone(230*(.95+Math.random()*.1),.17+Math.random()*.025,'sine',.055+Math.random()*.011,1.8);
     if(type==='coin'){const now=performance.now();this.coinRun=now-this.lastCoin<600?(this.coinRun+1)%5:0;this.lastCoin=now;this.tone([659,784,880,988,1175][this.coinRun],.23,'sine',.04,1.1);}
     if(type==='land'){
       // Arrival speed picks the pitch, the weight and the length, the way the
-      // squash and the camera already read it. Heavy landings gain a low body
-      // underneath; a short hop stays the quiet tick it was.
+      // squash and the camera already read it: the thud plays slower and
+      // louder the harder the player comes down, a quarter below its recorded
+      // pitch at the heaviest. Heavy landings keep the low body underneath;
+      // a short hop stays the quiet tick it was.
       const weight=Math.min(1,Math.max(0,((event.impact??7)-3)/17)),jitter=.94+Math.random()*.12;
-      this.tone((126-weight*36)*jitter,.06+weight*.05,'sine',.024+weight*.03,.7);
+      if(!this.bufferEffect(this.jumpBuffer,.032+weight*.04,undefined,(1.02-weight*.24)*jitter))
+        this.tone((126-weight*36)*jitter,.06+weight*.05,'sine',.024+weight*.03,.7);
       if(weight>.5)this.tone(58*jitter,.13+weight*.06,'triangle',.016+weight*.022,.5);
     }
     if(type==='crumble')this.tone(180,.13,'triangle',.024,.55);

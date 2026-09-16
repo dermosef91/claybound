@@ -8,7 +8,8 @@ const geometry=new THREE.ExtrudeGeometry(shape,{depth:.12,bevelEnabled:true,beve
 geometry.translate(0,0,-.06);
 
 export function burstDrifterLeaves(w,x,y){
-  const count=Math.max(0,Math.min(w.reducedMotion?6:14,110-w.particles.length));
+  // Fewer than there were: the body now also breaks into clay clumps behind them.
+  const count=Math.max(0,Math.min(w.reducedMotion?5:10,110-w.particles.length));
   for(let i=0;i<count;i++){
     const a=i/count*Math.PI*2+.15*(Math.random()-.5),size=.14+Math.random()*.075;
     const m=w.mesh(geometry,i%3?'orangeLight':'cream',w.fxRoot,x,y,.35);
