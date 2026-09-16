@@ -3,6 +3,7 @@ import {clone} from './lib/SkeletonUtils.js';
 import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel,clayMaterial} from './clay.js';
 import {SPORE} from './spore-rules.js';
+import {applyFlatten} from './clay-feel.js';
 export async function loadSpores(w,onProgress){
   if(w.sporeAsset){onProgress?.(1);return;}
   if(!w.sporeLoading)w.sporeLoading=loadModel('spore-puff.glb',onProgress).then(g=>prepareSporeAsset(w,g)).catch(e=>{w.sporeLoading=null;throw e;});
@@ -28,7 +29,7 @@ export function createSporeView(w,e){
 }
 export function animateSpore(v,e,dt,status){
   const step=status==='playing'?Math.min(dt,.05):0;v.clock+=step;v.root.position.set(e.x,e.y,.3);
-  if(!e.alive){v.deathTime+=step;const t=Math.min(1,v.deathTime/.22);v.root.scale.set(1+t*.25,Math.max(.02,1-t),1+t*.25);v.root.visible=t<1;v.cloud.visible=false;return;}
+  if(!e.alive){v.deathTime+=step;applyFlatten(v.root,v.deathTime);v.cloud.visible=false;return;}
   v.root.visible=true;v.root.scale.setScalar(1);v.deathTime=0;
   const state=e.aiState||'idle',wiggle=state==='wiggle',crouch=state==='crouch',jump=state==='leap',puff=state==='puff';
   const t=e.stateTime||0,wave=wiggle?Math.sin(t*35):0;

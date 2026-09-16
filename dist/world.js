@@ -41,6 +41,7 @@ import {createCavernMachine,animateCavernMachine} from './cavern-machine-views.j
 import {syncShots} from './spitter.js';
 import {loadCityLaundry} from './city-laundry.js';
 import {createClayView,updateClayView,animateClayView} from './shaping-views.js';
+import {dentable,kickDent,stepDent,applyDent} from './clay-feel.js';
 import {CLAY_PALETTE} from './palette.js';
 import {createGoal} from './goal.js';
 import {burstSporePod,updateSporeParticle,disposeSporeParticle} from './spore-effects.js';
@@ -356,6 +357,12 @@ export class World {
       this.burst(e.x,e.y,e.type==='coin'||e.type==='stamp'?'gold':e.type==='hurt'||e.type==='break'?'orange':'dust',e.type==='step'?2:e.type==='stamp'||e.type==='break'?23:e.type==='jump'?7:10,e.type==='step'?.3:e.type==='break'?2:1);
     if(!this.reducedMotion){if(e.type==='land'&&e.impact>12)this.shake=.09;if(e.type==='break'||e.type==='hurt')this.shake=.17;if(e.type==='spring')this.shake=.06;}
     if(e.type==='spring'){const near=this.platforms.get(e.platformId);if(near)near.bounce=1;}
+    // A landing gives the slab under it. Environmental motion is exactly what
+    // reduced motion asks to be spared, so the deck stays rigid there.
+    if(e.type==='land'&&!this.reducedMotion){
+      const view=this.platforms.get(e.platformId),s=view&&this.currentLevel?.platforms.find(p=>p.id===e.platformId);
+      if(s&&dentable(s,view))kickDent(view,{impact:e.impact,width:s.w,strong:e.strong});
+    }
     if(e.type==='complete')this.burst(this.character.root.position.x,this.character.root.position.y+1.8,'gold',44,2.5);
   }
   updateParticles(dt){
@@ -455,6 +462,11 @@ export class World {
       }
       if(s.kind==='spring'){animateSpringPad(view,game.status==='playing'?dt:0);if(!view.springPad)view.root.scale.y=1+Math.sin(view.bounce*14)*view.bounce*.3;}
       if(s.kind==='switch')view.root.scale.y=game.channels[s.channel]>0?.5:1;
+      // Last, so nothing above rescales the deck after the dent is applied.
+      if(dentable(s,view)&&(view.dent||view.dentV)){
+        if(game.status==='playing')stepDent(view,dt);
+        applyDent(view,s);
+      }
       animateCavernMachine(view,s,this);
     }
     animateShapeHands(this,game,dt,game.status==='playing');

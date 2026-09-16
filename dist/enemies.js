@@ -6,6 +6,7 @@ import {createBatView,animateBat} from './bats.js';
 import {createSporeView,animateSpore} from './spore-puff.js';
 import {createDrifterView,animateDrifter} from './drifter.js';
 import {createSpitterView,animateSpitter} from './spitter.js';
+import {applyFlatten} from './clay-feel.js';
 
 export async function loadEnemies(w,onProgress){
   const [gltf,motion]=await Promise.all([loadModel('enemy.glb',onProgress),loadData('enemy-motion.json')]);
@@ -53,8 +54,7 @@ export function animateEnemy(view,e,dt,status){
     const angle=e.dir>0?0:Math.PI;view.turn+=(angle-view.turn)*(1-Math.exp(-22*step));view.root.rotation.y=view.turn;
     view.action.setEffectiveTimeScale(e.speed/1.65);view.mixer.update(step);
   }else{
-    view.deathTime+=step;const t=Math.min(1,view.deathTime/.2);
-    view.root.scale.set(1+t*.25,Math.max(.025,1-t),1+t*.15);view.root.visible=t<1;
+    view.deathTime+=step;applyFlatten(view.root,view.deathTime);
   }
 }
 export function releaseEnemyView(view){

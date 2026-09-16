@@ -23,8 +23,12 @@ const clock=a.mixer.time,pose=ma.skeleton.bones[0].quaternion.toArray();animateE
 assert.equal(a.mixer.time,clock);assert.deepEqual(ma.skeleton.bones[0].quaternion.toArray(),pose);
 e.dir=-1;for(let i=0;i<100;i++)animateEnemy(a,e,1/120,'playing');a.root.updateMatrixWorld(true);
 assert(new THREE.Vector3(0,0,1).applyQuaternion(a.orientation.getWorldQuaternion(new THREE.Quaternion())).x<-.99);
-e.alive=false;for(let i=0;i<30;i++)animateEnemy(a,e,1/120,'playing');assert.equal(a.root.visible,false);
-console.log('PASS custom enemy rig, independent walk cycles, shared textures, stable feet, turn direction, pause and stomp squash');
+// Stomped, it is pressed flat and left lying there to be seen, rather than
+// deleted on contact; only then does it peel away.
+e.alive=false;for(let i=0;i<30;i++)animateEnemy(a,e,1/120,'playing');
+assert(a.root.visible&&a.root.scale.y<.2&&a.root.scale.x>1.3,'a quarter second after the stomp it is a disc on the deck');
+for(let i=0;i<90;i++)animateEnemy(a,e,1/120,'playing');assert.equal(a.root.visible,false,'and a second later it is gone');
+console.log('PASS custom enemy rig, independent walk cycles, shared textures, stable feet, turn direction, pause and pressed-flat defeat');
 const castleGLB=await readGLB(url('castle.glb'));prepareCastleAsset(w,castleGLB);const parent=new THREE.Group();
 const first=castle(w,parent,0,-5,-27,19.4),second=castle(w,parent,25,-5,-27,19.4);
 const one=first.getObjectByName('mesh_node'),two=second.getObjectByName('mesh_node');assert.equal(one.geometry,two.geometry);assert.equal(one.material,two.material);assert(one.material.map&&one.material.normalMap&&one.material.roughnessMap);

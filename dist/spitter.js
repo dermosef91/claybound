@@ -1,5 +1,6 @@
 import * as THREE from './lib/three.module.js';
 import {SPITTER} from './spitter-rules.js';
+import {applyFlatten} from './clay-feel.js';
 import {disposeBranch} from './streaming.js';
 import {spitterModel} from './spitter-asset.js';
 
@@ -21,7 +22,7 @@ export function createSpitterView(w,e){
 export function animateSpitter(v,e,dt,status){
   const step=status==='playing'?Math.min(dt,.05):0;
   v.root.position.set(e.x,e.y,.12);
-  if(!e.alive){v.deathTime+=step;v.root.scale.setScalar(Math.max(0,1-v.deathTime/.24));v.root.visible=v.deathTime<.24;return;}
+  if(!e.alive){v.deathTime+=step;applyFlatten(v.root,v.deathTime,{reducedMotion:v.reducedMotion});return;}
   v.deathTime=0;v.root.visible=true;v.root.scale.setScalar(1);v.body.rotation.y=e.dir*SPITTER.turn;
   const travel=Math.abs(e.x-v.lastX),speed=step>0&&travel<.4?travel/step:0;
   if(step){v.lastX=e.x;v.time+=step;v.walkWeight+=((speed>.03&&['watch','patrol'].includes(e.aiState)?1:0)-v.walkWeight)*(1-Math.exp(-step*12));v.walkWeight=Math.min(1,v.walkWeight);}

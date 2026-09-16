@@ -205,7 +205,7 @@ export class Game {
       } else {
         if(s.shape&&p.stomping)stompClay(this,s);
         p.y=surfaceAt(s,p.x);p.vy=0;p.groundId=s.id;p.coyote=.135;p.springing=false;
-        if(impact<-2){p.squash=Math.min(.4,-impact*.019);this.event('land',{x:p.x,y:p.y,strong:p.stomping,impact:-impact});}
+        if(impact<-2){p.squash=Math.min(.4,-impact*.019);this.event('land',{x:p.x,y:p.y,strong:p.stomping,impact:-impact,platformId:s.id});}
         if(s.kind==='spring') {
           p.vy=(input.jumpHeld?18.7:17.6)+(p.stomping?1.7:0);p.groundId=null;p.coyote=0;p.squash=.34;p.springing=true;
           this.event('spring',{platformId:s.id,x:p.x,y:p.y});
