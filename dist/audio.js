@@ -25,7 +25,11 @@ export const LEDGE_COLLAPSE=new URL('./assets/ledge-collapse.wav',import.meta.ur
 export const CANYON_WIND=new URL('./assets/canyon-wind.wav',import.meta.url).href;
 // Three takes of violet clay being kneaded. Every piece of violet clay in the
 // game is heard being worked with one of them, whatever works it.
-export const CLAY_KNEAD=[1,2,3].map(i=>new URL(`./assets/clay-knead-${i}.wav`,import.meta.url).href);
+export const CLAY_KNEAD=[
+  new URL('./assets/clay-knead-1.wav',import.meta.url).href,
+  new URL('./assets/clay-knead-2.wav',import.meta.url).href,
+  new URL('./assets/clay-knead-3.wav',import.meta.url).href
+];
 // World units over which a wind well fades up, so the canyon is heard breathing
 // before the player steps into the column rather than switching on at its edge.
 const WIND_REACH=9;
