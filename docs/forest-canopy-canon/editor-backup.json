@@ -4,7 +4,7 @@
   "chapter": 1,
   "baseVersion": 10,
   "level": {
-    "layoutVersion": "editor-10-i8qe38",
+    "layoutVersion": "editor-10-e56ntm",
     "winds": [
       {
         "x": 60,
@@ -176,6 +176,7 @@
         "x": 157,
         "name": "Brittle Canopy",
         "landmark": "birdhouse",
+        "backdrop": "waterfall",
         "id": 3,
         "end": 192
       },
@@ -670,6 +671,7 @@
         "x": 192,
         "y": 21.6,
         "w": 4.5,
+        "checkpoint": 194,
         "id": "gap-brink",
         "landmark": "birdhouse",
         "kind": "ledge",
@@ -711,8 +713,8 @@
       {
         "x": 211,
         "y": 23.4,
-        "w": 5.5,
-        "checkpoint": 212,
+        "w": 7,
+        "checkpoint": 215,
         "id": "weave-perch",
         "landmark": "sporepod",
         "rest": true,
@@ -720,7 +722,7 @@
         "section": 4
       },
       {
-        "x": 214.5,
+        "x": 216.2,
         "y": 23.84,
         "w": 1.8,
         "id": "weave-spring",
@@ -737,15 +739,15 @@
         "section": 4
       },
       {
-        "x": 222.2,
-        "y": 30.06,
-        "w": 1.6,
+        "x": 222.4045,
+        "y": 32.3,
+        "w": 1.191,
         "shape": {
           "from": {
-            "x": 222.2,
-            "y": 30.06,
-            "w": 1.6,
-            "h": 6.56
+            "x": 222.4045,
+            "y": 32.3,
+            "w": 1.191,
+            "h": 8.8
           },
           "to": {
             "x": 219,
@@ -755,7 +757,7 @@
           }
         },
         "station": "weave-mound",
-        "clayRole": "landing",
+        "clayRole": "bridge",
         "id": "weave-mound",
         "kind": "clay",
         "section": 4
@@ -1345,6 +1347,7 @@
         },
         "hint": "Press the far mound flat before you bounce. Drag it down, or hold E / KNEAD, from the perch."
       }
-    ]
+    ],
+    "decor": []
   }
 }

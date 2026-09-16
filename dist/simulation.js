@@ -6,7 +6,7 @@ import {updatePress,pressTouches} from './presses.js';
 import {updateCavernMachine,solidWall,solidDepth} from './cavern-machines.js';
 import {resetSpitter,contactSpitter,updateShots} from './spitter-rules.js';
 
-import {claySurface,clayWallBounds,updateShaping,stompClay} from './shaping.js';
+import {claySurface,clayWallBounds,updateShaping,stompClay,formWallAhead,formStaysGrounded,formSteepAt,resolveFormBody} from './shaping.js';
 import {bridgeOffset} from './bridge-surface.js';
 import {MOTHER_PUFF,motherCinematic,motherIntroTarget,updateMotherPuff,contactMotherPuff,resetMotherPuff} from './mother-puff-rules.js';
 
@@ -195,8 +195,13 @@ export class Game {
       const bottom=s.y-solidDepth(s);
       if(p.vy>0&&prevY+RULES.height<=bottom+1e-7&&p.y+RULES.height>=bottom){p.y=bottom-RULES.height;p.vy=0;p.springing=false;}
     }
-    if((oldGround?.kind==='balance'||oldGround?.kind==='bridge'||oldGround?.shape)&&p.vy<=0&&p.x>oldGround.x&&p.x<oldGround.x+oldGround.w)p.y=(oldGround.shape||oldGround.kind==='bridge')?surfaceAt(oldGround,p.x):Math.min(p.y,surfaceAt(oldGround,p.x));
-    const candidates=L.platforms.filter(s=>s.active&&!s.broken&&!(p.dropTimer>0&&p.dropThrough===s.id)&&p.x+RULES.radius>s.x&&p.x-RULES.radius<s.x+s.w&&prevY>=surfaceAt(s,p.x,true)-(s.kind==='spring'&&oldGround ? .55 : .14)&&p.y<=surfaceAt(s,p.x)+.03&&p.vy<=Math.max(0,(surfaceAt(s,p.x)-surfaceAt(s,p.x,true))/dt)).sort((a,b)=>surfaceAt(b,p.x)-surfaceAt(a,p.x));
+    // Formable clay can be walked into a wall or off a cliff: a wall stops the
+    // step, and a cliff is not a slope to be glued to.
+    if(oldGround&&formWallAhead(oldGround,p,prevX,prevY,RULES.radius)){p.x=prevX;p.vx=0;}
+    if((oldGround?.kind==='balance'||oldGround?.kind==='bridge'||oldGround?.shape)&&p.vy<=0&&p.x>oldGround.x&&p.x<oldGround.x+oldGround.w&&formStaysGrounded(oldGround,p,RULES.radius))p.y=(oldGround.shape||oldGround.kind==='bridge')?surfaceAt(oldGround,p.x):Math.min(p.y,surfaceAt(oldGround,p.x));
+    // Clay that gives can sink under its rider and slope up ahead of them in the
+    // same tick, so a rider it has already carried keeps a deeper allowance.
+    const candidates=L.platforms.filter(s=>s.active&&!s.broken&&!(p.dropTimer>0&&p.dropThrough===s.id)&&!formSteepAt(s,p.x,RULES.radius)&&p.x+RULES.radius>s.x&&p.x-RULES.radius<s.x+s.w&&prevY>=surfaceAt(s,p.x,true)-(s.kind==='spring'&&oldGround ? .55 : (s.give||s.form)&&oldGround===s ? .45 : .14)&&p.y<=surfaceAt(s,p.x)+.03&&p.vy<=Math.max(0,(surfaceAt(s,p.x)-surfaceAt(s,p.x,true))/dt)).sort((a,b)=>surfaceAt(b,p.x)-surfaceAt(a,p.x));
     if(candidates.length) {
       const s=candidates[0],impact=p.vy;
       if(s.kind==='break'&&p.stomping) {
@@ -223,13 +228,24 @@ export class Game {
     }
     if(p.groundId&&Math.abs(p.vx)>.8){p.stride+=Math.abs(p.vx)*dt;if(p.stride>.86){p.stride=0;const ground=L.platforms.find(s=>s.id===p.groundId);this.event('step',{x:p.x-p.facing*.13,y:p.y,platformId:p.groundId,surface:ground?.kind});}}
     // Tall solid towers have sides; ledges and rope decks can be jumped through.
-    for(const s of L.platforms)if(s.kind!=='wall'&&(solidWall(s)||s.shape)&&p.y<(s.shape?surfaceAt(s,p.x):s.y)-.12&&p.y+RULES.height>s.y-(s.shape?s.h:solidDepth(s))){
+    // Formable clay goes last, so it answers to where the walls beside it have
+    // already put the player.
+    for(const s of L.platforms.some(s=>s.form)?[...L.platforms].sort((a,b)=>(a.form?1:0)-(b.form?1:0)):L.platforms)if(s.kind!=='wall'&&(solidWall(s)||s.shape)&&p.y<(s.shape?surfaceAt(s,p.x):s.y)-.12&&p.y+RULES.height>s.y-(s.shape?s.h:solidDepth(s))){
       const bounds=s.shape?clayWallBounds(s,p.y+RULES.height):{left:s.x,right:s.x+s.w};
       if(p.x+RULES.radius>bounds.left&&p.x-RULES.radius<bounds.right){
+        // A block of soft clay has no sides above the deepest it can give. Feet
+        // its moving surface has overtaken are lifted back onto it, never thrown
+        // out to the block's edge.
+        if(s.give&&p.y>=s.y-s.give.deepest-.12){p.y=surfaceAt(s,p.x);continue;}
+        // Formable clay pushes a visitor back the way they came, wall or not.
+        if(s.form){resolveFormBody(s,p,prevX,RULES.radius);continue;}
         const mid=(bounds.left+bounds.right)/2;
         if(p.x<mid){p.x=bounds.left-RULES.radius;p.vx=Math.min(0,p.vx);}else {p.x=bounds.right+RULES.radius;p.vx=Math.max(0,p.vx);}
       }
     }
+    // A wall that has just moved a rider sideways on sloping formable clay has
+    // moved them off the surface they were set on; put their feet back on it.
+    {const ground=p.groundId&&L.platforms.find(s=>s.id===p.groundId);if(ground?.form)p.y=surfaceAt(ground,p.x);}
     for(const s of L.platforms)if(s.checkpoint&&Math.abs(p.x-s.checkpoint)<1&&Math.abs(p.y-s.y)<.3&&this.checkpointId!==s.id) {
       this.checkpoint={x:s.checkpoint,y:s.y};this.checkpointId=s.id;this.activatedCheckpoints.add(s.id);p.health=RULES.maxHealth;
       this.event('checkpoint',{x:s.checkpoint,y:s.y,platformId:s.id});

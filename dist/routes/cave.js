@@ -1698,7 +1698,7 @@ L.platforms.push(
   p('kiln-lintel',74.5,9.5,8.5,'wall',{h:12.8}),
   p('kiln-tunnel',74.3,2.2,-6.4,'stone'),
   p('plug-foot',77,2,-7.2,'wall',{h:5}),
-  part('kiln-plug',{x:77,w:2,y:-4.4,h:2.8},{x:74.5,w:7,y:-6.4,h:.8},{station:'kiln-plug',clayRole:'landing'}),
+  part('kiln-plug',{x:77,w:2,y:-4.4,h:2.8},{x:74.5,w:7,y:-6.4,h:.8},{station:'kiln-plug',clayRole:'bridge'}),
   p('kiln-run',82,4.5,-6.4,'stone'),
   p('kiln-step',87,2.5,-4.2,'ledge'),
   p('kiln-sill',90.5,2.4,-2.1,'ledge')
@@ -1707,13 +1707,13 @@ L.sections.splice(1,0,{x:57,name:'The Kiln',landmark:'kiln'});
 L.shaping.push(
   {id:'kiln-tower',icon:'stairs',name:'Ride the tower down',verb:'Press down',gesture:'down',parts:['kiln-tower'],x:59,end:74.3,
    spawn:{x:62,y:-1.75,groundId:'kiln-floor'},
-   hint:'Stand on the violet tower and press it down. Hold E / KNEAD, drag it, or stomp — it takes you with it.'},
+   hint:'Stand on the violet tower and press it down. Hold E / KNEAD, or drag it — it takes you with it.'},
   {id:'kiln-plug',icon:'landing',name:'Flatten the plug',verb:'Pull outward',gesture:'out',parts:['kiln-plug'],x:74.3,end:86,
    spawn:{x:75.4,y:-6.4,groundId:'kiln-tunnel'},
    hint:'The lump fills the tunnel. Pull it apart until it lies flat, then walk over it. Or hold E / KNEAD.'}
 );
 L.hints.push(
-  {x:59,end:74.3,icon:'stairs',title:'Ride it down',text:'Stand on the tower and press it down. Hold E, drag it, or stomp.',touchText:'Stand on the tower and press it down. Drag it, or stomp.'},
+  {x:59,end:74.3,icon:'stairs',title:'Ride it down',text:'Stand on the tower and press it down. Hold E, or drag it.',touchText:'Stand on the tower and drag it down.'},
   {x:74.3,end:86,icon:'landing',title:'Flatten it',text:'Drag the plug apart, or hold E, until it lies flat.',touchText:'Drag the plug apart until it lies flat.'}
 );
 L.hazards.push({x:65,w:28.75,y:-12});

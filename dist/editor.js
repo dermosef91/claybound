@@ -1,4 +1,5 @@
-import {DraftSession,KINDS,LISTS,selectedObject,objectLabel,repairDraft} from './editor-model.js';
+import {DraftSession,KINDS,LISTS,DECOR,selectedObject,objectLabel,repairDraft} from './editor-model.js';
+import {DECOR_KINDS,DECOR_BOUNDS,decorPalette,decorSize,placeDecor,LANDMARKS,landmarkAuthority,landmarkBox,landmarkChoices,landmarkLabel} from './decor-kinds.js';
 import {instantiateLevel} from './levels.js';
 import {Game,FIXED_DT,RULES} from './simulation.js';
 import {BAT,batPatrolBounds} from './enemy-rules.js';
@@ -32,11 +33,11 @@ export function jumpGuide(level,index,platform,direction){
 export class LevelEditor{
   constructor({world,game,levels,library,onEnter,onTest,onExit,onFullscreen=()=>{}}){
     Object.assign(this,{world,game,levels,library,onEnter,onTest,onExit,onFullscreen});
-    this.active=false;this.testing=false;this.mode='select';this.snap=.25;this.carry=true;this.guides=true;this.pointers=new Map();this.camera={x:5,y:2,viewH:24};this.collapsed=false;this.request=0;this.trace=[];
+    this.active=false;this.testing=false;this.mode='select';this.decorating=false;this.snap=.25;this.carry=true;this.guides=true;this.pointers=new Map();this.camera={x:5,y:2,viewH:24};this.collapsed=false;this.request=0;this.trace=[];
     const root=document.createElement('section');root.id='level-editor';root.className='level-editor hidden';root.setAttribute('aria-label','Level editor');
     root.innerHTML=`<canvas id="editor-plane" tabindex="0" aria-label="Level design canvas. Select objects by touch or use Browse objects. Arrow keys nudge a selection; drag empty space to pan."></canvas>
       <header class="editor-top"><div class="editor-identity">${button('exit','chevron-left','Game','editor-icon')}<div><strong>The clay workshop<span>.</span></strong><small>Make the next leap your own.</small></div></div><label class="editor-level-label"><span class="sr-only">Chapter to edit</span><select id="editor-level">${levels.map((L,i)=>option(i,`${String(i+1).padStart(2,'0')} · ${L.short}`,0)).join('')}</select></label><div class="editor-top-actions">${button('more','ellipsis','More','editor-icon')}${button('test','play','Test','editor-primary')}</div></header>
-      <nav class="editor-tools" aria-label="Editing tools">${button('select','mouse-pointer-2','Select','editor-tool active')}${button('pan','hand','Pan','editor-tool')}${button('undo','undo-2','Undo','editor-icon')}${button('redo','redo-2','Redo','editor-icon')}${button('add','plus','Add','editor-add')}</nav>
+      <nav class="editor-tools" aria-label="Editing tools">${button('select','mouse-pointer-2','Select','editor-tool active')}${button('pan','hand','Pan','editor-tool')}${button('decorate','sparkles','Decorate','editor-tool editor-decorate')}${button('undo','undo-2','Undo','editor-icon')}${button('redo','redo-2','Redo','editor-icon')}${button('add','plus','Add','editor-add')}</nav>
       <div class="editor-zoom">${button('zoom-in','plus','Zoom in','editor-icon')}${button('zoom-out','minus','Zoom out','editor-icon')}${button('focus','scan','Frame selection','editor-icon')}</div>
       <div class="editor-overview"><canvas id="editor-map" aria-label="Chapter overview. Drag to travel through the level."></canvas><label><span class="sr-only">Jump to passage</span><select id="editor-passage"></select></label></div>
       <aside id="editor-inspector" class="editor-inspector" aria-label="Object properties"></aside>
@@ -68,7 +69,7 @@ export class LevelEditor{
     const same=this.session?.index===index&&this.testing;
     if(!same){this.session=new DraftSession(this.library,index);this.camera={x:focus?.x??this.session.level.spawn.x+3,y:(focus?.y??this.session.level.spawn.y)+2,viewH:innerWidth>innerHeight?17:30};this.collapsed=false;}
     this.active=true;this.testing=false;this.onEnter();this.root.classList.remove('hidden');document.body.classList.add('is-editing');document.body.classList.remove('is-editor-test');document.body.dataset.biome=this.session.level.biome;
-    this.game.start(index,this.session.level);this.game.status='editing';this.world.setEditorCamera(this.camera);this.world.build(this.game.level,index,this.camera.x);this.preview(true);
+    this.game.start(index,this.session.level);this.game.status='editing';this.world.setEditorCamera(this.camera);this.world.setEditorScenery?.(this.decorating);this.world.build(this.game.level,index,this.camera.x);this.preview(true);
     $('editor-level').value=index;$('editor-passage').innerHTML=this.session.level.sections.map(s=>option(s.id,s.name,0)).join('');this.renderInspector();this.syncTools();this.mapDirty=true;this.closePopover();this.canvas.focus();
     this.notice(this.library.error||'Tap a platform to shape it. Drag empty space to pan. Pinch to zoom.',!!this.library.error);
   }
@@ -79,27 +80,86 @@ export class LevelEditor{
     for(const p of this.game.level.platforms){p.active=true;if(p.channel)this.game.channels[p.channel]=10;}
     const spawn=this.session.level.spawn,ground=this.game.level.platforms.find(p=>spawn.x>=p.x&&spawn.x<=p.x+p.w&&Math.abs(spawn.y-p.y)<.2);
     Object.assign(this.game.player,spawn,{vx:0,vy:0,groundId:ground?.id??null});
-    if(rebuild){this.world.refreshEditor(this.game.level,this.camera.x);this.widths=new Map(this.game.level.platforms.map(p=>[p.id,p.w]));this.heights=new Map(this.game.level.platforms.filter(p=>p.kind==='wall').map(p=>[p.id,p.h]));}
+    if(rebuild){this.world.refreshEditor(this.game.level,this.camera.x);this.widths=new Map(this.game.level.platforms.map(p=>[p.id,p.w]));this.heights=new Map(this.game.level.platforms.filter(p=>p.kind==='wall').map(p=>[p.id,p.h]));this.sizes=(this.game.level.decor||[]).map(decorSize);}
     else{
       for(const p of this.game.level.platforms){const v=this.world.platforms.get(p.id);if(v){v.root.scale.x=p.w/(this.widths?.get(p.id)||p.w);if(p.kind==='wall')v.root.scale.y=p.h/(this.heights?.get(p.id)||p.h);}}
       for(const list of ['coins','stamps'])this.game.level[list].forEach((p,i)=>{const v=(list==='coins'?this.world.coinViews:this.world.stampViews)[i];if(v)v.position.x=p.x;});
       for(const [list,prefix]of [['hazards','h:'],['crushers','r:'],['winds','w:']])this.game.level[list].forEach((p,i)=>{const v=this.world.streamViews.get(prefix+(list==='winds'?p.id:i));if(v)v.root.position.set(p.x,p.y,0);});
+      // A prop's shape is fixed once built, so depth, facing and size follow a
+      // drag through the existing view instead of rebuilding the chapter.
+      (this.game.level.decor||[]).forEach((d,i)=>{
+        const v=this.world.decorViews?.[i];if(!v)return;
+        placeDecor(v,d);v.scale.setScalar(decorSize(d)/(this.sizes?.[i]||decorSize(d)));
+      });
     }
     this.mapDirty=true;
   }
   changed(){this.preview(true);this.renderInspector();this.syncTools();this.updateGuide();if(this.library.error)this.notice(this.library.error,true);}
   select(selection){this.session.selection=selection;this.collapsed=false;this.renderInspector();$('editor-inspector').querySelector('.editor-inspector-body').scrollTop=0;this.updateGuide();}
-  updateGuide(){const p=selectedObject(this.session.level,this.session.selection);this.trace=this.guides&&this.session.selection?.list==='platforms'&&p?[jumpGuide(this.session.level,this.session.index,p,-1),jumpGuide(this.session.level,this.session.index,p,1)]:[];}
+  updateGuide(){const p=selectedObject(this.session.level,this.session.selection);this.trace=this.guides&&!this.decorating&&this.session.selection?.list==='platforms'&&p?[jumpGuide(this.session.level,this.session.index,p,-1),jumpGuide(this.session.level,this.session.index,p,1)]:[];}
+  // One mode edits one kind of thing. Decorating reaches props and the scenery
+  // a platform carries, and nothing else: the platform itself cannot be moved,
+  // resized or deleted from here. Whichever layer is not being edited stays on
+  // screen, drawn faintly, because a prop is placed against the route and a
+  // route is judged against its scenery.
+  editable(){return this.decorating?[DECOR,'platforms']:[...LISTS,'spawn'];}
+  // A platform selected while decorating is open for its landmark and its
+  // scenery flags, and closed to everything that would change the route.
+  dressing(){return this.decorating&&this.session.selection?.list==='platforms';}
+  decorate(on){
+    this.cancelGesture();this.decorating=on;
+    if(this.session.selection&&!(on?[DECOR,'platforms']:[...LISTS,'spawn']).includes(this.session.selection.list))this.session.selection=null;
+    this.world.setEditorScenery?.(on);
+    this.collapsed=false;this.renderInspector();this.syncTools();this.updateGuide();
+    this.notice(on?'Decorating. Tap a prop to move it, tap a platform for the scenery it carries, and Add places a new prop. The route itself holds still.':'Back to gameplay objects. Your decoration stays where you left it.');
+  }
+  decorBox(d){const size=decorSize(d),a=this.toScreen(d.x-size/2,d.y+size),b=this.toScreen(d.x+size/2,d.y);return {left:a.x,right:b.x,top:a.y,bottom:b.y};}
+  // A landmark stands metres above the deck that owns it, so the deck's own
+  // thin hit line is nowhere near the prop being looked at. This is where it
+  // actually is, on screen.
+  sceneryBox(p){const box=landmarkBox(this.session.level.biome,p);if(!box)return null;const a=this.toScreen(box.x,box.y+box.h),b=this.toScreen(box.x+box.w,box.y);return {left:a.x,right:b.x,top:a.y,bottom:b.y};}
+  static boxDistance(box,point){return Math.hypot(Math.max(box.left-point.x,0,point.x-box.right),Math.max(box.top-point.y,0,point.y-box.bottom));}
+  guardRoute(){if(this.dressing())throw new Error('Switch Decorate off to move, copy or remove a platform.');}
   syncTools(){
     this.root.querySelector('[data-edit="undo"]').disabled=!this.session.undoStack.length;this.root.querySelector('[data-edit="redo"]').disabled=!this.session.redoStack.length;
     for(const mode of ['select','pan']){const b=this.root.querySelector(`[data-edit="${mode}"]`);b.classList.toggle('active',this.mode===mode);b.setAttribute('aria-pressed',String(this.mode===mode));}
+    const decorate=this.root.querySelector('[data-edit="decorate"]');decorate.classList.toggle('active',this.decorating);decorate.setAttribute('aria-pressed',String(this.decorating));
     this.canvas.style.cursor=this.mode==='pan'?'grab':'default';this.icons();
   }
   renderInspector(){
     const sel=this.session.selection,p=selectedObject(this.session.level,sel),box=$('editor-inspector'),scroll=box.querySelector('.editor-inspector-body')?.scrollTop||0;box.classList.toggle('collapsed',this.collapsed);
     const save=this.library.error?'Export to keep your changes':this.library.has(this.session.index)?'Saved on this device':'Original chapter · ready to shape';
-    let html=`<div class="editor-inspector-head"><div><strong>${p?esc(objectLabel(p,sel.list)):'A little room to create'}</strong><span>${p?esc(p.id||'Selected object'):save}</span></div>${button('collapse',this.collapsed?'chevron-up':'chevron-down',this.collapsed?'Show properties':'Hide properties','editor-icon')}</div><div class="editor-inspector-body">`;
-    if(!p){html+=`<p>Select an object in the world or browse the list. Move platforms with their beads, switches and enemies attached.</p>${button('browse','list','Browse objects')}<div class="editor-settings"><label>Snap to <select id="editor-snap">${[0,.25,.5,1].map(v=>option(v,v?`${v} units`:'Free',this.snap)).join('')}</select></label><label class="editor-check"><input id="editor-carry" type="checkbox" ${this.carry?'checked':''}>Move contents</label><label class="editor-check"><input id="editor-guide" type="checkbox" ${this.guides?'checked':''}>Show jump guide</label></div>`;}
+    const empty=this.decorating?'A little dressing':'A little room to create';
+    const note=sel?.list===DECOR?'Scenery only':this.dressing()?`${p?.id} · scenery`:p?.id||'Selected object';
+    let html=`<div class="editor-inspector-head"><div><strong>${p?esc(objectLabel(p,sel.list)):empty}</strong><span>${p?esc(note):save}</span></div>${button('collapse',this.collapsed?'chevron-up':'chevron-down',this.collapsed?'Show properties':'Hide properties','editor-icon')}</div><div class="editor-inspector-body">`;
+    if(!p){html+=`<p>${this.decorating?'Everything you can reach is outlined. Tap a prop to move or resize it, or a landmark to change the one its platform carries. Add places a new prop at the center of your view. None of it is a collider, a collectible or a checkpoint.':'Select an object in the world or browse the list. Move platforms with their beads, switches and enemies attached.'}</p>${button('browse','list','Browse objects')}<div class="editor-settings"><label>Snap to <select id="editor-snap">${[0,.25,.5,1].map(v=>option(v,v?`${v} units`:'Free',this.snap)).join('')}</select></label><label class="editor-check"><input id="editor-carry" type="checkbox" ${this.carry?'checked':''}>Move contents</label><label class="editor-check"><input id="editor-guide" type="checkbox" ${this.guides?'checked':''}>Show jump guide</label></div>`;}
+    else if(this.dressing()){
+      const biome=this.session.level.biome,authority=landmarkAuthority(biome,p);
+      html+='<p>The scenery this platform carries. Its position, width and mechanism live in Select mode.</p>';
+      if(authority==='name'){
+        const choices=landmarkChoices(biome,p),known=choices.some(([name])=>name===p.landmark);
+        const shapes=p.landmark&&!known?[...choices,[p.landmark,LANDMARKS[p.landmark]]]:choices;
+        html+=`<label class="editor-field editor-wide"><span>Landmark</span><select data-field="landmark"><option value="" ${p.landmark?'':'selected'}>None</option>${shapes.map(([name])=>option(name,landmarkLabel(name,biome),p.landmark)).join('')}</select><small>Streams and moves with this platform.</small></label>`;
+      }
+      else if(authority==='platform'){
+        html+=`${checkbox('landmark','Show this platform’s story piece',!!p.landmark)}<p>This chapter chooses the arrangement from the platform itself, not from a name, so this only turns it on or off.</p>`;
+      }
+      else html+=`<p>A finish platform builds its own bell and frame, so it carries no landmark of its own.</p>`;
+      html+=checkbox('house','Built as a house',p.house)+checkbox('arch','Carries an arch',p.arch)+checkbox('entrance','Reads as an entrance',p.entrance)+checkbox('rest','A breather along the route',p.rest);
+      html+=`<p class="editor-save-note">${esc(save)}</p>`;
+    }
+    else if(sel.list===DECOR){
+      const [size,depth,turn,lean]=[DECOR_BOUNDS.size,DECOR_BOUNDS.z,DECOR_BOUNDS.turn,DECOR_BOUNDS.lean];
+      // An imported draft can hold a shape this chapter's palette does not
+      // offer. Keep it in the list rather than silently reading as another one.
+      const palette=decorPalette(this.session.level.biome);
+      const shapes=palette.some(([value])=>value===p.kind)?palette:[...palette,[p.kind,DECOR_KINDS[p.kind]]];
+      html+=`<label class="editor-field editor-wide"><span>Decoration</span><select data-field="kind">${shapes.map(([value,spec])=>option(value,spec.label,p.kind)).join('')}</select></label>`;
+      html+=`<div class="editor-fields">${field('x','Position X',p.x)}${field('y','Base Y',p.y,.25,-40,160)}${field('size','Size across',decorSize(p),.25,...size)}${field('z','Depth',p.z??DECOR_KINDS[p.kind]?.z??-1.2,.25,...depth)}${field('turn','Turn (degrees)',p.turn??0,5,...turn)}${field('lean','Lean (degrees)',p.lean??0,1,...lean)}</div>`;
+      html+='<p>Depth is signed: below zero sits behind the platforms, above zero in front of them. Turn spins the prop, lean tips it sideways.</p>';
+      html+=`<div class="editor-nudge" aria-label="Nudge selected decoration">${button('left','arrow-left','Nudge left','editor-icon')}${button('up','arrow-up','Nudge up','editor-icon')}${button('down','arrow-down','Nudge down','editor-icon')}${button('right','arrow-right','Nudge right','editor-icon')}</div>`;
+      html+=`<div class="editor-object-actions">${button('duplicate','copy','Duplicate')}${button('delete','trash-2','Delete')}</div><p class="editor-save-note">${esc(save)}</p>`;
+    }
     else{
       if(sel.list==='platforms')html+=`<label class="editor-field editor-wide"><span>Platform type</span><select data-field="kind">${Object.entries(KINDS).map(([v,l])=>option(v,l,p.kind)).join('')}</select></label>`;
       if(sel.list==='enemies')html+=`<label class="editor-field editor-wide"><span>Enemy type</span><select data-field="kind">${this.session.level.biome==='cave'||p.kind==='bat'?option('bat','Flying bat',p.kind):''}${this.session.level.biome==='cave'||p.kind==='spitter'?option('spitter','Echo Spitter',p.kind):''}${this.session.level.biome==='desert'||p.kind==='drifter'?option('drifter','Dust Drifter',p.kind):''}${this.session.level.biome==='forest'||p.kind==='spore'?option('spore','Spore Puff',p.kind):''}${option('clayling','Clayling',p.kind||'clayling')}</select></label>`;
@@ -145,10 +205,24 @@ export class LevelEditor{
     if(el.id==='editor-browse'){if(!el.value)return;const [list,index]=el.value.split(':');this.select({list,index:Number(index)});this.focus();this.closePopover();return;}
     if(!el.dataset.field)return;
     try{
-      if(el.type==='number'&&!el.checkValidity())throw new Error(`Use a value from ${el.min} to ${el.max}.`);
+      // Check the range the message actually promises. A number input also
+      // refuses values off its own step grid, which would reject a width a
+      // drag handle had just produced and blame it on the bounds.
+      if(el.type==='number'){
+        const [low,high]=['min','max'].map(name=>Number(el.getAttribute(name))),entered=Number(el.value);
+        if(!el.value.trim()||!Number.isFinite(entered)||entered<low||entered>high)throw new Error(`Use a value from ${low} to ${high}.`);
+      }
       const key=el.dataset.field,obj=selectedObject(this.session.level,this.session.selection);
       let value=el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value):el.value.trim();
       if(key==='checkpoint')value=value?obj.x+obj.w/2:null;
+      // Where the deck picks the arrangement, the name is only a switch. Hold
+      // the authored one for the session so turning a story piece off and back
+      // on does not rewrite it to a placeholder.
+      if(key==='landmark'&&el.type==='checkbox'){
+        this.landmarkNames??=new Map();
+        if(!value&&obj.landmark)this.landmarkNames.set(obj.id,obj.landmark);
+        value=value?(this.landmarkNames.get(obj.id)||'story'):null;
+      }
       if(key==='x'||key==='y'){this.session.startChange();this.session.move(key==='x'?value-obj.x:0,key==='y'?value-obj.y:0,this.carry);this.session.commit();}
       else this.session.set(key,value);
       this.changed();
@@ -156,8 +230,9 @@ export class LevelEditor{
   }
   async action(action,buttonElement){
     try{
-      if(action==='exit'){this.cancelGesture();this.active=false;this.testing=false;this.request++;this.root.classList.add('hidden');this.world.setEditorCamera(null);document.body.classList.remove('is-editing','is-editor-test');this.onExit();return;}
+      if(action==='exit'){this.cancelGesture();this.active=false;this.testing=false;this.request++;this.root.classList.add('hidden');this.world.setEditorScenery?.(false);this.world.setEditorCamera(null);document.body.classList.remove('is-editing','is-editor-test');this.onExit();return;}
       if(action==='select'||action==='pan'){this.mode=action;this.syncTools();return;}
+      if(action==='decorate'){this.decorate(!this.decorating);return;}
       if(action==='undo'||action==='redo'){this.session[action]();this.changed();return;}
       if(action==='zoom-in'||action==='zoom-out'){this.zoom(action==='zoom-in'?.8:1.25);return;}
       if(action==='focus'){this.focus(true);return;}
@@ -165,11 +240,22 @@ export class LevelEditor{
       if(action==='collapse'){this.collapsed=!this.collapsed;this.renderInspector();return;}
       if(action==='close'){this.closePopover();return;}
       if(action==='test'||action==='test-here'){this.playtest(action==='test-here');return;}
+      if(action==='add'&&this.decorating){this.popover('A little dressing',`<div class="editor-palette">${decorPalette(this.session.level.biome).map(([type,spec])=>`<button data-edit="place" data-type="decor:${type}">${icon(spec.icon)}<span>${esc(spec.label)}</span></button>`).join('')}</div><p>Props appear at the center of your view. They are scenery only: nothing here blocks a jump, counts towards collectibles or survives into the simulation.</p>`);return;}
       if(action==='add'){this.popover('A little something new',`<div class="editor-palette">${Object.entries(KINDS).map(([type,label])=>`<button data-edit="place" data-type="${type}">${icon(type==='lift'?'move-vertical':type==='spring'?'arrow-up-from-line':type==='switch'?'power':'square')}<span>${label}</span></button>`).join('')}${Object.entries({coins:'Clay bead',stamps:'Secret flower',enemies:'Clayling',...(this.session.level.biome==='cave'?{bat:'Flying bat',spitter:'Echo Spitter'}:{}),...(this.session.level.biome==='desert'?{drifter:'Dust Drifter'}:{}),...(this.session.level.biome==='forest'?{spore:'Spore Puff'}:{}),hazards:'Spikes',winds:'Wind area',crushers:'Press'}).map(([type,label])=>`<button data-edit="place" data-type="${type}">${icon({coins:'circle-dot',stamps:'flower-2',enemies:'bug',bat:'bird',spitter:'circle-dot',drifter:'wind',spore:'sprout',hazards:'triangle-alert',winds:'wind',crushers:'arrow-down-to-line'}[type])}<span>${label}</span></button>`).join('')}</div><p>New objects appear at the center of your view. Drag to place them.</p>`);return;}
       if(action==='place'){this.session.add(buttonElement.dataset.type,this.round(this.camera.x),this.round(this.camera.y));this.closePopover();this.changed();return;}
-      if(action==='duplicate'||action==='delete'){if(action==='delete')this.session.remove();else this.session.duplicate();this.changed();return;}
+      if(action==='duplicate'||action==='delete'){this.guardRoute();if(action==='delete')this.session.remove();else this.session.duplicate();this.changed();return;}
       if(['left','right','up','down'].includes(action)){this.nudge(action);return;}
-      if(action==='browse'){this.popover('Find an object',`<label class="editor-field editor-wide"><span>Choose to select and frame</span><select id="editor-browse"><option value="">Choose an object…</option>${[{list:'spawn',index:0,p:this.session.level.spawn},...LISTS.flatMap(list=>this.session.level[list].map((p,index)=>({list,index,p})))].map(({list,index,p})=>option(`${list}:${index}`,`${objectLabel(p,list)} · ${p.id||index+1} · X ${p.x.toFixed(1)}`,'' )).join('')}</select></label>`);return;}
+      if(action==='browse'){
+        // Decorating browses the props plus the decks that already carry
+        // scenery, which is the only way to find an authored landmark by name.
+        const dressed=p=>p.landmark||p.house||p.arch||p.entrance||p.rest;
+        const entries=this.decorating
+          ?[...(this.session.level[DECOR]||[]).map((p,index)=>({list:DECOR,index,p})),
+            ...this.session.level.platforms.map((p,index)=>({list:'platforms',index,p})).filter(({p})=>dressed(p))]
+          :[{list:'spawn',index:0,p:this.session.level.spawn},...LISTS.flatMap(list=>this.session.level[list].map((p,index)=>({list,index,p})))];
+        const name=({list,index,p})=>list==='platforms'&&p.landmark?`${landmarkLabel(p.landmark,this.session.level.biome)} on ${p.id}`:`${objectLabel(p,list)} · ${p.id||index+1}`;
+        this.popover(this.decorating?'Find some scenery':'Find an object',`<label class="editor-field editor-wide"><span>Choose to select and frame</span><select id="editor-browse"><option value="">${this.decorating?'Choose a prop or a dressed platform…':'Choose an object…'}</option>${entries.map(entry=>option(`${entry.list}:${entry.index}`,`${name(entry)} · X ${entry.p.x.toFixed(1)}`,'' )).join('')}</select></label>${entries.length?'':'<p>This chapter has no decoration yet. Close this and use Add to place the first prop.</p>'}`);return;
+      }
       if(action==='more'){this.popover('Your workshop',`<div class="editor-more">${button('browse','list','Browse objects')}${button('export','download','Export level backup')}${button('import','upload','Import level backup')}${button('restore','rotate-ccw','Restore original chapter')}${button('fullscreen','expand','Fullscreen')}${button('help','circle-help','Editor controls')}</div><div class="editor-settings"><label>Snap to <select id="editor-snap">${[0,.25,.5,1].map(v=>option(v,v?`${v} units`:'Free',this.snap)).join('')}</select></label><label class="editor-check"><input id="editor-carry" type="checkbox" ${this.carry?'checked':''}>Move contents with platforms</label><label class="editor-check"><input id="editor-guide" type="checkbox" ${this.guides?'checked':''}>Show jump guide</label></div><p>Edits save automatically on this device and are used when you play. Export a backup to move them to another device.</p>`);return;}
       if(action==='export'){
         const blob=new Blob([this.library.export(this.session.index,this.session.level)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`claybound-chapter-${this.session.index+1}.json`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);this.notice('Level backup exported.');return;
@@ -177,7 +263,7 @@ export class LevelEditor{
       if(action==='import'){$('editor-import').click();this.closePopover();return;}
       if(action==='restore'){this.popover('Restore the original?',`<p>This replaces your saved design for this chapter. Export a backup first if you want to keep it.</p><div class="editor-more">${button('export','download','Export a backup')}${button('confirm-restore','rotate-ccw','Restore original','editor-danger')}${button('close','x','Keep editing')}</div>`);return;}
       if(action==='confirm-restore'){this.library.reset(this.session.index);this.session=new DraftSession(this.library,this.session.index);this.closePopover();this.changed();this.notice('Original chapter restored.');return;}
-      if(action==='help'){this.popover('Make room for a better leap',`<div class="editor-help"><p><strong>Touch:</strong> tap to select, then drag. Grab either round handle to resize a platform. Drag empty space to pan; use two fingers to pan and pinch.</p><p><strong>Precision:</strong> use the property fields or four nudge buttons. Choose a snap distance in More. Drag the chapter overview or choose a passage to travel.</p><p><strong>Keyboard:</strong> arrows nudge, Shift gives a larger step. Space + drag pans. Ctrl / ⌘ Z undoes; Shift Z redoes. Delete removes, Ctrl / ⌘ D duplicates.</p><p><strong>Test:</strong> the top Test button starts at the chapter’s player start. A selected platform has its own Test from here button. Return to editor preserves your design and view.</p><p><strong>Connected systems:</strong> matching circuit names connect switches to bridges, windwells and counter lifts. Your edits do not change the original chapter’s records.</p></div>`);}
+      if(action==='help'){this.popover('Make room for a better leap',`<div class="editor-help"><p><strong>Touch:</strong> tap to select, then drag. Grab either round handle to resize a platform. Drag empty space to pan; use two fingers to pan and pinch.</p><p><strong>Precision:</strong> use the property fields or four nudge buttons. Choose a snap distance in More. Drag the chapter overview or choose a passage to travel.</p><p><strong>Keyboard:</strong> arrows nudge, Shift gives a larger step. Space + drag pans. Ctrl / ⌘ Z undoes; Shift Z redoes. Delete removes, Ctrl / ⌘ D duplicates.</p><p><strong>Test:</strong> the top Test button starts at the chapter’s player start. A selected platform has its own Test from here button. Return to editor preserves your design and view.</p><p><strong>Connected systems:</strong> matching circuit names connect switches to bridges, windwells and counter lifts. Your edits do not change the original chapter’s records.</p><p><strong>Decorate:</strong> switches to the chapter’s scenery. Tap a prop to move it, drag a round handle to resize it, and set its depth, turn and lean in Properties. Gameplay objects stay visible and hold still until you switch back. Decoration is scenery only — it never blocks a jump.</p></div>`);}
     }catch(err){this.notice(err.message,true);}
   }
   playtest(here=false){
@@ -194,7 +280,14 @@ export class LevelEditor{
   toScreen(x,y){const {w,h}=this.size||this.dimensions(),unit=h/this.camera.viewH;return {x:w/2+(x-this.camera.x)*unit,y:h/2-(y-this.camera.y)*unit};}
   round(n){return this.snap?Math.round(n/this.snap)*this.snap:Math.round(n*100)/100;}
   zoom(factor,point){const {w,h}=this.dimensions();point??={x:w/2,y:h/2};const before=this.toWorld(point);this.camera.viewH=clamp(this.camera.viewH*factor,7,65);const after=this.toWorld(point);this.camera.x+=before.x-after.x;this.camera.y+=before.y-after.y;}
-  focus(fit=false){const p=selectedObject(this.session.level,this.session.selection)||this.session.level.spawn,{w,h}=this.dimensions();if(fit)this.camera.viewH=clamp(Math.max(((p.w||4)+7)*h/w,p.kind==='wall'?p.h+7:0),12,p.kind==='wall'?65:55);this.camera.x=p.x+(p.w||0)/2;this.camera.y=p.kind==='wall'?p.y-p.h/2:p.y+1;}
+  focus(fit=false){
+    const sel=this.session.selection,p=selectedObject(this.session.level,sel)||this.session.level.spawn,{w,h}=this.dimensions();
+    // A prop is measured across and stands on its own Y, so framing one centres
+    // on the shape rather than on a deck's left edge.
+    const prop=sel?.list===DECOR,span=prop?decorSize(p):p.w||4;
+    if(fit)this.camera.viewH=clamp(Math.max((span+7)*h/w,p.kind==='wall'?p.h+7:prop?span+6:0),12,p.kind==='wall'?65:55);
+    this.camera.x=p.x+(prop?0:(p.w||0)/2);this.camera.y=p.kind==='wall'?p.y-p.h/2:prop?p.y+span*.4:p.y+1;
+  }
   nudge(dir,large=false){if(!this.session.selection)return;const d=large?1:this.snap||.1;this.session.startChange();this.session.move(dir==='left'?-d:dir==='right'?d:0,dir==='down'?-d:dir==='up'?d:0,this.carry);this.session.commit();this.changed();}
   key(e){
     if(!this.active)return;
@@ -205,19 +298,20 @@ export class LevelEditor{
     try{
       if(mod&&e.code==='KeyZ'){e.preventDefault();this.session[e.shiftKey?'redo':'undo']();this.changed();}
       else if(mod&&e.code==='KeyY'){e.preventDefault();this.session.redo();this.changed();}
-      else if(mod&&e.code==='KeyD'){e.preventDefault();this.session.duplicate();this.changed();}
-      else if(e.code==='Delete'||e.code==='Backspace'){e.preventDefault();this.session.remove();this.changed();}
+      else if(mod&&e.code==='KeyD'){e.preventDefault();this.guardRoute();this.session.duplicate();this.changed();}
+      else if(e.code==='Delete'||e.code==='Backspace'){e.preventDefault();this.guardRoute();this.session.remove();this.changed();}
       else if(e.code==='Space'){e.preventDefault();this.spacePan=true;}
-      else if(e.code.startsWith('Arrow')){e.preventDefault();if(this.session.selection)this.nudge(e.code.slice(5).toLowerCase(),e.shiftKey);else{const d=this.camera.viewH*.08;this.camera.x+=(e.code==='ArrowRight'?d:e.code==='ArrowLeft'?-d:0);this.camera.y+=(e.code==='ArrowUp'?d:e.code==='ArrowDown'?-d:0);}}
+      else if(e.code.startsWith('Arrow')){e.preventDefault();if(this.session.selection&&!this.dressing())this.nudge(e.code.slice(5).toLowerCase(),e.shiftKey);else{const d=this.camera.viewH*.08;this.camera.x+=(e.code==='ArrowRight'?d:e.code==='ArrowLeft'?-d:0);this.camera.y+=(e.code==='ArrowUp'?d:e.code==='ArrowDown'?-d:0);}}
       else if(e.code==='Escape'){this.select(null);this.canvas.focus();}
     }catch(err){this.notice(err.message,true);}
   }
   hit(point){
     const L=this.session.level,candidates=[];
-    for(const list of [...LISTS,'spawn'])for(const [index,p]of (list==='spawn'?[L.spawn]:L[list]).entries()){
+    for(const list of this.editable())for(const [index,p]of (list==='spawn'?[L.spawn]:L[list]||[]).entries()){
       const a=this.toScreen(p.x,hoverHeight(p)),width=(p.w||0)*this.dimensions().h/this.camera.viewH;
       let distance;
-      if(list==='platforms'&&p.kind==='bridge'){
+      if(list===DECOR)distance=LevelEditor.boxDistance(this.decorBox(p),point);
+      else if(list==='platforms'&&p.kind==='bridge'){
         const x=clamp(this.toWorld(point).x,p.x,p.x+p.w),deck=this.toScreen(x,deckHeight(p,x)),thickness=.4*this.dimensions().h/this.camera.viewH;
         distance=Math.hypot(Math.max(a.x-point.x,0,point.x-a.x-width),Math.max(deck.y-point.y,0,point.y-deck.y-thickness));
       }
@@ -226,6 +320,12 @@ export class LevelEditor{
       else if(list==='winds'){const b=this.toScreen(p.x+p.w,p.y+p.h);distance=Math.min(Math.hypot(Math.max(a.x-point.x,0,point.x-b.x),Math.abs(point.y-a.y)),Math.hypot(Math.abs(point.x-a.x),Math.max(b.y-point.y,0,point.y-a.y)));}
       else distance=Math.hypot(point.x-a.x,point.y-(a.y-(list==='enemies'&&!airborne(p)?16:0)));
       if(distance<24)candidates.push({list,index,distance:distance+(list==='platforms'?3:0)});
+      // While decorating, the prop a deck carries is a target in its own right.
+      // It is offered behind the deck line, which stays the precise way in.
+      if(this.decorating&&list==='platforms'){
+        const box=this.sceneryBox(p);
+        if(box){const reach=LevelEditor.boxDistance(box,point);if(reach<24)candidates.push({list,index,distance:reach+6});}
+      }
     }
     candidates.sort((a,b)=>a.distance-b.distance);return candidates[0]?{list:candidates[0].list,index:candidates[0].index}:null;
   }
@@ -235,9 +335,15 @@ export class LevelEditor{
     if(this.pointers.size>2)return;
     const p=selectedObject(this.session.level,this.session.selection);
     let handle=null;
-    if(this.mode==='select'&&!this.spacePan&&p?.w&&this.session.selection.list!=='crushers')for(const side of ['left','right']){const h=this.toScreen(p.x+(side==='right'?p.w:0),p.y);if(Math.hypot(point.x-h.x,point.y-h.y)<23)handle=side;}
-    if(this.mode==='select'&&!this.spacePan&&p?.kind==='wall')for(const side of ['top','bottom']){const h=this.toScreen(p.x+p.w/2,p.y-(side==='bottom'?p.h:0));if(Math.hypot(point.x-h.x,point.y-h.y)<23)handle=side;}
+    const grabbing=this.mode==='select'&&!this.spacePan;
+    if(grabbing&&p?.w&&!this.decorating&&this.session.selection.list!=='crushers')for(const side of ['left','right']){const h=this.toScreen(p.x+(side==='right'?p.w:0),p.y);if(Math.hypot(point.x-h.x,point.y-h.y)<23)handle=side;}
+    if(grabbing&&p?.kind==='wall'&&!this.decorating)for(const side of ['top','bottom']){const h=this.toScreen(p.x+p.w/2,p.y-(side==='bottom'?p.h:0));if(Math.hypot(point.x-h.x,point.y-h.y)<23)handle=side;}
+    // A prop resizes about its own centre, so either handle does the same job.
+    if(grabbing&&p&&this.session.selection.list===DECOR){const box=this.decorBox(p),base=this.toScreen(p.x,p.y);for(const edge of [box.left,box.right])if(Math.hypot(point.x-edge,point.y-base.y)<23)handle='across';}
     const hit=this.mode==='select'&&!this.spacePan?this.hit(point):null;
+    // A platform tapped while decorating opens its scenery. It must not come
+    // away with the finger, so the drag stays a pan.
+    if(!handle&&hit?.list==='platforms'&&this.decorating){this.select(hit);this.gesture={type:'pan',start:point,camera:{...this.camera}};return;}
     if(handle||hit){if(!handle)this.select(hit);this.session.startChange();this.gesture={type:handle?'resize':'move',handle,start:point,world:this.toWorld(point)};}
     else this.gesture={type:'pan',start:point,camera:{...this.camera}};
   }
@@ -250,6 +356,7 @@ export class LevelEditor{
     if(!g.moved&&Math.hypot(point.x-g.start.x,point.y-g.start.y)<4)return;g.moved=true;
     const at=this.toWorld(point),before=selectedObject(this.session.pending.level,this.session.selection),dx=this.round(before.x+at.x-g.world.x)-before.x,dy=this.round(before.y+at.y-g.world.y)-before.y;
     if(g.type==='move')this.session.move(dx,dy,this.carry);
+    else if(g.handle==='across'){this.session.level=clone(this.session.pending.level);selectedObject(this.session.level,this.session.selection).size=clamp(this.round(Math.abs(at.x-before.x)*2),...DECOR_BOUNDS.size);}
     else{this.session.level=clone(this.session.pending.level);const obj=selectedObject(this.session.level,this.session.selection),min=obj.goal?2.5:.6;if(g.handle==='top'){obj.h=clamp(this.round(before.h+dy),Math.max(.6,-40-before.y+before.h),Math.min(80,160-before.y+before.h));obj.y=before.y+obj.h-before.h;}else if(g.handle==='bottom')obj.h=clamp(this.round(before.h-dy),.6,80);else if(g.handle==='right')obj.w=clamp(this.round(before.w+at.x-g.world.x),min,80);else{obj.w=clamp(this.round(before.w-dx),min,80);obj.x=before.x+before.w-obj.w;}repairDraft(this.session.level);}
     this.preview();
   }
@@ -268,7 +375,12 @@ export class LevelEditor{
     const L=this.session.level;
     for(const list of LISTS)for(const [index,p]of L[list].entries()){
       const a=this.toScreen(p.x,hoverHeight(p));if(a.x+(p.w||1)*units<0||a.x>w||a.y+(p.kind==='wall'?p.h*units:0)<-150||a.y>h+150)continue;
-      const selected=this.session.selection?.list===list&&this.session.selection.index===index;ctx.strokeStyle=selected?'#ffe9a6':list==='hazards'||list==='crushers'?'#fa957c99':list==='winds'?'#a0ede887':'#fff7df5a';ctx.lineWidth=selected?2.5:1;
+      const selected=this.session.selection?.list===list&&this.session.selection.index===index;
+      // Whichever layer the mode is not editing is still drawn, faintly: a prop
+      // is placed against the route, and a route is judged against its scenery.
+      // A deck opened for its scenery keeps full strength.
+      ctx.globalAlpha=this.decorating&&!selected?.34:1;
+      ctx.strokeStyle=selected?'#ffe9a6':list==='hazards'||list==='crushers'?'#fa957c99':list==='winds'?'#a0ede887':'#fff7df5a';ctx.lineWidth=selected?2.5:1;
       if(list==='platforms'&&p.kind==='bridge'){
         ctx.beginPath();
         for(let i=0;i<=24;i++){const x=p.x+p.w*i/24,b=this.toScreen(x,deckHeight(p,x));if(i)ctx.lineTo(b.x,b.y);else ctx.moveTo(b.x,b.y);}
@@ -281,7 +393,33 @@ export class LevelEditor{
         if(selected&&p.kind==='wall')for(const y of [a.y,a.y+p.h*units]){ctx.beginPath();ctx.arc(a.x+p.w*units/2,y,8,0,Math.PI*2);ctx.fillStyle='#fff0be';ctx.fill();ctx.strokeStyle='#3e4c4e';ctx.stroke();}
       }else{ctx.beginPath();ctx.arc(a.x,a.y-(list==='enemies'&&!airborne(p)?16:0),selected?15:9,0,Math.PI*2);ctx.stroke();}
     }
+    ctx.globalAlpha=this.decorating?.34:1;
     const spawn=this.toScreen(L.spawn.x,L.spawn.y);ctx.strokeStyle='#a1efe8';ctx.lineWidth=2;ctx.strokeRect(spawn.x-10,spawn.y-38,20,38);ctx.fillStyle='#b8f6ed';ctx.font='bold 11px Arial';ctx.fillText('START',spawn.x-17,spawn.y-45);
+    // Outline every prop a deck already carries, so the scenery that can be
+    // reached is visible rather than hunted for. The dressing a chapter grows
+    // from its own geometry — the moss, the cacti, the checkpoint trees — has
+    // no outline, because there is nothing there to select.
+    if(this.decorating)for(const [index,p]of L.platforms.entries()){
+      const box=this.sceneryBox(p);
+      if(!box||box.right<-40||box.left>w+40||box.top>h+40||box.bottom<-40)continue;
+      const selected=this.session.selection?.list==='platforms'&&this.session.selection.index===index;
+      ctx.globalAlpha=1;ctx.strokeStyle=selected?'#ffe9a6':'#d9c0ff8c';ctx.lineWidth=selected?2.5:1;ctx.setLineDash(selected?[]:[5,4]);
+      ctx.strokeRect(box.left,box.top,box.right-box.left,box.bottom-box.top);ctx.setLineDash([]);
+      if(selected){ctx.fillStyle='#ffe9a613';ctx.fillRect(box.left,box.top,box.right-box.left,box.bottom-box.top);}
+    }
+    ctx.globalAlpha=this.decorating?1:.42;
+    for(const [index,d]of (L[DECOR]||[]).entries()){
+      const box=this.decorBox(d);
+      if(box.right<-40||box.left>w+40||box.top>h+40||box.bottom<-40)continue;
+      const selected=this.session.selection?.list===DECOR&&this.session.selection.index===index,base=this.toScreen(d.x,d.y);
+      ctx.strokeStyle=selected?'#ffe9a6':'#d9c0ff9c';ctx.lineWidth=selected?2.5:1;ctx.setLineDash(selected?[]:[5,4]);
+      ctx.strokeRect(box.left,box.top,box.right-box.left,box.bottom-box.top);ctx.setLineDash([]);
+      ctx.beginPath();ctx.moveTo(box.left,base.y);ctx.lineTo(box.right,base.y);ctx.stroke();
+      if(!selected)continue;
+      ctx.fillStyle='#ffe9a613';ctx.fillRect(box.left,box.top,box.right-box.left,box.bottom-box.top);
+      if(this.decorating)for(const edge of [box.left,box.right]){ctx.beginPath();ctx.arc(edge,base.y,8,0,Math.PI*2);ctx.fillStyle='#fff0be';ctx.fill();ctx.strokeStyle='#3e4c4e';ctx.stroke();}
+    }
+    ctx.globalAlpha=1;
     const selected=selectedObject(L,this.session.selection);
     if(selected){
       const a=this.toScreen(selected.x+(selected.w||0)/2,selected.y);ctx.font='bold 12px Arial';const text=`${objectLabel(selected,this.session.selection.list)} · ${selected.x.toFixed(2)}, ${selected.y.toFixed(2)}`,tw=ctx.measureText(text).width;ctx.fillStyle='#193c47ed';ctx.fillRect(a.x-tw/2-9,a.y-42,tw+18,24);ctx.fillStyle='#fff2d7';ctx.fillText(text,a.x-tw/2,a.y-26);
@@ -296,6 +434,7 @@ export class LevelEditor{
   drawMap(){
     const r=this.map.getBoundingClientRect();if(!r.width)return;const dpr=Math.min(devicePixelRatio||1,1.5);if(this.map.width!==Math.round(r.width*dpr)||this.map.height!==Math.round(r.height*dpr)){this.map.width=Math.round(r.width*dpr);this.map.height=Math.round(r.height*dpr);}
     const c=this.mapCtx;c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,r.width,r.height);const L=this.session.level,min=Math.min(-8,...L.platforms.map(p=>p.x)),max=Math.max(L.end+8,...L.platforms.map(p=>p.x+p.w)),lo=Math.min(-2,...L.platforms.map(p=>p.y-(p.kind==='wall'?p.h:0))),hi=Math.max(6,...L.platforms.map(p=>p.y+2));this.mapBounds={min,max};const x=n=>(n-min)/(max-min)*r.width,y=n=>r.height-5-(n-lo)/(hi-lo)*(r.height-10);
-    c.strokeStyle='#efd6a7b3';c.lineWidth=2;for(const p of L.platforms){if(p.kind==='wall'){c.strokeRect(x(p.x),y(p.y),x(p.x+p.w)-x(p.x),y(p.y-p.h)-y(p.y));continue;}c.beginPath();c.moveTo(x(p.x),y(p.y));c.lineTo(x(p.x+p.w),y(p.y));c.stroke();}const span=this.camera.viewH*this.size.w/this.size.h;c.fillStyle='#a9efe724';c.fillRect(x(this.camera.x-span/2),0,span/(max-min)*r.width,r.height);c.strokeStyle='#b7f6e6';c.strokeRect(x(this.camera.x-span/2),1,span/(max-min)*r.width,r.height-2);
+    c.strokeStyle='#efd6a7b3';c.lineWidth=2;for(const p of L.platforms){if(p.kind==='wall'){c.strokeRect(x(p.x),y(p.y),x(p.x+p.w)-x(p.x),y(p.y-p.h)-y(p.y));continue;}c.beginPath();c.moveTo(x(p.x),y(p.y));c.lineTo(x(p.x+p.w),y(p.y));c.stroke();}
+    if(this.decorating){c.fillStyle='#d9c0ffbf';for(const d of L[DECOR]||[])c.fillRect(x(d.x)-1.5,y(d.y)-4,3,3);}const span=this.camera.viewH*this.size.w/this.size.h;c.fillStyle='#a9efe724';c.fillRect(x(this.camera.x-span/2),0,span/(max-min)*r.width,r.height);c.strokeStyle='#b7f6e6';c.strokeRect(x(this.camera.x-span/2),1,span/(max-min)*r.width,r.height-2);
   }
 }

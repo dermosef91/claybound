@@ -26,9 +26,10 @@ Object.assign(window,{matchMedia:globals.matchMedia,innerWidth:900,innerHeight:6
 let worldCount=0,releaseFirstWorld;
 class WorldStub{
  constructor(canvas){worldCount++;this.canvas=canvas;this.ready=worldCount===1?new Promise(resolve=>releaseFirstWorld=resolve):Promise.resolve();this.reducedMotion=true;this.castleAsset=true;this.platforms=new Map();this.coinViews=[];this.stampViews=[];this.streamViews=new Map();}
- build(L,index){if(L.biome==='desert')assert(this.drifterAsset,'drifter is loaded before canyon build');if(L.biome==='forest')assert(this.forestAssets,'forest is loaded before build');if(L.biome==='cave')assert(this.cavernAssets,'cavern scenery is loaded before build');this.biome=L.biome;this.levelIndex=index;this.platforms=new Map(L.platforms.map(p=>[p.id,{root:{scale:{x:1},position:{set(){}}}}]));this.refreshes=(this.refreshes||0)+1;}
+ build(L,index){if(L.biome==='desert')assert(this.drifterAsset,'drifter is loaded before canyon build');if(L.biome==='forest')assert(this.forestAssets,'forest is loaded before build');if(L.biome==='cave')assert(this.cavernAssets,'cavern scenery is loaded before build');this.biome=L.biome;this.levelIndex=index;this.platforms=new Map(L.platforms.map(p=>[p.id,{root:{scale:{x:1},position:{set(){}}}}]));this.decorViews=(L.decor||[]).map(()=>({position:{set(){}},rotation:{set(){}},scale:{setScalar(){}}}));this.refreshes=(this.refreshes||0)+1;}
  refreshEditor(L){this.build(L,this.levelIndex);}
  setEditorCamera(c){this.editorCamera=c;}
+ setEditorScenery(show){this.editorScenery=show;}
  prepareLevel(L){this.prepared=(this.prepared||0)+1;if(L.biome==='desert'||L.enemies.some(e=>e.kind==='drifter'))this.drifterAsset??={};if(L.biome==='forest'){this.forestAssets??={};this.sporeAsset??={};}if(L.biome==='cave'){this.batAsset??={};this.cavernAssets??={};}return Promise.resolve();}event(){}resize(){}render(){}
 }
 class SoundStub{enabled=true;unlock(){}effect(){}update(){}wind(){}setForeground(){}}
@@ -211,3 +212,137 @@ await reload.link(linkApp);await reload.evaluate();await context.reloadedApp.beg
 assert(!context.reloadedApp.game.level.custom);assert.equal(context.reloadedApp.game.level.enemies.filter(e=>e.kind==='drifter'&&e.alive).length,4);
 assert.equal(context.reloadedApp.game.checkpointId,'basin');assert.equal(storage.get('claybound-editor-v1'),storedDraft);
 console.log('PASS pre-Drifter saved canyon reproduction, original/edit selection, all four restored Drifters, preserved drafts and independent checkpoints, and remembered choice after reload');
+
+// Decoration is a second layer of the same chapter, reached by a toggle and
+// edited through the same pointer, properties and history paths. It reaches the
+// props it places and the scenery a platform carries, and nothing else: the
+// route stays visible, and closed to everything that would move it.
+editor.library.reset(0);app.home();await app.begin(0);app.pause();await click('[data-action="editor"]');
+assert(editor.active&&!editor.decorating);editor.mode='select';
+editor.select({list:'platforms',index:0});editor.focus(true);editor.draw();
+const deck=editor.session.level.platforms[0],tap=editor.toScreen(deck.x+deck.w-.4,deck.y);
+assert.equal(editor.hit(tap)?.list,'platforms');
+editor.select({list:'coins',index:0});
+await click('[data-edit="decorate"]');
+assert(editor.decorating);assert.equal(document.querySelector('[data-edit="decorate"]').getAttribute('aria-pressed'),'true');
+assert.equal(editor.world.editorScenery,true,'decorating puts the foreground props back on screen');
+assert.equal(editor.session.selection,null,'entering decoration mode drops a selection it cannot dress');
+assert($('editor-inspector').textContent.includes('collider'),'the empty panel says what decoration is not');
+// A landmark stands metres above the deck that owns it, and the deck's own hit
+// line is a thin band at its surface. Tapping the prop being looked at has to
+// reach it: without this the windwell's windmill could only be selected by
+// clicking the bare rock well below it, which is no way to find anything.
+{
+ const windwell=editor.session.level.platforms.findIndex(p=>p.landmark==='windmill');
+ assert(windwell>=0,'the canyon has a windmill to tap');
+ const deck=editor.session.level.platforms[windwell];
+ editor.select({list:'platforms',index:windwell});editor.focus(true);editor.draw();
+ const box=editor.sceneryBox(deck);
+ assert(box,'and the workshop knows where it stands');
+ assert(box.bottom-box.top>0&&box.right-box.left>0);
+ const middle={x:(box.left+box.right)/2,y:(box.top+box.bottom)/2};
+ assert.deepEqual(editor.hit(middle),{list:'platforms',index:windwell},'tapping the prop selects the deck that carries it');
+ assert.deepEqual(editor.hit({x:middle.x,y:box.top+4}),{list:'platforms',index:windwell},'including up near its top');
+ // The deck line still works, and is still the precise way in.
+ assert.deepEqual(editor.hit(editor.toScreen(deck.x+.4,deck.y)),{list:'platforms',index:windwell});
+ // A bare deck has no outline, because there is nothing there to select.
+ assert.equal(editor.sceneryBox(editor.session.level.platforms.find(p=>!p.landmark)),null);
+ // None of this reaches out of decoration mode.
+ await click('[data-edit="decorate"]');editor.draw();
+ assert.notDeepEqual(editor.hit(middle),{list:'platforms',index:windwell},'the prop is not a target outside decoration mode');
+ await click('[data-edit="decorate"]');
+ editor.select(null);
+}
+// A platform opens for its landmark and its scenery flags. The canyon's start
+// deck names its own prop, so it gets the full choice.
+editor.select({list:'platforms',index:0});editor.focus(true);editor.draw();
+assert(editor.dressing());assert(!editor.trace.length,'no jump guides while dressing a deck');
+assert($('editor-inspector').textContent.includes('Select mode'),'and says where its position lives');
+assert(!$('editor-inspector').querySelector('[data-field="w"]'),'the route fields stay out of the scenery panel');
+const landmark=$('editor-inspector').querySelector('[data-field="landmark"]');
+assert(landmark&&landmark.tagName==='SELECT','a deck that names its own prop gets the full choice');
+assert([...landmark.querySelectorAll('option')].some(o=>o.textContent==='Camp tent'),'labelled as the canyon builds it');
+assert(!$('editor-inspector').textContent.includes('Cottage'),'and without the cottage the canyon cannot build');
+const refreshes=editor.world.refreshes;
+landmark.value='windmill';landmark.dispatchEvent(new window.Event('change',{bubbles:true}));
+assert.equal(editor.session.level.platforms[0].landmark,'windmill');
+assert(editor.world.refreshes>refreshes,'setting it rebuilds the chapter');
+for(const flag of ['house','arch','entrance','rest']){
+ const control=$('editor-inspector').querySelector(`[data-field="${flag}"]`);assert(control,flag);
+ control.checked=true;control.dispatchEvent(new window.Event('change',{bubbles:true}));
+ assert.equal(editor.session.level.platforms[0][flag],true);
+}
+// The deck itself must not come away with the finger, or be copied or deleted.
+const body=editor.toScreen(deck.x+deck.w/2,deck.y),deckUnit=surface.height/editor.camera.viewH;
+editor.pointerDown(pointer(95,body.x,body.y));assert.equal(editor.gesture.type,'pan','a tap on a deck selects it and then pans');
+editor.pointerMove(pointer(95,body.x+2*deckUnit,body.y));editor.pointerUp(pointer(95,body.x+2*deckUnit,body.y));
+assert.equal(editor.session.level.platforms[0].x,deck.x,'the platform stays where the route put it');
+const platformCount=editor.session.level.platforms.length;
+assert(!$('editor-inspector').querySelector('[data-edit="delete"]'),'the scenery panel does not offer to remove a platform');
+const press=code=>editor.key({code,ctrlKey:code==='KeyD',metaKey:false,shiftKey:false,target:document.body,preventDefault(){}});
+for(const code of ['KeyD','Delete'])press(code);
+assert.equal(editor.session.level.platforms.length,platformCount,'and the keys that copy or remove one are refused');
+assert($('editor-message').textContent.includes('Decorate off'));
+const nudged=editor.session.level.platforms[0].x;press('ArrowRight');
+assert.equal(editor.session.level.platforms[0].x,nudged,'arrows pan instead of nudging the deck');
+await click('[data-edit="more"]');await click('#editor-popover [data-edit="browse"]');
+assert($('editor-browse').textContent.includes('Windmill on start'),'browsing finds a dressed deck by its prop');
+await click('#editor-popover [data-edit="close"]');
+$('editor-inspector').querySelector('[data-field="landmark"]').value='';
+$('editor-inspector').querySelector('[data-field="landmark"]').dispatchEvent(new window.Event('change',{bubbles:true}));
+assert.equal(editor.session.level.platforms[0].landmark,undefined,'choosing None takes the prop away again');
+editor.select(null);
+await click('[data-edit="add"]');
+assert(document.querySelector('[data-type="decor:boulder"]'),'the palette offers decoration while decorating');
+assert(!document.querySelector('[data-type="wall"]'),'and holds the gameplay palette back');
+await click('[data-type="decor:cactus"]');
+assert.equal(editor.session.selection.list,'decor');
+const propIndex=editor.session.selection.index;
+assert.equal(editor.session.level.decor[propIndex].kind,'cactus');
+for(const [key,value]of [['size','3'],['z','-2.5'],['turn','35'],['lean','-8']]){
+ const control=$('editor-inspector').querySelector(`[data-field="${key}"]`);assert(control,key);
+ control.value=value;control.dispatchEvent(new window.Event('change',{bubbles:true}));
+ assert.equal(editor.session.level.decor[propIndex][key],Number(value));
+}
+// A number field checks the range its own message names. An off-grid value a
+// drag could have produced is accepted; one outside the bounds is refused and
+// leaves the draft alone.
+const enter=(key,value)=>{const control=$('editor-inspector').querySelector(`[data-field="${key}"]`);control.value=value;control.dispatchEvent(new window.Event('change',{bubbles:true}));};
+enter('size','3.1');assert.equal(editor.session.level.decor[propIndex].size,3.1,'a size between the spinner steps is accepted');
+enter('size','900');assert.equal(editor.session.level.decor[propIndex].size,3.1,'a size beyond the bounds is refused');
+assert($('editor-message').textContent.includes('0.25'),'and says what the bounds are');
+enter('size','3');
+editor.draw();
+const prop=structuredClone(editor.session.level.decor[propIndex]),decorUnit=surface.height/editor.camera.viewH;
+assert.deepEqual(editor.hit(editor.toScreen(prop.x,prop.y+1)),{list:'decor',index:propIndex},'a prop wins the tap over the deck behind it');
+// Drag to move, then drag a handle to resize about the prop's own centre.
+const hold=editor.toScreen(prop.x,prop.y+.5);
+editor.pointerDown(pointer(91,hold.x,hold.y));editor.pointerMove(pointer(91,hold.x+2*decorUnit,hold.y-decorUnit));editor.pointerUp(pointer(91,hold.x+2*decorUnit,hold.y-decorUnit));
+assert.equal(editor.session.level.decor[propIndex].x,prop.x+2);assert.equal(editor.session.level.decor[propIndex].y,prop.y+1);
+const slid=editor.session.level.decor[propIndex],box=editor.decorBox(slid),base=editor.toScreen(slid.x,slid.y);
+editor.pointerDown(pointer(92,box.right,base.y));assert.equal(editor.gesture.handle,'across');
+editor.pointerMove(pointer(92,box.right+decorUnit,base.y));
+assert.equal(editor.game.level.decor[propIndex].size,prop.size+2,'live preview follows the scale handle');
+editor.pointerUp(pointer(92,box.right+decorUnit,base.y));
+assert.equal(editor.session.level.decor[propIndex].size,prop.size+2);
+await click('[data-edit="undo"]');assert.equal(editor.session.level.decor[propIndex].size,prop.size);
+await click('[data-edit="redo"]');assert.equal(editor.session.level.decor[propIndex].size,prop.size+2);
+const propCount=editor.session.level.decor.length;
+await click('[data-edit="duplicate"]');assert.equal(editor.session.level.decor.length,propCount+1);
+await click('[data-edit="delete"]');assert.equal(editor.session.level.decor.length,propCount);
+await click('[data-edit="more"]');await click('#editor-popover [data-edit="browse"]');
+assert($('editor-browse').textContent.includes('Cactus'),'browsing while decorating lists props');
+await click('#editor-popover [data-edit="close"]');
+// A playtest carries it, returning keeps the mode, and leaving the mode hands
+// the gameplay objects back.
+const decorated=JSON.stringify(editor.session.level.decor);
+editor.select({list:'decor',index:propIndex});
+await click('[data-edit="test"]');assert.equal(JSON.stringify(app.game.level.decor),decorated,'a playtest carries the decoration');
+await click('#return-editor');assert(editor.active&&editor.decorating,'returning from a test stays in decoration mode');
+assert.equal(JSON.stringify(editor.session.level.decor),decorated);
+await click('[data-edit="decorate"]');
+assert(!editor.decorating);assert.equal(editor.world.editorScenery,false);assert.equal(editor.session.selection,null,'leaving decoration mode drops the prop selection');
+editor.draw();assert.equal(editor.hit(tap)?.list,'platforms','gameplay objects are selectable again');
+await click('[data-edit="exit"]');
+await app.begin(0);assert.equal(JSON.stringify(app.game.level.decor),decorated,'the saved chapter plays with its decoration');
+console.log('PASS decoration mode: toggle and scenery visibility, its own palette and browse list, properties, pointer move/scale with live preview, history, duplicate/delete, playtest carry and return, mode boundaries and saved play');

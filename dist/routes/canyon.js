@@ -65,30 +65,30 @@ const L=makeRoom({
 
 // --- The Sandwright's Pocket (124 – 160) -------------------------------------
 // Two pieces of clay, each worked on its own, and neither gains or loses any
-// clay on the way: what gets wider gets lower. A spire stands in the chasm, too
-// tall to climb and too far to jump past; spread it and it slumps into the
+// clay on the way: what gets wider gets lower. A spire stands at the end of the
+// dock, too tall to climb and blocking the chasm; spread it and it slumps into the
 // bridge across. On the far side a lump blocks the climb; pull it over and it
 // lies down into the ramp up to the landing.
 L.platforms.push(
-  p('pocket-dock',124,4.5,10.8,'stone',{checkpoint:126,landmark:'sandwheel'}),
+  p('pocket-dock',124,9.3,10.75,'stone',{checkpoint:129,landmark:'sandwheel'}),
   p('spire-foot',133.4,1.6,8.6,'wall',{h:6.6}),
   part('canyon-spire',{x:133.4,w:1.6,y:19.6,h:11},{x:130.2,w:8,y:10.8,h:2.2},{station:'canyon-spire',clayRole:'bridge'}),
-  p('lump-foot',140,2.4,10.2,'wall',{h:8.2}),
-  part('canyon-lump',{x:140,w:2.4,y:18.45,h:8.25},{x:140,w:9,y:10.8,h:.6,slope:3.2},{station:'canyon-lump',clayRole:'ramp'}),
+  p('lump-foot',140,1.6,10.2,'wall',{h:8.2}),
+  part('canyon-lump',{x:140,w:1.6,y:22.575,h:12.375},{x:140,w:9,y:10.8,h:.6,slope:3.2},{station:'canyon-lump',clayRole:'ramp'}),
   p('pocket-landing',150.5,7.5,14.2)
 );
 L.sections.splice(3,0,{x:POCKET,name:"The Sandwright's Pocket",landmark:'sandwheel'});
 L.shaping.push(
-  {id:'canyon-spire',icon:'landing',name:'Spread the spire',verb:'Pull outward',gesture:'out',parts:['canyon-spire'],x:124,end:133,
+  {id:'canyon-spire',icon:'landing',name:'Spread the spire',verb:'Pull outward',gesture:'out',parts:['canyon-spire'],x:124,end:133.3,
    spawn:{x:126.5,y:10.8,groundId:'pocket-dock'},
-   hint:'Pull the violet spire apart until it slumps into a bridge. Drag it, hold E / KNEAD, or stomp it.'},
-  {id:'canyon-lump',icon:'ramp',name:'Pull the lump over',verb:'Pull right',gesture:'right',parts:['canyon-lump'],x:133,end:150,
+   hint:'Pull the violet spire apart until it slumps into a bridge. Drag it, or hold E / KNEAD.'},
+  {id:'canyon-lump',icon:'ramp',name:'Pull the lump over',verb:'Pull right',gesture:'right',parts:['canyon-lump'],x:133.3,end:150,
    spawn:{x:127.5,y:10.8,groundId:'pocket-dock'},
    hint:'Pull the violet lump to the right until it lies down into a ramp. Drag it, or hold E / KNEAD.'}
 );
 L.hints.push(
-  {x:124,end:133,icon:'landing',title:'Shape the clay',text:'Drag the violet spire apart, hold E, or stomp it.',touchText:'Drag the violet spire apart, or stomp it.'},
-  {x:133,end:150,icon:'ramp',title:'Clay pulls too',text:'Drag the lump to the right, or hold E, to lay it down as a ramp.',touchText:'Drag the lump to the right to lay it down as a ramp.'}
+  {x:124,end:133.3,icon:'landing',title:'Shape the clay',text:'Drag the violet spire apart, or hold E.',touchText:'Drag the violet spire apart.'},
+  {x:133.3,end:150,icon:'ramp',title:'Clay pulls too',text:'Drag the lump to the right, or hold E, to lay it down as a ramp.',touchText:'Drag the lump to the right to lay it down as a ramp.'}
 );
 L.coins.push({x:126.25,y:12.2},...row(132,12.2,4,1.3),{x:143,y:12.6},{x:146,y:13.8},{x:152.5,y:15.6},{x:155,y:15.6});
 export default chapter(L);

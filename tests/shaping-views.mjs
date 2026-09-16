@@ -6,7 +6,10 @@ import {Game,surfaceAt,FIXED_DT} from '../dist/simulation.js';
 import {clayWallBounds,nudgeClay,stompClay} from '../dist/shaping.js';
 import playground from '../dist/routes/clay-playground.js';
 import {createShapeHands,animateShapeHands,disposeShapeHands} from '../dist/shape-hand.js';
-import {animateClayView,MAGIC_CLAY} from '../dist/shaping-views.js';
+import {animateClayView,MAGIC_CLAY,BLOCK_SQUASH} from '../dist/shaping-views.js';
+import {attachClay} from './load-clay.mjs';
+import {FORM} from '../dist/clay-form.js';
+import clayLab from '../dist/routes/clay-lab.js';
 const w=Object.create(World.prototype);w.mat={};for(const name of ['top','terrain','cream'])w.mat[name]=new THREE.MeshStandardMaterial();
 const game=new Game();game.start(3,playground);
 for(const s of game.level.platforms.filter(s=>s.shape)){
@@ -161,6 +164,63 @@ console.log('PASS all clay poses: finite geometry/normals, stable buffers, colli
   assert.equal(view.materials[0].color.getHex(),0xffebcc,'the hand and arrow share the reference cream');
   disposeShapeHands(hw);
   console.log('PASS gesture cue: teaches unsolved clay, stays quiet on solved clay, returns on a stall, never nags mid-knead');
+}
+
+// The relief is laid in the clay's rest shape so a thumbprint stays where a
+// thumb put it. But a column pressed to a fraction of its height then draws its
+// whole rest span across that fraction, and the mass spread flat stands at a
+// thirteenth of the height it was built at: the grain came out squeezed into
+// hard horizontal bands rather than clay. The rest shape has to let go of the
+// surface before it gets that far.
+{
+  const bw=Object.create(World.prototype);bw.mat={};
+  for(const name of ['top','terrain','cream'])bw.mat[name]=new THREE.MeshStandardMaterial();
+  await attachClay(bw);
+  const g=new Game();g.start(5,clayLab);
+  const mass=g.level.platforms.find(p=>p.id==='form-mass');
+  const view=createClayView(bw,mass,new THREE.Group()),mesh=view.clay.pieces[0].mesh;
+  const span=mesh.geometry.attributes.clayStretch;
+  assert(span,'the block carries how far its clay stands from its rest height');
+  assert.equal(span.count,mesh.geometry.attributes.position.count,'one reading per vertex');
+
+  // How much squashing the cap lets through, as the vertex shader works it out.
+  const survives=s=>{const hold=Math.max(s,1e-4),flatten=Math.min(Math.max(hold/BLOCK_SQUASH,1),hold*BLOCK_SQUASH);return hold/flatten;};
+  assert.equal(survives(1),1,'clay at its rest height keeps pure rest coordinates');
+  for(const s of [0,1e-6,.05,.35/4.5,.5,.9,1,1.5,FORM.maxHeight/4.5,40]){
+    const left=survives(s);
+    assert(left>=1/BLOCK_SQUASH-1e-9&&left<=BLOCK_SQUASH+1e-9,`a column at ${s} of its rest height leaves the surface inside the cap`);
+  }
+
+  // Spread as flat as the rules allow: the real worst case, not a made-up one.
+  for(let i=0;i<mass.form.h.length;i++)mass.form.h[i]=FORM.minThick;
+  mass.form.version++;updateClayView(view,mass);
+  const flat=Array.from(mesh.geometry.attributes.clayStretch.array);
+  assert(flat.every(Number.isFinite)&&flat.every(v=>v>0),'every reading stays a real, positive scale');
+  const worst=Math.min(...flat);
+  assert(worst<.1,'the mass really does spread to under a tenth of its rest height');
+  assert(1/survives(worst)<=BLOCK_SQUASH+1e-9,`squashed ${(1/worst).toFixed(1)}x, the surface is squashed at most ${BLOCK_SQUASH}x`);
+
+  // Pull it back up and the surface goes back to belonging to the clay.
+  for(let i=0;i<mass.form.h.length;i++)mass.form.h[i]=mass.form.ref;
+  mass.form.version++;updateClayView(view,mass);
+  const tall=Array.from(mesh.geometry.attributes.clayStretch.array);
+  assert(tall.every(v=>Math.abs(v-1)<1e-6),'clay at its rest height reads as no stretch at all');
+
+  // The three injections have to land, and the magic skin has to still find its
+  // own sites afterwards — it hooks the same lines this override rewrites.
+  const shader={vertexShader:THREE.ShaderLib.standard.vertexShader,fragmentShader:THREE.ShaderLib.standard.fragmentShader,uniforms:{}};
+  mesh.material.onBeforeCompile(shader,{});
+  const expand=s=>s.replace(/#include <([\w_]+)>/g,(_,key)=>{assert(THREE.ShaderChunk[key],`missing shader chunk ${key}`);return expand(THREE.ShaderChunk[key]);});
+  const vertex=expand(shader.vertexShader),fragment=expand(shader.fragmentShader);
+  assert(vertex.includes('vClayPosition = clayFlat * claySize + clayOffset;'),'the relief reads the flattened rest shape');
+  assert(vertex.includes('vClayNormal = normalize(normal * vec3(1.0, clayFit, 1.0) / max(claySize, vec3(0.0001)));'),
+    'and the blend normal is carried into the same shape, or a rounded edge turns over in a pixel while its coordinates are still a third of a unit from the corner');
+  assert(vertex.indexOf('vec3 clayFlat =')<vertex.indexOf('vMagicPosition = clayFlat;'),'prints and glitter follow the clay, declared before they read it');
+  assert(fragment.includes('clayData.r = (clayData.r - 0.5) * vClayRelief + 0.5;'),'what squashing is left is taken back out of the relief, about the field middle');
+  assert(fragment.indexOf('vec3 clayData = claySurface(')<fragment.indexOf('clayData.r = (clayData.r - 0.5)'),'after it is sampled');
+  assert(fragment.indexOf('clayData.r = (clayData.r - 0.5)')<fragment.indexOf('clayData.r * bumpScale'),'and before it is read as a height');
+  assert(fragment.includes('clayData.r * bumpScale + magicPrint * magicMask * 0.0019'),'the magic skin still found the site this override rewrites');
+  console.log('PASS squashed clay: bounded surface squash at any thickness, untouched at rest, carried blend normal, softened relief, intact magic skin');
 }
 
 // Every way a player might touch clay has to move it. A drag is precise, but a

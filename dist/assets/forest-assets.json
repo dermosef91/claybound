@@ -64,5 +64,27 @@
       ]
     ],
     "geometryUnchanged": true
+  },
+  "forest-waterfall.glb": {
+    "source": "waterfall-background.glb",
+    "sourceSha256": "b42a1ff5673a673b52b933770f6fece5d2f9cf716d12b15efede36d942569cec",
+    "shippedSha256": "51b9eea48dc3023c14ba1cbe7e8ef21bac8ba5c161448616723d8a44846e1f21",
+    "sourceBytes": 6520900,
+    "shippedBytes": 957860,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "geometryUnchanged": true
   }
 }

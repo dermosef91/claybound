@@ -321,7 +321,7 @@ export class World {
     oldGeometry.forEach(g=>g.dispose());oldMaterial.forEach(m=>m.dispose());
     this.levelRoot.clear();this.backRoot.clear();this.fxRoot.clear();this.depthRoot.clear();
     this.scene.background.set(L.sky);this.scene.fog.color.set(L.fog);applyEnvironment(this,L);
-    this.platforms=new Map();this.enemyViews=new Map();this.coinViews=[];this.stampViews=[];this.crusherViews=[];
+    this.platforms=new Map();this.enemyViews=new Map();this.coinViews=[];this.stampViews=[];this.crusherViews=[];this.decorViews=[];
     this.shotViews=new Map();
     this.buildBackground(L);
     if(this.canvas)this.resize();else Object.assign(this,cameraFraming(1280,720,this.biome));
@@ -338,10 +338,13 @@ export class World {
     // the edited foreground. This avoids reloading the world after each drag.
     for(const v of this.streamViews.values()){v.remove();disposeBranch(this,v.root);}
     this.streamViews.clear();this.streamPending=[];this.streamWanted=null;this.streamDebt=0;this.windViews.clear();this.circuitViews.clear();
-    this.flags=[];this.bell=null;this.coinViews=[];this.stampViews=[];this.crusherViews=[];
+    this.flags=[];this.bell=null;this.coinViews=[];this.stampViews=[];this.crusherViews=[];this.decorViews=[];
     syncStream(this,L,center,true);
   }
   setEditorCamera(camera){this.editorCamera=camera;this.resize();}
+  // The workshop's decoration mode wants the sparse foreground props on screen
+  // and holding still, rather than hidden as they are for the rest of editing.
+  setEditorScenery(show){this.editorScenery=!!show;}
   resize() {
     const rect=this.canvas.getBoundingClientRect(),w=Math.max(1,rect.width||window.innerWidth),h=Math.max(1,rect.height||window.innerHeight);this.renderer.setSize(w,h,false);
     Object.assign(this,cameraFraming(w,h,this.biome));

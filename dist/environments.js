@@ -41,7 +41,7 @@ export function applyEnvironment(w,L){
 
 function group(parent,x=0,y=0,z=0,scale=1){const g=new THREE.Group();g.position.set(x,y,z);g.scale.setScalar(scale);parent.add(g);return g;}
 function link(w,parent,a,b,r,mat){const av=new THREE.Vector3(...a),bv=new THREE.Vector3(...b),delta=bv.clone().sub(av);const m=w.cylinder(r,delta.length(),mat,parent);m.position.copy(av).add(bv).multiplyScalar(.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize());return m;}
-function tree(w,parent,x,y,size=1,mat='foliage',z=-1.3){
+export function clayTree(w,parent,x,y,size=1,mat='foliage',z=-1.3){
   const g=group(parent,x,y,z,size);
   w.box(.66,5.9,.75,'bark',g,0,2.95,0,.28);
   link(w,g,[0,3.35,0],[-1.35,4.9,0],.22,'bark');link(w,g,[.02,3.7,0],[1.18,5.2,-.12],.2,'bark');
@@ -55,7 +55,7 @@ function mushrooms(w,parent,x,y,size=1){
   w.ball(.15,.32,.16,'cream',g,0,.28,0);w.ball(.47,.23,.43,'orange',g,0,.6,0);
   for(const [x,z]of [[-.23,.12],[.17,.2],[0,-.21]])w.ball(.088,.034,.09,'cream',g,x,.79-Math.abs(x)*.16,z);
 }
-function torch(w,parent,x,y,z=-1.1){
+export function clayTorch(w,parent,x,y,z=-1.1){
   const g=group(parent,x,y,z);w.box(.17,1.37,.2,'bark',g,0,.57,0,.075);w.ball(.31,.17,.26,'barkLight',g,0,1.11,0);
   const f=w.ball(.185,.42,.19,'flame',g,0,1.47,0);f.castShadow=false;w.ball(.088,.24,.105,'cream',g,.025,1.4,.12);
   const position=new THREE.Vector3();g.getWorldPosition(position);position.y+=1.4;
@@ -81,7 +81,7 @@ export function buildTerrain(w,s,g){
   }
   if(w.biome==='forest'){
     forestCover(w,s,g,3.6);
-    if(s.id==='start'||s.checkpoint||s.goal)tree(w,g,s.id==='start'?2.7:width-1.3,0,s.id==='start'?1.22:.95);
+    if(s.id==='start'||s.checkpoint||s.goal)clayTree(w,g,s.id==='start'?2.7:width-1.3,0,s.id==='start'?1.22:.95);
     forestMushroom(w,g,width-2.9,.02,-.9,.85,.1);forestMushroom(w,g,width-3.8,.02,-.8,.5,-.2);
     const root=new THREE.CatmullRomCurve3([new THREE.Vector3(width*.6,-.33,1.73),new THREE.Vector3(width*.53,-2,1.78),new THREE.Vector3(width*.7,-3.8,1.7),new THREE.Vector3(width*.55,-6,1.68)]);
     w.mesh(new THREE.TubeGeometry(root,24,.105,7,false),'barkLight',g);
@@ -93,7 +93,7 @@ export function buildTerrain(w,s,g){
     const foundry=['ferry-dock','ferry-exit','heart-entry'].includes(s.id);
     const survey=['vault-entry','sluice-floor'].includes(s.id);
     if(!foundry&&!survey)caveCrystals(w,g,width-1.2,.07,-1.38,s.id==='gallery-entry'?.5:.64);
-    if(s.id==='start'||s.checkpoint||s.goal)torch(w,g,s.id==='start'?8.1:s.goal?Math.max(.7,(s.bellX??width-3.5)-2.75):width*.4,.05);
+    if(s.id==='start'||s.checkpoint||s.goal)clayTorch(w,g,s.id==='start'?8.1:s.goal?Math.max(.7,(s.bellX??width-3.5)-2.75):width*.4,.05);
     if(width>8&&!survey)caveMushrooms(w,g,foundry?width-2.2:2,.03,-1.4,foundry?.86:.6);
     for(let i=0;i<3;i++)w.ball(.47,.35,.15,'terrain',g,.8+rand(i+s.x)*Math.max(1,width-1.6),-1.3-i*2.1,1.64);
     if(s.goal){const chest=group(g,Math.min(width-.85,(s.bellX??width-3.5)+4.2),.18,-.72);w.box(1.28,.67,.77,'bark',chest,0,.33,0,.17);w.box(1.3,.39,.82,'barkLight',chest,0,.74,0,.18);for(const x of [-.42,.42])w.box(.14,.96,.85,'gold',chest,x,.49,0,.04);w.box(.24,.27,.1,'gold',chest,0,.51,.47,.04);}
@@ -105,7 +105,7 @@ export function buildTerrain(w,s,g){
 export function buildBackdrop(w,L){
   if(w.biome==='citadel')buildCitadelBackdrop(w,L);
   else if(w.biome==='desert')buildCanyonBackdrop(w);
-  else if(w.biome==='forest')buildForestBackdrop(w);
+  else if(w.biome==='forest')buildForestBackdrop(w,L);
   else buildCaveBackdrop(w);
 }
 

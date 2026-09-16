@@ -104,7 +104,23 @@ function projectedBox(bounds,position,cos,sin){
 }
 export function animateDepthScenery(w,game,dt){
   if(!w.depthRoot)return;
-  w.depthRoot.visible=!w.editorCamera;if(w.editorCamera)return;
+  // Editing normally hides the foreground props, because a prop that fades out
+  // under whatever the cursor is over cannot be positioned. Decoration mode
+  // wants them, so it gets them placed and fully opaque: the fade belongs to
+  // play, where it keeps a route readable.
+  w.depthRoot.visible=!w.editorCamera||!!w.editorScenery;
+  if(w.editorCamera){
+    if(!w.editorScenery)return;
+    for(const view of w.depthViews.values())for(const part of view.parts){
+      const placement=depthPlacement(part.anchor,w.cameraX,w.cameraY,part.z);
+      part.root.position.set(placement.x,placement.y,placement.z);part.root.scale.setScalar(placement.scale);
+      if(part.opacity===1)continue;
+      part.opacity=1;
+      for(const mesh of part.meshes)mesh.castShadow=true;
+      for(const m of part.materials){m.transparent=false;m.depthWrite=true;m.opacity=1;m.needsUpdate=true;}
+    }
+    return;
+  }
   const elevation=w.theme.cameraElevation??(w.biome==='citadel'?1.25:3.05),length=Math.hypot(26,elevation),cos=26/length,sin=elevation/length;
   const {player:p,level:L}=game,protectedAreas=[];
   const guard=(left,right,bottom,top)=>protectedAreas.push({left,right,bottom:bottom*cos-.1,top:top*cos+.1});

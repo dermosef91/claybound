@@ -15,6 +15,7 @@ import {TitleScene} from './title-scene.js';
 import {loadTitleAssets} from './title-assets.js';
 import {ShapingControls} from './shaping-controls.js';
 import {visitStation} from './shaping.js';
+import {shapedShare} from './clay-rules.js';
 import {applyUIPalette} from './palette.js';
 import {hintIcon} from './hint-icons.js';
 import {GamepadInput} from './gamepad.js';
@@ -63,6 +64,11 @@ const pressed=new Set(),touchPointers=new Map();
 let padSteer=0,padHeld=false;
 let joystick,shapingControls;
 const clearInput=()=>{shapingControls?.clear();pressed.clear();touchPointers.clear();joystick?.reset();for(const k of Object.keys(input))input[k]=false;input.moveAxis=0;document.querySelectorAll('.pressed').forEach(e=>e.classList.remove('pressed'));};
+// A resize is a change of layout, not a loss of focus — going fullscreen with F
+// fires one mid-stride. Thumbs on a moved joystick do have to be let go of, but
+// the keyboard never went anywhere: dropping a held E or D here stopped the
+// clay and the player dead until the player thought to release and press again.
+const clearPointerInput=()=>{shapingControls?.release();touchPointers.clear();joystick?.reset();document.querySelectorAll('.pressed').forEach(e=>e.classList.remove('pressed'));syncInput();};
 let world,game,editor,healthHUD,titleScene,worldError,worldRequested=false,assetsReady=false,worldLoading=null,menu=true,introUntil=0,hintKey='',hintUntil=0,dismissed=new Set(),toastTimer,dialogOrigin='menu',lastFocus=null,lastResult=null,hitStop=0,fullscreenTransition=0,chapterRequest=0,dialogFocusTimer,completionTimer,loadingRevealTimer;
 function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2100);}
 function onEvent(e){
@@ -351,15 +357,15 @@ window.addEventListener('blur',()=>{sound.setForeground(false);clearInput();if(g
 function syncAudioFocus(){sound.update(0,game.status==='playing',game.index,game.level.sections[game.sectionId]?.quiet,menu,!!game.flowerCelebration,motherQuiet(game.level.boss),motherCorrupted(game));sound.setForeground(!document.hidden);}
 window.addEventListener('focus',syncAudioFocus);
 document.addEventListener('visibilitychange',()=>{clearInput();if(document.hidden&&game.status==='playing')pause();syncAudioFocus();});
-window.addEventListener('resize',clearInput);
-window.addEventListener('orientationchange',clearInput);
+window.addEventListener('resize',clearPointerInput);
+window.addEventListener('orientationchange',clearPointerInput);
 window.addEventListener('pagehide',()=>{sound.setForeground(false);saveJourney();});
 window.addEventListener('pageshow',syncAudioFocus);
 window.addEventListener('contextmenu',e=>e.preventDefault());
 $('world').addEventListener('webglcontextlost',e=>{e.preventDefault();game.pause();clearInput();$('error-text').textContent='The graphics connection was interrupted. Reload to continue — your latest checkpoint is saved.';show('error',true);});
 function stationPicker(){
   if(!game.level.playground)return;
-  openDialog(`<button class="dialog-close" data-action="resume" aria-label="Resume game">${icon('x')}</button><span class="eyebrow">CLAY LAB</span><h2>Jump to an experiment.</h2><p>Each bench works differently: read its prompt. R softens whatever you are standing beside, and sends you back to its start.</p><div class="chapters-list">${game.level.shaping.map((s,i)=>`<button class="chapter-choice" data-station="${s.id}"><span>0${i+1}</span><div><strong>${s.name}</strong><small>${s.verb} · ${Math.round(s.amount*100)}% shaped</small></div>${icon('arrow-up-right')}</button>`).join('')}</div>`);
+  openDialog(`<button class="dialog-close" data-action="resume" aria-label="Resume game">${icon('x')}</button><span class="eyebrow">CLAY LAB</span><h2>Jump to an experiment.</h2><p>Each bench works differently: read its prompt. R softens whatever you are standing beside, and sends you back to its start.</p><div class="chapters-list">${game.level.shaping.map((s,i)=>`<button class="chapter-choice" data-station="${s.id}"><span>0${i+1}</span><div><strong>${s.name}</strong><small>${s.verb} · ${Math.round(shapedShare(s)*100)}% shaped</small></div>${icon('arrow-up-right')}</button>`).join('')}</div>`);
 }
 shapingControls=new ShapingControls({game,world:()=>world,input,picker:stationPicker});
 function updateHUD(now){

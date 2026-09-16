@@ -88,6 +88,16 @@ for(const state of ['idle','wiggle','puff','crouch','leap','recover']){
   assert.equal(a.cloud.visible,state==='puff');
   const pose=JSON.stringify([a.pose.scale,a.pose.quaternion,...a.feet.map(f=>f.bone.quaternion),...a.motes.map(m=>m.position)]);animateEnemy(a,e,1,'paused');assert.equal(JSON.stringify([a.pose.scale,a.pose.quaternion,...a.feet.map(f=>f.bone.quaternion),...a.motes.map(m=>m.position)]),pose);
 }
+{
+  Object.assign(e,{alive:false,aiState:'recover',puffAge:10});
+  for(let i=0;i<60;i++)animateEnemy(a,e,dt,'playing');a.root.updateMatrixWorld(true);
+  assert(a.cloud.visible&&a.motes.some(m=>m.position.length()>.5),'a defeated puff leaves in the cloud it attacks with');
+  assert(a.pose.scale.y<.2,'and its body is pressed flat under it');
+  const cloud=new THREE.Box3().setFromObject(a.cloud,true);
+  assert(cloud.min.y>e.y-.1&&cloud.max.y<e.y+1.7,'the cloud hangs over the flattened body');
+  assert(cloud.max.x-cloud.min.x<2.6,'a small cloud, not the thrown jet');
+  e.alive=true;
+}
 let disposed=0;ma.geometry.addEventListener('dispose',()=>disposed++);releaseEnemyView(a);assert.equal(disposed,0,'releasing one rig retains shared sculpture');
 const storage={getItem:()=>null,setItem(){}},library=new DraftLibrary(LEVELS,storage),session=new DraftSession(library,1);session.add('spore',17,4.5);const p=selectedObject(session.level,session.selection);assert.equal(objectLabel(p,'enemies'),'Spore Puff');session.set('speed',.7);const imported=library.read(library.export(1,session.level),1);assert.equal(imported.enemies.at(-1).kind,'spore');assert.equal(imported.enemies.at(-1).speed,.7);session.undo();session.redo();
 console.log('PASS supplied 26-bone model, normalized skin, shared maps/geometry, animated grounded poses, frozen pause, cleanup and editable/exportable Spore Puff');

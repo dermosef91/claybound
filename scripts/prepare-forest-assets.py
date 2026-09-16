@@ -2,6 +2,8 @@
 
 Usage: python scripts/prepare-forest-assets.py UPLOAD_DIRECTORY
 The source GLBs remain untouched. Only embedded JPEG payloads are repacked.
+Sources absent from the given directory keep their existing manifest entry, so
+a single new upload can be prepared without the others being re-encoded.
 """
 from pathlib import Path
 from io import BytesIO
@@ -13,11 +15,15 @@ root=Path(__file__).resolve().parents[1]
 assets={
  'forest-hills.glb':'Meshy_AI_Mossy_Blossom_Hills_0909184629_texture.glb',
  'forest-grove.glb':'Meshy_AI_Floating_Clay_Grove_0909184637_texture.glb',
- 'forest-falls.glb':'Meshy_AI_Skybridge_Falls_0909184644_texture.glb'
+ 'forest-falls.glb':'Meshy_AI_Skybridge_Falls_0909184644_texture.glb',
+ 'forest-waterfall.glb':'waterfall-background.glb'
 }
 def pad(b,value=b'\0'):return b+value*((-len(b))%4)
-manifest={}
+manifestPath=root/'dist/assets/forest-assets.json'
+manifest=json.loads(manifestPath.read_text()) if manifestPath.exists() else {}
 for shipped,source in assets.items():
+ if not (Path(sys.argv[1])/source).exists():
+  print(shipped,'unchanged; source not in this upload');continue
  data=(Path(sys.argv[1])/source).read_bytes()
  size=struct.unpack_from('<I',data,12)[0];doc=json.loads(data[20:20+size]);binary=data[28+size:]
  normal_images={doc['textures'][m['normalTexture']['index']]['source'] for m in doc['materials'] if 'normalTexture' in m}
@@ -41,4 +47,4 @@ for shipped,source in assets.items():
  (root/'dist/assets'/shipped).write_bytes(result)
  manifest[shipped]={'source':source,'sourceSha256':hashlib.sha256(data).hexdigest(),'shippedSha256':hashlib.sha256(result).hexdigest(),'sourceBytes':len(data),'shippedBytes':len(result),'textures':image_sizes,'geometryUnchanged':True}
  print(shipped,f'{len(data):,} → {len(result):,} bytes; geometry preserved')
-(root/'dist/assets/forest-assets.json').write_text(json.dumps(manifest,indent=2)+'\n')
+manifestPath.write_text(json.dumps(manifest,indent=2)+'\n')

@@ -17,7 +17,7 @@ export function makeRoom(data,seam,gap){
     if(s.checkpoint!==undefined)s.checkpoint=move(s.checkpoint);
     for(const pose of [s.shape?.from,s.shape?.to])if(pose)pose.x=move(pose.x);
   }
-  for(const name of ['coins','stamps','enemies','hazards','hints','sections','winds','crushers'])
+  for(const name of ['coins','stamps','enemies','hazards','hints','sections','winds','crushers','decor'])
     for(const item of d[name]||[]){
       // A span that starts before the seam and ends after it now covers the new
       // ground too: a chasm opened up is a longer chasm, not a shifted one.

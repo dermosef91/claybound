@@ -1,5 +1,7 @@
 import * as THREE from './lib/three.module.js';
 import {createHandGeometry,createArrowGeometry} from './shape-hand-geometry.js';
+import {shapedShare} from './clay-rules.js';
+import {formPeak} from './clay-form.js';
 
 // A large clay hand over kneadable clay, miming the stroke that clay needs,
 // with a dashed run and a solid arrowhead for the direction. This is the
@@ -11,6 +13,9 @@ const PERIOD=1.9,DWELL=1.8;
 // back of the hand facing the camera makes its thumb and knuckles readable.
 const GESTURES={
   down:{move:[0,-.8],turn:Math.PI,reach:false},
+  // Raising clay: the hand starts on the top face with its finger leading the
+  // stroke, and the run and arrow rise above the clay instead of sinking in.
+  up:{move:[0,.8],turn:0,reach:false,rise:true},
   right:{move:[.8,0],turn:0,reach:true},
   out:{move:[.75,0],turn:0,reach:false,mirror:true}
 };
@@ -63,13 +68,20 @@ export function createShapeHands(w,L){
 function anchor(view,L,player){
   const {station,gesture}=view;
   let left=Infinity,right=-Infinity,top=-Infinity,bottom=Infinity;
-  for(const id of station.parts){
+  // A row whose slabs move one at a time points at the first slab still to
+  // raise, not at the middle of the row where no single slab is.
+  const open=station.amounts?station.parts.filter((id,i)=>station.amounts[i]<.995):[];
+  for(const id of open.length?open.slice(0,1):station.parts){
     const s=L.platforms.find(p=>p.id===id);if(!s)continue;
     left=Math.min(left,s.x);right=Math.max(right,s.x+s.w);
-    top=Math.max(top,s.y+(s.slope||0));bottom=Math.min(bottom,s.y-(s.h??.65));
+    // The formable mass has no pose: its top is wherever its clay stands.
+    top=Math.max(top,s.form?s.y-s.h+formPeak(s.form):s.y+(s.slope||0));bottom=Math.min(bottom,s.y-(s.h??.65));
   }
   if(!Number.isFinite(left))return null;
   const x=gesture.reach?left+Math.min((right-left)*.65,1.65):(left+right)/2;
+  // A rising stroke draws its run above the clay, so the hand sits on the top
+  // face and keeps lower in the view to leave the arrow room overhead.
+  if(gesture.rise)return {x,y:Math.max(bottom+1,Math.min(top+.35,player.y+3))};
   // Touch the upper face instead of floating a disconnected hand above it.
   // Reserve space for the raised index even beside the tall stair wall.
   const y=Math.max(bottom+1,Math.min(top-(gesture.move[1]?.25:1.05),player.y+3.7));
@@ -89,15 +101,17 @@ export function animateShapeHands(w,game,dt,playing){
     const inStretch=!!spot&&p.x>=station.x&&p.x<=station.end&&Math.abs(p.y-station.spawn.y)<10;
     const unworked=station.amount<.995;
     // Dwell resets whenever the clay moves, so the cue never nags a player who
-    // is already kneading — only one who is standing there doing nothing.
-    if(!inStretch||!unworked||station.amount>(view.lastAmount??0)+1e-4)view.dwell=0;
+    // is already kneading — only one who is standing there doing nothing. A row
+    // of slabs counts every slab, not just the lowest one.
+    const worked=shapedShare(station);
+    if(!inStretch||!unworked||worked>(view.lastAmount??0)+1e-4)view.dwell=0;
     else view.dwell+=playing?dt:0;
-    view.lastAmount=station.amount;
+    view.lastAmount=worked;
     const teaching=!done?.has(station.id)||view.dwell>DWELL;
     const wanted=inStretch&&unworked&&teaching&&!w.editorCamera&&game.status!=='complete';
     view.opacity+=((wanted?1:0)-view.opacity)*(1-Math.exp(-dt*7));
     // The cue recedes as the clay takes shape: the player sees their own work.
-    const alpha=view.opacity*(.25+.75*(1-station.amount));
+    const alpha=view.opacity*(.25+.75*(1-worked));
     root.visible=alpha>.02;
     if(!root.visible)continue;
     root.position.set(spot.x,spot.y,1.8);
@@ -117,14 +131,15 @@ export function animateShapeHands(w,game,dt,playing){
     for(const hand of view.hands){
       const dir=hand.userData.dir;
       hand.position.set((gesture.move[0]*swing+(gesture.mirror?.48:0))*dir,gesture.move[1]*swing,0);
-      hand.rotation.z=gesture.turn*dir+(gesture.move[1]?swing*.12:0);
+      hand.rotation.z=gesture.turn*dir-Math.sign(gesture.move[1])*swing*.12;
       // A press squashes the hand a little as it lands on the clay.
       hand.scale.y=1-swing*.08;
     }
     for(const mark of view.marks){
       const {dir,step,arrow}=mark.userData;
-      mark.position.set(gesture.move[0]?(step+(gesture.mirror?.48:0))*dir:0,gesture.move[1]?-step:.35,0);
-      mark.rotation.z=gesture.move[1]?-Math.PI/2:dir>0?0:Math.PI;
+      const vertical=Math.sign(gesture.move[1]);
+      mark.position.set(gesture.move[0]?(step+(gesture.mirror?.48:0))*dir:0,vertical?vertical*step:.35,0);
+      mark.rotation.z=vertical?vertical*Math.PI/2:dir>0?0:Math.PI;
       // The run lights up in sequence, so the direction is unmistakable.
       const lead=w.reducedMotion?.75:Math.max(0,1-Math.abs(u*5-step)*1.2);
       mark.scale.setScalar(arrow?.85+lead*.035:.9+lead*.1);

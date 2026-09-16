@@ -22,8 +22,9 @@ import {attachWindmills} from './load-windmills.mjs';
 import {attachForest} from './load-forest.mjs';
 import {attachSpitter} from './load-spitter.mjs';
 import {attachGrotto} from './load-grotto.mjs';
-import {animateDepthScenery} from '../dist/depth-scenery.js';
-import {cameraTarget,cameraFraming} from '../dist/camera.js';
+import {animateDepthScenery,depthPlacement} from '../dist/depth-scenery.js';
+import {DECOR_KINDS,decorPalette,landmarkChoices,landmarkBox,CAVE_STORY_ROLES} from '../dist/decor-kinds.js';
+import {cameraTarget,cameraFraming,VERTICAL_BIAS} from '../dist/camera.js';
 import {createCaveLights} from '../dist/cave-lighting.js';
 import {attachDrifter} from './load-drifter.mjs';
 import {repairDraft} from '../dist/editor-model.js';
@@ -147,6 +148,17 @@ for(const index of [0,1,2,3]){
   assert.deepEqual(w.backRoot.children.map(o=>o.uuid),backdrop);
   assert.equal(w.camera.position.x,editorCamera.x);assert.equal(w.camera.position.y,editorCamera.y);assert.equal(w.viewH,24);
   assert(!w.depthRoot.visible,'decorative foreground does not obstruct editing');
+  // Decoration mode is the exception: it wants those props on screen, placed
+  // and held opaque, because a prop that fades under whatever the cursor is
+  // over is a prop nobody can position. The fade belongs to play.
+  for(const view of w.depthViews.values())for(const part of view.parts){part.opacity=.1;for(const m of part.materials){m.transparent=true;m.opacity=.1;}}
+  w.setEditorScenery(true);w.render(g,1/60);
+  assert(w.depthRoot.visible,'decorating puts the foreground props back on screen');
+  for(const view of w.depthViews.values())for(const part of view.parts){
+    assert.equal(part.opacity,1);assert(part.materials.every(m=>!m.transparent&&m.opacity===1));
+    assert.equal(part.root.position.x,depthPlacement(part.anchor,w.cameraX,w.cameraY,part.z).x,'and places them against the editor camera');
+  }
+  w.setEditorScenery(false);w.render(g,1/60);assert(!w.depthRoot.visible);
   const center=new THREE.Vector3(editorCamera.x,editorCamera.y,0).project(w.camera);assert(Math.abs(center.x)<1e-7&&Math.abs(center.y)<1e-7);
   assert(w.platforms.has(floor.id));assert(!w.platforms.has('start'));assert.equal(w.platforms.get(floor.id).root.position.y,floor.y);
 }
@@ -313,10 +325,43 @@ for(const [index,stops]of [[1,[[4,0],[52,7.8],[101,8.1],[162,20],[260,33.4]]],[2
       assert.equal(w.parallax.find(p=>p.group.name==='Skybridge Falls skyline').factor,.18);
       const depths=['Forest grove','Forest falls'].map(name=>w.backRoot.getObjectByName(name).getWorldPosition(new THREE.Vector3()).z);
       assert(depths[1]<depths[0]&&depths[0]<-5);
-      for(const [key,triangles]of [['hills',3126],['grove',10414],['falls',10254]]){
+      for(const [key,triangles]of [['hills',3126],['grove',10414],['falls',10254],['waterfall',10274]]){
         let total=0;w.forestAssets[key].scene.traverse(o=>{if(o.isMesh){total+=o.geometry.index.count/3;assert(o.material.map&&o.material.normalMap&&o.material.roughnessMap);}});assert.equal(total,triangles);
       }
       assert(w.torchLights.every(l=>l.intensity===0),'cave illumination does not leak into the forest');
+      // The Brittle Canopy's falls are one landmark rather than another tiled
+      // crown, so the checks are about belonging to a passage: a single copy
+      // exists, it is in frame while the route is in that passage and out of
+      // frame everywhere else, and it drifts and sits between the two crown
+      // layers so the near trunks still pass in front of it.
+      const passage=g.level.sections.find(s=>s.backdrop==='waterfall');
+      const copies=[];w.backRoot.traverse(o=>{if(o.name==='Forest waterfall')copies.push(o);});
+      assert.equal(copies.length,1,'the falls never wrap a second copy into the chapter');
+      const vista=w.parallax.find(p=>p.group.name==='Vista: '+passage.name);
+      const crown=name=>w.backRoot.getObjectByName(name).children[0].position.z;
+      assert(vista.repeat>g.level.end,'its layer is too wide to wrap');
+      assert(crown('Hazy canopy bridges')<copies[0].position.z&&copies[0].position.z<crown('Breathing forest trunks'));
+      assert(w.parallax.find(p=>p.group.name==='Hazy canopy bridges').factor<vista.factor&&vista.factor<w.parallax.find(p=>p.group.name==='Breathing forest trunks').factor);
+      // A landmark this size stays in frame for longer than the passage it
+      // belongs to, because it is a horizon rather than a prop: it rises before
+      // the first bough and recedes after the last. What has to hold is that it
+      // is there throughout the passage and gone from the rest of the chapter.
+      const falls=new THREE.Box3().setFromObject(copies[0],true);
+      const framed=falls.max.x>x-w.viewW/2&&falls.min.x<x+w.viewW/2;
+      if(x>=passage.x&&x<passage.end)assert(framed,`the falls are in frame throughout ${passage.name} (camera ${x})`);
+      else if(x<passage.x-w.viewW||x>passage.end+w.viewW)assert(!framed,`and gone from the rest of the chapter (camera ${x})`);
+      // Its base has to be below the bottom edge, or the cliff reads as a slab
+      // floating in the haze. The vertical follow means the base rides highest
+      // in the frame from the passage's lowest bough, so that stance — not
+      // whichever one this loop happens to sample — is what has to be checked.
+      // The lowest corner is the box's floor at its nearest depth, because the
+      // camera looks down at the scene. Everything but the camera height here
+      // is independent of it, so one stance answers for all of them.
+      const tilt=(w.theme.cameraElevation??3.05)/Math.hypot(26,w.theme.cameraElevation??3.05);
+      const boughs=g.level.platforms.filter(s=>s.x>=passage.x&&s.x<passage.end).map(s=>s.y);
+      const eye=Math.min(...boughs)+w.viewH*VERTICAL_BIAS,follow=Math.min(1,1-vista.factor*.35);
+      const base=falls.min.y-vista.group.position.y+Math.max(0,eye-1.1)*follow-eye-tilt*falls.max.z;
+      assert(base<-w.viewH/2,`the falls run off the bottom of the frame, lowest stance leaves the base at ${base.toFixed(2)}`);
     }else{
       const models=[];w.backRoot.traverse(o=>{if(['Supplied glowing grotto','Supplied crystalcap cavern'].includes(o.name))models.push(o);});assert(models.length>=12&&models.length<=24,'layered scenery stays bounded');
       assert(models.some(m=>m.name==='Supplied glowing grotto')&&models.some(m=>m.name==='Supplied crystalcap cavern'));
@@ -609,3 +654,111 @@ console.log('PASS cradle deck/axle transforms, visible opening grates, projectil
   g.start(0);w.build(g.level,0,ARCH+23);inspect();assert.equal(sharedDisposals,0);
 }
 console.log('PASS Great Arch model/maps, cavity shade, clear play lane, fixed rope anchors, streaming, editor moves and chapter reuse');
+
+// Authored decoration builds real geometry in the play plane. Every shape the
+// workshop offers is built here at its own default size, in the chapter that
+// offers it, so a palette entry can never be a name with nothing behind it.
+{
+  const biomes=['desert','forest','cave','citadel'];
+  for(const [index,biome]of biomes.entries()){
+    const g=new Game();g.start(index);
+    const anchor=g.level.platforms.find(p=>p.kind==='stone')||g.level.platforms[0];
+    const palette=decorPalette(biome);
+    g.level.decor=palette.map(([kind])=>({kind,x:anchor.x+3,y:anchor.y,size:DECOR_KINDS[kind].size,z:DECOR_KINDS[kind].z}));
+    w.build(g.level,index,anchor.x+3);
+    assert.equal(w.decorViews.filter(Boolean).length,palette.length,`${biome} builds every prop in its palette`);
+    g.level.decor.forEach((d,i)=>{
+      const view=w.decorViews[i];
+      assert(!view.userData.decorError,`${d.kind}: ${view.userData.decorError}`);
+      let meshes=0;view.traverse(o=>{if(o.isMesh)meshes++;});
+      assert(meshes>0,`${d.kind} builds geometry`);
+      assert.equal(view.position.x,d.x);assert.equal(view.position.y,d.y);assert.equal(view.position.z,d.z);
+      view.updateMatrixWorld(true);
+      const box=new THREE.Box3().setFromObject(view,true),width=box.getSize(new THREE.Vector3()).x;
+      // Size across means the width of the silhouette, for a built pebble and a
+      // supplied castle alike. Clay relief displaces vertices, hence the slack.
+      assert(Math.abs(width-d.size)<d.size*.06,`${d.kind} is ${d.size} across, not ${width.toFixed(2)}`);
+      // Anything set well back is backdrop, and a backdrop casting shadows into
+      // the playfield spends a shadow pass on a silhouette nobody can reach.
+      const shadows=[];view.traverse(o=>{if(o.isMesh)shadows.push(o.castShadow);});
+      if(d.z<-8)assert(shadows.every(on=>!on),`${d.kind} placed as backdrop casts no shadow`);
+    });
+    // Turn and lean are the root's own rotation, so a drag can follow them.
+    const turned={...g.level.decor[0],turn:90,lean:-45};
+    g.level.decor=[turned];w.refreshEditor(g.level,turned.x);
+    const view=w.decorViews[0];
+    assert(Math.abs(view.rotation.y-Math.PI/2)<1e-9);assert(Math.abs(view.rotation.z+Math.PI/4)<1e-9);
+    // A prop is scenery: it never becomes a collider, a light the cave counts
+    // on, or a checkpoint, and it never joins the platform views.
+    assert.equal(w.platforms.size,new Set(g.level.platforms.filter(p=>w.platforms.has(p.id)).map(p=>p.id)).size);
+    assert(!w.flags.includes(view));
+    // Streaming drops it like any other view when the camera leaves, and the
+    // shared model resources it borrowed survive that.
+    w.syncVisible(g.level,turned.x+900,true);assert(!w.decorViews[0],'decoration streams out behind the camera');
+    w.syncVisible(g.level,turned.x,true);assert(w.decorViews[0],'and comes back');
+  }
+  assert.equal(sharedDisposals,0,'decoration borrows the shared models rather than owning them');
+}
+console.log('PASS decoration: every palette shape builds in its chapter, exact placement, honest size across, backdrop shadow budget, root turn/lean, and streaming in and out without disposing shared models');
+
+// A landmark the workshop offers has to build something, or the dropdown is
+// promising a prop the chapter will not make. Every name is put on a real deck
+// in every chapter that offers it, and measured against that deck bare.
+{
+  const biomes=['desert','forest','cave','citadel'];
+  for(const [index,biome]of biomes.entries()){
+    const g=new Game();g.start(index);
+    // A plain deck with no story of its own, so only the landmark can add to it.
+    const deck=g.level.platforms.find(p=>p.kind==='stone'&&!p.goal&&!p.landmark&&!p.house&&!CAVE_STORY_ROLES[p.id]);
+    assert(deck,`${biome} has a plain deck to dress`);
+    delete deck.landmark;w.build(g.level,index,deck.x);w.syncVisible(g.level,deck.x,true);
+    const meshes=()=>{let n=0;w.platforms.get(deck.id).root.traverse(o=>{if(o.isMesh)n++;});return n;};
+    const bare=meshes();
+    for(const [name]of landmarkChoices(biome,deck)){
+      deck.landmark=name;w.refreshEditor(g.level,deck.x);
+      assert(w.platforms.has(deck.id),`${biome}/${name}: the deck still builds`);
+      assert(meshes()>bare,`${biome}/${name} adds a prop to its deck`);
+      const root=w.platforms.get(deck.id).root;
+      const group=root.children.find(o=>o.name.startsWith('Landmark:')||o.name.includes('windmill')||o.name.includes('basin'));
+      assert(group,`${biome}/${name} names the group it built`);
+      // The workshop outlines this prop and routes a tap to it, so the box it
+      // believes in has to be where the prop actually stands.
+      root.updateMatrixWorld(true);
+      const built=new THREE.Box3().setFromObject(group,true),claimed=landmarkBox(biome,deck);
+      assert(claimed,`${biome}/${name} has a box to outline`);
+      assert(built.min.x>=claimed.x-.12&&built.max.x<=claimed.x+claimed.w+.12,
+        `${biome}/${name} sits within its outline across (${built.min.x.toFixed(2)}..${built.max.x.toFixed(2)} vs ${claimed.x.toFixed(2)}..${(claimed.x+claimed.w).toFixed(2)})`);
+      assert(built.max.y<=claimed.y+claimed.h+.12&&built.max.y>=claimed.y+claimed.h-1.2,
+        `${biome}/${name} reaches its outline without overshooting it (${built.max.y.toFixed(2)} vs ${(claimed.y+claimed.h).toFixed(2)})`);
+    }
+    delete deck.landmark;w.refreshEditor(g.level,deck.x);
+    assert.equal(meshes(),bare,'clearing it leaves the deck exactly as it was');
+  }
+  // Where the deck decides, the name is only a switch: turning it on builds the
+  // arrangement the id chooses, and turning it off takes it away.
+  const g=new Game();g.start(2);
+  w.build(g.level,2,g.level.spawn.x);
+  // Every deck-chosen arrangement, whatever role it draws, has to fit the one
+  // outline the workshop offers for them.
+  for(const id of Object.keys(CAVE_STORY_ROLES)){
+    const s=g.level.platforms.find(p=>p.id===id);if(!s)continue;
+    w.refreshEditor(g.level,s.x);
+    const root=w.platforms.get(s.id)?.root;if(!root)continue;
+    root.updateMatrixWorld(true);
+    const group=root.getObjectByName('Cavern story: '+CAVE_STORY_ROLES[id]);
+    assert(group,`${id} carries its ${CAVE_STORY_ROLES[id]}`);
+    const built=new THREE.Box3().setFromObject(group,true),claimed=landmarkBox('cave',s);
+    assert(built.min.x>=claimed.x-.12&&built.max.x<=claimed.x+claimed.w+.12,`${id} sits within the story outline`);
+    assert(built.max.y<=claimed.y+claimed.h+.12,`${id} does not overshoot it`);
+  }
+  const story=g.level.platforms.find(p=>CAVE_STORY_ROLES[p.id]);
+  const role=CAVE_STORY_ROLES[story.id];
+  w.syncVisible(g.level,story.x,true);w.refreshEditor(g.level,story.x);
+  assert(w.platforms.get(story.id).root.getObjectByName('Cavern story: '+role),`${story.id} carries its ${role}`);
+  delete story.landmark;w.refreshEditor(g.level,story.x);
+  assert(!w.platforms.get(story.id).root.getObjectByName('Cavern story: '+role),'and drops it when the switch is off');
+  story.landmark='story';w.refreshEditor(g.level,story.x);
+  assert(w.platforms.get(story.id).root.getObjectByName('Cavern story: '+role),'any name brings back the same arrangement');
+  assert.equal(sharedDisposals,0);
+}
+console.log('PASS landmarks: every name the workshop offers builds a prop on a real deck in every chapter that offers it, clearing one restores the bare deck, and a deck-chosen arrangement switches off and back on');

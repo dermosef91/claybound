@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {motherCorrupted,motherQuiet} from '../dist/mother-puff-rules.js';
 import {STONE_ORCHARD_TRACK} from '../dist/mother-puff-music.js';
-import {Sound,HORIZON_TRACK,CHAPTER_TRACKS,FLOWER_VICTORY,SPORE_BALLOON_BURST,MOTHER_PUFF_GROWL,COIN_PICKUP,CHECKPOINT_FLAG,FINISH_BELL,POROUS_CLAY_STEP,ENEMY_HEAD_IMPACT,LEDGE_COLLAPSE,CANYON_WIND,windExposure} from '../dist/audio.js';
+import {Sound,HORIZON_TRACK,CHAPTER_TRACKS,FLOWER_VICTORY,SPORE_BALLOON_BURST,MOTHER_PUFF_GROWL,COIN_PICKUP,CHECKPOINT_FLAG,FINISH_BELL,POROUS_CLAY_STEP,ENEMY_HEAD_IMPACT,LEDGE_COLLAPSE,CANYON_WIND,CLAY_KNEAD,windExposure} from '../dist/audio.js';
 import canyon from '../dist/routes/canyon.js';
 import forest from '../dist/routes/forest.js';
 const jobs=new Map();let next=0;
@@ -350,3 +350,40 @@ assert(body.freq<arrival.freq,'the added body sits below the impact itself');
 Math.random=()=>.9;impactSound.effect('land',{impact:22});assert.notEqual(tone(2).freq,arrival.freq,'and no two landings are pitched alike');
 Math.random=priorRandom;
 console.log('PASS jump and landing carry per-hit variation, and a landing follows its arrival speed');
+
+// Kneading violet clay plays one of the three supplied takes — never the same
+// one twice running — for every kind of clay and every way of working it; the
+// simulation raises the event, the sound only answers it.
+{
+  assert.equal(CLAY_KNEAD.length,3);
+  const kneadBytes=await Promise.all(CLAY_KNEAD.map(url=>readFile(new URL(url))));
+  for(const bytes of kneadBytes){
+    assert.equal(bytes.subarray(0,4).toString(),'RIFF');
+    assert.deepEqual([bytes.readUInt16LE(22),bytes.readUInt16LE(34)],[1,16],'each take ships folded to mono like the other effects');
+    assert(bytes.length<1.1e5,`a one-second take is not worth a stereo download: ${bytes.length} bytes`);
+  }
+  CLAY_KNEAD.forEach((url,i)=>suppliedEffects.set(url,kneadBytes[i]));
+  globalThis.fetch=async url=>{const bytes=suppliedEffects.get(url);return {ok:!!bytes,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)};};
+  const kneadSound=new Sound();kneadSound.unlock();await kneadSound.kneadLoading;
+  assert.equal(kneadSound.kneadBuffers.length,3,'all three takes are loaded');
+  const priorRandom=Math.random;let roll=0;Math.random=()=>roll;
+  const picks=[];
+  for(const value of [.1,.1,.5,.5,.9,.9,.2]){
+    roll=value;const before=kneadSound.ctx.buffers?.length||0,oscillators=kneadSound.ctx.oscillators.length;
+    kneadSound.effect('knead',{id:'form',rule:'form'});
+    const take=kneadSound.ctx.buffers[before];
+    assert(take?.started,'a knead starts a take');assert.equal(take.output.output,kneadSound.effectsBus);
+    assert.equal(take.output.gain.value,.3,'at a level beside the footsteps');
+    assert(take.playbackRate.value>=.92&&take.playbackRate.value<=1.08,'pitched a little differently each time');
+    assert.equal(kneadSound.ctx.oscillators.length,oscillators,'the take replaces any synthesized cue');
+    picks.push(kneadSound.kneadBuffers.indexOf(take.buffer));
+  }
+  assert(picks.every(i=>i>=0)&&new Set(picks).size===3,`all three takes are used (${picks.join(' ')})`);
+  for(let i=1;i<picks.length;i++)assert.notEqual(picks[i],picks[i-1],'never the same take twice running');
+  Math.random=priorRandom;
+  kneadSound.enabled=false;const muted=kneadSound.ctx.buffers.length;kneadSound.effect('knead');assert.equal(kneadSound.ctx.buffers.length,muted,'muted kneading is silent');
+  kneadSound.enabled=true;kneadSound.setForeground(false);kneadSound.effect('knead');assert.equal(kneadSound.ctx.buffers.length,muted,'and so is a hidden page');
+  // With no take to hand yet, kneading still makes a sound.
+  const bare=new Sound();bare.unlock();bare.kneadBuffers=[];const tones=bare.ctx.oscillators.length;bare.effect('knead');assert.equal(bare.ctx.oscillators.length,tones+1,'a knead before the takes arrive falls back to a soft tone');
+  console.log('PASS kneading violet clay cycles three supplied takes at random without repeating one, at footstep level, and respects mute');
+}

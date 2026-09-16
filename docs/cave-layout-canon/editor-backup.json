@@ -4,7 +4,7 @@
   "chapter": 2,
   "baseVersion": 10,
   "level": {
-    "layoutVersion": "editor-10-14jh7cf",
+    "layoutVersion": "editor-10-zgqyvi",
     "winds": [],
     "crushers": [
       {
@@ -1334,7 +1334,7 @@
           }
         },
         "station": "kiln-plug",
-        "clayRole": "landing",
+        "clayRole": "bridge",
         "id": "kiln-plug",
         "kind": "clay",
         "section": 1
@@ -2018,8 +2018,8 @@
         "end": 74.3,
         "icon": "stairs",
         "title": "Ride it down",
-        "text": "Stand on the tower and press it down. Hold E, drag it, or stomp.",
-        "touchText": "Stand on the tower and press it down. Drag it, or stomp."
+        "text": "Stand on the tower and press it down. Hold E, or drag it.",
+        "touchText": "Stand on the tower and drag it down."
       },
       {
         "x": 74.3,
@@ -2048,7 +2048,7 @@
           "y": -1.75,
           "groundId": "kiln-floor"
         },
-        "hint": "Stand on the violet tower and press it down. Hold E / KNEAD, drag it, or stomp — it takes you with it."
+        "hint": "Stand on the violet tower and press it down. Hold E / KNEAD, or drag it — it takes you with it."
       },
       {
         "id": "kiln-plug",
@@ -2067,6 +2067,7 @@
         },
         "hint": "The lump fills the tunnel. Pull it apart until it lies flat, then walk over it. Or hold E / KNEAD."
       }
-    ]
+    ],
+    "decor": []
   }
 }

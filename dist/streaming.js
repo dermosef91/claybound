@@ -3,6 +3,8 @@ import {releaseEnemyView} from './enemies.js';
 import {windView} from './setpieces.js';
 import {circuitView,guideView} from './mechanism-views.js';
 import {syncDepthScenery} from './depth-scenery.js';
+import {decorView} from './decor.js';
+import {decorSize} from './decor-kinds.js';
 import {createPressView} from './press-views.js';
 import {createBead} from './beads.js';
 import {greatArchLayout,buildGreatArch} from './great-arch.js';
@@ -103,6 +105,13 @@ export function syncStream(w,L,center,force=false){
     const nodes=[c.source,...c.targets].map(id=>L.platforms.find(p=>p.id===id)),left=Math.min(...nodes.map(p=>p.x)),right=Math.max(...nodes.map(p=>p.x+p.w));
     if(near(left,right-left))add('wire:'+i,()=>{const v=circuitView(w,L,c);w.circuitViews.set(i,v);return v.root;},()=>w.circuitViews.delete(i),left);
   }
+  // Authored decoration streams as scenery: it is never a collider and never
+  // gates a jump, so a deck the player is about to land on always builds first.
+  w.decorViews??=[];
+  (L.decor||[]).forEach((d,i)=>{
+    const width=decorSize(d);
+    if(near(d.x-width/2,width))addScenery('decor:'+i,()=>w.decorViews[i]=decorView(w,d),()=>delete w.decorViews[i],d.x);
+  });
   syncDepthScenery(w,L,near,addScenery);
   w.streamWanted=wanted;
   for(const [key,v]of w.streamViews)if(!wanted.has(key)){v.remove();disposeBranch(w,v.root);w.streamViews.delete(key);}

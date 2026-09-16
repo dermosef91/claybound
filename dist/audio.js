@@ -23,6 +23,9 @@ export const POROUS_CLAY_STEP=new URL('./assets/porous-clay-step.wav',import.met
 export const ENEMY_HEAD_IMPACT=new URL('./assets/enemy-head-impact.wav',import.meta.url).href;
 export const LEDGE_COLLAPSE=new URL('./assets/ledge-collapse.wav',import.meta.url).href;
 export const CANYON_WIND=new URL('./assets/canyon-wind.wav',import.meta.url).href;
+// Three takes of violet clay being kneaded. Every piece of violet clay in the
+// game is heard being worked with one of them, whatever works it.
+export const CLAY_KNEAD=[1,2,3].map(i=>new URL(`./assets/clay-knead-${i}.wav`,import.meta.url).href);
 // World units over which a wind well fades up, so the canyon is heard breathing
 // before the player steps into the column rather than switching on at its edge.
 const WIND_REACH=9;
@@ -113,6 +116,10 @@ export class Sound {
     }
     if(!this.ledgeCollapseLoading&&this.ctx.decodeAudioData){
       this.ledgeCollapseLoading=fetch(LEDGE_COLLAPSE).then(r=>{if(!r.ok)throw new Error('Ledge collapse sound unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.ledgeCollapseBuffer=buffer;}).catch(()=>{});
+    }
+    if(!this.kneadLoading&&this.ctx.decodeAudioData){
+      this.kneadBuffers=[];
+      this.kneadLoading=Promise.all(CLAY_KNEAD.map(url=>fetch(url).then(r=>{if(!r.ok)throw new Error('Kneading sound unavailable');return r.arrayBuffer();}).then(bytes=>this.ctx.decodeAudioData(bytes)).then(buffer=>{this.kneadBuffers.push(buffer);}).catch(()=>{})));
     }
     if(!this.canyonWindLoading&&this.ctx.decodeAudioData){
       // The bed can arrive with the player already inside a well, so the loop
@@ -245,6 +252,21 @@ export class Sound {
     if(type==='mother-open'){
       if(!this.bufferEffect(this.motherGrowlBuffer,.2))this.tone(90,1.5,'sine',.04,.65);
       return;
+    }
+    // Violet clay being kneaded, however it is worked — dragged, held under E,
+    // tapped, stood on, stomped — and wherever it is, lab or chapter: one of
+    // the three takes at random, never the same one twice running, at a
+    // slightly different pitch each time. The simulation spaces the events, so
+    // a long knead is a run of takes rather than a pile of them.
+    if(type==='knead'){
+      const takes=this.kneadBuffers||[];
+      if(takes.length){
+        let pick=Math.floor(Math.random()*takes.length);
+        if(takes.length>1&&pick===this.lastKnead)pick=(pick+1)%takes.length;
+        this.lastKnead=pick;
+        if(this.bufferEffect(takes[pick],.3,undefined,.92+Math.random()*.16))return;
+      }
+      this.tone(170*(.95+Math.random()*.1),.16,'triangle',.02,.6);return;
     }
     if(type==='break'&&event.spore||type==='mother-hit'||type==='mother-collapse'){
       if(this.bufferEffect(this.sporeBalloonBuffer,type==='break'?.5:.4))return;

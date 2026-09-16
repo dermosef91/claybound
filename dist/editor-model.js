@@ -1,8 +1,15 @@
 import {BAT} from './enemy-rules.js';
 import {DRIFTER} from './drifter-rules.js';
+import {DECOR_KINDS,DECOR_BOUNDS,DECOR_LIMIT} from './decor-kinds.js';
 export const DRAFT_KEY='claybound-editor-v1';
 export const KINDS={stone:'Solid cliff',wall:'Wall block',ledge:'Thin ledge',bridge:'Rope bridge',lift:'Rope lift',spring:'Spring / mushroom',crumble:'Crumbling ledge',break:'Breakable seal',switch:'Switch',timed:'Switched bridge',pulse:'Pulse ledge',balance:'Counterweight',counter:'Counter lift',gate:'Relay grate',ferry:'Weight ferry',orbit:'Orbit cradle',clay:'Kneadable clay'};
 export const LISTS=['platforms','coins','stamps','enemies','hazards','winds','crushers'];
+// Decoration is edited but never played, so it stays out of LISTS: nothing that
+// reads the gameplay lists — the simulation, the route repair, the content hash
+// behind a chapter's layout version — should have to know it exists. Every
+// backup written before this list existed still imports unchanged.
+export const DECOR='decor';
+export const EDIT_LISTS=[...LISTS,DECOR];
 const clone=value=>structuredClone(value);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const idOK=value=>typeof value==='string'&&/^[a-zA-Z0-9_-]{1,70}$/.test(value);
@@ -10,6 +17,7 @@ const finite=(n,a,b,label)=>{if(typeof n!=='number'||!Number.isFinite(n)||n<a||n
 const hash=text=>{let h=2166136261;for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619);return (h>>>0).toString(36);};
 
 export function repairDraft(level){
+  level.decor??=[];
   const ids=new Set(level.platforms.map(p=>p.id));
   if(level.boss){
     const arena=level.platforms.find(p=>p.motherArena);
@@ -93,6 +101,21 @@ export function validateDraft(source,base){
       return clean;
     });
   }
+  // Decoration is data in the same sense: a placement names one of the game's
+  // own shapes and says where it stands. It can never introduce geometry, a
+  // collider or a save record, and an unknown name is refused rather than
+  // carried, so an import stays inert.
+  if(source[DECOR]!==undefined){
+    if(!Array.isArray(source[DECOR])||source[DECOR].length>DECOR_LIMIT)throw new Error(`Invalid decor list (maximum ${DECOR_LIMIT}).`);
+    out[DECOR]=source[DECOR].map((item,i)=>{
+      if(!item||typeof item!=='object')throw new Error(`Invalid decoration ${i+1}.`);
+      if(!DECOR_KINDS[item.kind])throw new Error(`Decoration ${i+1} is not a shape this game can build.`);
+      const clean={kind:item.kind,x:finite(item.x,...nums.x,`decor ${i+1}: x`),y:finite(item.y,...nums.y,`decor ${i+1}: y`)};
+      for(const [key,bounds]of Object.entries(DECOR_BOUNDS))if(item[key]!==undefined)clean[key]=finite(item[key],...bounds,`decor ${i+1}: ${key}`);
+      clean.size??=DECOR_KINDS[item.kind].size;clean.z??=DECOR_KINDS[item.kind].z;
+      return clean;
+    });
+  }
   // Shaping stations are data too: ids, a gesture, the clay they own and where
   // the prompt applies. Never any behaviour, so an import stays inert.
   if(source.shaping!==undefined){
@@ -125,7 +148,12 @@ export function validateDraft(source,base){
   const goal=out.platforms.find(p=>p.goal);if(goal.w<2.5)throw new Error('The finish platform must be at least 2.5 units wide.');
   out.spawn={x:finite(source.spawn?.x,-100,2000,'Start X'),y:finite(source.spawn?.y,-40,160,'Start height')};
   out.custom=true;repairDraft(out);
-  const content=JSON.stringify([out.spawn,...LISTS.map(k=>out[k]),out.shaping??null]);out.layoutVersion=`editor-${base.layoutVersion}-${hash(content)}`;
+  // Decoration only joins the content hash once a chapter carries some, so a
+  // layout version — and the checkpoints that depend on it — is unchanged by
+  // this list existing. Moving scenery still revises it, because a saved
+  // checkpoint is cheap to retire and a stale one is confusing.
+  const content=JSON.stringify([out.spawn,...LISTS.map(k=>out[k]),out.shaping??null,...(out[DECOR].length?[out[DECOR]]:[])]);
+  out.layoutVersion=`editor-${base.layoutVersion}-${hash(content)}`;
   return out;
 }
 
@@ -153,10 +181,10 @@ export class DraftLibrary{
 }
 
 export const selectedObject=(level,selection)=>!selection?null:selection.list==='spawn'?level.spawn:level[selection.list]?.[selection.index];
-export const objectLabel=(obj,list)=>list==='platforms'?(KINDS[obj.kind]||'Platform'):list==='enemies'&&obj.kind==='spitter'?'Echo Spitter':list==='enemies'&&obj.kind==='spore'?'Spore Puff':list==='enemies'&&obj.kind==='bat'?'Flying bat':list==='enemies'&&obj.kind==='drifter'?'Dust Drifter':({coins:'Clay bead',stamps:'Secret flower',hazards:'Spikes',enemies:'Clayling',winds:'Wind area',crushers:'Press',spawn:'Player start'}[list]||'Object');
+export const objectLabel=(obj,list)=>list===DECOR?(DECOR_KINDS[obj.kind]?.label||'Decoration'):list==='platforms'?(KINDS[obj.kind]||'Platform'):list==='enemies'&&obj.kind==='spitter'?'Echo Spitter':list==='enemies'&&obj.kind==='spore'?'Spore Puff':list==='enemies'&&obj.kind==='bat'?'Flying bat':list==='enemies'&&obj.kind==='drifter'?'Dust Drifter':({coins:'Clay bead',stamps:'Secret flower',hazards:'Spikes',enemies:'Clayling',winds:'Wind area',crushers:'Press',spawn:'Player start'}[list]||'Object');
 
 export class DraftSession{
-  constructor(library,index){this.library=library;this.index=index;this.level=clone(library.get(index));this.selection=null;this.undoStack=[];this.redoStack=[];this.pending=null;}
+  constructor(library,index){this.library=library;this.index=index;this.level=clone(library.get(index));this.level[DECOR]??=[];this.selection=null;this.undoStack=[];this.redoStack=[];this.pending=null;}
   snapshot(){return {level:clone(this.level),selection:clone(this.selection)};}
   startChange(){this.pending=this.snapshot();}
   commit(){
@@ -177,7 +205,7 @@ export class DraftSession{
     translate(obj,dx,dy);
     if(carry&&this.selection.list==='platforms'){
       const inside=p=>p.x>=original.x-.05&&p.x<=original.x+original.w+.05;
-      for(const list of ['coins','stamps','enemies'])for(let i=0;i<before[list].length;i++){
+      for(const list of ['coins','stamps','enemies',DECOR])for(let i=0;i<before[list].length;i++){
         const p=before[list][i];if(inside(p)&&p.y>=original.y-.05&&p.y<=original.y+(list==='enemies'&&!['bat','drifter'].includes(p.kind)?.15:2.2))translate(this.level[list][i],dx,dy);
       }
       before.platforms.forEach((p,i)=>{if(i!==this.selection.index&&inside(p)&&p.y>=original.y&&p.y<original.y+.4&&['switch','spring'].includes(p.kind))translate(this.level.platforms[i],dx,dy);});
@@ -188,7 +216,16 @@ export class DraftSession{
   set(field,value){
     return this.change(()=>{
       const obj=selectedObject(this.level,this.selection);if(!obj)return;
+      const previous=obj[field];
       if(value===null||value==='')delete obj[field];else obj[field]=value;
+      if(field==='kind'&&this.selection.list===DECOR){
+        // Trying another shape in the same spot should arrive at a sensible
+        // size rather than a tiny castle. A size the author set by hand is
+        // theirs, so only the previous shape's own default is replaced.
+        const spec=DECOR_KINDS[value],old=DECOR_KINDS[previous];
+        if(spec){if(!old||obj.size===old.size)obj.size=spec.size;if(!old||obj.z===old.z)obj.z=spec.z;}
+        return;
+      }
       if(field==='kind'){
         if(this.selection.list==='enemies'&&value==='bat'){obj.bob??=BAT.bob;obj.period??=BAT.period;}
         if(this.selection.list==='enemies'&&value==='drifter'){obj.bob??=DRIFTER.bob;obj.period??=DRIFTER.period;}
@@ -207,7 +244,12 @@ export class DraftSession{
     const id=prefix=>{let i=1;while(this.level.platforms.some(p=>p.id===`${prefix}-${i}`)||this.level.winds.some(p=>p.id===`${prefix}-${i}`))i++;return `${prefix}-${i}`;};
     this.change(level=>{
       let list,obj;
-      if(KINDS[type]){list='platforms';obj={id:id('clay'),x:x-2,y,w:4,kind:type};if(type==='wall')Object.assign(obj,{y:y+2,h:4});if(type==='gate')Object.assign(obj,{h:10,channel:'new-circuit'});if(type==='ferry')Object.assign(obj,{travel:24,speed:3.2});if(type==='orbit')Object.assign(obj,{moveX:4,moveY:4,period:12});if(type==='lift')Object.assign(obj,{period:5,moveY:1.2});if(type==='pulse')Object.assign(obj,{period:4.8,duty:.76});if(type==='switch')Object.assign(obj,{w:1.8,channel:'new-circuit',duration:10});if(type==='timed'||type==='counter')Object.assign(obj,{channel:'new-circuit',...(type==='counter'?{rise:3}:{})});
+      if(type.startsWith('decor:')){
+        const kind=type.slice(6),spec=DECOR_KINDS[kind];
+        if(!spec)throw new Error('Choose a decoration from the palette.');
+        list=DECOR;obj={kind,x,y,z:spec.z,size:spec.size,turn:0};
+      }
+      else if(KINDS[type]){list='platforms';obj={id:id('clay'),x:x-2,y,w:4,kind:type};if(type==='wall')Object.assign(obj,{y:y+2,h:4});if(type==='gate')Object.assign(obj,{h:10,channel:'new-circuit'});if(type==='ferry')Object.assign(obj,{travel:24,speed:3.2});if(type==='orbit')Object.assign(obj,{moveX:4,moveY:4,period:12});if(type==='lift')Object.assign(obj,{period:5,moveY:1.2});if(type==='pulse')Object.assign(obj,{period:4.8,duty:.76});if(type==='switch')Object.assign(obj,{w:1.8,channel:'new-circuit',duration:10});if(type==='timed'||type==='counter')Object.assign(obj,{channel:'new-circuit',...(type==='counter'?{rise:3}:{})});
         if(type==='clay'){
           // Clay is placed as a plug that presses down into a bridge, and it
           // arrives with the station that lets the player knead it.
@@ -220,7 +262,7 @@ export class DraftSession{
             hint:'Press the orange clay down — drag, hold E / KNEAD, or stomp it.'});
         }}
       else{list=['bat','drifter','spore','spitter'].includes(type)?'enemies':type;obj={x,y};if(type==='spitter')Object.assign(obj,{kind:'spitter',min:x-2,max:x+2,speed:.38});if(type==='spore')Object.assign(obj,{kind:'spore',min:x-1,max:x+1,speed:.5});if(type==='bat')Object.assign(obj,{kind:'bat',min:x-1.6,max:x+1.6,speed:BAT.patrolSpeed,bob:BAT.bob,period:BAT.period});if(type==='drifter')Object.assign(obj,{kind:'drifter',min:x-1.5,max:x+1.5,speed:DRIFTER.patrolSpeed,bob:DRIFTER.bob,period:DRIFTER.period});if(type==='hazards')Object.assign(obj,{x:x-2,w:4});if(type==='enemies')Object.assign(obj,{min:x-1.5,max:x+1.5,speed:1.5});if(type==='winds')Object.assign(obj,{id:id('wind'),x:x-2,w:4,h:7,fx:0,fy:18});if(type==='crushers')Object.assign(obj,{w:1.8,range:3,period:5});}
-      if(!LISTS.includes(list))throw new Error('Unsupported object type.');
+      if(!EDIT_LISTS.includes(list))throw new Error('Unsupported object type.');
       level[list].push(obj);this.selection={list,index:level[list].length-1};
     });
   }

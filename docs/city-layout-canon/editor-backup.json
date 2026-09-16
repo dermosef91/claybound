@@ -4,7 +4,7 @@
   "chapter": 3,
   "baseVersion": 6,
   "level": {
-    "layoutVersion": "editor-6-12yve5a",
+    "layoutVersion": "editor-6-1p4e0hd",
     "winds": [
       {
         "x": 80,
@@ -846,7 +846,7 @@
           "y": 44.2,
           "groundId": "belfry-crown"
         },
-        "hint": "Press the clay plug down — drag, hold E / KNEAD, or stomp it — and walk your own bridge to the bell."
+        "hint": "Press the clay plug down — drag it, or hold E / KNEAD — and walk your own bridge to the bell."
       }
     ],
     "coins": [
@@ -1586,6 +1586,7 @@
       }
     ],
     "originalDistance": 100.25,
-    "custom": true
+    "custom": true,
+    "decor": []
   }
 }

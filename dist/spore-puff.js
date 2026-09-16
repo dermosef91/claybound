@@ -27,10 +27,39 @@ export function createSporeView(w,e){
   const view={kind:'spore',root,pose,model,feet,cloud,motes,loaded:true,id:e.id,turn:e.dir*.8,clock:0,deathTime:0};
   animateSpore(view,e,0,'editing');return view;
 }
+// One cloud for both moments a puff lets go of its spores: thrown forward at
+// the player, or released all round as the creature is defeated. Growth, drift
+// and fade are shared, so a defeat reads as the same spores it attacks with.
+const PUFF={life:.72,jet:2.6,burst:.95,rise:.5,center:.42};
+function poseCloud(v,age,forward){
+  const count=v.motes.length,bloom=Math.sin(Math.min(1,age/PUFF.life)*Math.PI);
+  for(let i=0;i<count;i++){
+    const q=i/count,phi=i*2.399,m=v.motes[i];
+    if(forward){
+      const distance=.18+age*PUFF.jet*(.55+q*.45);
+      m.position.set(forward*distance,Math.sin(phi)*(.16+age*.7),Math.cos(phi)*.18);
+    }else{
+      // A ball of spores rather than a ring: even directions over a sphere,
+      // shallow in depth so it stays readable from the side, drifting up as it
+      // opens out.
+      const lift=1-2*(i+.5)/count,ring=Math.sqrt(1-lift*lift),distance=(.16+age*PUFF.burst)*(.85+q*.3);
+      m.position.set(Math.cos(phi)*ring*distance,lift*distance*.85+age*PUFF.rise,Math.sin(phi)*ring*distance*.45);
+    }
+    const r=(.105+q*.06)*bloom;m.scale.set(r*1.1,r,r);
+  }
+}
 export function animateSpore(v,e,dt,status){
   const step=status==='playing'?Math.min(dt,.05):0;v.clock+=step;v.root.position.set(e.x,e.y,.3);
-  if(!e.alive){v.deathTime+=step;applyFlatten(v.root,v.deathTime);v.cloud.visible=false;return;}
-  v.root.visible=true;v.root.scale.setScalar(1);v.deathTime=0;
+  if(!e.alive){
+    v.deathTime+=step;
+    // Only the body is pressed flat; the cloud keeps its own shape and drifts
+    // off the disc as it peels away.
+    applyFlatten(v.pose,v.deathTime);
+    v.cloud.visible=v.deathTime<PUFF.life&&status!=='editing';
+    if(v.cloud.visible){v.cloud.position.set(0,PUFF.center,.1);poseCloud(v,v.deathTime,0);}
+    return;
+  }
+  v.root.visible=true;v.root.scale.setScalar(1);v.pose.visible=true;v.deathTime=0;
   const state=e.aiState||'idle',wiggle=state==='wiggle',crouch=state==='crouch',jump=state==='leap',puff=state==='puff';
   const t=e.stateTime||0,wave=wiggle?Math.sin(t*35):0;
   v.turn+=(e.dir*.95-v.turn)*(1-Math.exp(-step*12));v.pose.rotation.set(0,v.turn,wiggle?wave*.105:jump?-e.dir*.16:0);
@@ -47,14 +76,10 @@ export function animateSpore(v,e,dt,status){
     const angle=wiggle?Math.sin(t*35+i*Math.PI)*.09:jump?(i<2?-.2:.24):Math.sin(v.clock*6+i*Math.PI)*Math.min(.075,Math.abs(e.vx||0)*.1);
     f.bone.rotateX(angle);
   }
-  const age=e.puffAge??10;v.cloud.visible=age<.72&&status!=='editing';
+  const age=e.puffAge??10;v.cloud.visible=age<PUFF.life&&status!=='editing';
   if(v.cloud.visible){
     // Fixed world origin keeps the cloud behind when the enemy lunges.
     v.cloud.position.set((e.puffX??e.x)-e.x,(e.puffY??e.y+.7)-e.y,.1);
-    for(let i=0;i<v.motes.length;i++){
-      const q=i/v.motes.length,phi=i*2.399,m=v.motes[i],distance=.18+age*2.6*(.55+q*.45);
-      m.position.set((e.puffDir||e.dir)*distance,Math.sin(phi)*(.16+age*.7),Math.cos(phi)*.18);
-      const r=(.105+q*.06)*Math.sin(Math.min(1,age/.72)*Math.PI);m.scale.set(r*1.1,r,r);
-    }
+    poseCloud(v,age,e.puffDir||e.dir);
   }
 }

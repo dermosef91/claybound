@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import {LEVELS} from '../dist/levels.js';
 import {Game,FIXED_DT} from '../dist/simulation.js';
 import {DraftLibrary,DraftSession,validateDraft,selectedObject,DRAFT_KEY,KINDS,LISTS} from '../dist/editor-model.js';
+import {DECOR_KINDS,DECOR_LIMIT,decorPalette,LANDMARKS,landmarkAuthority,landmarkChoices,landmarkLabel,CAVE_STORY_ROLES} from '../dist/decor-kinds.js';
 import {jumpGuide} from '../dist/editor.js';
 const memory=new Map(),storage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)};
 const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
@@ -10,7 +11,7 @@ const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
 {
  const canonical=validateDraft(LEVELS[0],LEVELS[0]);
  assert.equal(LEVELS[0].layoutVersion,8);assert(!LEVELS[0].custom);
- assert.equal(canonical.layoutVersion,'editor-8-1ee8r46','canonical canyon matches the approved editor export');
+ assert.equal(canonical.layoutVersion,'editor-8-xtiw06','canonical canyon matches the approved editor export');
 }
 {
  const exported=JSON.parse(readFileSync(new URL('../docs/forest-canopy-canon/editor-backup.json',import.meta.url),'utf8'));
@@ -79,5 +80,92 @@ console.log('PASS new mechanics, circuit wiring, deletion repair, unique duplica
  const oldStorage={getItem:()=>JSON.stringify({0:{baseVersion:1,level:source}})};assert(!new DraftLibrary(LEVELS,oldStorage).has(0));
  library.reset(0);assert(!library.has(0));assert.equal(library.get(0).layoutVersion,LEVELS[0].layoutVersion);assert(JSON.parse(memory.get(DRAFT_KEY)));
 }
-assert.equal(JSON.stringify(LEVELS),base,'All original authored levels stay unchanged');
 console.log('PASS physics jump guides, import boundaries, quota fallback, old-layout rejection and original restoration');
+// Decoration is edited like everything else and played like nothing at all.
+{
+ const canonical=validateDraft(LEVELS[0],LEVELS[0]).layoutVersion,s=new DraftSession(library,0),start=LEVELS[0].platforms[0];
+ assert.deepEqual(s.level.decor,[],'a chapter with no decoration starts with an empty list, not a missing one');
+ for(const kind of Object.keys(DECOR_KINDS)){
+  s.add(`decor:${kind}`,60,9);const prop=selectedObject(s.level,s.selection);
+  assert.equal(prop.kind,kind);assert.equal(prop.size,DECOR_KINDS[kind].size);assert.equal(prop.z,DECOR_KINDS[kind].z);
+  s.remove();
+ }
+ assert.equal(s.level.layoutVersion,canonical,'placing and clearing decoration leaves the layout version alone');
+ assert.throws(()=>s.add('decor:a-shape-the-game-cannot-build',5,0),/palette/);
+ for(const biome of ['desert','forest','cave','citadel'])assert(decorPalette(biome).length>=12,`${biome} offers a palette`);
+ // A prop standing on a platform travels with it, like a bead or a switch.
+ s.add('decor:boulder',start.x+2,start.y);const at=s.level.decor.length-1;
+ s.selection={list:'platforms',index:0};s.startChange();s.move(4,2,true);s.commit();
+ assert.equal(s.level.decor[at].x,start.x+6);assert.equal(s.level.decor[at].y,start.y+2);
+ assert.notEqual(s.level.layoutVersion,canonical,'moved decoration revises the layout version');
+ // Nothing about it reaches the simulation: no collider, no collectible, no id.
+ const game=new Game();game.start(0,library.get(0));
+ assert.equal(game.level.decor.length,1);
+ assert.deepEqual(game.level.platforms.map(p=>p.id),LEVELS[0].platforms.map(p=>p.id));
+ assert.equal(game.level.coins.length,LEVELS[0].coins.length);assert.equal(game.level.hazards.length,LEVELS[0].hazards.length);
+ for(let n=0;n<40;n++)game.tick(FIXED_DT,{moveAxis:1});
+ assert(Number.isFinite(game.player.x));assert(!game.respawnTimer,'walking through a prop is walking through nothing');
+ assert.deepEqual(library.read(library.export(0,s.level),0).decor,s.level.decor);
+ s.undo();assert.equal(s.level.decor[at].x,start.x+2);s.redo();assert.equal(s.level.decor[at].x,start.x+6);
+ const legacy=JSON.parse(library.export(0,s.level));delete legacy.level.decor;
+ assert.deepEqual(library.read(JSON.stringify(legacy),0).decor,[],'a backup written before this list existed still imports');
+ for(const bad of [{kind:'unknown-prop'},{kind:'boulder',size:900},{kind:'boulder',z:40},{kind:'boulder',turn:900},{kind:'boulder',lean:400},{size:2}]){
+  const file=JSON.parse(library.export(0,s.level));file.level.decor=[{x:10,y:2,...bad}];
+  assert.throws(()=>library.read(JSON.stringify(file),0),/decor|Decoration/);
+ }
+ const over=JSON.parse(library.export(0,s.level));over.level.decor=Array.from({length:DECOR_LIMIT+1},()=>({kind:'boulder',x:5,y:1}));
+ assert.throws(()=>library.read(JSON.stringify(over),0),/maximum/);
+ library.reset(0);
+}
+// The scenery a platform already carries. A landmark is a name on a deck, and
+// the workshop must only offer to choose it where the chapter honours the name.
+{
+ const biomes=['desert','forest','cave','citadel'];
+ // Every authored landmark is a shape the catalogue knows, so none of them
+ // shows up in the workshop as a bare identifier.
+ for(const L of LEVELS)for(const p of L.platforms)if(p.landmark)
+  assert(LANDMARKS[p.landmark],`${L.short}: ${p.id} carries ${p.landmark}, which the catalogue names`);
+ // Authority mirrors the guards in landmark(): the deck decides in Ember
+ // Caverns and at the city laundry, a finish deck builds its own bell instead,
+ // and everywhere else the name decides.
+ const cave=LEVELS[2],city=LEVELS[3];
+ for(const id of Object.keys(CAVE_STORY_ROLES)){
+  const p=cave.platforms.find(p=>p.id===id);
+  if(p)assert.equal(landmarkAuthority('cave',p),'platform',`${id} is dressed by the deck, not by a name`);
+ }
+ assert.equal(landmarkAuthority('citadel',city.platforms.find(p=>p.id==='laundry-entry')),'platform');
+ for(const id of ['exchange-entry','bell-court'])assert.equal(landmarkAuthority('citadel',city.platforms.find(p=>p.id===id)),'none');
+ for(const L of LEVELS)for(const p of L.platforms)if(p.goal&&p.landmark==='bellgate')
+  assert.equal(landmarkAuthority(L.biome,p),'none','a finish deck builds its own bell');
+ assert.equal(landmarkAuthority('desert',LEVELS[0].platforms[0]),'name');
+ // A cottage is only offered where the chapter builds houses, and never on a
+ // deck that is already one, because `w.house` would return nothing.
+ for(const biome of biomes){
+  const choices=landmarkChoices(biome,{}).map(([name])=>name);
+  assert(choices.includes('windmill')&&!choices.includes('oasis'),`${biome} offers one name per prop`);
+  assert.equal(choices.includes('birdhouse'),['cave','citadel'].includes(biome),`${biome} offers a cottage only if it builds one`);
+  assert(!landmarkChoices(biome,{house:true}).some(([name])=>name==='birdhouse'),'never on a deck that is already a house');
+ }
+ // The same name is labelled as the chapter actually builds it.
+ assert.equal(landmarkLabel('arch','desert'),'Camp tent');assert.equal(landmarkLabel('arch','cave'),'Stone arch');
+ assert.equal(landmarkLabel('sandwheel','desert'),'Dry sandstone basin');assert.equal(landmarkLabel('rootarch','forest'),'Tree crown');
+ // Setting, changing and clearing one is an ordinary edit: it persists, round
+ // trips, revises the layout version and undoes.
+ const s=new DraftSession(library,0),canonical=validateDraft(LEVELS[0],LEVELS[0]).layoutVersion;
+ s.selection={list:'platforms',index:0};
+ s.set('landmark','windmill');assert.equal(s.level.platforms[0].landmark,'windmill');
+ assert.notEqual(s.level.layoutVersion,canonical,'a landmark is part of the chapter, so it revises the version');
+ for(const flag of ['house','arch','entrance','rest'])s.set(flag,true);
+ const saved=library.read(library.export(0,s.level),0);
+ assert.equal(saved.platforms[0].landmark,'windmill');
+ for(const flag of ['house','arch','entrance','rest'])assert.equal(saved.platforms[0][flag],true,`${flag} survives a backup`);
+ s.set('landmark',null);assert.equal(s.level.platforms[0].landmark,undefined,'clearing it takes the prop away');
+ s.undo();assert.equal(s.level.platforms[0].landmark,'windmill');
+ // A name the catalogue does not know is still refused if it is not an id.
+ const bad=JSON.parse(library.export(0,s.level));bad.level.platforms[0].landmark='not a name';
+ assert.throws(()=>library.read(JSON.stringify(bad),0),/landmark/);
+ library.reset(0);
+}
+assert.equal(JSON.stringify(LEVELS),base,'All original authored levels stay unchanged');
+console.log('PASS decoration: every catalogue shape and its defaults, per-biome palettes, carry with platforms, inert in the simulation, round trips, undo/redo, pre-decoration backups and refused placements');
+console.log('PASS landmarks: every authored name is catalogued, authority matches the chapters that key scenery off the deck, per-biome labels and cottage limits, and setting/clearing one persists, backs up and undoes');

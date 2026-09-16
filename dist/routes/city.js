@@ -123,7 +123,7 @@ export default chapter({
      hint:'Pull the tall clay wall over to the right, or hold E / KNEAD, until it lies down as a slope to the roof.'},
     {id:'belfry-span',name:'Press the last bridge',verb:'Press down',gesture:'down',parts:['belfry-span'],x:288,end:300,
      spawn:{x:294,y:44.2,groundId:'belfry-crown'},
-     hint:'Press the clay plug down — drag, hold E / KNEAD, or stomp it — and walk your own bridge to the bell.'}
+     hint:'Press the clay plug down — drag it, or hold E / KNEAD — and walk your own bridge to the bell.'}
   ],
   winds:[
     {id:'court-draught',x:80,w:12,y:9,h:12,fx:0,fy:18,channel:'draught'},

@@ -1,5 +1,6 @@
 import * as THREE from './lib/three.module.js';
 import {clayMaterial} from './clay.js';
+import {CAVE_STORY_ROLES} from './decor-kinds.js';
 
 // Small, platform-owned arrangements. They stream and move with their owner;
 // nothing here is a collider, a collectible, or a second checkpoint.
@@ -21,11 +22,9 @@ export function dryBasin(w,parent){
 }
 
 export function caveStory(w,s,parent){
-  const role={
-    'spark-balcony-copy-1':'echo','ferry-exit':'cooling','heart-entry':'bearing',
-    'heart-balcony':'bearing','vault-entry':'survey','sluice-balcony':'survey',
-    'gallery-entry':'geode'
-  }[s.id];
+  // The deck decides which arrangement it carries, so the workshop has to know
+  // the same table to avoid offering a choice this chapter will not honour.
+  const role=CAVE_STORY_ROLES[s.id];
   if(!role)return false;
   const g=group(parent,'Cavern story: '+role);g.position.set(s.w*.66,0,-1.18);
   if(role==='cooling')g.position.x=s.w*.5;

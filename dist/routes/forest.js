@@ -11,7 +11,7 @@ const L=makeRoom({
   intro:'Climb the living tree. Break its sealed roots and let the forest breathe.',
   sky:'#b2d2b7',fog:'#b7d2bc',spawn:{x:1.5,y:0},end:315,previousDistance:1000,cameraY:3,
   boss:{kind:'mother-puff',x:303,y:33.4,left:275,right:307,triggerX:276},
-  sections:[{x:-8,name:'Mushroom Choir',landmark:'mushroom'},{x:48,name:'Under the Roots',landmark:'rootarch'},{x:99,name:'The Breathing Tree',landmark:'sporepod'},{x:157,name:'Brittle Canopy',landmark:'birdhouse'},{x:213,name:'Heartwood Bloom',landmark:'mushroom'},{x:264,name:'The Still Clearing',landmark:'mushroom'}],
+  sections:[{x:-8,name:'Mushroom Choir',landmark:'mushroom'},{x:48,name:'Under the Roots',landmark:'rootarch'},{x:99,name:'The Breathing Tree',landmark:'sporepod'},{x:157,name:'Brittle Canopy',landmark:'birdhouse',backdrop:'waterfall'},{x:213,name:'Heartwood Bloom',landmark:'mushroom'},{x:264,name:'The Still Clearing',landmark:'mushroom'}],
   platforms:[
     p("start",-8,19,0,"stone"),
     p("spring1",8,1.8,0.44,"spring"),
@@ -100,13 +100,13 @@ const L=makeRoom({
 // second half is a mushroom bounce onto a mound that is far too tall to land
 // on — so it has to be squashed flat from across the gap before you jump.
 L.platforms.push(
-  p('gap-brink',192,4.5,21.6,'ledge',{landmark:'birdhouse'}),
+  p('gap-brink',192,4.5,21.6,'ledge',{checkpoint:194,landmark:'birdhouse'}),
   p('bough-stump',196.5,2.2,21.6,'wall',{h:4}),
   part('weave-bough',{x:196.5,w:2.2,y:27.6,h:6},{x:196.5,w:13,y:22.6,h:1.015},{station:'weave-bough',clayRole:'bridge'}),
-  p('weave-perch',211,5.5,23.4,'ledge',{checkpoint:212,landmark:'sporepod',rest:true}),
-  p('weave-spring',214.5,1.8,23.84,'spring'),
+  p('weave-perch',211,7,23.4,'ledge',{checkpoint:215,landmark:'sporepod',rest:true}),
+  p('weave-spring',216.2,1.8,23.84,'spring'),
   p('mound-stump',222.7,.6,23.5,'wall',{h:4}),
-  part('weave-mound',{x:222.2,w:1.6,y:30.06,h:6.56},{x:219,w:8,y:24.81,h:1.31},{station:'weave-mound',clayRole:'landing'})
+  part('weave-mound',{x:222.4045,w:1.191,y:32.3,h:8.8},{x:219,w:8,y:24.81,h:1.31},{station:'weave-mound',clayRole:'bridge'})
 );
 L.sections.splice(4,0,{x:TEAR,name:"The Weaver's Gap",landmark:'birdhouse'});
 L.shaping.push(

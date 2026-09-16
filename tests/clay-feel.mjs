@@ -119,10 +119,23 @@ console.log('PASS pressed flat in a blink, held flat for a beat, peeled away wit
   assert(frames.slice(10,30).every(f=>f.visible&&f.sy<.2),'a stomped clayling lies flat on the deck, still visible');
   assert.equal(frames.at(-1).visible,false,'and is gone within a second');
   const frozen=view.deathTime;animateEnemy(view,e,1/60,'paused');assert.equal(view.deathTime,frozen,'pausing holds the squash where it is');
+  // A spore puff is pressed flat like the rest, and leaves in its own spores:
+  // the cloud it throws when attacking is released around the disc instead.
   const {animateSpore}=await import('../dist/spore-puff.js');
-  const spore={root:new THREE.Group(),cloud:new THREE.Group(),deathTime:0,clock:0};
-  for(let i=0;i<20;i++)animateSpore(spore,{x:0,y:0,dir:1,alive:false},1/60,'playing');
-  assert(spore.root.visible&&spore.root.scale.y<.2&&spore.cloud.visible===false,'a spore puff is pressed flat and its puff hidden');
+  const motes=Array.from({length:6},()=>new THREE.Mesh()),cloud=new THREE.Group();
+  for(const m of motes)cloud.add(m);
+  const spore={root:new THREE.Group(),pose:new THREE.Group(),cloud,motes,deathTime:0,clock:0},dead={x:0,y:0,dir:1,alive:false};
+  const reach=()=>motes.map(m=>m.position.length());
+  for(let i=0;i<20;i++)animateSpore(spore,dead,1/60,'playing');
+  assert(spore.pose.visible&&spore.pose.scale.y<.2,'a spore puff is pressed flat');
+  assert(spore.cloud.visible&&motes.every(m=>m.scale.x>0),'and lets its spores go as it goes');
+  const opening=reach();for(let i=0;i<15;i++)animateSpore(spore,dead,1/60,'playing');
+  assert(reach().every((d,i)=>d>opening[i]),'the cloud keeps opening out around the body');
+  assert.deepEqual(spore.cloud.scale.toArray(),[1,1,1],'pressing the body flat never squashes the cloud with it');
+  const held=JSON.stringify(reach());animateSpore(spore,dead,1/60,'paused');
+  assert.equal(JSON.stringify(reach()),held,'pausing holds the puff where it is');
+  for(let i=0;i<50;i++)animateSpore(spore,dead,1/60,'playing');
+  assert(!spore.cloud.visible&&!spore.pose.visible,'a beat later both the disc and the spores are gone');
   const {animateSpitter}=await import('../dist/spitter.js');
   const spitter={root:new THREE.Group(),deathTime:0,reducedMotion:false};
   for(let i=0;i<20;i++)animateSpitter(spitter,{x:0,y:0,dir:1,alive:false},1/60,'playing');
