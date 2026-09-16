@@ -11,7 +11,7 @@ const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
 {
  const canonical=validateDraft(LEVELS[0],LEVELS[0]);
  assert.equal(LEVELS[0].layoutVersion,9);assert(!LEVELS[0].custom);
- assert.equal(canonical.layoutVersion,'editor-9-1s6kjcr','canonical canyon matches the approved editor export');
+ assert.equal(canonical.layoutVersion,'editor-9-yzarhn','canonical canyon matches the approved editor export');
  // The pocket's formable mass survives the round trip as data: its rule, its
  // clump and its solution, bounded, and no other rule is ever let in.
  const pocket=canonical.shaping.find(s=>s.id==='canyon-pocket'),authored=LEVELS[0].shaping.find(s=>s.id==='canyon-pocket');

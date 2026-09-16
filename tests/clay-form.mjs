@@ -389,9 +389,13 @@ console.log('PASS the perch is out of reach of a jump or a stomp from the slab, 
   assert(walk(s.x+3),'over by the dock end');hold(30);p.facing=1;
   const here=p.y,at=3+FORM.stepReach,ahead=top(at);
   hold(frames(1),{shapeHeld:true});
-  assert(top(at)>ahead+.6,`a second of E raises the clay ahead (${(top(at)-ahead).toFixed(2)})`);
-  assert(Math.abs(p.y-here)<.4,`and leaves the player's own footing (${(p.y-here).toFixed(2)})`);
-  assert(top(at)-p.y>FORM.step,'into a step too tall to walk up');
+  // E works the clay ahead into a step the player can walk up: about a walkable
+  // rise above their own feet, and no taller however long the key is held.
+  assert(top(at)>ahead+.1,`a second of E raises the clay ahead (${(top(at)-ahead).toFixed(2)})`);
+  assert(Math.abs(p.y-here)<.2,`and leaves the player's own footing (${(p.y-here).toFixed(2)})`);
+  assert(top(at)-p.y>.3&&top(at)-p.y<=FORM.step+.05,`into a step they can walk up (${(top(at)-p.y).toFixed(2)})`);
+  hold(frames(1),{shapeHeld:true});
+  assert(top(at)-p.y<=FORM.step+.05,'and holding on does not build it into a wall');
   // With the player standing on the clay, nothing slumps; once they are back
   // on the dock and the clay has settled, the step slumps.
   const raised=formHeight(s.form,at);

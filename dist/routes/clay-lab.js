@@ -92,7 +92,7 @@ const shaping=[
   {id:'form',rule:'form',icon:'knead',name:'Fully formable clay',verb:'Grab it and drag',gesture:'up',
    parts:['form-mass'],x:108,end:141,spawn:{x:111,y:0,groundId:'form-dock'},
    clump:[[0,-.8],[1,-.8]],
-   hint:'Grab any point of the clay and drag: pull up a pillar or a step, push down a bowl, drag sideways to stretch a bridge. Press in from the air to dent it, hold E to raise a step ahead of you. Stomp it and it craters and throws you straight back up. It keeps its volume, so what rises here sinks there, and left alone it slowly slumps back. R resets it.'},
+   hint:'Grab any point of the clay and drag: pull up a pillar or a step, push down a bowl, drag sideways to stretch a bridge. Press in from the air to dent it, hold E to work the clay ahead of you into a step. Stomp it and it craters and throws you straight back up. It keeps its volume, so what rises here sinks there, and left alone it slowly slumps back. R resets it.'},
   // The lump thins to nothing at the ends of its footprint, so it sits on the
   // bench as a square blob with the bench bare on either side.
   {id:'lump',rule:'form',free:true,icon:'knead',name:'A lump on the bench',verb:'Grab it and drag',gesture:'up',

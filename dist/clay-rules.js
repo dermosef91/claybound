@@ -278,8 +278,20 @@ function formHand(game,station,dt,input){
   if(!pointing)station.grip=null;
   else formPoint(station,s,input.shapeX,input.shapeY);
   if(input.shapeHeld&&dt>0){
-    const p=game.player,ahead=p.x+(p.facing||1)*FORM.stepReach-s.x;
-    if(ahead>-FORM.stepRadius&&ahead<s.w+FORM.stepRadius&&pullForm(f,Math.max(0,Math.min(s.w,ahead)),0,FORM.knead*dt,FORM.stepRadius))station.worked=true;
+    // Holding E works the clay ahead into a step the player can walk up:
+    // raised where it lies below their feet, pressed down where it towers over
+    // them. A key alone can therefore open a pocket a pointer would lean and
+    // slump — more slowly, a step at a time — and the step it makes is never a
+    // tower, so the key builds stairs rather than walls.
+    const p=game.player,base=s.y-s.h,ahead=p.x+(p.facing||1)*FORM.stepReach-s.x;
+    if(ahead>-FORM.stepRadius&&ahead<s.w+FORM.stepRadius){
+      // Past the end of the clay there is nothing ahead to step onto, so E
+      // there lifts the ground the player stands on instead, a step at a time.
+      const at=Math.max(0,Math.min(s.w,ahead)),under=ahead!==at,want=p.y-base+FORM.step*FORM.stepRise,have=formHeight(f,under?Math.max(0,Math.min(s.w,p.x-s.x)):at);
+      const move=have<want-.03?Math.min(FORM.knead*dt,want-have):have>want+.03?-Math.min(FORM.knead*dt,have-want):0;
+      // The clay the step is drawn from is never the clay under the player.
+      if(move&&pullForm(f,at,0,move,FORM.stepRadius,{x:p.x-s.x,radius:FORM.foot+.2}))station.worked=true;
+    }
   }
   return true;
 }

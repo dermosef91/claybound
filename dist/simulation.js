@@ -48,11 +48,14 @@ export class Game {
     // Clay the player already finished stays finished: a checkpoint past a
     // kneaded ramp must never resume in front of an unshaped one. A formable
     // mass has no finished pose to jump to, so it is rebuilt from its authored
-    // solution — the player's own shape is not saved, only that they crossed.
+    // solution — the player's own shape is not saved, only that they crossed;
+    // and "shaped" there is a share of clay moved, not a crossing, so it is
+    // rebuilt only for a checkpoint beyond the clay. Saved short of it, the
+    // mass resumes as its clump and the pocket is worked again.
     const shaped=new Set(Array.isArray(save.shaped)?save.shaped:[]);
     for(const station of this.level.shaping||[])if(shaped.has(station.id)){
       const mass=station.rule==='form'&&this.level.platforms.find(s=>s.id===station.parts[0]);
-      if(mass)solveFormStation(station,mass,{dt:FIXED_DT});
+      if(mass){if(this.checkpoint.x>mass.x+mass.w)solveFormStation(station,mass,{dt:FIXED_DT});}
       else {station.target=1;station.amount=1;station.announced=true;}
     }
     updateShaping(this,0,{});

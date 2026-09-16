@@ -92,14 +92,14 @@ L.platforms.push(
 L.sections.splice(3,0,{x:POCKET,name:"The Sandwright's Pocket",landmark:'sandwheel'});
 L.hazards.push({x:133.3,w:17.2,y:8.1});
 L.shaping.push(
-  {id:'canyon-pocket',rule:'form',free:true,relax:false,shaped:.2,icon:'knead',name:'Shape the pocket',verb:'Grab it and drag',gesture:'up',cueX:134.6,
+  {id:'canyon-pocket',rule:'form',free:true,relax:false,shaped:.24,icon:'knead',name:'Shape the pocket',verb:'Grab it and drag',gesture:'up',cueX:134.6,
    parts:['pocket-clay'],x:124,end:158,spawn:{x:128,y:10.75,groundId:'pocket-dock'},
    clump:[K(133.3,3.7),K(136,3.7),K(137.2,-1.8),K(143.8,-1.8),K(145,4.4),K(150.5,4.4)],
    solution:[{x:134.5,lift:0,dx:6.5,dy:-3,t:1.7},{x:147,lift:0,dx:-5.5,dy:-2.6,t:1.8}],
-   hint:'Grab the violet clay and drag it: lean the spire into a bridge, slump the lump into a ramp, or shape your own way. Clay is ground; the sand under it is not. On the clay, hold E for a step ahead. Step off and press R to soften it back.'}
+   hint:'Grab the violet clay and drag it: lean the spire into a bridge, slump the lump into a ramp, or shape your own way. Clay is ground; bare sand is not. Or face the clay and hold E to work it into steps. Step off and press R to soften it.'}
 );
 L.hints.push(
-  {x:124,end:150.4,icon:'knead',title:'Shape the clay',text:'Grab the violet clay and drag it. Lean the spire into a bridge, slump the lump into a ramp. On the clay, hold E for a step ahead; step off and press R to soften it.',touchText:'Grab the violet clay and drag it: lean the spire into a bridge, slump the lump into a ramp. Clay is ground; bare sand is not.'}
+  {x:124,end:150.4,icon:'knead',title:'Shape the clay',text:'Grab the violet clay and drag it. Lean the spire into a bridge, slump the lump into a ramp. Or hold E facing the clay to work it into steps; step off and press R to soften it.',touchText:'Grab the violet clay and drag it: lean the spire into a bridge, slump the lump into a ramp. Clay is ground; bare sand is not.'}
 );
 L.coins.push({x:126.25,y:12.2},...row(136.3,13.2,3,1.3),{x:148.5,y:16.3},{x:152.5,y:15.6},{x:155,y:15.6});
 export default chapter(L);

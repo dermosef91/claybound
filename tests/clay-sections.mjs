@@ -29,6 +29,7 @@ import {formSteepAt,nearbyStation} from '../dist/shaping.js';
 // cannot hold its volume, so chapter clay never uses that role.)
 const volume=(q,role)=>q.w*((q.h??0)+(role==='ramp'?(q.slope||0)/2:0));
 const TOLERANCE=.1;
+const frames=seconds=>Math.round(seconds/dt);
 const massOf=(g,station)=>g.level.platforms.find(p=>p.id===station.parts[0]);
 
 for(const L of LEVELS)for(const station of L.shaping||[]){
@@ -287,6 +288,62 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
      for(let i=0;i<40;i++)g.tick(dt,{moveAxis:1,jumpPressed:i===0,jumpHeld:true});
    }
    assert.equal(r,'landing',`E steps up the lump's face (${r}, ${holds} holds)`);assert(holds>=1&&holds<=5);assert.equal(g.deaths,0);}
+  // 5. Keyboard only: no pointer at all. Facing the clay, E works whatever is
+  //    ahead into a step — pressing the spire down, raising the pit, pressing
+  //    the lump — and at the landing's wall, with nothing ahead to step onto,
+  //    it lifts the ground underfoot instead. A plain rule does the whole
+  //    pocket: hold E while the clay ahead is more than a step up or any way
+  //    down, walk when it is a step or less, hop when the landing is in reach.
+  {const {g,station,mass,p}=boot(),landingLedge=g.level.platforms.find(q=>q.id==='pocket-landing');
+   let t=0,hopTimer=0,heldE=0;
+   for(let i=0;i<150/dt&&p.groundId!=='pocket-landing'&&!g.deaths;i++){
+     const aheadX=Math.max(mass.x,Math.min(mass.x+mass.w,p.x+FORM.stepReach)),rise=surfaceAt(mass,aheadX)-p.y,atWall=p.x>landingLedge.x-.6;
+     let input;
+     if(atWall&&landingLedge.y-p.y<2.4){input={moveAxis:1,jumpPressed:hopTimer<=0&&!!p.groundId,jumpHeld:true};if(input.jumpPressed)hopTimer=60;}
+     else if(atWall||(p.x+FORM.stepReach>=mass.x-.3&&(rise>FORM.step||rise<-.05))){input={moveAxis:0,shapeHeld:true};p.facing=1;heldE++;}
+     else input={moveAxis:1};
+     hopTimer--;g.tick(dt,input);t+=dt;
+   }
+   assert.equal(p.groundId,'pocket-landing',`a keyboard alone crosses the pocket (ended at ${p.x.toFixed(1)}, ${p.y.toFixed(2)} after ${t.toFixed(0)}s)`);
+   assert.equal(g.deaths,0,'without dying');assert(t<150,`in ${t.toFixed(0)}s`);assert(heldE>frames(5),'by holding E');
+   assert.equal(station.amount,1,'and the key alone moves enough clay to read as shaped');}
+  // Resuming. A saved game only rebuilds the pocket from its solution when its
+  // checkpoint lies beyond the clay — "shaped" is a share of clay moved, not a
+  // crossing, so a save at the dock with the spire worked resumes as the clump
+  // and the pocket is worked again.
+  {const {g,station,mass}=boot();
+   stroke(g,mass,{x:134.5,lift:0,dx:6.5,dy:-3,t:1.7});
+   const save=g.snapshot();save.shaped=[...new Set([...save.shaped,station.id])];
+   assert.equal(save.checkpointId,'pocket-dock');
+   const back=new Game();back.start(0);assert(back.restore(save),'the save restores');
+   const restored=massOf(back,back.level.shaping.find(q=>q.id===station.id));
+   assert(Array.from(restored.form.h).every((h,i)=>h===restored.form.rest[i]),'saved at the dock, the pocket resumes as its clump');
+   // Crossed to the landing's flag, the same save rebuilds the solved pocket.
+   const {g:crossed,station:cs,mass:cm,p}=boot();solveFormStation(cs,massOf(crossed,cs),{dt});
+   assert.equal(landing(crossed),'landing');for(let i=0;i<300&&crossed.checkpointId!=='pocket-landing';i++)crossed.tick(dt,{moveAxis:Math.sign(154-p.x)});
+   assert.equal(crossed.checkpointId,'pocket-landing','the landing flag is the next checkpoint');
+   const later=crossed.snapshot();assert(later.shaped.includes(cs.id));
+   const resumed=new Game();resumed.start(0);assert(resumed.restore(later));
+   // The crossing itself dented the clay underfoot; a resume rebuilds the
+   // clean solution, so that is what it is held to.
+   const rm=massOf(resumed,resumed.level.shaping.find(q=>q.id===cs.id)),{g:clean,station:cst}=boot(),ref=solveFormStation(cst,massOf(clean,cst),{dt});
+   let worst=0;for(let i=0;i<rm.form.n;i++)worst=Math.max(worst,Math.abs(rm.form.h[i]-ref.h[i]));
+   assert(worst<1e-9,`saved beyond the clay, the pocket resumes solved (max |Δh| ${worst.toExponential(1)})`);
+   assert.equal(resumed.player.groundId,'pocket-landing');}
+  // R softens the pocket only from off the clay. In the air over it, or standing
+  // on it, regrowing the towers would set the player on top of them.
+  {const {g,station,mass,p}=boot();solveFormStation(station,massOf(g,station),{dt});
+   const solved=Float64Array.from(mass.form.h);
+   Object.assign(p,{x:140,y:surfaceAt(mass,140)+1.5,vx:0,vy:0,groundId:null,coyote:0});const y0=p.y;
+   g.tick(dt,{shapeReset:true});
+   assert.deepEqual(Array.from(mass.form.h),Array.from(solved),'R in the air over the clay changes nothing');
+   assert(p.y<y0,'and the player keeps falling rather than riding a regrown tower');
+   for(let i=0;i<90&&!p.groundId;i++)g.tick(dt,{});assert.equal(p.groundId,mass.id);g.tick(dt,{shapeReset:true});
+   // Standing dents the clay a little; what R must not do is put the clump back.
+   assert(!Array.from(mass.form.h).every((h,i)=>Math.abs(h-mass.form.rest[i])<1e-9),'nor does R standing on it put the clump back');
+   assert(Math.max(...Array.from(mass.form.h).map((h,i)=>Math.abs(h-solved[i])))<.5,'the solved shape stands, dented only by the boots');
+   Object.assign(p,{x:128,y:10.75,vx:0,vy:0,groundId:'pocket-dock'});g.tick(dt,{shapeReset:true});
+   assert(Array.from(mass.form.h).every((h,i)=>h===mass.form.rest[i]),'from the dock, R puts the clump back');}
   // The beads: every one in the pocket can be picked up on the way across the
   // solved clay, by walking or by a standing hop under it.
   {const {g,station,mass,p}=boot();solveFormStation(station,massOf(g,station),{dt});

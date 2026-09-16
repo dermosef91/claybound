@@ -70,9 +70,11 @@ export const FORM=Object.freeze({
   // the way the packed lump does — but the first time, every time. Straight up
   // this fast is about six and two-thirds units of height.
   launch:19,
-  // Holding E raises a step ahead of the player at this rate, this wide: wide
-  // enough that a step rounded to the corner limit can still stand a step tall.
-  knead:1.4,stepReach:1.3,stepRadius:1.35,
+  // Holding E works the clay ahead of the player into a step at this rate,
+  // this wide (wide enough that a step rounded to the corner limit can still
+  // stand a step tall), aiming `stepRise` of a walkable step above the feet:
+  // raising clay that lies lower, pressing down clay that towers.
+  knead:1.4,stepReach:1.3,stepRadius:1.35,stepRise:.8,
   // Left alone — no hand on it, nobody standing on it — for `settle` seconds,
   // the clay slumps back towards its authored clump: exponentially with this
   // time constant, and never slower than `relaxMin` a second, so it does get
@@ -260,13 +262,15 @@ function keepWhole(f){
 // reach is drawn up narrower and taller rather than having its own crest taken
 // back. Each pass respects the floor and the ceiling, so a few passes are
 // enough; if the reach itself is all there is, the last passes take evenly.
-function conserve(f,x,radius){
+function conserve(f,x,radius,guard){
   const {h,n,dx,q}=f,local=real(x);
   let excess=total(h,n)*dx-f.volume;
   for(let pass=0;pass<10&&Math.abs(excess)>1e-9;pass++){
     const removing=excess>0;let sum=0;
     for(let i=0;i<n;i++){
-      const room=Math.max(0,removing?h[i]-f.low[i]:FORM.maxHeight-h[i]);
+      // Guarded columns — the ground under a player kneading with E — give
+      // up nothing, so the key never digs the floor out from under its user.
+      const room=guard&&removing&&Math.abs(i*dx-guard.x)<guard.radius?0:Math.max(0,removing?h[i]-f.low[i]:FORM.maxHeight-h[i]);
       let g=1;
       if(local){const d=i*dx-x,w=kernel(d/radius),away=(1-w)*(1-w);g=(FORM.far+Math.exp(-d*d/(2*FORM.spread*FORM.spread)))*(pass<4?away:pass<7?away*.97+.03:1);}
       q[i]=room*g;sum+=q[i];
@@ -279,9 +283,9 @@ function conserve(f,x,radius){
   return excess;
 }
 
-function finish(f,x,radius,{soften=0}={}){
+function finish(f,x,radius,{soften=0,guard=null}={}){
   if(real(x)&&soften>0)smooth(f,x,radius,soften);
-  limitSlope(f);limitCurve(f);clampAll(f);keepWhole(f);conserve(f,x,radius);
+  limitSlope(f);limitCurve(f);clampAll(f);keepWhole(f);conserve(f,x,radius,guard);
   // Putting the volume back can steepen a face or sharpen a corner a little;
   // the limits have the last word, and hand clay between neighbours without
   // changing the total.
@@ -308,7 +312,7 @@ export function easeForm(f){
 // part carries the surface along with the hand, so a pillar dragged sideways
 // leans into a ramp and a mound pulled apart stretches into a bridge; the
 // upward part raises it, the downward part presses it.
-export function pullForm(f,x,dxh,dyh,radius=FORM.radius){
+export function pullForm(f,x,dxh,dyh,radius=FORM.radius,guard=null){
   if(!real(x)||!real(dxh)||!real(dyh)||!(radius>0))return false;
   if(!dxh&&!dyh)return false;
   const {h,scratch,dx}=f,[lo,hi]=range(f,x,radius);
@@ -317,7 +321,7 @@ export function pullForm(f,x,dxh,dyh,radius=FORM.radius){
     const w=kernel((i*dx-x)/radius);if(!w)continue;
     h[i]=sample(f,scratch,i*dx-dxh*w)+dyh*w;
   }
-  finish(f,x,radius,{soften:Math.hypot(dxh,dyh)});
+  finish(f,x,radius,{soften:Math.hypot(dxh,dyh),guard});
   return true;
 }
 

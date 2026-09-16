@@ -64,7 +64,13 @@ export function updateShaping(game,dt,input){
       // though: a formable mass springing back to its clump would set them
       // inside a regrown tower or drop them onto the sand it had covered, so
       // there R waits until they have stepped off it.
-      if(input.shapeReset){if(!(station.rule==='form'&&!L.playground&&standingOn(station,p)>=0))resetStation(station);}
+      if(input.shapeReset){
+        // In a chapter, R softens a formable mass only from off it: regrowing
+        // the towers under a player, or into one in the air over the clay,
+        // would set them on top of the regrown clump.
+        const mass=station.rule==='form'&&!L.playground&&L.platforms.find(q=>q.id===station.parts[0]);
+        if(!(mass&&p.x>mass.x-1&&p.x<mass.x+mass.w+1))resetStation(station);
+      }
       // Ruled clay never falls through to here, whatever its rule returns, so
       // handRule is the only way a hand reaches it.
       else if(!station.rule){
