@@ -5,6 +5,8 @@
 import {LEVELS} from '../dist/levels.js';
 import {instantiateLevel} from '../dist/levels.js';
 import {RULES} from '../dist/simulation.js';
+import {solveFormStation} from '../dist/clay-rules.js';
+import {formHeight} from '../dist/clay-form.js';
 
 const HEIGHT=RULES.height;
 // Measured with tests/routes.mjs physics: a running jump clears 5 units level,
@@ -18,6 +20,10 @@ const standable=s=>!['switch','wall'].includes(s.kind);
 export function auditLevel(L,index){
   const notes=[];
   const level=instantiateLevel(index,L);
+  // A formable mass has no pose: it stands as its authored solution leaves it,
+  // and a link meets it at the end nearest the other platform.
+  for(const station of level.shaping||[])if(station.rule==='form'){const s=level.platforms.find(p=>p.id===station.parts[0]);if(s)solveFormStation(station,s);}
+  const edge=(s,other)=>s.form?s.y-s.h+formHeight(s.form,other.x+other.w/2<s.x+s.w/2?0:s.w):null;
   const shaped=level.platforms.map(s=>{
     if(!s.shape)return s;
     return {...s,...s.shape.to,shapedFrom:s.shape.from};
@@ -61,7 +67,7 @@ export function auditLevel(L,index){
     if(a.kind==='spring'||a.kind==='lift'||a.kind==='counter'||a.kind==='ferry'||a.kind==='orbit'||b.kind==='lift'||b.kind==='counter')continue;
     const forward=b.x+b.w/2>a.x+a.w/2;
     const gap=forward?b.x-right(a):a.x-right(b);
-    const rise=b.y-(a.kind==='balance'?a.y:surface(a));
+    const rise=(edge(b,a)??b.y)-(a.kind==='balance'?a.y:edge(a,b)??surface(a));
     if(rise>2.6&&!windAt(forward?b.x:right(b),b.y))
       notes.push(`link ${link.from} → ${link.to} rises ${rise.toFixed(2)} with no draught: above the jump ceiling`);
     else if(gap>reach(rise)&&!windAt(forward?b.x:right(b),b.y))

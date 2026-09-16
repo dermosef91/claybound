@@ -1,6 +1,7 @@
 // The experimental clay rules, driven through the real simulation with real
 // inputs. Each experiment has to actually do the thing its hint promises, and
-// none of it may leak into a chapter.
+// only the one promoted on purpose — the formable mass, which the canyon's
+// Sandwright's Pocket carries — may reach a chapter.
 import assert from 'node:assert/strict';
 import {Game,FIXED_DT as dt,surfaceAt} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
@@ -41,12 +42,14 @@ const hopTo=(g,x,frames=1400)=>{
   }
   const ranges=lab.shaping.map(s=>[s.x,s.end]).sort((a,b)=>a[0]-b[0]);
   for(let i=1;i<ranges.length;i++)assert(ranges[i][0]>=ranges[i-1][1]-1e-9,'station stretches do not overlap');
-  // No chapter may ever take a rule: that is the whole containment story.
-  for(const L of LEVELS)for(const s of L.shaping||[])assert(!s.rule,`${L.short} station ${s.id} is hand-worked`);
+  // Containment: the formable mass is the one rule that has left the bench,
+  // and no other ever reaches a chapter.
+  for(const L of LEVELS)for(const s of L.shaping||[])assert(!s.rule||s.rule==='form',`${L.short} station ${s.id} is hand-worked or formable`);
+  assert.deepEqual(new Set(LEVELS.flatMap(L=>(L.shaping||[]).map(s=>s.rule).filter(Boolean))),new Set(['form']),'form is the only rule in the chapters');
   assert.equal(RULES.length,4);
   assert(!isRule('wear')&&!lab.platforms.some(p=>p.id.startsWith('wear-')),'wear through is gone from the bench');
 }
-console.log('PASS the bench is well formed, its stations are ruled, and no chapter station is');
+console.log('PASS the bench is well formed, its stations are ruled, and the chapters carry no rule but the formable mass');
 
 // --- 01 SAG: a big block of soft clay that gives under weight ----------------
 {
@@ -122,7 +125,7 @@ console.log('PASS the bench is well formed, its stations are ruled, and no chapt
   assert(Math.min(...sinking)>=settled*1.05,`at most one small overshoot (${Math.min(...sinking).toFixed(2)} vs ${settled.toFixed(2)})`);
   assert(turns<=1&&still<=.6,`and no ringing: ${turns} turns, settled after ${still.toFixed(2)}s`);
   assert.equal(shapedShare(s),1,'a good stand sets the clay: 100% shaped');
-  assert.deepEqual(shaped.map(e=>e.message),['Sag & set · shaped'],'announced once');
+  assert.deepEqual(shaped.map(e=>e.id),['sag'],'announced once');
 
   // The trough follows a walker and lags behind them.
   hold(45,{moveAxis:1});

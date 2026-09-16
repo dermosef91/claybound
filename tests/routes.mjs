@@ -3,8 +3,29 @@ import {Game,FIXED_DT as dt,surfaceAt} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
 import {machineTransfer} from './machine-pilot.mjs';
 import {motherTransfer} from './mother-puff-pilot.mjs';
+import {solveFormStation} from '../dist/clay-rules.js';
+import {formShare} from '../dist/clay-form.js';
 export const cloneGame=g=>{const copy=Object.assign(Object.create(Game.prototype),structuredClone({...g,onEvent:null}));copy.onEvent=()=>{};return copy;};
 export function steer(g,aim){return Math.max(-1,Math.min(1,((aim-g.player.x)*7-(g.player.windX||0)*.16)/6.7));}
+// A formable mass has no finished pose: "shaped" is the surface its authored
+// solution strokes make, solved once per station through the real hand and
+// copied onto every game a sweep starts. Exported so clay-sections can hold the
+// pilot's real-input replay to the same surface.
+const solved=new Map();
+export function solvedForm(index,id){
+  const key=`${index}:${id}`;
+  if(!solved.has(key)){
+    const g=new Game();g.start(index);
+    const station=g.level.shaping.find(s=>s.id===id),mass=g.level.platforms.find(s=>s.id===station.parts[0]);
+    solved.set(key,Float64Array.from(solveFormStation(station,mass,{dt}).h));
+  }
+  return solved.get(key);
+}
+export function applySolvedForm(g,station){
+  const f=g.level.platforms.find(s=>s.id===station.parts[0]).form;
+  f.h.set(solvedForm(g.index,station.id));f.prev.set(f.h);f.settled=false;f.version++;
+  station.amount=station.target=formShare(f,station.shaped);station.announced=true;
+}
 // `shaped` is what separates "can this be crossed" from "is the clay carrying
 // it": at shaped:false every station stays at its unworked pose, so a link that
 // still succeeds is a link the clay was never needed for. It can also be a
@@ -12,11 +33,15 @@ export function steer(g,aim){return Math.max(-1,Math.min(1,((aim-g.player.x)*7-(
 export function crossing(index,link,{shaped=true}={}){
   const worked=typeof shaped==='function'?shaped:()=>shaped;
   for(const phase of [0,.5,1,1.5,2,2.5,3,3.5,4,4.5,5,5.5])for(const offset of [.35,.85,1.4,2.1]){
-    const g=new Game();g.start(index);g.level.enemies=[];g.level.crushers=[];g.level.hazards=[];g.level.coins=[];g.level.stamps=[];
-    for(const s of g.level.platforms){if(s.channel){g.channels[s.channel]=100;g.latched[s.channel]=true;}if(s.releases){g.channels[s.releases]=1;g.latched[s.releases]=true;}if(s.kind==='counter')s.y=s.prevY=s.baseY+s.rise;}
-    for(const station of g.level.shaping||[]){station.announced=true;if(worked(station)){station.target=1;station.amount=1;}}
-    g.time=phase;g.tick(dt,{});
+    const g=new Game();g.start(index);g.level.enemies=[];g.level.crushers=[];g.level.coins=[];g.level.stamps=[];
     const a=g.level.platforms.find(s=>s.id===link.from),b=g.level.platforms.find(s=>s.id===link.to);assert(a&&b);
+    // Spikes are cleared so a sweep measures reach alone — except around a free
+    // formable mass, whose bare base is walkable sand that only the spikes make
+    // deadly: without them a sweep would "land" on the base the clay has left.
+    if(!(a.form||b.form))g.level.hazards=[];
+    for(const s of g.level.platforms){if(s.channel){g.channels[s.channel]=100;g.latched[s.channel]=true;}if(s.releases){g.channels[s.releases]=1;g.latched[s.releases]=true;}if(s.kind==='counter')s.y=s.prevY=s.baseY+s.rise;}
+    for(const station of g.level.shaping||[]){station.announced=true;if(worked(station)){if(station.rule==='form')applySolvedForm(g,station);else{station.target=1;station.amount=1;}}}
+    g.time=phase;g.tick(dt,{});
     const dir=Math.sign(b.x+b.w/2-a.x-a.w/2)||1,overlap=a.x<b.x+b.w&&a.x+a.w>b.x,fall=link.mode==='fall',drop=link.mode==='drop',walk=link.mode==='walk';
     let x=dir>0?a.x+a.w-offset:a.x+offset;
     // A ledge over a broad floor can be approached from underneath. Dropping

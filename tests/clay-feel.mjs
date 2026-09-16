@@ -3,7 +3,7 @@
 // the real enemy views, so a regression in the wiring fails here.
 import assert from 'node:assert/strict';
 import * as THREE from '../dist/lib/three.module.js';
-import {DENT,DENTABLE,dentable,give,kickDent,stepDent,dentScale,applyDent,FLATTEN,flattenPose,applyFlatten} from '../dist/clay-feel.js';
+import {DENT,DENTABLE,dentable,give,kickDent,stepDent,dentScale,applyDent,FLATTEN,shatterTime,flattenPose,applyFlatten} from '../dist/clay-feel.js';
 import {Game,FIXED_DT} from '../dist/simulation.js';
 
 const settle=(view,seconds,dt=1/60)=>{const trace=[];for(let t=0;t<seconds;t+=dt){stepDent(view,dt);trace.push(view.dent);}return trace;};
@@ -91,24 +91,31 @@ console.log('PASS a real landing names its slab and carries enough impact to den
   const at=t=>flattenPose(t);
   assert.deepEqual(at(0),{sx:1,sy:1,sz:1,visible:true},'untouched at the moment of the stomp');
   const pressed=at(FLATTEN.press);
-  assert(pressed.sy<.2&&pressed.sx>1.4,'pressed into a disc almost at once');
-  const mid=at((FLATTEN.press+FLATTEN.hold)/2);
-  assert(mid.visible&&mid.sy<.2&&mid.sx>1.35,'held flat, visibly, for a beat');
-  assert(FLATTEN.hold-FLATTEN.press>.4,'long enough to be seen at gameplay speed');
-  for(let t=FLATTEN.press;t<FLATTEN.hold;t+=.01){const pose=at(t);assert(pose.sy<.2,`still flat at ${t.toFixed(2)}s`);}
-  // Peeled away while flat: it must never inflate back towards standing.
-  let lastY=Infinity,lastX=Infinity;
-  for(let t=FLATTEN.hold;t<FLATTEN.peel;t+=.01){const pose=at(t);assert(pose.sy<=lastY+1e-9&&pose.sx<=lastX+1e-9,`shrinks monotonically at ${t.toFixed(2)}s`);lastY=pose.sy;lastX=pose.sx;}
-  assert.equal(at(FLATTEN.peel).visible,false);assert.equal(at(5).visible,false);
+  assert(pressed.sy<.25&&pressed.sx>1.5&&pressed.sz>1.2,'pressed into a disc almost at once');
+  assert(pressed.sx>pressed.sz,'spreading more across the screen than into it');
+  const mid=at((FLATTEN.press+FLATTEN.shatter)/2);
+  assert(mid.visible&&mid.sy<.25&&mid.sx>1.5,'held flat, visibly, for a beat');
+  assert(FLATTEN.shatter-FLATTEN.press>=.24,'long enough to be seen at gameplay speed');
+  assert(FLATTEN.shatter<.5,'but broken before the player has bounced out of frame');
+  // There, flat, until it gathers itself: it never peels or re-inflates.
+  for(let t=FLATTEN.press;t<FLATTEN.still;t+=.005){const pose=at(t);assert(pose.visible&&pose.sy<.25&&pose.sy>.1&&pose.sx>1.5,`still flat and still there at ${t.toFixed(3)}s`);}
+  // Then the swell: thicker and narrower, monotonically, announcing the break.
+  let lastY=-Infinity,lastX=Infinity;
+  for(let t=FLATTEN.still;t<FLATTEN.shatter;t+=.005){const pose=at(t);assert(pose.visible&&pose.sy>=lastY-1e-9&&pose.sx<=lastX+1e-9,`swells at ${t.toFixed(3)}s`);lastY=pose.sy;lastX=pose.sx;}
+  assert(lastY>FLATTEN.flat+.08&&lastX<FLATTEN.spread-.1,'the swell is visible, not a rounding error');
+  assert(lastY<.5,'but the disc never stands back up');
+  assert.equal(at(FLATTEN.shatter).visible,false,'gone the moment it breaks');assert.equal(at(5).visible,false);
   for(const bad of [NaN,-1,undefined])assert(at(bad).visible,'a bad clock stays at the start, not hidden');
   // Reduced motion: the same read, no wobble, a shorter hold.
   const calm=flattenPose(.2,{reducedMotion:true});
   assert.equal(calm.sy,FLATTEN.flat,'no settling wobble under reduced motion');
-  assert.equal(flattenPose(.6,{reducedMotion:true}).visible,false,'and it clears sooner');
-  const root=new THREE.Group();applyFlatten(root,.3);assert(root.visible&&root.scale.y<.2);
+  assert.equal(shatterTime(false),FLATTEN.shatter);assert.equal(shatterTime(true),FLATTEN.calmShatter);assert(FLATTEN.calmShatter<FLATTEN.shatter);
+  assert(flattenPose(FLATTEN.calmShatter-.01,{reducedMotion:true}).visible,'held under reduced motion too');
+  assert.equal(flattenPose(FLATTEN.calmShatter,{reducedMotion:true}).visible,false,'and it breaks sooner');
+  const root=new THREE.Group();applyFlatten(root,.2);assert(root.visible&&root.scale.y<.25);
   applyFlatten(root,2);assert.equal(root.visible,false);
 }
-console.log('PASS pressed flat in a blink, held flat for a beat, peeled away without re-inflating');
+console.log('PASS pressed flat in a blink, held flat for a beat, then gone the frame it breaks');
 
 // --- the real enemy views use it --------------------------------------------
 {
@@ -116,8 +123,9 @@ console.log('PASS pressed flat in a blink, held flat for a beat, peeled away wit
   const view={root:new THREE.Group(),loaded:true,deathTime:0,mixer:{update(){}},action:{setEffectiveTimeScale(){}}};
   const e={x:5,y:2,dir:1,speed:1.5,alive:false};
   const frames=[];for(let i=0;i<60;i++){animateEnemy(view,e,1/60,'playing');frames.push({sy:view.root.scale.y,visible:view.root.visible});}
-  assert(frames.slice(10,30).every(f=>f.visible&&f.sy<.2),'a stomped clayling lies flat on the deck, still visible');
+  assert(frames.slice(6,19).every(f=>f.visible&&f.sy<.25),'a stomped clayling lies flat on the deck, still visible');
   assert.equal(frames.at(-1).visible,false,'and is gone within a second');
+  const gone=frames.findIndex(f=>!f.visible);assert(Math.abs((gone+1)/60-FLATTEN.shatter)<=1/60+1e-9,`gone on the shatter beat (${gone}), for clay-shatter.js to break`);
   const frozen=view.deathTime;animateEnemy(view,e,1/60,'paused');assert.equal(view.deathTime,frozen,'pausing holds the squash where it is');
   // A spore puff is pressed flat like the rest, and leaves in its own spores:
   // the cloud it throws when attacking is released around the disc instead.
@@ -126,10 +134,10 @@ console.log('PASS pressed flat in a blink, held flat for a beat, peeled away wit
   for(const m of motes)cloud.add(m);
   const spore={root:new THREE.Group(),pose:new THREE.Group(),cloud,motes,deathTime:0,clock:0},dead={x:0,y:0,dir:1,alive:false};
   const reach=()=>motes.map(m=>m.position.length());
-  for(let i=0;i<20;i++)animateSpore(spore,dead,1/60,'playing');
-  assert(spore.pose.visible&&spore.pose.scale.y<.2,'a spore puff is pressed flat');
+  for(let i=0;i<12;i++)animateSpore(spore,dead,1/60,'playing');
+  assert(spore.pose.visible&&spore.pose.scale.y<.25,'a spore puff is pressed flat');
   assert(spore.cloud.visible&&motes.every(m=>m.scale.x>0),'and lets its spores go as it goes');
-  const opening=reach();for(let i=0;i<15;i++)animateSpore(spore,dead,1/60,'playing');
+  const opening=reach();for(let i=0;i<8;i++)animateSpore(spore,dead,1/60,'playing');
   assert(reach().every((d,i)=>d>opening[i]),'the cloud keeps opening out around the body');
   assert.deepEqual(spore.cloud.scale.toArray(),[1,1,1],'pressing the body flat never squashes the cloud with it');
   const held=JSON.stringify(reach());animateSpore(spore,dead,1/60,'paused');
@@ -138,7 +146,7 @@ console.log('PASS pressed flat in a blink, held flat for a beat, peeled away wit
   assert(!spore.cloud.visible&&!spore.pose.visible,'a beat later both the disc and the spores are gone');
   const {animateSpitter}=await import('../dist/spitter.js');
   const spitter={root:new THREE.Group(),deathTime:0,reducedMotion:false};
-  for(let i=0;i<20;i++)animateSpitter(spitter,{x:0,y:0,dir:1,alive:false},1/60,'playing');
-  assert(spitter.root.visible&&spitter.root.scale.y<.2&&spitter.root.scale.x>1.3,'an echo spitter is flattened, not shrunk away');
+  for(let i=0;i<12;i++)animateSpitter(spitter,{x:0,y:0,dir:1,alive:false},1/60,'playing');
+  assert(spitter.root.visible&&spitter.root.scale.y<.25&&spitter.root.scale.x>1.5,'an echo spitter is flattened, not shrunk away');
 }
 console.log('PASS claylings, spore puffs and echo spitters are pressed flat by the real enemy views');

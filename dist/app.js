@@ -87,7 +87,7 @@ function onEvent(e){
   if(e.type==='checkpoint')saveJourney();
   if(e.type==='mother-defeat')saveJourney();
   if(e.type==='stamp')saveJourney();
-  if(e.type==='activate'){toast(e.message?.split(' · ')[0]||'Mechanism opened');saveJourney();}
+  if(e.type==='activate')saveJourney();
   // The hand cue is a tutorial, not furniture: once a few stations have been
   // finished, the violet clay and its idle squash carry the message alone.
   if(e.type==='shape'){

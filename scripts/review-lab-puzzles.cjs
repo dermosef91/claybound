@@ -18,7 +18,7 @@ fs.mkdirSync(out,{recursive:true});
   await route.fulfill({contentType:'text/javascript',body});
  });
  await page.goto('http://127.0.0.1:5174');await page.waitForFunction(()=>document.body.classList.contains('title-scene-ready'),null,{timeout:120000});
- await page.locator('#chapters').click();await page.keyboard.press('ß');await page.locator('[data-action="playground"]').click();
+ await page.locator('#chapters').click();await page.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'ß'})));await page.locator('[data-action="playground"]').click();
  try{await page.waitForFunction(()=>window.playtest?.game.level.playground&&document.getElementById('loading').classList.contains('hidden'),null,{timeout:60000});}
  catch(e){await page.screenshot({path:out+'/debug-load.png'});console.error('LOADSTATE',await page.evaluate(()=>({playground:window.playtest?.game?.level?.playground,status:window.playtest?.game?.status,loading:document.getElementById('loading').className,text:document.body.innerText.slice(0,300)})));throw e;}
  await page.evaluate(()=>{playtest.manual=true;playtest.draw();});

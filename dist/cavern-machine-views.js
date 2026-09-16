@@ -33,10 +33,13 @@ export function createCavernMachine(w,s,root){
     w.box(s.w,.32,1.9,'top',root,s.w/2,-.16,0,.15);w.box(s.w-.12,.25,1.6,'barkLight',root,s.w/2,-.43,0,.1);
     for(const x of [.12,s.w-.12]){w.cylinder(.08,.55,'barkLight',root,x,.15,-.8);w.ball(.13,.13,.13,'gold',root,x,.44,-.8);}
     v.axle=new THREE.Group();root.add(v.axle);
-    v.arm=w.box(1,.19,.3,'barkLight',v.axle,0,0,-1.2,.07);
+    // The spoke is a rope from hub to deck, not a plank: one continuous line
+    // that ties the ring, hub and cradle into a single hoist.
+    v.arm=w.box(1,.16,.16,'rope',v.axle,0,0,-1.2,.06);
     if((s.phase||0)<0){
       const wheel=new THREE.Group();v.axle.add(wheel);v.wheel=wheel;
-      w.mesh(new THREE.TorusGeometry(s.moveY||4,.19,10,64),'terrain2',wheel,0,0,-1.6);
+      // A thick clay ring; the thin tube read as wire against the collars.
+      w.mesh(new THREE.TorusGeometry(s.moveY||4,.3,10,64),'terrain2',wheel,0,0,-1.6);
       w.ball(.75,.75,.28,'terrain2',wheel,0,0,-1.48);w.ball(.37,.37,.34,'gold',wheel,0,0,-1.3);
       for(let i=0;i<10;i++){
         const a=i*Math.PI/5,r=(s.moveY||4);

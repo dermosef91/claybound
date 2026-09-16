@@ -22,13 +22,18 @@ export function prepareEnemyAsset(w,gltf,motion){
   w.enemyAsset={scene:gltf.scene,clip,motion};
   for(const view of w.enemyViews?.values()||[])if(!['bat','drifter','spore','spitter'].includes(view.kind))attachEnemyView(w,view);
 }
+// Every view keeps its creature, so a view the level has already let go of —
+// a boss minion the fight has cleared — can still finish its squash.
 export function createEnemyView(w,e){
+  const view=buildEnemyView(w,e);view.enemy=e;return view;
+}
+function buildEnemyView(w,e){
   if(e.kind==='spitter')return createSpitterView(w,e);
   if(e.kind==='spore')return createSporeView(w,e);
   if(e.kind==='bat')return createBatView(w,e);
   if(e.kind==='drifter')return createDrifterView(w,e);
   const root=new THREE.Group();root.name='Clayling '+e.id;root.position.set(e.x,e.y+.065,.35);w.levelRoot.add(root);
-  const view={root,id:e.id,turn:e.dir>0?0:Math.PI,deathTime:0,loaded:false};
+  const view={root,id:e.id,turn:e.dir>0?0:Math.PI,deathTime:0,loaded:false,reducedMotion:!!w.reducedMotion};
   root.rotation.y=view.turn;
   if(w.enemyAsset)attachEnemyView(w,view);return view;
 }
@@ -54,7 +59,8 @@ export function animateEnemy(view,e,dt,status){
     const angle=e.dir>0?0:Math.PI;view.turn+=(angle-view.turn)*(1-Math.exp(-22*step));view.root.rotation.y=view.turn;
     view.action.setEffectiveTimeScale(e.speed/1.65);view.mixer.update(step);
   }else{
-    view.deathTime+=step;applyFlatten(view.root,view.deathTime);
+    // Pressed flat on the deck; clay-shatter.js breaks the disc from world.render.
+    view.deathTime+=step;applyFlatten(view.root,view.deathTime,{reducedMotion:view.reducedMotion});
   }
 }
 export function releaseEnemyView(view){

@@ -1,7 +1,7 @@
 // How the world answers the player as clay rather than as stone. Two small,
 // deterministic responses, kept apart from the renderer so they can be tested
 // without one: a slab that gives under a landing and springs back past rest,
-// and a creature that is pressed flat, stays pressed, then peels away.
+// and a creature that is pressed flat, stays pressed, then breaks apart.
 //
 // Neither moves a collider. Both freeze with the game and calm under reduced
 // motion, because the point is that the material reads as soft — not that the
@@ -71,30 +71,38 @@ export function applyDent(view,s){
 
 // --- a creature is pressed flat ---------------------------------------------
 
-// Pressed in a blink, held long enough to be seen, then peeled away. The hold
-// is the whole point: a creature that vanishes on contact reads as deleted, one
-// left as a disc on the deck reads as squashed.
-export const FLATTEN=Object.freeze({press:.08,hold:.62,peel:.86,flat:.13,spread:1.5});
-const easeOut=t=>1-(1-t)**3;
-const clamp01=t=>Math.max(0,Math.min(1,t));
+// Pressed in a blink, held long enough to be seen, then the disc gathers itself
+// and is gone — broken into the clumps clay-shatter.js throws from the same
+// spot. The hold is still the point: a creature that vanishes on contact reads
+// as deleted, one left pressed on the deck for a beat reads as squashed. Height
+// drops to under a fifth, and the clay spreads more across the screen than into
+// it, which is the axis a side-on camera can see. The swell before the break is
+// an announcement: the disc thickens and draws in, so the clumps that follow
+// have been led up to rather than cut to. Under reduced motion the hold is
+// shorter and there is neither settling wobble nor swell.
+export const FLATTEN=Object.freeze({press:.08,still:.32,shatter:.40,calmShatter:.30,flat:.18,spread:1.6,spreadZ:1.3,swellY:.30,swellX:1.42,swellZ:1.18});
+export const shatterTime=reducedMotion=>reducedMotion?FLATTEN.calmShatter:FLATTEN.shatter;
+const easeInOut=t=>t<.5?2*t*t:1-2*(1-t)*(1-t);
 
 export function flattenPose(time,{reducedMotion=false}={}){
   const t=Math.max(0,Number(time)||0);
-  const hold=reducedMotion?.38:FLATTEN.hold,peel=reducedMotion?.56:FLATTEN.peel;
-  if(t>=peel)return {sx:0,sy:0,sz:0,visible:false};
+  if(t>=shatterTime(reducedMotion))return {sx:0,sy:0,sz:0,visible:false};
   if(t<FLATTEN.press){
-    const k=easeOut(t/FLATTEN.press);
-    const sy=1+(FLATTEN.flat-1)*k,spread=1+(FLATTEN.spread-1)*k;
-    return {sx:spread,sy,sz:spread,visible:true};
+    // Eased in, so the first frames — the ones the hit-stop holds — show a
+    // body half-crushed under the feet, and the collapse finishes as the
+    // player lifts off it.
+    const k=easeInOut(t/FLATTEN.press);
+    return {sx:1+(FLATTEN.spread-1)*k,sy:1+(FLATTEN.flat-1)*k,sz:1+(FLATTEN.spreadZ-1)*k,visible:true};
   }
-  if(t<hold){
-    // A clay disc settles once after the impact, then lies still.
-    const since=t-FLATTEN.press,wobble=reducedMotion?0:Math.sin(since*38)*Math.exp(-since*9)*.035;
-    return {sx:FLATTEN.spread-wobble,sy:FLATTEN.flat+wobble,sz:FLATTEN.spread-wobble,visible:true};
+  // A clay disc settles once after the impact, then lies still. The settle has
+  // died away to nothing visible by the time the swell begins.
+  const since=t-FLATTEN.press,wobble=reducedMotion||t>=FLATTEN.still?0:Math.sin(since*38)*Math.exp(-since*12)*.035;
+  let sx=FLATTEN.spread-wobble,sy=FLATTEN.flat+wobble,sz=FLATTEN.spreadZ-wobble*.6;
+  if(!reducedMotion&&t>=FLATTEN.still){
+    const k=(t-FLATTEN.still)/(FLATTEN.shatter-FLATTEN.still),swell=k*k;
+    sx+=(FLATTEN.swellX-FLATTEN.spread)*swell;sy+=(FLATTEN.swellY-FLATTEN.flat)*swell;sz+=(FLATTEN.swellZ-FLATTEN.spreadZ)*swell;
   }
-  // Peeled away while still flat, so it never pops back into a standing shape.
-  const k=clamp01((t-hold)/(peel-hold)),shrink=1-easeOut(k);
-  return {sx:FLATTEN.spread*shrink,sy:FLATTEN.flat*shrink,sz:FLATTEN.spread*shrink,visible:true};
+  return {sx,sy,sz,visible:true};
 }
 
 export function applyFlatten(root,time,options){

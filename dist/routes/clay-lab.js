@@ -1,8 +1,9 @@
 import {p,row,path} from '../route-authoring.js';
 
 // The Clay Lab: a flat workshop bench of experiments that ask what clay does
-// beyond holding a shape you pushed it into. Nothing here is in the campaign —
-// every station carries a `rule`, and no chapter station has one.
+// beyond holding a shape you pushed it into. Every station carries a `rule`;
+// one of them, the formable mass, has gone on into the campaign as the
+// canyon's Sandwright's Pocket, and the rest are still only here.
 //
 // The bench is deliberately boring underneath: one long safe floor at y 0 with
 // a pit only where an experiment needs a consequence. You can walk between
@@ -159,7 +160,7 @@ const shaping=[
   {id:'form',rule:'form',icon:'knead',name:'Fully formable clay',verb:'Grab it and drag',gesture:'up',
    parts:['form-mass'],x:108,end:141,spawn:{x:111,y:0,groundId:'form-dock'},
    clump:[[0,-.8],[1,-.8]],
-   hint:'Grab any point of the clay and drag: pull up a pillar or a step, push down a bowl, drag sideways to stretch a bridge. Press in from the air to dent it, hold E to raise a step ahead of you. Stomp it and it craters and throws you straight back up. It keeps its volume, so what rises here sinks there, and left alone it slowly slumps back. R resets it.'},
+   hint:'Grab any point of the clay and drag: pull up a pillar or a step, push down a bowl, drag sideways to stretch a bridge. Press in from the air to dent it, hold E to work the clay ahead of you into a step. Stomp it and it craters and throws you straight back up. It keeps its volume, so what rises here sinks there, and left alone it slowly slumps back. R resets it.'},
   // The lump thins to nothing at the ends of its footprint, so it sits on the
   // bench as a square blob with the bench bare on either side.
   {id:'lump',rule:'form',free:true,icon:'knead',name:'A lump on the bench',verb:'Grab it and drag',gesture:'up',
@@ -223,7 +224,7 @@ const L={
   // The lintel's sits under the lintel, so only the trench reaches it; the vault's is behind the
   // grate; the wet perch's needs the pillar and the throw; the marble's is over
   // the lift, which only the seated marble sets running.
-  stamps:[{x:60.4,y:13},{x:22.8,y:2.9},{x:124.1,y:9},{x:151,y:13},{x:182,y:-.9},{x:214.5,y:0},{x:259,y:1.5},{x:286.5,y:10.3},{x:344.5,y:6.6}],
+  stamps:[{x:60.4,y:13},{x:22.8,y:2.9},{x:124.1,y:9},{x:151,y:13},{x:182,y:-.87},{x:214.5,y:0},{x:259,y:1.5},{x:286.5,y:10.3},{x:344.5,y:6.6}],
   hints:shaping.map(s=>({x:s.x,end:s.end-.001,icon:s.icon,title:s.name,text:s.hint})),
   routeLinks:path([
     'lab-start','sag-perch',['sag-block','fall'],['sag-exit','walk'],

@@ -78,7 +78,9 @@ function anchor(view,L,player){
     top=Math.max(top,s.form?s.y-s.h+formPeak(s.form):s.y+(s.slope||0));bottom=Math.min(bottom,s.y-(s.h??.65));
   }
   if(!Number.isFinite(left))return null;
-  const x=gesture.reach?left+Math.min((right-left)*.65,1.65):(left+right)/2;
+  // A station may say where on its clay the first stroke belongs — a mass
+  // wide enough to hold two towers has nothing to point at in its middle.
+  const x=Number.isFinite(station.cueX)?station.cueX:gesture.reach?left+Math.min((right-left)*.65,1.65):(left+right)/2;
   // A rising stroke draws its run above the clay, so the hand sits on the top
   // face and keeps lower in the view to leave the arrow room overhead.
   if(gesture.rise)return {x,y:Math.max(bottom+1,Math.min(top+.35,player.y+3))};

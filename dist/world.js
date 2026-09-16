@@ -45,6 +45,7 @@ import {dentable,kickDent,stepDent,applyDent} from './clay-feel.js';
 import {CLAY_PALETTE} from './palette.js';
 import {createGoal} from './goal.js';
 import {burstSporePod,updateSporeParticle,disposeSporeParticle} from './spore-effects.js';
+import {settleSquash,updateClayClump} from './clay-shatter.js';
 import {loadMotherPuff,createMotherArenaFloor,animateMotherPuff,motherCamera,motherViewHeight} from './mother-puff.js';
 import {updateMotherTrail} from './mother-puff-trail.js';
 
@@ -374,12 +375,13 @@ export class World {
     else if(e.type==='break'&&e.spore)burstSporePod(this,e);
     else if(e.type==='crumble-collapse')clayFragments(this,e.x,e.y,e.w,24,1.1,true);
     else if(e.type==='press-impact'){clayFragments(this,e.x,e.y,e.w+1,14,.85);if(Math.abs(this.cameraX-e.x)<this.viewW*.6)this.addTrauma(.45);}
-    else if(e.type==='squish'&&e.kind==='spore')this.burst(e.x,e.y,'spore',16,.75);
     else if(e.type==='shot-pop'||e.type==='spitter-fire')this.burst(e.x,e.y,'gold',e.type==='shot-pop'?5:3,.4);
-    else if(e.type==='squish'&&e.kind==='spitter'){this.burst(e.x,e.y,'accent',12,.9);this.burst(e.x,e.y,'orangeLight',8,.7);}
     else if(e.type==='spore-leap'||e.type==='spore-land')this.burst(e.x,e.y,'dust',6,.4);
     else if(e.type==='squish'&&e.kind==='drifter')burstDrifterLeaves(this,e.x,e.y);
-    else if(['land','jump','coin','stamp','break','spring','squish','checkpoint','hurt','step','skid','activate','shape','drifter-bump'].includes(e.type))
+    // A stomped creature's own pellets and clumps come from settleSquash in
+    // render, where its pressed disc actually is; only the spore puff's spores
+    // and the drifter's leaves are still thrown from here.
+    else if(['land','jump','coin','stamp','break','spring','checkpoint','hurt','step','skid','activate','shape','drifter-bump'].includes(e.type))
       this.burst(e.x,e.y,e.type==='coin'||e.type==='stamp'?'gold':e.type==='hurt'||e.type==='break'?'orange':'dust',e.type==='step'?2:e.type==='stamp'||e.type==='break'?23:e.type==='jump'?7:10,e.type==='step'?.3:e.type==='break'?2:1);
     if(e.type==='land')this.addTrauma(landTrauma(e.impact||7));
     if(e.type==='break'||e.type==='hurt')this.addTrauma(.75);
@@ -393,21 +395,27 @@ export class World {
     }
     if(e.type==='complete')this.burst(this.character.root.position.x,this.character.root.position.y+1.8,'gold',44,2.5);
   }
-  updateParticles(dt){
+  // `press` is where the player's feet stand, when they stand: resting clay
+  // clumps under them are pressed flat and away.
+  updateParticles(dt,press=null){
     if(dt<=0)return;
     for(let i=this.particles.length-1;i>=0;i--){
       const q=this.particles[i];q.life-=dt;
-      if(q.kind==='spore-shell'||q.kind==='spore-bloom')updateSporeParticle(q,dt);
-      else if(q.kind==='mother-trail')updateMotherTrail(q,dt);
-      else if(q.kind==='drifter-leaf'){
-        const age=q.maxLife-q.life,drag=Math.exp(-dt*1.8);
-        q.vx*=drag;q.vz*=drag;q.vy-=3*dt;
-        q.mesh.position.x+=(q.vx+Math.sin(age*13+q.phase)*.28)*dt;
-        q.mesh.rotation.x+=q.spinX*dt;q.mesh.rotation.y+=q.spinY*dt;q.mesh.rotation.z+=q.spinZ*dt;
-        // Shrink away at the end without allocating transparent materials.
-        q.mesh.scale.multiplyScalar(Math.exp(-dt*(q.life<.22?12:.45)));
-      }else{q.vy-=9*dt;q.mesh.position.x+=q.vx*dt;q.mesh.scale.multiplyScalar(1-dt*.65);if(q.kind==='clay-chip'){q.mesh.rotation.x+=q.spinX*dt;q.mesh.rotation.z+=q.spinZ*dt;}}
-      q.mesh.position.y+=q.vy*dt;q.mesh.position.z+=q.vz*dt;
+      // Clumps and pellets land on a deck, so they integrate their own fall.
+      if(q.kind==='clay-clump'||q.kind==='clay-pellet')updateClayClump(q,dt,press);
+      else{
+        if(q.kind==='spore-shell'||q.kind==='spore-bloom')updateSporeParticle(q,dt);
+        else if(q.kind==='mother-trail')updateMotherTrail(q,dt);
+        else if(q.kind==='drifter-leaf'){
+          const age=q.maxLife-q.life,drag=Math.exp(-dt*1.8);
+          q.vx*=drag;q.vz*=drag;q.vy-=3*dt;
+          q.mesh.position.x+=(q.vx+Math.sin(age*13+q.phase)*.28)*dt;
+          q.mesh.rotation.x+=q.spinX*dt;q.mesh.rotation.y+=q.spinY*dt;q.mesh.rotation.z+=q.spinZ*dt;
+          // Shrink away at the end without allocating transparent materials.
+          q.mesh.scale.multiplyScalar(Math.exp(-dt*(q.life<.22?12:.45)));
+        }else{q.vy-=9*dt;q.mesh.position.x+=q.vx*dt;q.mesh.scale.multiplyScalar(1-dt*.65);if(q.kind==='clay-chip'){q.mesh.rotation.x+=q.spinX*dt;q.mesh.rotation.z+=q.spinZ*dt;}}
+        q.mesh.position.y+=q.vy*dt;q.mesh.position.z+=q.vz*dt;
+      }
       if(q.life<=0){this.fxRoot.remove(q.mesh);disposeSporeParticle(q);this.particles.splice(i,1);}
     }
   }
@@ -503,7 +511,10 @@ export class World {
       animateCavernMachine(view,s,this);
     }
     animateShapeHands(this,game,dt,game.status==='playing');
-    L.enemies.forEach(e=>animateEnemy(this.enemyViews.get(e.id),e,dt,game.status));
+    for(const e of L.enemies){const view=this.enemyViews.get(e.id);animateEnemy(view,e,dt,game.status);settleSquash(this,e,view,L.platforms);}
+    // A creature the level has already let go of — a boss minion the fight has
+    // cleared — still finishes its squash from its view before streaming drops it.
+    for(const view of this.enemyViews.values()){const e=view.enemy;if(e&&!e.alive&&!L.enemies.includes(e)){animateEnemy(view,e,dt,game.status);settleSquash(this,e,view,L.platforms);}}
     syncShots(this,game);
     animateMotherPuff(this,game);
     L.coins.forEach((c,i)=>{const g=this.coinViews[i];if(!g)return;g.visible=!c.taken;g.position.y=c.y+Math.sin(t*2.5+i*.5)*.09;g.rotation.y=Math.sin(t*1.3+i*.7)*.48;g.rotation.z=Math.sin(t*.6+i)*.08;});
@@ -523,7 +534,8 @@ export class World {
     animateEnvironment(this,dt);
     animateDepthScenery(this,game,dt);
     if(this.bell)this.bell.rotation.z=game.status==='complete'?Math.sin(t*14)*.3:Math.sin(t*2)*.035;
-    this.updateParticles(game.status==='paused'||edit?0:dt);
+    this.pressPoint??={x:0,y:0};this.pressPoint.x=p.x;this.pressPoint.y=p.y;
+    this.updateParticles(game.status==='paused'||edit?0:dt,p.groundId&&!edit?this.pressPoint:null);
     // Frustum culling happens per mesh; distant background is intentionally low detail.
     renderCitadelDepth(this);
   }

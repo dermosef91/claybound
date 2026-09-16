@@ -20,6 +20,10 @@
 // of its footprint, so it reads as a lump on a surface rather than a slab let
 // into it — but between its two ends it never thins past `minThick`, so it is
 // still one lump, however far it is spread.
+//
+// Left alone, a mass slumps back towards its clump; a mass in a chapter may
+// switch that slump off, so a bridge the player made is still there when they
+// come back to it, and R is the one way home.
 
 export const FORM=Object.freeze({
   // One column every quarter unit: fine enough that a step is a step and a bowl
@@ -66,9 +70,11 @@ export const FORM=Object.freeze({
   // the way the packed lump does — but the first time, every time. Straight up
   // this fast is about six and two-thirds units of height.
   launch:19,
-  // Holding E raises a step ahead of the player at this rate, this wide: wide
-  // enough that a step rounded to the corner limit can still stand a step tall.
-  knead:1.4,stepReach:1.3,stepRadius:1.35,
+  // Holding E works the clay ahead of the player into a step at this rate,
+  // this wide (wide enough that a step rounded to the corner limit can still
+  // stand a step tall), aiming `stepRise` of a walkable step above the feet:
+  // raising clay that lies lower, pressing down clay that towers.
+  knead:1.4,stepReach:1.3,stepRadius:1.35,stepRise:.8,
   // Left alone — no hand on it, nobody standing on it — for `settle` seconds,
   // the clay slumps back towards its authored clump: exponentially with this
   // time constant, and never slower than `relaxMin` a second, so it does get
@@ -79,7 +85,8 @@ export const FORM=Object.freeze({
   // all over: nobody lands on it or stands on it, they slide down it.
   step:.55,walk:1.7,
   // How much of the clay's volume has to have moved for the station to read
-  // as shaped in the pause menu: about one full pillar's worth.
+  // as shaped in the pause menu: about one full pillar's worth. A station may
+  // ask for more, where a dab must not count as the work.
   shaped:.08,
 });
 
@@ -152,11 +159,15 @@ export const formRest=(f,x)=>sample(f,f.rest,x);
 export function formPeak(f){let top=0;for(let i=0;i<f.n;i++)top=Math.max(top,f.h[i]);return top;}
 
 // How much of the clay has been moved from its clump, as a share of the work
-// the station counts as shaped. Half the absolute difference, since every unit
-// raised somewhere is a unit lowered somewhere else.
-export function formShare(f){
+// the station counts as shaped — `share` of the volume, the lab's by default.
+// Half the absolute difference, since every unit raised somewhere is a unit
+// lowered somewhere else.
+export function formMoved(f){
   let moved=0;for(let i=0;i<f.n;i++)moved+=Math.abs(f.h[i]-f.rest[i]);
-  return clamp(moved*f.dx/2/(f.volume*FORM.shaped),0,1);
+  return moved*f.dx/2;
+}
+export function formShare(f,share=FORM.shaped){
+  return clamp(formMoved(f)/(f.volume*(real(share)&&share>0?share:FORM.shaped)),0,1);
 }
 
 // --- the passes every deformation goes through --------------------------------
@@ -266,13 +277,15 @@ function keepWhole(f){
 // reach is drawn up narrower and taller rather than having its own crest taken
 // back. Each pass respects the floor and the ceiling, so a few passes are
 // enough; if the reach itself is all there is, the last passes take evenly.
-function conserve(f,x,radius){
+function conserve(f,x,radius,guard){
   const {h,n,dx,q}=f,local=real(x);
   let excess=total(h,n)*dx-f.volume;
   for(let pass=0;pass<10&&Math.abs(excess)>1e-9;pass++){
     const removing=excess>0;let sum=0;
     for(let i=0;i<n;i++){
-      const room=Math.max(0,removing?h[i]-f.low[i]:FORM.maxHeight-h[i]);
+      // Guarded columns — the ground under a player kneading with E — give
+      // up nothing, so the key never digs the floor out from under its user.
+      const room=guard&&removing&&Math.abs(i*dx-guard.x)<guard.radius?0:Math.max(0,removing?h[i]-f.low[i]:FORM.maxHeight-h[i]);
       let g=1;
       if(local){const d=i*dx-x,w=kernel(d/radius),away=(1-w)*(1-w);g=(FORM.far+Math.exp(-d*d/(2*FORM.spread*FORM.spread)))*(pass<4?away:pass<7?away*.97+.03:1);}
       q[i]=room*g;sum+=q[i];
@@ -285,9 +298,9 @@ function conserve(f,x,radius){
   return excess;
 }
 
-function finish(f,x,radius,{soften=0}={}){
+function finish(f,x,radius,{soften=0,guard=null}={}){
   if(real(x)&&soften>0)smooth(f,x,radius,soften);
-  limitSlope(f);limitCurve(f);clampAll(f);keepWhole(f);conserve(f,x,radius);
+  limitSlope(f);limitCurve(f);clampAll(f);keepWhole(f);conserve(f,x,radius,guard);
   // Putting the volume back can steepen a face or sharpen a corner a little;
   // the limits have the last word, and hand clay between neighbours without
   // changing the total.
@@ -314,7 +327,7 @@ export function easeForm(f){
 // part carries the surface along with the hand, so a pillar dragged sideways
 // leans into a ramp and a mound pulled apart stretches into a bridge; the
 // upward part raises it, the downward part presses it.
-export function pullForm(f,x,dxh,dyh,radius=FORM.radius){
+export function pullForm(f,x,dxh,dyh,radius=FORM.radius,guard=null){
   if(!real(x)||!real(dxh)||!real(dyh)||!(radius>0))return false;
   if(!dxh&&!dyh)return false;
   const {h,scratch,dx}=f,[lo,hi]=range(f,x,radius);
@@ -323,7 +336,7 @@ export function pullForm(f,x,dxh,dyh,radius=FORM.radius){
     const w=kernel((i*dx-x)/radius);if(!w)continue;
     h[i]=sample(f,scratch,i*dx-dxh*w)+dyh*w;
   }
-  finish(f,x,radius,{soften:Math.hypot(dxh,dyh)});
+  finish(f,x,radius,{soften:Math.hypot(dxh,dyh),guard});
   return true;
 }
 
@@ -381,12 +394,13 @@ export function beginForm(f){f.prev.set(f.h);}
 
 // One fixed tick with the hand and the boots accounted for. Left alone long
 // enough, every column slumps back towards the clump, and what weight pressed
-// in is forgiven at the same rate. Returns whether the surface moved.
-export function stepForm(f,dt,{hand=false,standing=false}={}){
+// in is forgiven at the same rate — unless the slump is off, in which case the
+// clay simply holds whatever it was made. Returns whether the surface moved.
+export function stepForm(f,dt,{hand=false,standing=false,relax=true}={}){
   const step=clamp(finite(dt),0,1/30);
   if(!step)return false;
   const eased=easeForm(f),pace=f.pace||PACE;
-  f.idle=hand||(standing&&pace.holdUnderfoot)?0:f.idle+step;
+  f.idle=hand||(standing&&pace.holdUnderfoot)||!relax?0:f.idle+step;
   if(f.idle<=pace.settle)return eased;
   const {h,rest,dent,n}=f,k=1-Math.exp(-step/pace.relaxTime),floor=pace.relaxMin*step;
   let moved=0;

@@ -128,14 +128,17 @@ for(let i=90;i<1300;i++){
     assert(Math.abs(box.min.y-floor.y)<.006,'rotating source leaves touch the actual deck');
   }
 }
-e.alive=false;animateEnemy(a,e,dt,'playing');assert.equal(a.root.visible,false,'defeated model vanishes immediately');
-burstDrifterLeaves(w,e.x,e.y);assert.equal(w.particles.length,14);
+e.alive=false;for(let i=0;i<12;i++)animateEnemy(a,e,dt,'playing');
+assert(a.root.visible&&a.root.scale.y<.25&&a.root.scale.x>1.5,'a defeated drifter is pressed flat like every other creature');
+assert(a.grains.every(g=>!g.visible),'and its trailing grains stop with it');
+for(let i=0;i<60;i++)animateEnemy(a,e,dt,'playing');assert.equal(a.root.visible,false,'the disc is gone once it breaks');
+burstDrifterLeaves(w,e.x,e.y);assert.equal(w.particles.length,10);
 assert(w.particles.every(q=>q.mesh.name==='Drifter clay leaf'&&q.mesh.geometry===w.particles[0].mesh.geometry));
 const leaf=w.particles[0],before=leaf.mesh.quaternion.clone(),position=leaf.mesh.position.clone();
 w.updateParticles(.1);assert(!leaf.mesh.quaternion.equals(before));assert(!leaf.mesh.position.equals(position));
 const leafState=JSON.stringify(w.particles.map(q=>[q.life,q.mesh.position,q.mesh.rotation]));w.updateParticles(0);assert.equal(JSON.stringify(w.particles.map(q=>[q.life,q.mesh.position,q.mesh.rotation])),leafState);
 for(let i=0;i<120;i++)w.updateParticles(dt);assert.equal(w.particles.length,0);assert.equal(w.fxRoot.children.length,0);
-w.reducedMotion=true;burstDrifterLeaves(w,0,0);assert.equal(w.particles.length,6);
+w.reducedMotion=true;burstDrifterLeaves(w,0,0);assert.equal(w.particles.length,5);
 for(let i=0;i<30;i++)burstDrifterLeaves(w,0,0);assert.equal(w.particles.length,110,'multiple bursts honor the existing effect budget');
 let shared=0;for(const geometry of w.assetGeometry)geometry.addEventListener('dispose',()=>shared++);
 releaseEnemyView(a);releaseEnemyView(b);assert.equal(shared,0);assert(a.loaded&&b.loaded);assert.equal(a.grains.length,5);

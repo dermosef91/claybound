@@ -27,7 +27,11 @@ export function makeRoom(data,seam,gap){
     }
   for(const key of ['x','left','right','triggerX'])if(d.boss?.[key]!==undefined)d.boss[key]=move(d.boss[key]);
   if(d.spawn)d.spawn.x=move(d.spawn.x);
-  for(const station of d.shaping||[]){station.x=move(station.x);station.end=move(station.end);station.spawn.x=move(station.spawn.x);}
+  for(const station of d.shaping||[]){
+    station.x=move(station.x);station.end=move(station.end);station.spawn.x=move(station.spawn.x);
+    if(station.cueX!==undefined)station.cueX=move(station.cueX);
+    for(const stroke of station.solution||[])stroke.x=move(stroke.x);
+  }
   d.end=move(d.end);
   return d;
 }

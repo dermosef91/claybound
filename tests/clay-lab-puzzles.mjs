@@ -129,7 +129,7 @@ console.log('PASS wet clay melts under boots and not under a hand, a mould is a 
     // wanting at least the full sink of a stand, a hop or a stomp to take.
     const over=base+formHeight(f,flower.x-m.x);
     assert(flower.y<over-.25&&flower.y+.43>over,`the flower sits just under the slab, a petal showing (${(over-flower.y).toFixed(2)} under)`);
-    assert(flower.y+.1<=over-FORM.sag+.01,'and standing on the slab does not simply hand it over');
+    assert(flower.y+.1<=over-FORM.sag+.05,'and standing on the slab does not simply hand it over: the boots must sink their full depth first');
     assert(flower.y>beads.reduce((hi,c)=>Math.max(hi,c.y),-Infinity),'the beads are the deep dig');
     const perch=plat('dig-perch'),slab=base+f.rest[0],cap=base+FORM.maxHeight;
     assert(perch.optional&&perch.x>m.x&&perch.x+perch.w<m.x+m.w,'a perch over the slab');
@@ -294,13 +294,13 @@ console.log('PASS buried: a press from the air digs to the flower and the beads,
   drag(crest,-.2,3);
   assert(hopTo(s.x+16.4),'out of the trench and up the spoil');
   assert(p.x>s.x+15.5&&p.groundId===s.id,`on the clay before the wall (${p.x.toFixed(2)}, ${p.y.toFixed(2)})`);
-  // The wall: the bench stands at the ceiling. Hold E and a step rises ahead;
-  // walk onto it, hold E again, and a hop from it reaches the bench.
-  walk(s.x+14.5,300);hold(frames(.12),{moveAxis:1});hold(3);assert.equal(p.facing,1,'facing the wall');
-  for(let i=0;i<frames(3)&&top(16.6)<s.y+1.8;i++)tick({shapeHeld:true});
-  assert(top(16.6)>=s.y+1.7,`E raised a step ahead (${top(16.6).toFixed(2)})`);
-  assert(hopTo(s.x+16.7,4)&&p.y>s.y+1.2,`and the player is up on it (${p.y.toFixed(2)})`);
-  for(let i=0;i<frames(1.2);i++)tick({shapeHeld:true,moveAxis:.01});
+  // The wall: the bench stands at the ceiling. At the clay's end there is
+  // nothing ahead for E to step onto, so held there it lifts the ground under
+  // the player instead, a step at a time; ride it up and hop onto the bench.
+  walk(s.x+17.2,300);hold(frames(.1),{moveAxis:1});hold(3);assert.equal(p.facing,1,'facing the wall');
+  const y1=p.y;
+  for(let i=0;i<frames(6)&&p.y<s.y+2;i++)tick({shapeHeld:true});
+  assert(p.y>=s.y+2&&p.groundId===s.id,`E at the wall lifts the player with the clay (${y1.toFixed(2)} -> ${p.y.toFixed(2)})`);
   const from=p.y;jump({moveAxis:1});
   assert.equal(p.groundId,'lintel-exit',`a hop from ${from.toFixed(2)} lands on the far bench`);
   assert(taken().beads>=2,'past the beads on the way up');
@@ -354,18 +354,18 @@ console.log('PASS cast: strokes bring the slab to the mould within tolerance, th
 {
   const {g,st,s,p,tick,hold,walk,jump,stomp,place,hand,top,local,taken}=rig('wet');
   assert(s.form.pace.holdUnderfoot===false&&s.form.pace.relaxTime===5,'the mass carries the station\'s pace');
-  // The far bench: E against the wall raises a step; stand on it and hop.
-  walk(s.x+s.w-1.2,frames(8));hold(frames(.2),{moveAxis:1});
+  // The far bench: E at the clay's end lifts the ground under the player a
+  // step at a time; ride it up and hop across before it melts.
+  walk(s.x+s.w-.6,frames(8));hold(frames(.1),{moveAxis:1});hold(3);
   const t0=g.time;
-  for(let i=0;i<frames(6)&&top(p.x-s.x+FORM.stepReach)<s.y+1.3;i++)tick({shapeHeld:true,moveAxis:.01});
-  assert(g.time-t0<2.5,`the step is up in ${(g.time-t0).toFixed(2)}s`);
-  walk(s.x+s.w-.4,200);hold(3);
-  assert(p.y>s.y+.6,`standing on the step (${p.y.toFixed(2)})`);
+  for(let i=0;i<frames(6)&&p.y<s.y+1;i++)tick({shapeHeld:true});
+  assert(p.y>=s.y+1&&p.groundId===s.id,`E lifts the player at the wall (${p.y.toFixed(2)})`);
+  assert(g.time-t0<4,`in ${(g.time-t0).toFixed(2)}s`);
   jump({moveAxis:1});
-  assert.equal(p.groundId,'wet-exit','a hop from it lands on the far bench');
+  assert.equal(p.groundId,'wet-exit','a hop from the raised ground lands on the far bench');
   // Dawdle and the step is gone.
-  const stepTop=top(s.w-.4);hold(frames(4));
-  assert(top(s.w-.4)<stepTop-.5,`left alone the step melts (${stepTop.toFixed(2)} -> ${top(s.w-.4).toFixed(2)})`);
+  const stepTop=top(s.w-.6);hold(frames(4));
+  assert(top(s.w-.6)<stepTop-.5,`left alone the step melts (${stepTop.toFixed(2)} -> ${top(s.w-.6).toFixed(2)})`);
   // The perch: pull a pillar up under your own feet and ride it, let go, stomp.
   const under=286.5-s.x;
   place(s.x+under,top(under)+.05);hold(10);

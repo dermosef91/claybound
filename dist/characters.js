@@ -6,9 +6,13 @@
 // the baked floor corrections all address the same joint names, over the same
 // gameplay origin between the feet.
 //
-// The three newer files each arrived with a single Running cycle and their
-// exporter's prefixed joint names, so scripts/prepare-character.mjs retargets
-// the rest of the set from the original rig, and the prefix is dropped on load.
+// The supplied files each arrived with at most a single Running cycle, so
+// scripts/prepare-character.mjs retargets the rest of the set from the original
+// rig. Three of them name their joints the way the original does under a vendor
+// prefix, which hero.js drops on load. The apprentice came off another exporter
+// entirely — its own anatomy of names, no clips, and a root bone carrying the
+// tilt of whatever authored it — so scripts/prepare-rig.mjs settled its names
+// and its frame offline, before anything here ever sees it.
 //
 // `height` is how tall the character stands in world units. `orangeSource` is
 // the red level a character's texture treats as full orange: the clay shader
@@ -39,6 +43,11 @@ export const CHARACTERS=[
     id:'garden-helper',name:'Garden helper',note:'Sage, terracotta and straw.',
     model:'garden-helper.glb',motion:'garden-helper-motion.json',animation:'garden-helper-animation.json',
     height:STANDING*1.5,orangeSource:0,bonePrefix:'mixamorig'
+  },
+  {
+    id:'apprentice',name:'Clay apprentice',note:'Terracotta and cream, capped.',
+    model:'apprentice.glb',motion:'apprentice-motion.json',animation:'apprentice-animation.json',
+    height:STANDING*1.15,orangeSource:0
   }
 ];
 

@@ -1,15 +1,20 @@
-// Experimental clay behaviours, kept out of shaping.js on purpose: a chapter
-// station has no `rule`, so none of this can reach the campaign. These are the
-// ideas that ask what clay does beyond holding a shape you pushed it into —
+// Experimental clay behaviours, kept out of shaping.js on purpose. These are
+// the ideas that ask what clay does beyond holding a shape you pushed it into —
 // it gives under weight and keeps part of it, it stores the energy you press into
-// it, and it takes an impression.
+// it, it takes an impression, and it can be formed freely. Only the last has
+// left the lab: the canyon's Sandwright's Pocket is one formable mass, and
+// tests/clay-lab.mjs holds that no other rule reaches a chapter. Sag, catapult
+// and stamp stay on the bench.
 //
 // Every rule is a pure function of the station, the player and dt, so the whole
 // set can be driven headlessly.
 import {clampShape} from './shaping.js';
 import {GIVE,createGive,pressGive,kickGive,holdUnder,stepGive,giveDepth,giveVelocity,giveShare} from './clay-give.js';
-import {FORM,MOULD,createForm,resetForm,formHeight,formShare,pullForm,pressForm,pokeForm,sagForm,stepForm,beginForm,mouldProfile,mouldClump,formMatch} from './clay-form.js';
+import {FORM,MOULD,createForm,resetForm,formHeight,formShare,pullForm,pressForm,pokeForm,sagForm,stepForm,beginForm,easeForm,mouldProfile,mouldClump,formMatch} from './clay-form.js';
 import {createMarble,resetMarble,stepMarble} from './clay-marble.js';
+// The fixed tick, the same as simulation.js's FIXED_DT; named here so the
+// solver below needs nothing from the simulation.
+const TICK=1/120;
 
 export const RULES=Object.freeze(['sag','catapult','stamp','form']);
 export const isRule=name=>RULES.includes(name);
@@ -250,7 +255,7 @@ export function applyRule(game,station,dt,{near=false}={}){
     // through formHand; here weight has its say, a tap lands, and the clay
     // slumps back towards its clump when everyone has left it alone.
     const s=game.level.platforms.find(q=>q.id===station.parts[0]);if(!s)return true;
-    const f=station.form=s.form||(s.form=createForm(s.w,s.h,station.clump,{free:!!station.free})),x=p.x-s.x,base=s.y-s.h;
+    const f=massOf(station,s),x=p.x-s.x,base=s.y-s.h;
     if(station.poke){if(pokeForm(f,station.poke.x-s.x,station.poke.y-base))station.worked=true;station.poke=null;}
     // Arriving presses in proportion to the fall that was recorded while
     // airborne: the landing itself has already zeroed the player's speed.
@@ -259,7 +264,7 @@ export function applyRule(game,station,dt,{near=false}={}){
     // the clay has given what it gives is not.
     if(on&&sagForm(f,x,dt,station.punch||0))station.worked=true;
     station.punch=0;
-    stepForm(f,dt,{hand:!!station.hand,standing:on});
+    stepForm(f,dt,{hand:!!station.hand,standing:on,relax:station.relax!==false});
     // A stomp that has landed: the crater is pressed, and the clay throws the
     // stomper straight back up, as the packed lump does at full — here on the
     // first stomp, every time. Nothing rearms; the next stomp throws again.
@@ -279,7 +284,7 @@ export function applyRule(game,station,dt,{near=false}={}){
     let share;
     if(station.cast){share=formMatch(f,station.cast);s.mouldMatch=share;if(share>=MOULD.cast)station.done=true;}
     else if(station.ball){share=marbleShare(station);if(station.ball.home)station.done=true;}
-    else share=formShare(f);
+    else share=formShare(f,station.shaped);
     station.open=Math.min(1,Math.max(0,station.open+(station.done?dt:-dt)*CHASE));
     if(station.done&&station.channel)game.activate(station.channel,s.x+s.w/2,s.y,station.message||station.name+' · done');
     station.amount=station.target=station.done?1:Math.min(share,station.cast||station.ball?.99:1);
@@ -296,6 +301,8 @@ function marbleShare(station){
   const goal=(socket[0]+socket[1])/2,span=Math.abs(m.start-goal)||1;
   return Math.min(.99,Math.max(0,1-Math.abs(m.x-goal)/span));
 }
+// The formable mass a station owns, built if it is not there yet.
+const massOf=(station,s)=>station.form=s.form||(s.form=createForm(s.w,s.h,station.clump,{free:!!station.free,pace:station.pace}));
 
 // The hand on the formable mass. A pointer carries a world point every tick it
 // is down: the first tick decides whether it took hold of the clay (on or just
@@ -305,37 +312,95 @@ function marbleShare(station){
 // keyboard alone can still build a stair.
 function formHand(game,station,dt,input){
   const s=game.level.platforms.find(q=>q.id===station.parts[0]);if(!s)return true;
-  const f=station.form=s.form||(s.form=createForm(s.w,s.h,station.clump,{free:!!station.free})),base=s.y-s.h;
+  const f=massOf(station,s);
   const pointing=input.shapeId===station.id&&Number.isFinite(input.shapeX)&&Number.isFinite(input.shapeY);
   if(!pointing)station.grip=null;
-  else {
-    const x=input.shapeX-s.x,y=input.shapeY-base;
-    let g=station.grip;
-    if(!g){
-      g=station.grip={mode:y<=formHeight(f,x)+FORM.grab?'grab':'press',x,y};
-      if(g.mode==='press'&&pressForm(f,x,y,FORM.tool))station.worked=true;
-    } else {
-      let dxh=x-g.x,dyh=y-g.y;
-      const m=Math.hypot(dxh,dyh);
-      if(m>FORM.maxMove){dxh*=FORM.maxMove/m;dyh*=FORM.maxMove/m;}
-      if(g.mode==='grab'){
-        if((dxh||dyh)&&pullForm(f,g.x,dxh,dyh))station.worked=true;
-        g.x+=dxh;g.y+=dyh;
-        // The hand stays on the clay it holds: once the clay can rise or sink
-        // no further, the grip does not run on ahead of it, so reversing the
-        // stroke moves the clay straight away.
-        const top=formHeight(f,g.x);g.y=Math.min(top+FORM.grab,Math.max(top-2*FORM.grab,g.y));
-      } else {
-        g.x+=dxh;g.y+=dyh;
-        if(pressForm(f,g.x,g.y,FORM.tool))station.worked=true;
-      }
+  else formPoint(station,s,input.shapeX,input.shapeY);
+  if(input.shapeHeld&&dt>0){
+    // Holding E works the clay ahead into a step the player can walk up:
+    // raised where it lies below their feet, pressed down where it towers over
+    // them. A key alone can therefore open a pocket a pointer would lean and
+    // slump — more slowly, a step at a time — and the step it makes is never a
+    // tower, so the key builds stairs rather than walls.
+    const p=game.player,base=s.y-s.h,ahead=p.x+(p.facing||1)*FORM.stepReach-s.x;
+    if(ahead>-FORM.stepRadius&&ahead<s.w+FORM.stepRadius){
+      // Past the end of the clay there is nothing ahead to step onto, so E
+      // there lifts the ground the player stands on instead, a step at a time.
+      const at=Math.max(0,Math.min(s.w,ahead)),under=ahead!==at,want=p.y-base+FORM.step*FORM.stepRise,have=formHeight(f,under?Math.max(0,Math.min(s.w,p.x-s.x)):at);
+      const move=have<want-.03?Math.min(FORM.knead*dt,want-have):have>want+.03?-Math.min(FORM.knead*dt,have-want):0;
+      // The clay the step is drawn from is never the clay under the player.
+      if(move&&pullForm(f,at,0,move,FORM.stepRadius,{x:p.x-s.x,radius:FORM.foot+.2}))station.worked=true;
     }
   }
-  if(input.shapeHeld&&dt>0){
-    const p=game.player,ahead=p.x+(p.facing||1)*FORM.stepReach-s.x;
-    if(ahead>-FORM.stepRadius&&ahead<s.w+FORM.stepRadius&&pullForm(f,Math.max(0,Math.min(s.w,ahead)),0,FORM.knead*dt,FORM.stepRadius))station.worked=true;
-  }
   return true;
+}
+
+// One tick of a pointer at a world point over the mass: the grab-or-press
+// decision on the first tick, the clamped move and the pull or press on every
+// tick after. The pointer path and the authored solution below both come
+// through here, so what a player's hand does and what "shaped" means are one
+// and the same code.
+export function formPoint(station,s,px,py){
+  const f=massOf(station,s),x=px-s.x,y=py-(s.y-s.h);
+  let g=station.grip;
+  if(!g){
+    g=station.grip={mode:y<=formHeight(f,x)+FORM.grab?'grab':'press',x,y};
+    if(g.mode==='press'&&pressForm(f,x,y,FORM.tool))station.worked=true;
+    return;
+  }
+  let dxh=x-g.x,dyh=y-g.y;
+  const m=Math.hypot(dxh,dyh);
+  if(m>FORM.maxMove){dxh*=FORM.maxMove/m;dyh*=FORM.maxMove/m;}
+  if(g.mode==='grab'){
+    if((dxh||dyh)&&pullForm(f,g.x,dxh,dyh))station.worked=true;
+    g.x+=dxh;g.y+=dyh;
+    // The hand stays on the clay it holds: once the clay can rise or sink
+    // no further, the grip does not run on ahead of it, so reversing the
+    // stroke moves the clay straight away.
+    const top=formHeight(f,g.x);g.y=Math.min(top+FORM.grab,Math.max(top-2*FORM.grab,g.y));
+  } else {
+    g.x+=dxh;g.y+=dyh;
+    if(pressForm(f,g.x,g.y,FORM.tool))station.worked=true;
+  }
+}
+
+// --- the authored solution -------------------------------------------------------
+// A chapter's formable mass has no finished pose, so "shaped" has to be said
+// some other way: the station carries a `solution`, a list of pointer strokes
+// {x,lift,dx,dy,t} in world units and seconds — pointer down at (x, the
+// surface there + lift), moved in a straight line by (dx,dy) over t seconds,
+// then let go. Replayed through formPoint from the clump, those strokes make
+// THE solved surface: the routes sweep, the playthrough pilot and a resumed
+// checkpoint all read this one function, and the pilot plays the very same
+// inputs through the real game. It is one way across, not the only one.
+
+// The per-tick inputs for the strokes, as a player's pointer would produce
+// them. Each stroke starts where the surface is at that moment, so a stroke
+// after a lean lands on the leaned clay; hence a generator read against the
+// live mass, which the pilot ticks between inputs.
+export function* formSolutionInputs(game,station,{dt=TICK}={}){
+  const s=game.level.platforms.find(q=>q.id===station.parts[0]);if(!s)return;
+  for(const stroke of station.solution||[]){
+    const n=Math.max(1,Math.round(stroke.t/dt)),x0=stroke.x,y0=s.y-s.h+formHeight(massOf(station,s),x0-s.x)+stroke.lift;
+    for(let i=0;i<n;i++){const u=n>1?i/(n-1):0;yield {moveAxis:0,shapeId:station.id,shapeX:x0+stroke.dx*u,shapeY:y0+stroke.dy*u};}
+    yield {moveAxis:0};
+  }
+}
+
+// The solved surface, from the clump: the strokes through the real hand, tick
+// by tick, then left to ease until nothing is left to do. Needs only the
+// station and its platform, no Game. Leaves the station shaped.
+export function solveFormStation(station,s,{dt=TICK}={}){
+  const f=massOf(station,s),relax=station.relax!==false;
+  resetForm(f);station.grip=null;
+  for(const input of formSolutionInputs({level:{platforms:[s]}},station,{dt})){
+    beginForm(f);
+    if(input.shapeId)formPoint(station,s,input.shapeX,input.shapeY);else station.grip=null;
+    stepForm(f,dt,{hand:!!input.shapeId,relax});
+  }
+  for(let k=0;k<600&&easeForm(f);k++);
+  station.amount=station.target=formShare(f,station.shaped);station.announced=true;
+  return f;
 }
 
 // Flatten the formable mass back to its clump and forget every hand on it.
