@@ -10,6 +10,7 @@ import {createBead} from './beads.js';
 import {greatArchLayout,buildGreatArch} from './great-arch.js';
 import {clayCacheOverBudget,trimClayShapes,clayShape,sculptClay} from './clay.js';
 import {createMotherPuff} from './mother-puff.js';
+import {settleSquash,squashPending} from './clay-shatter.js';
 
 const attached=(o,root)=>{for(let p=o;p;p=p.parent)if(p===root)return true;return false;};
 export function disposeBranch(w,root){
@@ -97,7 +98,17 @@ export function syncStream(w,L,center,force=false){
     w.platforms.set(s.id,v);return v.root;
   },()=>w.platforms.delete(s.id),s.baseX??s.x);
   L.hazards.forEach((h,i)=>{if(near(h.x,h.w))add('h:'+i,()=>hazard(w,h),()=>{},h.x);});
-  for(const e of L.enemies)if(e.alive&&(near(e.min,e.max-e.min)||near(e.x,1)))add('e:'+e.id,()=>{const v=w.makeEnemy(e);w.enemyViews.set(e.id,v);return v.root;},()=>{releaseEnemyView(w.enemyViews.get(e.id));w.enemyViews.delete(e.id);},e.x);
+  // A defeated creature stays streamed in until its pressed disc has broken.
+  // A view dropped before then all the same — one the camera has left far
+  // behind — breaks on the spot, so nothing just vanishes.
+  for(const e of L.enemies)if((e.alive||squashPending(w.enemyViews?.get(e.id)))&&(near(e.min,e.max-e.min)||near(e.x,1)))add('e:'+e.id,()=>{const v=w.makeEnemy(e);w.enemyViews.set(e.id,v);return v.root;},()=>{
+    const v=w.enemyViews.get(e.id);
+    if(v&&!e.alive)settleSquash(w,e,v,L.platforms,true);
+    releaseEnemyView(v);w.enemyViews.delete(e.id);
+  },e.x);
+  // A dead creature the level no longer lists keeps its view, too, until the
+  // world has broken its disc; world.render settles it from the view itself.
+  for(const [id,v]of w.enemyViews||[])if(v.enemy&&!v.enemy.alive&&squashPending(v))wanted.add('e:'+id);
   for(const [list,views,stamp,prefix]of [[L.coins,w.coinViews,false,'c:'],[L.stamps,w.stampViews,true,'s:']])for(const c of list)if(!c.taken&&near(c.x))add(prefix+c.id,()=>views[c.id]=collectible(w,c,stamp),()=>delete views[c.id],c.x);
   L.crushers?.forEach((c,i)=>{if(near(c.x,c.w))add('r:'+i,()=>w.crusherViews[i]=createPressView(w,c),()=>delete w.crusherViews[i],c.x);});
   for(const wind of L.winds||[])if(near(wind.x,wind.w))add('w:'+wind.id,()=>{const v=windView(w,wind);w.windViews.set(wind.id,v);return v.root;},()=>w.windViews.delete(wind.id),wind.x);

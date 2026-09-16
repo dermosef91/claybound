@@ -4,6 +4,7 @@ import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel} from './clay.js';
 import {BAT} from './enemy-rules.js';
 import {createBatEcho,animateBatEcho,batLookVector} from './bat-echo.js';
+import {applyFlatten} from './clay-feel.js';
 
 const front=new THREE.Vector3(0,0,1),centerY=(BAT.bottom+BAT.top)/2;
 
@@ -30,7 +31,7 @@ export function createBatView(w,e){
   const root=new THREE.Group();root.name='Flying bat '+e.id;root.position.set(e.x,e.y+BAT.modelOffsetY,.35);w.levelRoot.add(root);
   const pose=new THREE.Group();pose.name='Bat facing';pose.position.y=centerY-BAT.modelOffsetY;root.add(pose);
   const echo=createBatEcho(w,root);
-  const view={kind:'bat',root,pose,echo,id:e.id,loaded:false,deathTime:0,turn:0,aim:new THREE.Quaternion(),look:new THREE.Vector3()};
+  const view={kind:'bat',root,pose,echo,id:e.id,loaded:false,deathTime:0,turn:0,aim:new THREE.Quaternion(),look:new THREE.Vector3(),reducedMotion:!!w.reducedMotion};
   if(w.batAsset)attachBatView(w,view);return view;
 }
 function attachBatView(w,view){
@@ -77,8 +78,15 @@ export function animateBat(view,e,dt,status){
       view.pose.quaternion.slerp(view.aim,status==='editing'?1:1-Math.exp(-9*step));
     }
   }else{
-    view.echo.root.visible=false;
-    view.deathTime+=step;const t=Math.min(1,view.deathTime/.24);
-    view.root.scale.set(1+t*.2,Math.max(.02,1-t),1+t*.12);view.root.rotation.z=t*.18;view.root.visible=t<1;
+    // Pressed flat where it was hit, like every other creature, with its
+    // echo rings stopped. The root is squashed rather than the facing pose, so
+    // the press is always straight down whichever way the bat was turned;
+    // clay-shatter.js then drops the clumps to whatever deck lies below.
+    view.echo.root.visible=false;view.root.rotation.set(0,0,0);
+    view.deathTime+=step;applyFlatten(view.root,view.deathTime,{reducedMotion:view.reducedMotion});
+    // Nothing holds a swatted bat up: the disc sinks slowly while it is held,
+    // but never below the deck settleSquash found under it.
+    const fall=view.reducedMotion?0:3*view.deathTime*view.deathTime;
+    view.root.position.y=Math.max(e.y+BAT.modelOffsetY-fall,view.squashFloorY!==undefined?view.squashFloorY+.12:-Infinity);
   }
 }

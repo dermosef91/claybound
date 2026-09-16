@@ -40,7 +40,9 @@ for(const name of ['Fly','Hover','Swoop']){
 assert(maxWing-minWing>.2,'the supplied wing motion is actually animated');assert(maxWidth>1.5&&maxWidth<2.7);
 const otherTime=b.mixer.time;animateEnemy(a,enemy,.03,'playing');assert.equal(b.mixer.time,otherTime);
 const time=a.mixer.time;animateEnemy(a,enemy,1,'paused');assert.equal(a.mixer.time,time);animateEnemy(a,enemy,1,'editing');assert.equal(a.mixer.time,time);
-enemy.alive=false;for(let i=0;i<40;i++)animateEnemy(a,enemy,dt,'playing');assert.equal(a.root.visible,false);
+enemy.alive=false;for(let i=0;i<12;i++)animateEnemy(a,enemy,dt,'playing');assert(a.root.visible&&a.root.scale.y<.25&&a.root.scale.x>1.5,'a swatted bat is pressed flat like every other creature');
+assert(a.root.position.y<enemy.y+BAT.modelOffsetY,'and the disc sinks, with nothing to hold it up');
+for(let i=0;i<60;i++)animateEnemy(a,enemy,dt,'playing');assert.equal(a.root.visible,false);
 let geometryDisposed=false;ma.geometry.addEventListener('dispose',()=>geometryDisposed=true);releaseEnemyView(a);assert.equal(geometryDisposed,false);animateEnemy(b,{...enemy,alive:true},dt,'playing');
 console.log('PASS bat rig, three clips, PBR maps, wing deformation, fixed body, independent skeletons, pause, defeat and shared resources');
 
