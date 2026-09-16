@@ -1,6 +1,7 @@
-import {chapter} from '../route-authoring.js';
+import {chapter,p} from '../route-authoring.js';
+const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,to},...extra});
 export default chapter({
-  layoutVersion:8,
+  layoutVersion:9,
   name:"The Ember Caverns",short:"Ember Caverns",label:"Wake the heart of the mountain",biome:"cave",
   intro:"Follow the light cables. The way forward sometimes begins above — or below.",sky:"#253c57",fog:"#496d91",spawn:{
   "x": 1.5,
@@ -55,6 +56,7 @@ export default chapter({
     "id": "spark-hub",
     "kind": "stone"
   },
+    part('cave-plug',{x:42,w:1.4,y:3.3,h:3.3},{x:42,w:2.7,y:.5,h:1.4},{station:'cave-plug',clayRole:'bridge'}),
   {
     "x": 24.5,
     "y": 3.7,
@@ -885,6 +887,13 @@ export default chapter({
     "kind": "stone"
   }
 ],
+  shaping:[
+    // The third gesture, and the last one chapter four needs the player to know:
+    // a pillar across the tunnel mouth that is spread outward until it is floor.
+    {id:'cave-plug',icon:'landing',name:'Spread the pillar',verb:'Pull outward',gesture:'out',parts:['cave-plug'],x:34,end:48,
+     spawn:{x:38,y:0,groundId:'spark-hub'},
+     hint:'Pull either edge of the violet pillar outward until it is floor. Or hold E / KNEAD.'}
+  ],
   routeLinks:[
   {
     "from": "start",
@@ -923,6 +932,11 @@ export default chapter({
   },
   {
     "from": "spark-hub",
+    "to": "cave-plug",
+    "mode": "jump"
+  },
+  {
+    "from": "cave-plug",
     "to": "clay-2",
     "mode": "jump"
   },
@@ -1622,6 +1636,7 @@ export default chapter({
   }
 ],
   hints:[
+    {x:34,end:48,icon:'landing',title:'Spread the clay',text:'Drag either edge of the violet clay outward, or hold E.',touchText:'Drag either edge of the violet clay outward.'},
   {
     "x": 24,
     "end": 32,

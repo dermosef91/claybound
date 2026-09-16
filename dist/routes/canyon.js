@@ -1,13 +1,16 @@
 import {chapter,p,row,path} from '../route-authoring.js';
+const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,to},...extra});
 export default chapter({
-  layoutVersion:6,
+  layoutVersion:7,
   name:'The Sunbaked Canyon',short:'Sunbaked Canyon',label:'Windwells & ropeways',biome:'desert',
   intro:'Wake the windwells. Ride the sandstone sky to the caravan bell.',
   sky:'#80afe0',fog:'#f1bba0',spawn:{x:1.5,y:0},end:246,previousDistance:815,cameraY:2,
   sections:[{x:-8,name:'The Caravan Steps',landmark:'arch'},{x:43,name:'Wake the Windwell',landmark:'windmill'},{x:91,name:'The Sinking Shortcut',landmark:'sandwheel'},{x:143,name:'Inside the Great Arch',landmark:'arch',quiet:true},{x:191,name:'The Sky-Sand Run',landmark:'windmill'}],
   platforms:[
     p('start',-8,18,0),p('lift1',12,4,.9,'lift',{moveY:.85,period:4.8,phase:-1.57}),
-    p('arrival',18,6,2),p('notch',26,3.8,3.2,'ledge'),p('rope-cross',32,4,3.7,'lift',{moveX:1.1,period:5.2}),
+    p('arrival',18,6,2),
+    part('canyon-plug',{x:24,w:1.4,y:5.6,h:3.8},{x:24.1,w:2.2,y:3.2,h:1.4},{station:'canyon-plug',clayRole:'bridge'}),
+    p('notch',26,3.8,3.2,'ledge'),p('rope-cross',32,4,3.7,'lift',{moveX:1.1,period:5.2}),
     p('lookout',38,5,4.3),p('windwell',43,7,4.3,'stone',{checkpoint:45,landmark:'windmill',rest:true}),
     p('valve1',47,1.8,4.43,'switch',{channel:'wind-a',latch:true}),p('wind-step',52,4,5.6,'ledge'),
     p('wind-crown',57,4,10.1,'ledge'),p('wind-turn',52.25,4.5,11.75,'ledge'),p('wind-exit',62,6,11.5),
@@ -26,7 +29,7 @@ export default chapter({
     p('well-flower',48.25,3.2,13.5,'ledge',{optional:true}),p('basin-flower',106,3.2,7.75,'ledge',{optional:true}),p('arch-flower',155.75,2.5,16.75,'ledge',{optional:true}),
     p('clay-1',199.25,4,13.5,'crumble'),p('clay-2',160.75,2.25,17,'crumble')
   ],
-  route:['start','lift1','arrival','notch','rope-cross','lookout',['windwell','walk'],['valve1','walk'],'wind-step','wind-crown','wind-exit','downstep','wind-gondola','oasis',['basin','walk'],'sand1','sand2','sand3','sand-rest','sand4','sand5','arch-entry','arch-shelf','arch-lift','arch-balcony','arch-roof',['arch-bridge-left','fall'],['arch-drop','walk'],['arch-bridge-right','walk'],['last-rest','fall'],['last-well','walk'],['valve2','walk'],'clay-1','sky-lift','sky2','sky-rest','sky-sand','sky-rope','bell-roof'],
+  route:['start','lift1','arrival','canyon-plug',['notch','walk'],'rope-cross','lookout',['windwell','walk'],['valve1','walk'],'wind-step','wind-crown','wind-exit','downstep','wind-gondola','oasis',['basin','walk'],'sand1','sand2','sand3','sand-rest','sand4','sand5','arch-entry','arch-shelf','arch-lift','arch-balcony','arch-roof',['arch-bridge-left','fall'],['arch-drop','walk'],['arch-bridge-right','walk'],['last-rest','fall'],['last-well','walk'],['valve2','walk'],'clay-1','sky-lift','sky2','sky-rest','sky-sand','sky-rope','bell-roof'],
   detours:[path(['wind-crown','wind-turn','well-flower','wind-turn','wind-crown','wind-exit']),path(['sand2',['basin-flower','fall'],'sand3']),path(['arch-balcony','clay-2','arch-flower','clay-2','arch-balcony','arch-roof'])],
   recoveries:[],
   winds:[{id:'well-a',x:50,w:12,y:3.5,h:10,fx:0,fy:19,channel:'wind-a'},{id:'tailwind',x:124,w:11,y:8,h:7,fx:8,fy:0},{id:'well-b',x:197,w:19,y:11,h:11,fx:3,fy:18,channel:'wind-b'}],
@@ -48,6 +51,15 @@ export default chapter({
     {kind:'drifter',x:53.75,y:12.45,min:52.75,max:56.25,speed:.8,bob:.15,period:5.6,phase:1.5}
   ],
   hazards:[{x:10,w:8,y:-4},{x:24,w:14,y:-2},{x:68,w:15,y:4.8},{x:98,w:39,y:2},{x:150,w:20,y:6},{x:176,w:8,y:7.5},{x:197,w:21,y:7.5},{x:223,w:15,y:15}],
-  hints:[{x:0,end:9,icon:'walk',title:'Move and jump',text:'A / D or arrows to move. Hold jump to leap.'},{x:43,end:51,icon:'updraft',title:'Activate wind',text:'Step on the valve. The wind lifts your jumps.'},{x:91,end:100,icon:'sink',title:'Crumbling ledges',text:'Cracked ledges crumble. Keep moving.'}],
+  shaping:[
+    // The first clay in the game, on the ledge the player is already standing
+    // on: a violet plug too tall to pass, which presses down into the step over
+    // the gap. Nothing here is optional — the chapter is named after this verb.
+    {id:'canyon-plug',icon:'bridge',name:'Press the clay',verb:'Press down',gesture:'down',parts:['canyon-plug'],x:17,end:26,
+     spawn:{x:20,y:2,groundId:'arrival'},
+     hint:'Press the violet clay down into a step. Drag it down, hold E / KNEAD, or stomp it.'}
+  ],
+  hints:[{x:0,end:9,icon:'walk',title:'Move and jump',text:'A / D or arrows to move. Hold jump to leap.'},
+    {x:17,end:26,icon:'bridge',title:'Shape the clay',text:'Press the violet clay down. Drag it, hold E, or stomp it.',touchText:'Press the violet clay down. Drag it, or stomp it.'},{x:43,end:51,icon:'updraft',title:'Activate wind',text:'Step on the valve. The wind lifts your jumps.'},{x:91,end:100,icon:'sink',title:'Crumbling ledges',text:'Cracked ledges crumble. Keep moving.'}],
   guides:[{platformId:'wind-crown',offset:.55,dir:-1},{platformId:'arch-balcony',offset:.55,dir:-1},{platformId:'arch-balcony',offset:3.4,dir:1}]
 });

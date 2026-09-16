@@ -231,6 +231,31 @@
         "section": 1
       },
       {
+        "id": "forest-root",
+        "x": 67,
+        "w": 1.4,
+        "y": 6.2,
+        "kind": "clay",
+        "shape": {
+          "from": {
+            "x": 67,
+            "w": 1.4,
+            "y": 6.2,
+            "h": 4.2
+          },
+          "to": {
+            "x": 67,
+            "w": 2.2,
+            "y": 2.6,
+            "h": 1.2,
+            "slope": 0.9
+          }
+        },
+        "station": "forest-root",
+        "clayRole": "ramp",
+        "section": 1
+      },
+      {
         "x": 69,
         "y": 3.5,
         "w": 4,
@@ -902,8 +927,13 @@
       },
       {
         "from": "root-floor",
+        "to": "forest-root",
+        "mode": "walk"
+      },
+      {
+        "from": "forest-root",
         "to": "root-bridge",
-        "mode": "jump"
+        "mode": "walk"
       },
       {
         "from": "root-bridge",
@@ -1082,6 +1112,26 @@
       }
     ],
     "originalDistance": 87.5,
-    "custom": true
+    "custom": true,
+    "shaping": [
+      {
+        "id": "forest-root",
+        "icon": "ramp",
+        "name": "Pull the root out",
+        "verb": "Pull right",
+        "gesture": "right",
+        "parts": [
+          "forest-root"
+        ],
+        "x": 55,
+        "end": 72,
+        "spawn": {
+          "x": 60,
+          "y": 2.6,
+          "groundId": "root-floor"
+        },
+        "hint": "Pull the violet root to the right to stretch a ramp. Or hold E / KNEAD."
+      }
+    ]
   }
 }

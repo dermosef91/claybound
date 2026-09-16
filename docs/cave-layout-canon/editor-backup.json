@@ -301,6 +301,30 @@
         "section": 0
       },
       {
+        "id": "cave-plug",
+        "x": 42,
+        "w": 1.4,
+        "y": 3.3,
+        "kind": "clay",
+        "shape": {
+          "from": {
+            "x": 42,
+            "w": 1.4,
+            "y": 3.3,
+            "h": 3.3
+          },
+          "to": {
+            "x": 42,
+            "w": 2.7,
+            "y": 0.5,
+            "h": 1.4
+          }
+        },
+        "station": "cave-plug",
+        "clayRole": "bridge",
+        "section": 0
+      },
+      {
         "x": 24.5,
         "y": 3.7,
         "w": 4.5,
@@ -1270,6 +1294,11 @@
       },
       {
         "from": "spark-hub",
+        "to": "cave-plug",
+        "mode": "jump"
+      },
+      {
+        "from": "cave-plug",
         "to": "clay-2",
         "mode": "jump"
       },
@@ -1818,6 +1847,26 @@
       }
     ],
     "originalDistance": 96.5,
-    "custom": true
+    "custom": true,
+    "shaping": [
+      {
+        "id": "cave-plug",
+        "icon": "landing",
+        "name": "Spread the pillar",
+        "verb": "Pull outward",
+        "gesture": "out",
+        "parts": [
+          "cave-plug"
+        ],
+        "x": 34,
+        "end": 48,
+        "spawn": {
+          "x": 38,
+          "y": 0,
+          "groundId": "spark-hub"
+        },
+        "hint": "Pull either edge of the violet pillar outward until it is floor. Or hold E / KNEAD."
+      }
+    ]
   }
 }

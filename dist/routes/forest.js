@@ -1,6 +1,7 @@
 import {chapter,p,path} from '../route-authoring.js';
+const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,to},...extra});
 export default chapter({
-  layoutVersion:8,
+  layoutVersion:9,
   name:'The Wildwood',short:'Wildwood',label:'Bounce, burrow & bloom',biome:'forest',
   intro:'Climb the living tree. Break its sealed roots and let the forest breathe.',
   sky:'#b2d2b7',fog:'#b7d2bc',spawn:{x:1.5,y:0},end:315,previousDistance:875,cameraY:3,
@@ -17,6 +18,7 @@ export default chapter({
     p("choir-crown",42,6,7.8,"ledge"),
     p("root-entry",48,7,7.8,"ledge",{"checkpoint":51,"landmark":"rootarch"}),
     p("root-floor",55,12,2.6,"ledge",{"checkpoint":64,"landmark":"sporepod"}),
+    part('forest-root',{x:67,w:1.4,y:6.2,h:4.2},{x:67,w:2.2,y:2.6,h:1.2,slope:.9},{station:'forest-root',clayRole:'ramp'}),
     p("root-bridge",69,4,3.5,"ledge"),
     p("root-spring-base",75,5,3.8,"stone"),
     p("root-spring",77,1.8,4.24,"spring"),
@@ -64,7 +66,7 @@ export default chapter({
     p("clay-8",194.5,3,36.5,"ledge"),
     p("clay-9",194.75,2.25,37,"spring")
   ],
-  route:['start',['spring1','walk'],'first-bough','choir-step','choir-perch',['choir-base','fall'],['choir-spring','walk'],'choir-crown',['root-entry','walk'],['root-floor','fall'],'root-bridge','root-spring-base',['root-spring','walk'],'root-upper','root-crumble','tree-foot',['tree-spring','walk'],'tree-east','tree-west',['tree-west-spring','walk'],'tree-top',['clay-1','walk'],'tree-seal',['tree-heart','drop'],'spore1','spore2','spore-crown','bird-rest',['canopy-entry','walk'],'crumb1','crumb2','canopy-rest','crumb3','crumb4','canopy-nest',['nest-spring','walk'],'bloom-entry',['bloom-spring','walk'],'bloom1','bloom-seal',['bloom-root','drop'],'bloom-rise','bloom-cloud','bloom-perch','bloom-last','heart-bell',['mother-arena','walk'],['mother-bell','boss']],
+  route:['start',['spring1','walk'],'first-bough','choir-step','choir-perch',['choir-base','fall'],['choir-spring','walk'],'choir-crown',['root-entry','walk'],['root-floor','fall'],['forest-root','walk'],['root-bridge','walk'],'root-spring-base',['root-spring','walk'],'root-upper','root-crumble','tree-foot',['tree-spring','walk'],'tree-east','tree-west',['tree-west-spring','walk'],'tree-top',['clay-1','walk'],'tree-seal',['tree-heart','drop'],'spore1','spore2','spore-crown','bird-rest',['canopy-entry','walk'],'crumb1','crumb2','canopy-rest','crumb3','crumb4','canopy-nest',['nest-spring','walk'],'bloom-entry',['bloom-spring','walk'],'bloom1','bloom-seal',['bloom-root','drop'],'bloom-rise','bloom-cloud','bloom-perch','bloom-last','heart-bell',['mother-arena','walk'],['mother-bell','boss']],
   detours:[path(['bloom1','clay-5','clay-6','clay-7','clay-8',['clay-9','walk'],['bloom-entry','fall'],['bloom-spring','walk'],'bloom1'])],
   recoveries:[path(['bloom-root','clay-4','bloom1'])],
   winds:[{"x":60,"y":0,"w":6,"h":7,"fx":0,"fy":16,"id":"root-breath","channel":"root-a","spores":true},{"x":126,"y":13,"w":14,"h":11,"fx":0,"fy":19,"id":"heart-breath","channel":"tree-spores","spores":true},{"x":231,"y":23,"w":14,"h":12,"fx":0,"fy":19,"id":"bloom-breath","channel":"bloom-spores","spores":true}],
@@ -78,6 +80,14 @@ export default chapter({
     {kind:'spore',x:196.5,y:20.5,min:195.1,max:197.3,speed:.55}
   ],
   hazards:[{"x":11,"y":-4,"w":22},{"x":67,"y":-1,"w":8},{"x":80,"y":3,"w":16},{"x":104,"y":3.8,"w":12},{"x":231,"y":19,"w":26.5}],
-  hints:[{x:0,end:11,icon:'mushroom',title:'Mushroom bounce',text:'Land on the orange target to jump higher.'},{x:115,end:126,y:13,icon:'balloon',title:'Spore balloon',text:'Stomp the balloon. Spores lift you up.'}],
+  shaping:[
+    // A swollen root at the end of the root floor. The canyon taught pressing
+    // down; this one is pulled sideways, and stretches into the ramp out.
+    {id:'forest-root',icon:'ramp',name:'Pull the root out',verb:'Pull right',gesture:'right',parts:['forest-root'],x:55,end:72,
+     spawn:{x:60,y:2.6,groundId:'root-floor'},
+     hint:'Pull the violet root to the right to stretch a ramp. Or hold E / KNEAD.'}
+  ],
+  hints:[{x:0,end:11,icon:'mushroom',title:'Mushroom bounce',text:'Land on the orange target to jump higher.'},
+    {x:60,end:72,icon:'ramp',title:'Pull the clay',text:'Drag the violet root sideways, or hold E, to stretch it.',touchText:'Drag the violet root sideways to stretch it.'},{x:115,end:126,y:13,icon:'balloon',title:'Spore balloon',text:'Stomp the balloon. Spores lift you up.'}],
   guides:[{platformId:'tree-east',offset:1,dir:-1},{platformId:'tree-west',offset:2.7,dir:1},{platformId:'tree-top',offset:4.5,dir:1}]
 });
