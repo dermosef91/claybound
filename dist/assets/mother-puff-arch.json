@@ -1,0 +1,16 @@
+{
+  "source": "porous+tree+3d+model.glb",
+  "sourceSha256": "2cf83ebdb41b450067c6b2be14460c7f3a833b6c23ad22d9e1e084d7e3f43976",
+  "shippedSha256": "b976aae42374e420edeac86876fb5b03a4b4a680834fa4d891cdab63cc1d00df",
+  "sourceBytes": 2336644,
+  "shippedBytes": 847624,
+  "textures": [
+    [
+      1024,
+      1024
+    ]
+  ],
+  "geometryUnchanged": true,
+  "geometrySha256": "a113198a15fcef05978721369f84fc7a222bac3d7b82ecdd74625d25b1902d19",
+  "triangles": 11052
+}

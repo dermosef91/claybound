@@ -16,15 +16,30 @@ const side=(x,center)=>x<center?'left':'right';
 // for the boss's side of the clearing, and half-turned pairs for the ground
 // where it is still spreading. Loaded with the boss rather than with Wildwood,
 // because nothing outside this clearing is blighted.
-export const BLIGHTED_KEYS=['corrupt-tree','corrupt-mushroom','semi-tree','semi-mushroom'];
+export const BLIGHTED_KEYS=['corrupt-tree','corrupt-mushroom','semi-tree','semi-mushroom','arch'];
 // Each half-turned sculpture carries its stone on one flank. These yaws bring
 // that flank round to face right, toward the boss the blight spreads from.
-const BLIGHTED_TURN={'semi-tree':0,'semi-mushroom':Math.PI*.75,'corrupt-tree':-.22,'corrupt-mushroom':.16};
+const BLIGHTED_TURN={'semi-tree':0,'semi-mushroom':Math.PI*.75,'corrupt-tree':-.22,'corrupt-mushroom':.16,arch:0};
 export function prepareBlightedAsset(w,key,gltf){
   const scene=gltf.scene;scene.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(scene,true),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
   if(!(size.x>0&&size.y>0&&size.z>0))throw new Error('Invalid blighted model: '+key);
-  clayMaterials(scene,{background:true});clayModel(w,scene,{background:true});retainModel(w,scene);
+  clayMaterials(scene,{background:true});
+  clayModel(w,scene,{background:true});
+  // The arch was sculpted in a paler stone than the other four. Its stone is
+  // brought down to the blight's charcoal in the shader, by how little colour
+  // a texel carries, so the moss that drips over it keeps its green.
+  if(key==='arch')scene.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material]){
+    const compile=m.onBeforeCompile,cacheKey=m.customProgramCacheKey;
+    m.onBeforeCompile=(shader,renderer)=>{
+      compile.call(m,shader,renderer);
+      shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+float archChroma = max(diffuseColor.r, max(diffuseColor.g, diffuseColor.b)) - min(diffuseColor.r, min(diffuseColor.g, diffuseColor.b));
+diffuseColor.rgb *= mix(vec3(0.30, 0.31, 0.34), vec3(0.9, 1.0, 0.86), smoothstep(0.05, 0.2, archChroma));`);
+    };
+    m.customProgramCacheKey=()=>cacheKey.call(m)+'-blight-arch';m.needsUpdate=true;
+  }});
+  retainModel(w,scene);
   w.blightedAssets??={};w.blightedAssets[key]={scene,box,size,center};
 }
 export async function loadBlightedAssets(w,onProgress){
@@ -65,12 +80,19 @@ function spatialCorruption(root,start,end,leftAmount=0,{borrow=false,privateMate
         shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nuniform float motherEnvironment;\nvarying float vMotherEnvironmentX;')
           .replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
 float motherReach = smoothstep(${start.toFixed(3)}, ${end.toFixed(3)}, vMotherEnvironmentX);
-float motherSelective = ${leftAmount.toFixed(3)} * smoothstep(${(start-13).toFixed(3)}, ${(start-6).toFixed(3)}, vMotherEnvironmentX);
+float motherSelective = ${leftAmount.toFixed(3)} * smoothstep(${(start-6).toFixed(3)}, ${(start-2).toFixed(3)}, vMotherEnvironmentX);
 float motherAmount = max(motherReach, motherSelective) * motherEnvironment;
+// Past the transition the blight is charcoal, not the fog's grey: darker
+// still toward the boss, so the cream of her body and the burgundy of her
+// cap stand off it. The healthy side keeps its warmth and a little more
+// colour; the blighted side cools.
+float motherDeep = smoothstep(${end.toFixed(3)}, ${(end+9).toFixed(3)}, vMotherEnvironmentX);
 float motherLuma = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-diffuseColor.rgb = mix(diffuseColor.rgb, vec3(motherLuma * 0.44 + 0.018), motherAmount);`);
+vec3 motherHealthy = mix(vec3(motherLuma), diffuseColor.rgb, 1.22) * vec3(1.05, 1.02, 0.93);
+vec3 motherStone = vec3(motherLuma * mix(0.40, 0.22, motherDeep) + mix(0.020, 0.006, motherDeep)) * vec3(0.95, 0.98, 1.06);
+diffuseColor.rgb = mix(motherHealthy, motherStone, motherAmount);`);
       };
-      m.customProgramCacheKey=()=>key+`-mother-environment-${start}-${end}-${leftAmount}`;
+      m.customProgramCacheKey=()=>key+`-mother-environment-v2-${start}-${end}-${leftAmount}`;
       m.addEventListener('dispose',()=>disposed.add(m));copies.set(base,m);return m;
     };
     mesh.material=Array.isArray(original)?original.map(convert):convert(original);
@@ -99,6 +121,13 @@ function porousMaterial(w){
   // underfoot, rather than a brown deck greyed out in the shader.
   crumbleMaterials(w);return w.mat.crumbleGrey;
 }
+// The boss's side is that stone gone charcoal: the same pored geometry, its
+// cavities shaded by the vertex colours down to near black.
+export const BLIGHT_CHARCOAL=0x35333a;
+function charcoalMaterial(w){
+  const m=w.mat.blightCharcoal??=new THREE.MeshStandardMaterial();
+  m.color.setHex(BLIGHT_CHARCOAL);m.roughness=1;m.metalness=0;m.vertexColors=true;return m;
+}
 // A raised, pored shoulder of ground closing each end of the clearing. It is
 // scenery only, parked behind the fighting plane, so the arena floor the
 // encounter is tuned against stays flat and the recorded replay still holds.
@@ -124,6 +153,12 @@ function porousPiece(w,parent,x,y,z,width,height,depth,seed,material){
 }
 
 export function createMotherArenaFloor(w,s,g){
+  // The floor tells the same story as the trees, in three parts: soil and
+  // grass under the player, cracks and small pored patches around the middle,
+  // and on the boss's side a rigid charcoal slab in place of the deck, with
+  // chunks of it heaved up around her feet as if the blight were anchored
+  // there. The collider under all of it stays the flat deck the encounter is
+  // tuned against.
   const deck=new THREE.Group();deck.name='Clearing ground';g.add(deck);
   w.box(s.w,1.45,7,'terrain',deck,s.w/2,-.8,-1.8,.36);
   w.box(s.w,.35,7.1,'top',deck,s.w/2,-.15,-1.8,.15);
@@ -131,30 +166,48 @@ export function createMotherArenaFloor(w,s,g){
     const x=.8+i*(s.w-1.6)/14;
     w.ball(1.6,.6,.65,'terrain2',deck,x,-1.3,.9);
     if(i%2===0)w.ball(.9,.18,.5,'top',deck,x,.03,-3.6);
-    if(w.forestAssets&&i%3===0)forestBloom(w,deck,x,-.15,1.4,1.5,(i%2)*.3);
+    // Flowers only where the ground is still soil; the fighting lane between
+    // the player and the boss stays clean of them.
+    if(w.forestAssets&&i%3===0&&x<s.w*.36)forestBloom(w,deck,x,-.15,1.4,1.5,(i%2)*.3);
   }
-  const center=s.x+s.w/2,start=s.x+s.w*.16,end=s.x+s.w*.65;
+  const center=s.x+s.w/2,start=s.x+s.w*.42,end=s.x+s.w*.68;
   const ground=spatialCorruption(deck,start,end);ground.kind='ground';ground.amount=1;ground.side='whole';
-  const porous=[],material=porousMaterial(w),scars=new THREE.Group();scars.name='Pored clay along the clearing edge';g.add(scars);
-  for(const [i,[fraction,width,height]]of [[.17,1.35,.7],[.38,1.6,.9],[.61,2.1,1.1],[.75,1.55,.82],[.9,2.25,1.18]].entries()){
-    const piece=porousPiece(w,scars,s.w*fraction,-.78,1.25,width,height,.32,721+i*37,material);
+  const porous=[],material=porousMaterial(w),charcoal=charcoalMaterial(w),scars=new THREE.Group();scars.name='Pored clay along the clearing edge';g.add(scars);
+  // Cracks first: small pored patches let into the top around the middle, the
+  // clay just starting to harden.
+  for(const [i,[fraction,width,height]]of [[.45,1.1,.6],[.53,1.5,.8],[.61,1.9,1]].entries()){
+    const piece=porousPiece(w,scars,s.w*fraction,-.6,1.86,width,height,.32,721+i*37,material);
     porous.push({root:piece,x:s.x+s.w*fraction,side:side(s.x+s.w*fraction,center),poreCount:piece.geometry.userData.poreCount});
   }
-  // The blight eats the ground itself on the boss's side. A crust of the
-  // crumbling ledge's own pored stone takes over the deck's face and its moss
-  // line, with slime running over the broken lip. It joins the scar group, so
-  // it greys with the clearing and clears on the final landing like the rest.
-  for(const [i,[fraction,width]]of [[.56,3.4],[.7,3.8],[.84,3.6],[.96,2.8]].entries()){
+  // And plates of it breaking through the grass where the slab is about to
+  // begin, so the charcoal arrives in pieces rather than at a seam.
+  for(const [i,[fraction,width,depth,dz]]of [[.575,1.6,1.3,-.6],[.635,2.1,1.7,-2.4],[.665,1.2,1,.4]].entries()){
+    const plate=new THREE.Group();plate.name='Charcoal breaking through the grass';plate.position.set(s.w*fraction,0,dz);scars.add(plate);
+    const piece=porousPiece(w,plate,0,.08,0,width,depth,.28,1700+i*53,charcoal);piece.rotation.x=0;piece.rotation.z=0;piece.rotation.y=Math.sin(i*2.1)*.3;
+    porous.push({root:plate,x:s.x+s.w*fraction,side:'right',poreCount:piece.geometry.userData.poreCount});
+  }
+  // Then the crust: contiguous charcoal plates take over the deck's face and
+  // its moss line from two thirds across to the far end, with slime running
+  // over the broken lip. It joins the scar group, so it greys with the clearing
+  // and clears on the final landing like the rest.
+  for(const [i,[fraction,width]]of [[.7,5.2],[.82,4.6],[.94,4.9]].entries()){
     const crust=new THREE.Group();crust.name='Blighted crust over the clearing floor';crust.position.set(s.w*fraction,0,0);scars.add(crust);
     // The deck's own face ends at z=1.75, so the pored plate stands just proud
     // of it rather than sinking inside and showing only a sliver.
-    const plate=porousPiece(w,crust,0,-.92,1.86,width,1.9,.32,930+i*61,material);
-    w.box(width,.5,7.05,'crumbleGrey',crust,0,-.06,-1.8,.14);
-    // Slime clings to the lip where the moss line used to run.
+    const plate=porousPiece(w,crust,0,-.92,1.86,width,1.9,.32,930+i*61,charcoal);
+    w.box(width,.5,7.05,'blightCharcoal',crust,0,-.06,-1.8,.14);
     for(const [j,dx]of [-.34,.02,.37].entries())w.ball(.32+j*.04,.52+j*.13,.28,'top',crust,dx*width,.02-j*.09,1.94);
     porous.push({root:crust,x:s.x+s.w*fraction,side:'right',poreCount:plate.geometry.userData.poreCount});
   }
-  const scarGrey=spatialCorruption(scars,start,end,.62);scarGrey.kind='pores';scarGrey.amount=1;scarGrey.side='whole';
+  // Chunks heaved up around the boss's feet, behind her and beside her, never
+  // in the lane the player fights from.
+  const boss=w.currentLevel?.boss;const feet=boss?boss.x-s.x:s.w*.83;
+  for(const [i,[dx,width,height,z]]of [[-3.4,2.6,1.9,-3],[2.4,2.2,1.6,-2.5],[5.2,2.9,2.2,-3.3],[-1.4,1.7,1.2,.9],[3.6,1.5,1.05,1.15],[6.4,1.6,1.1,.7]].entries()){
+    const chunk=new THREE.Group();chunk.name='Charcoal heaved at the boss\'s feet';chunk.position.set(feet+dx,0,0);scars.add(chunk);
+    const piece=porousPiece(w,chunk,0,height*.55,z,width,height,.8,1500+i*71,charcoal);
+    porous.push({root:chunk,x:s.x+feet+dx,side:'right',poreCount:piece.geometry.userData.poreCount});
+  }
+  const scarGrey=spatialCorruption(scars,start,end,.3);scarGrey.kind='pores';scarGrey.amount=1;scarGrey.side='whole';
   g.userData.motherCorruption=[ground,scarGrey];g.userData.motherPorous=porous;
   return {root:g,corruption:g.userData.motherCorruption,porous};
 }
@@ -162,8 +215,11 @@ export function createMotherArenaFloor(w,s,g){
 export function createMotherEnvironment(w,root,b){
   const center=(b.left+b.right)/2,scenery=new THREE.Group();scenery.name='Afflicted clearing scenery';root.add(scenery);
   const corruption=[],porous=[],winds=[],scoped=new Map();
+  // How far into the blight a thing stands: nothing left of the middle is
+  // charcoal, everything on the boss's side is.
+  const depthAt=x=>Math.max(0,Math.min(1,(x-center)/9));
   const record=(object,x,amount,kind)=>{
-    const uniform=afflictBranch(object,amount),entry={root:object,x,side:side(x,center),amount,uniform,kind};
+    const uniform=afflictBranch(object,amount,depthAt(x),.2),entry={root:object,x,side:side(x,center),amount,uniform,kind};
     corruption.push(entry);return entry;
   };
   // Each blighted sculpture is paired with the healthy one it stands in for,
@@ -175,59 +231,78 @@ export function createMotherEnvironment(w,root,b){
     if(green){record(green,x,amount,kind);green.visible=false;}
     if(stone||green)blighted.push({stone,green,stoneScale:stone?.scale.x??1,greenScale:green?.scale.x??1});
   };
+  // The clearing reads left to right: the left near half is healthy and
+  // saturated, the middle is where things harden one by one — a leaf here, a
+  // cap there — and only the boss's side is the charcoal, pored dead wood.
+  // Each thing carries its own affliction by where it stands, so no whole
+  // background tree greys because the boss is somewhere to its right.
+  const harden=x=>Math.max(0,Math.min(1,(x-(center-5))/11));
   if(w.forestAssets){
-    // Healthy crowns stand back along the left approach, smaller and deeper
-    // than before so the trunks and sky gaps of the reference read through.
-    for(const [dx,z,width,dy,amount]of [[-25,-21,11,-5,0],[-17,-16,8.5,-4,.82],[-9,-25,12,-7,.58],[-2,-29,13,-9,.42]]){
+    // Healthy crowns stand back along the left approach; the nearer they come
+    // to the middle the more they have hardened.
+    for(const [dx,z,width,dy]of [[-25,-21,11,-5],[-17,-16,8.5,-4],[-9,-25,12,-7],[-2,-29,13,-9]]){
       const x=center+dx,tree=forestModel(w,'canopy',scenery,x,b.y+dy,z,width,.18,true);
-      record(tree,x,amount,'tree');
+      record(tree,x,harden(x),'tree');
     }
-    // Tall caps close both edges of the frame; a small one breaks up the
-    // middle ground where the reference puts one between player and boss.
-    for(const [dx,width,dy,amount]of [[-16,6.4,1.5,.12],[-11,4.4,0,.66],[-3,2.6,0,.18]]){
+    // Tall caps close the left edge of the frame; the middle ground between
+    // player and boss is left open.
+    for(const [dx,width,dy]of [[-16,6.4,1.5],[-11,4.4,0]]){
       const x=center+dx,mushroom=forestModel(w,'heroMushroom',scenery,x,b.y+dy,-7,width,dx*.025,true);
-      record(mushroom,x,amount,'mushroom');
+      record(mushroom,x,harden(x),'mushroom');
     }
-    for(const [i,dx]of [-19,-16,-13,-10,-7,-4,-1,3,7,11,15,19,23].entries()){
-      const x=center+dx,amount=dx>=0?1:[.74,.08,.84,.32,.72,.46,.9][i]??.6;
+    // Leaf clusters only on the healthy approach and up on the shoulders'
+    // level, so the fighting lane carries none of them.
+    for(const [i,dx]of [-19,-16,-13,-10].entries()){
+      const x=center+dx;
       const leaves=forestBloom(w,scenery,x,b.y-.12,-3.9-(i%3)*.25,2.1+(i%3)*.34,dx*.02);
-      record(leaves,x,amount,'leaves');
+      record(leaves,x,harden(x),'leaves');
     }
   }
   if(w.blightedAssets){
-    // Stone-dead trees and caps take the boss's side of the clearing outright.
-    for(const [dx,z,width,dy]of [[9,-19,13,-5],[20,-13,15,-3]]){
+    // One tree stands directly behind the boss — the supplied arch, its trunk
+    // rising behind her and its branches reaching back over the clearing, so
+    // her silhouette reads against one dark shape. It carries its own stone
+    // and moss rather than the affliction shader, so it joins the healing
+    // swap by hand. The pored canopies keep to the frame's right edge.
+    const arch=blightedModel(w,'arch',scenery,b.x+2.6,b.y-1.6,-8,15,.1);
+    if(arch){
+      const green=forestModel(w,'canopy',scenery,b.x+2.6,b.y-1.6,-8,13,-.15,true);green.visible=false;
+      blighted.push({stone:arch,green,stoneScale:arch.scale.x,greenScale:green.scale.x});
+    }
+    // Near enough that the fog does not pale them: the blight has to stay charcoal.
+    for(const [dx,z,width,dy]of [[22,-12,15,-3],[15,-14,11,6.5],[7.5,-15.5,10,5]]){
       const x=center+dx;
       pair(x,1,'tree',blightedModel(w,'corrupt-tree',scenery,x,b.y+dy,z,width),
         forestModel(w,'canopy',scenery,x,b.y+dy,z,width,-.15,true));
     }
-    for(const [dx,width]of [[13,5.6],[23,3.8]]){
+    for(const [dx,width]of [[24.5,3.8]]){
       const x=center+dx;
       pair(x,1,'mushroom',blightedModel(w,'corrupt-mushroom',scenery,x,b.y,-7,width),
         forestModel(w,'heroMushroom',scenery,x,b.y,-7,width,dx*.025,true));
     }
-    // Half-turned pairs mark the ground the blight is still crossing, on the
-    // player's side of centre, each with its stone flank turned toward the boss.
-    for(const [key,dx,z,width,healthy,healthyWidth]of [['semi-tree',-13,-16,11,'canopy',11],['semi-mushroom',-6,-7,4.2,'heroMushroom',4.2]]){
+    // Half-turned pairs mark the ground the blight is still crossing, in the
+    // middle of the clearing, each with its stone flank turned toward the boss.
+    for(const [key,dx,z,width,healthy,healthyWidth]of [['semi-tree',-4,-16,11,'canopy',11],['semi-mushroom',3,-7,4.2,'heroMushroom',4.2]]){
       const x=center+dx,dy=key==='semi-tree'?-4:0;
-      pair(x,key==='semi-tree'?.82:.66,key==='semi-tree'?'tree':'mushroom',
+      // Everything on the boss's side of centre is wholly hers, half-turned or not.
+      pair(x,x>=center?1:key==='semi-tree'?.7:.6,key==='semi-tree'?'tree':'mushroom',
         blightedModel(w,key,scenery,x,b.y+dy,z,width),
         forestModel(w,healthy,scenery,x,b.y+dy,z,healthyWidth,.18,true));
     }
   }
   const stone=new THREE.Group();stone.name='Pored erosion in the clearing';scenery.add(stone);
-  const material=porousMaterial(w);
-  // Raised pored shoulders close the frame at both ends, as in the reference,
-  // and hold most of the broken stone that used to litter the fighting floor.
-  const shoulders=[endLedge(w,stone,center-15.6,b.y+1.3,8.2,2.3,[[.16,1.3,.72],[.46,1.55,.86],[.79,1.2,.64]],640,material,porous,center),
-    endLedge(w,stone,center+16,b.y+1.5,8.6,2.5,[[.2,1.5,.8],[.55,1.75,.95],[.85,1.3,.7]],880,material,porous,center)];
-  record(shoulders[0],center-15.4,.8,'porous');record(shoulders[1],center+15.8,1,'porous');
-  // A few pieces stay out on the ground: one flat brick beside the player's
-  // approach, the rest bedded into the boss's side.
-  for(const [i,[dx,width,height,z]]of [[-7.6,1.25,.62,1.1],[7.4,2.1,1.25,-4.4],[12.6,2.3,1.4,-4.7],[19.4,1.7,1.15,-4.2]].entries()){
+  const material=porousMaterial(w),charcoal=charcoalMaterial(w);
+  // Raised shoulders close the frame at both ends: a mossy one on the left,
+  // a charcoal one on the right, holding the broken stone that used to litter
+  // the fighting floor.
+  const shoulders=[endLedge(w,stone,center-15.6,b.y+1.3,8.2,2.3,[[.46,1.2,.7]],640,material,porous,center),
+    endLedge(w,stone,center+16,b.y+1.5,8.6,2.5,[[.2,1.5,.8],[.55,1.75,.95],[.85,1.3,.7]],880,charcoal,porous,center)];
+  record(shoulders[0],center-15.4,.15,'porous');record(shoulders[1],center+15.8,1,'porous');
+  // The pieces left out on the ground are all bedded into the boss's side.
+  for(const [i,[dx,width,height,z]]of [[7.4,2.1,1.25,-4.4],[12.6,2.3,1.4,-4.7],[19.4,1.7,1.15,-4.2]].entries()){
     const g=new THREE.Group();stone.add(g);
-    const piece=porousPiece(w,g,center+dx,b.y+height*.3,z,width,height,.52,1301+i*97,material);
-    const entry=record(g,center+dx,dx>0?1:.8,'porous');
+    const piece=porousPiece(w,g,center+dx,b.y+height*.3,z,width,height,.52,1301+i*97,charcoal);
+    const entry=record(g,center+dx,1,'porous');
     porous.push({root:piece,x:center+dx,side:entry.side,poreCount:piece.geometry.userData.poreCount});
   }
   // Original forest updrafts are reused as a healing breeze. Their meshes are
@@ -241,13 +316,14 @@ export function createMotherEnvironment(w,root,b){
     if(!object||scoped.has(object))return;
     // Depth parts already own dedicated material copies for their occlusion
     // fade. Wrap those copies in place so their lifecycle stays with the part.
-    const shade=spatialCorruption(object,center-7,center+6,leftAmount,{borrow:true,privateMaterials:kind==='foreground'});shade.kind=kind;
+    const shade=spatialCorruption(object,center-1,center+9,leftAmount,{borrow:true,privateMaterials:kind==='foreground'});shade.kind=kind;
     scoped.set(object,shade);
   };
-  // Select whole backdrop trees on the left; their world-space right portions
-  // are always fully grey. Distant clouds and the sky keep their own palette.
-  for(const layer of w.parallax||[])for(const [i,child]of layer.group.children.entries()){
-    if(/^Forest /.test(child.name))view.scope(child,'backdrop',i%3===1?.72:0);
+  // The backdrop greys by where it stands in the world, nothing more: no whole
+  // tree on the left is picked out to grey, so the approach stays green.
+  // Distant clouds and the sky keep their own palette.
+  for(const layer of w.parallax||[])for(const child of layer.group.children){
+    if(/^Forest /.test(child.name))view.scope(child,'backdrop',0);
   }
   root.addEventListener('removed',()=>{for(const shade of scoped.values())shade.restore();scoped.clear();});
   return view;
@@ -282,7 +358,7 @@ export function animateMotherEnvironment(w,view,b,reduced){
     if(x>=view.center+4)view.scope(platform.root,'exit');
   }
   for(const depth of w.depthViews?.values()||[])for(const part of depth.parts||[]){
-    if(part.anchor.x>=view.center-20)view.scope(part.root,'foreground',part.anchor.x<view.center?.45:0);
+    if(part.anchor.x>=view.center-20)view.scope(part.root,'foreground',0);
   }
   for(const shade of view.scoped.values()){shade.uniform.value=remaining;shade.sync();}
   for(const [i,wind]of view.winds.entries()){

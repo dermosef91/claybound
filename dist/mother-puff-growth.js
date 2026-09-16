@@ -6,8 +6,15 @@ const smooth=v=>{const t=clamp(v);return t*t*(3-2*t);};
 
 // Per-instance uniforms preserve every texture and fingerprint. Nothing in
 // the healthy forest or either retained GLB has its shared material changed.
-export function afflictBranch(root,amount=1){
-  const uniform={value:amount},copies=new Map();
+// `depth` is how far into the blight a thing stands: 0 is the fog-grey of
+// clay just hardening, 1 the charcoal of the boss's own side, with its holes
+// near black. The boss herself keeps the light grey; her body is cream.
+// `enrich` is how much richer the thing's healthy colour is drawn than its
+// texture: the clearing's own trees and caps take a little, so the healthy
+// side reads saturated against the blight; the boss keeps her own tones.
+export function afflictBranch(root,amount=1,depth=0,enrich=0){
+  const uniform={value:amount},copies=new Map(),d=Math.max(0,Math.min(1,depth)),live=(1+Math.max(0,Math.min(.5,enrich))).toFixed(3);
+  const scale=(.50-.28*d).toFixed(3),lift=(.045-.035*d).toFixed(3),cool=(1+.05*d).toFixed(3),warm=(1-.04*d).toFixed(3);
   root.traverse(o=>{
     if(!o.isMesh)return;
     const convert=base=>{
@@ -18,9 +25,10 @@ export function afflictBranch(root,amount=1){
         shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nuniform float motherCorruption;')
           .replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
 float motherGrey = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-diffuseColor.rgb = mix(diffuseColor.rgb, vec3(motherGrey * 0.50 + 0.045), motherCorruption);`);
+vec3 motherLive = mix(vec3(motherGrey), diffuseColor.rgb, ${live}) * vec3(1.04, 1.02, 0.94);
+diffuseColor.rgb = mix(motherLive, vec3(motherGrey * ${scale} + ${lift}) * vec3(${warm}, 1.0, ${cool}), motherCorruption);`);
       };
-      m.customProgramCacheKey=()=>key+'-mother-affliction-v1';copies.set(base,m);return m;
+      m.customProgramCacheKey=()=>key+'-mother-affliction-v3-'+d.toFixed(2)+'-'+live;copies.set(base,m);return m;
     };
     o.material=Array.isArray(o.material)?o.material.map(convert):convert(o.material);
   });return uniform;
