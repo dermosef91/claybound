@@ -31,6 +31,16 @@ const JOINTS={
   LeftUpLeg:'LeftUpLeg',LeftLeg:'LeftLeg',LeftFoot:'LeftFoot',LeftToeBase:'LeftToeBase',
   RightUpLeg:'RightUpLeg',RightLeg:'RightLeg',RightFoot:'RightFoot',RightToeBase:'RightToeBase'
 };
+// The joint each bone aims at. Taken explicitly rather than from the first
+// child, because which child comes first at a branch — chest to neck or chest
+// to shoulder — is an accident of how the rig was exported.
+const AIMS={
+  Hips:'Spine02',Spine02:'Spine01',Spine01:'Spine',Spine:'neck',neck:'Head',Head:'head_end',
+  LeftShoulder:'LeftArm',LeftArm:'LeftForeArm',LeftForeArm:'LeftHand',
+  RightShoulder:'RightArm',RightArm:'RightForeArm',RightForeArm:'RightHand',
+  LeftUpLeg:'LeftLeg',LeftLeg:'LeftFoot',LeftFoot:'LeftToeBase',
+  RightUpLeg:'RightLeg',RightLeg:'RightFoot',RightFoot:'RightToeBase'
+};
 const PREFIX='mixamorig';
 // Every clip hero.js names, plus the floor-corrected subset. Airborne excerpts
 // are cut from Regular_Jump and Jump_Over_Obstacle_2, whose vertical travel the
@@ -49,17 +59,39 @@ const [donor,target,idle,manifest]=await Promise.all([
 target.scene.traverse(o=>{if(o.name.startsWith(PREFIX))o.name=o.name.slice(PREFIX.length);});
 donor.scene.updateMatrixWorld(true);target.scene.updateMatrixWorld(true);
 const bone=(scene,name)=>{const b=scene.getObjectByName(name);if(!b?.isBone)throw new Error(`Missing joint: ${name}`);return b;};
-const pairs=Object.entries(JOINTS).map(([from,to])=>({source:bone(donor.scene,from),target:bone(target.scene,to)}));
+const pairs=Object.entries(JOINTS).map(([from,to])=>({from,source:bone(donor.scene,from),joint:bone(target.scene,to)}));
 // Parent before child: a joint's local rotation is only meaningful once the
 // chain above it already holds its retargeted pose.
 const chain=[];target.scene.traverse(o=>{if(o.isBone)chain.push(o);});
-const partner=new Map(pairs.map(({source,target})=>[target,source]));
+const partner=new Map(pairs.map(({source,joint})=>[joint,source]));
 
 // Both rest poses are read before anything is animated: measuring the floor
 // leaves the target rig posed, and every later frame is built from these.
 const rest=new Map(),restLocal=new Map();
 for(const object of [...chain,...pairs.map(p=>p.source)])rest.set(object,object.getWorldQuaternion(new THREE.Quaternion()));
 for(const joint of chain)restLocal.set(joint,joint.quaternion.clone());
+
+// What crosses over is each joint's *absolute* orientation, not its rotation
+// away from its own rest. The original rig rests in an A-pose and every
+// supplied rig in a T-pose, so a rest-relative transfer would hand the new
+// characters the original's arm motion measured from forty degrees too high and
+// leave them standing like scarecrows. The constant kept here is therefore the
+// only genuine difference between the two bone frames: how each rig rolls its
+// bones about their own length, measured once the two rest limbs have been
+// swung into line. Aim the joint the same way the animator aimed the original,
+// and turn it the way this rig expects to be turned.
+const aim=(from,to)=>to.getWorldPosition(new THREE.Vector3()).sub(from.getWorldPosition(new THREE.Vector3())).normalize();
+const frame=new Map(),swings=new Map();
+for(const {from,source,joint} of pairs){
+  const at=AIMS[from];
+  // A fingertip or toe tip has no bone of its own to aim, so it keeps the
+  // alignment of the limb it finishes.
+  const swing=at
+    ?new THREE.Quaternion().setFromUnitVectors(aim(source,bone(donor.scene,at)),aim(joint,bone(target.scene,JOINTS[at])))
+    :swings.get(joint.parent)?.clone()||new THREE.Quaternion();
+  swings.set(joint,swing);
+  frame.set(joint,rest.get(source).clone().invert().multiply(swing.clone().invert()).multiply(rest.get(joint)));
+}
 const hips=bone(target.scene,'Hips'),donorHips=bone(donor.scene,'Hips');
 const restHipsLocal=hips.position.clone();
 const restHipsWorld=hips.getWorldPosition(new THREE.Vector3());
@@ -78,25 +110,25 @@ function retarget(source){
   const clip=sources.get(source);if(!clip)throw new Error(`The original character has no clip named ${source}.`);
   const times=Array.from(clip.tracks.find(t=>t.name==='Hips.position').times);
   const action=mixer.clipAction(clip);action.setLoop(THREE.LoopOnce,1);action.clampWhenFinished=true;action.play();
-  const rotations=new Map(pairs.map(({target})=>[target,[]])),root=[];
+  const rotations=new Map(pairs.map(({joint})=>[joint,[]])),root=[];
   for(const time of times){
     action.time=time;mixer.update(0);donor.scene.updateMatrixWorld(true);
     for(const joint of chain){
       const parent=world.get(joint.parent)||new THREE.Quaternion();
-      const source=partner.get(joint);
-      // Carry the source joint's motion away from its own rest pose, then read
-      // it back as a local rotation under the target's animated parent.
-      if(source)scratch.copy(source.getWorldQuaternion(new THREE.Quaternion())).multiply(rest.get(source).clone().invert()).multiply(rest.get(joint));
+      const original=partner.get(joint);
+      // Aim the joint where the original aims it, then read the result back as
+      // a local rotation under this rig's own animated parent.
+      if(original)scratch.copy(original.getWorldQuaternion(new THREE.Quaternion())).multiply(frame.get(joint));
       else scratch.copy(parent).multiply(restLocal.get(joint));
       world.set(joint,scratch.clone());
-      if(source)rotations.get(joint).push(...local.copy(parent).invert().multiply(scratch).toArray());
+      if(original)rotations.get(joint).push(...local.copy(parent).invert().multiply(scratch).toArray());
     }
     donorHips.getWorldPosition(hipsWorld).sub(donorRestHips).multiplyScalar(reach).add(restHipsWorld);
     root.push(...hipsWorld.toArray());
   }
   mixer.stopAllAction();mixer.uncacheClip(clip);
   const tracks=[new THREE.VectorKeyframeTrack('Hips.position',times,root)];
-  for(const {target} of pairs)tracks.push(new THREE.QuaternionKeyframeTrack(target.name+'.quaternion',times,rotations.get(target)));
+  for(const {joint} of pairs)tracks.push(new THREE.QuaternionKeyframeTrack(joint.name+'.quaternion',times,rotations.get(joint)));
   return new THREE.AnimationClip(source,clip.duration,tracks);
 }
 

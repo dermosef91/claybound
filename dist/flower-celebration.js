@@ -67,12 +67,13 @@ export function animateFlowerCelebration(c,game,w){
   f.basePose=[...f.chains.flatMap(chain=>chain.slice(0,3)),f.head].filter(Boolean).map(bone=>[bone,bone.quaternion.clone()]);
   const amount=flowerEnvelope(reward.time);
   c.root.updateMatrixWorld(true);
-  f.chains.forEach((chain,i)=>reach(chain,c.facing.localToWorld(new THREE.Vector3(i===0?.10:-.10,1.48,.38)),amount));
+  // Held in front of the chest, wherever a given character's chest happens to be.
+  f.chains.forEach((chain,i)=>reach(chain,c.facing.localToWorld(new THREE.Vector3(i===0?.10:-.10,1.48,.38).multiplyScalar(c.build)),amount));
   if(f.head)f.head.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-.18*amount));
   c.root.updateMatrixWorld(true);
   const left=f.chains[0][3].getWorldPosition(new THREE.Vector3()),right=f.chains[1][3].getWorldPosition(new THREE.Vector3());
   const grip=left.add(right).multiplyScalar(.5);
-  f.root.position.copy(c.facing.worldToLocal(grip.add(new THREE.Vector3(0,.40,.045))));
+  f.root.position.copy(c.facing.worldToLocal(grip.add(new THREE.Vector3(0,.40,.045).multiplyScalar(c.build))));
   f.root.scale.setScalar(amount);
   // Face the flower toward the camera without turning the player or legs.
   f.root.quaternion.copy(c.facing.getWorldQuaternion(new THREE.Quaternion()).invert());

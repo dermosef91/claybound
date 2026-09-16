@@ -16,7 +16,9 @@ console.log('PASS title collectibles: checkpoint IDs, no duplicate finds, best/c
 // The character picker is a radio group: exactly one option is checked, every
 // option carries the id the click handler reads back, and a lone character
 // leaves the panel as it was.
-const settings=settingsMarkup(true,false,{characters:CHARACTERS,character:'emberleaf'});
+assert(!settingsMarkup(true,false,{characters:CHARACTERS,character:'clay'}).includes('title-characters'),
+  'the cast stays out of sight until it is unlocked');
+const settings=settingsMarkup(true,false,{characters:CHARACTERS,character:'emberleaf',charactersUnlocked:true});
 for(const choice of CHARACTERS){
   assert(settings.includes(`data-character="${choice.id}"`),`${choice.id} is offered`);
   assert(settings.includes(choice.name)&&settings.includes(choice.note));
@@ -28,7 +30,7 @@ assert.equal(worn.length,1,'one character is worn at a time');
 assert(worn[0].includes('data-character="emberleaf"'),'the saved character is the checked one');
 assert(worn[0].includes('data-lucide="check"'),'and the only one showing a tick');
 assert(settings.includes('role="radiogroup"'));
-assert(!settingsMarkup(true,false,{characters:[CHARACTERS[0]],character:'clay'}).includes('title-characters'),
+assert(!settingsMarkup(true,false,{characters:[CHARACTERS[0]],character:'clay',charactersUnlocked:true}).includes('title-characters'),
   'a single character offers no choice to make');
 assert(!settingsMarkup(true,false).includes('title-characters'));
-console.log('PASS settings character picker: every option present, exactly one checked, hidden when there is nothing to choose');
+console.log('PASS settings character picker: hidden until unlocked, every option present, exactly one checked, absent when there is nothing to choose');

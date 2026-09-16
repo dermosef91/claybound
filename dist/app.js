@@ -8,7 +8,7 @@ import {VirtualJoystick} from './controls.js';
 import {completionMarkup,completionRecord,warmCompletionAssets} from './completion.js';
 import {DraftLibrary} from './editor-model.js';
 import {LevelEditor} from './editor.js';
-import {chapterCollections,settingsMarkup} from './title-menu.js';
+import {chapterCollections,settingsMarkup,characterMarkup} from './title-menu.js';
 import {CHARACTERS,characterChoice} from './characters.js';
 import {TitleScene} from './title-scene.js';
 import {loadTitleAssets} from './title-assets.js';
@@ -218,7 +218,20 @@ function chapters(){
 function help(){
   openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run. A controller's left stick or d-pad steers too.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them. On a controller, A or Y.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms. On a controller, B, X or a trigger.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Violet clay can be shaped</strong><span>Tap or drag it, hold E, or stomp it — violet clay breathes when you are beside it and stretches into ramps, stairs and bridges. R softens it back.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
 }
-function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active,{music:saved.music,effects:saved.effects,rumble:saved.rumble,characters:CHARACTERS,character:saved.character}));}
+function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active,{music:saved.music,effects:saved.effects,rumble:saved.rumble,characters:CHARACTERS,character:saved.character,charactersUnlocked:saved.charactersUnlocked}));}
+// The cast is not part of the game a first-time player meets, so the picker is
+// hidden until someone types ß with the settings panel open. Found once, it
+// stays: an unlock you have to rediscover on every visit is a nuisance, not a
+// secret. The volume sliders are the panel's landmark, and the picker belongs
+// directly beneath them.
+window.addEventListener('keydown',e=>{
+  if(e.key!=='ß'||saved.charactersUnlocked||$('dialog').classList.contains('hidden'))return;
+  const sliders=$('dialog-content').querySelector('.title-levels');
+  if(!sliders||!$('dialog-content').querySelector('[data-action="settings-rumble"]'))return;
+  saved.charactersUnlocked=true;persist();
+  sliders.insertAdjacentHTML('afterend',characterMarkup(CHARACTERS,saved.character));
+  icons();toast('Characters unlocked.');
+});
 // The choice is kept even when there is no world yet to show it in: whoever is
 // chosen here is who the renderer loads when it starts.
 async function chooseCharacter(id){

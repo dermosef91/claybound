@@ -34,7 +34,9 @@ function slider(action,label,iconName,value){
 
 // Who you play as is a preference, not a level: it changes nothing about a
 // chapter's layout, its records or its collectibles, so it belongs beside the
-// volume and rumble switches rather than in the chapter list.
+// volume and rumble switches rather than in the chapter list. It stays out of
+// sight until someone finds it — see the unlock in app.js — so the panel a
+// first-time player opens is still just sound, rumble and fullscreen.
 export function characterMarkup(characters,current){
   const choices=characters.map(entry=>{
     const chosen=entry.id===current;
@@ -46,14 +48,14 @@ export function characterMarkup(characters,current){
     </div>`;
 }
 
-export function settingsMarkup(soundEnabled,fullscreenActive,{music=.55,effects=1,rumble=true,characters=[],character=''}={}){
+export function settingsMarkup(soundEnabled,fullscreenActive,{music=.55,effects=1,rumble=true,characters=[],character='',charactersUnlocked=false}={}){
   return `<button class="dialog-close" data-action="close" aria-label="Close settings">${icon('x')}</button>
     <span class="eyebrow">SETTINGS</span><h2>Make yourself at home.</h2>
     <div class="title-levels">
       ${slider('settings-music','Music','bell',music)}
       ${slider('settings-effects','Effects','sparkles',effects)}
     </div>
-    ${characters.length>1?characterMarkup(characters,character):''}
+    ${charactersUnlocked&&characters.length>1?characterMarkup(characters,character):''}
     <div class="title-settings">
       <button class="title-setting" data-action="settings-sound" role="switch" aria-checked="${soundEnabled}" aria-label="Game sound">${icon(soundEnabled?'volume-2':'volume-x')}<span>Sound</span><strong>${soundEnabled?'On':'Off'}</strong></button>
       <button class="title-setting" data-action="settings-rumble" role="switch" aria-checked="${rumble}" aria-label="Vibration and controller rumble">${icon('move-vertical')}<span>Rumble</span><strong>${rumble?'On':'Off'}</strong></button>

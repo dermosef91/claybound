@@ -26,7 +26,6 @@ assert.equal(characterChoice('emberleaf').id,'emberleaf');
 assert.equal(characterChoice('nobody').id,CHARACTERS[0].id,'an unknown id falls back to the original');
 assert.equal(characterChoice(undefined).id,CHARACTERS[0].id);
 
-const heights=[],origins=[];
 for(const choice of CHARACTERS){
   const {gltf,motion,animation}=await load(choice);
   assert.equal(createHash('sha256').update(await readFile(url(choice.model))).digest('hex'),motion.shippedSha256,
@@ -40,8 +39,32 @@ for(const choice of CHARACTERS){
     ['death','hurt','idle','jumpFall','jumpRise','land','leapFall','leapRise','longIdle','run','stomp','victory','walk'].sort(),
     `${choice.id}: the full state vocabulary is present`);
 
+  // Only the original is pulled toward the game's orange; the supplied
+  // characters were painted in clay colours already and keep their own.
+  c.asset.traverse(o=>{if(o.isMesh)for(const material of Array.isArray(o.material)?o.material:[o.material])
+    assert.equal(material.userData.clayOrangeSource,choice.orangeSource,`${choice.id}: colour adjustment as declared`);});
+
   const bounds=()=>{c.root.updateMatrixWorld(true);return new THREE.Box3().setFromObject(c.model,true);};
-  heights.push(bounds().max.y);origins.push(bounds().min.y);
+  // Framing, shadow, reach and the motes that circle the head are all expressed
+  // as multiples of the original's build, so that number has to be what the
+  // character actually measures — normalized on its T-pose, so its standing
+  // height may differ by a posture's worth but not more.
+  assert(Math.abs(bounds().max.y-choice.height)<choice.height*.05,
+    `${choice.id}: stands ${bounds().max.y.toFixed(2)} against a declared ${choice.height.toFixed(2)}`);
+  assert(Math.abs(bounds().min.y)<.01,`${choice.id}: the gameplay origin stays between the feet`);
+  assert(Math.abs(c.build-choice.height/1.78)<1e-9);
+
+  // The original rig rests in an A-pose and the supplied ones in a T-pose, so a
+  // retarget that carried rotations away from each rig's own rest would stand
+  // the new characters up like scarecrows. Measured against their own height,
+  // every character's arms must hang the way the original's do.
+  for(const side of ['Left','Right']){
+    const shoulder=c.facing.worldToLocal(c.asset.getObjectByName(side+'Arm').getWorldPosition(new THREE.Vector3()));
+    const hand=c.facing.worldToLocal(c.asset.getObjectByName(side+'Hand').getWorldPosition(new THREE.Vector3()));
+    const drop=(shoulder.y-hand.y)/choice.height,out=Math.abs(hand.x)/choice.height;
+    assert(drop>.18&&drop<.30,`${choice.id}: ${side} arm hangs ${drop.toFixed(3)} of its height below the shoulder`);
+    assert(out<.24,`${choice.id}: ${side} hand stands ${out.toFixed(3)} of its height out from the centre line`);
+  }
   for(const [name,clip] of Object.entries(c.clips)){
     const track=clip.tracks.find(t=>t.name==='Hips.position');
     for(let i=0;i<track.values.length;i+=3){
@@ -58,7 +81,7 @@ for(const choice of CHARACTERS){
       else assert(Math.abs(c.hips.position.y-motion.anchor[1])<1e-3,`${choice.id} ${name}: airborne root displacement`);
       // A retarget that tore a limb loose shows up as a body wider or taller
       // than any pose of a person this size could be.
-      assert(box.max.y<2.6&&box.max.x-box.min.x<2.6,`${choice.id} ${name}: implausible silhouette`);
+      assert(box.max.y<choice.height*1.5&&box.max.x-box.min.x<choice.height*1.5,`${choice.id} ${name}: implausible silhouette`);
     }
   }
 
@@ -70,8 +93,8 @@ for(const choice of CHARACTERS){
     assert(chain.every(Boolean),`${choice.id}: both arms resolve to four joints`);
     return c.facing.worldToLocal(chain[3].getWorldPosition(new THREE.Vector3()));
   });
-  assert(wrists[0].distanceTo(wrists[1])<.26,`${choice.id}: both hands hold the same flower`);
-  for(const wrist of wrists)assert(wrist.y>1.25&&wrist.z>.2,`${choice.id}: hands lift in front of the hood`);
+  assert(wrists[0].distanceTo(wrists[1])<.26*c.build,`${choice.id}: both hands hold the same flower`);
+  for(const wrist of wrists)assert(wrist.y>1.25*c.build&&wrist.z>.2*c.build,`${choice.id}: hands lift in front of the hood`);
 
   // Walking and running are what a player sees most; both must blend from rest.
   game.flowerCelebration=null;game.start(0);heroEvent(c,{type:'respawn'});
@@ -80,17 +103,8 @@ for(const choice of CHARACTERS){
   step(35,{moveAxis:.3,right:true});assert(c.weights.walk>.8,`${choice.id}: walks`);
   step(45,{right:true});assert(c.weights.run>.95,`${choice.id}: runs`);
   step(1,{right:true,jumpHeld:true,jumpPressed:true});assert.equal(c.state,'leapRise',`${choice.id}: leaps`);
-  console.log(`PASS ${choice.name}: ${c.sourceClips.length} source clips, every state grounded, framed and blending`);
+  console.log(`PASS ${choice.name}: ${c.sourceClips.length} source clips, ${choice.height.toFixed(2)} units tall, arms hanging, every state grounded and blending`);
 }
-
-// Framing, the camera and every jump distance in the game are tuned to one
-// silhouette, so a second character may look different but not measure
-// different. Each rig is normalized on its T-pose, so how tall it stands at rest
-// can still differ by a posture's worth — a few centimetres, not a head.
-const spread=Math.max(...heights)-Math.min(...heights);
-assert(spread<.06,`standing heights differ by ${spread.toFixed(3)}: ${heights.map(h=>h.toFixed(3)).join(', ')}`);
-for(const origin of origins)assert(Math.abs(origin)<.01,'the gameplay origin stays between the feet');
-console.log(`PASS all ${CHARACTERS.length} characters stand within ${Math.round(spread*1000)} mm of each other over the same origin`);
 
 // Choosing in the settings swaps rigs inside a running world: one model in, one
 // model out, and the newcomer animating on the same group the game already

@@ -7,6 +7,9 @@ import {CHARACTERS} from './characters.js';
 
 const clamp=THREE.MathUtils.clamp;
 const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
+// The height the original stands, and the scale every other measurement that
+// follows a body — its shadow, its reach, the motes that circle its head — is
+// expressed in. A taller character carries all of them up with it.
 const MODEL_HEIGHT=1.78;
 const SOURCE={idle:'Armature|Idle_9|baselayer',longIdle:'Idle_03',walk:'Walking',run:'Running',jump:'Regular_Jump',leap:'Jump_Over_Obstacle_2',hurt:'Face_Punch_Reaction_2',death:'Knock_Down',victory:'Skip_Forward'};
 const LOOPING=new Set(['idle','walk','run','victory']);
@@ -18,7 +21,7 @@ export function createHero(w){
   // The gameplay origin is at the feet. Imported mesh transforms never move it.
   const shadow=w.mesh(new THREE.CircleGeometry(.55,30),w.mat.shadow.clone(),w.scene);
   shadow.rotation.x=-Math.PI/2;shadow.castShadow=false;shadow.receiveShadow=false;shadow.visible=false;
-  return {root,body,facing,shadow,loaded:false,actions:{},weights:{},state:'idle',idleTime:0,idleVariant:'idle',longIdlePlayed:false,turn:0,spring:0,springV:0,gait:0,clock:0,hurt:0,landing:0,death:false,jumpKind:'jump',lastVx:0};
+  return {root,body,facing,shadow,loaded:false,build:1,actions:{},weights:{},state:'idle',idleTime:0,idleVariant:'idle',longIdlePlayed:false,turn:0,spring:0,springV:0,gait:0,clock:0,hurt:0,landing:0,death:false,jumpKind:'jump',lastVx:0};
 }
 
 export async function loadHero(w,onProgress,choice=CHARACTERS[0]){
@@ -95,7 +98,8 @@ export function attachHero(w,gltf,motion,animation,choice=CHARACTERS[0]){
   // authored in centimetres, the Wanderer's in metres. Both normalize to the
   // same standing height, so the two read as one cast at one size.
   const rootScale=hips.parent.getWorldScale(new THREE.Vector3()).y;
-  const scale=MODEL_HEIGHT/height,model=new THREE.Group();model.name='Normalized custom character';
+  const standing=choice.height||MODEL_HEIGHT;c.build=standing/MODEL_HEIGHT;
+  const scale=standing/height,model=new THREE.Group();model.name='Normalized custom character';
   model.scale.setScalar(scale);model.position.set(0,-bounds.min.y*scale,-motion.anchor[2]*rootScale*scale);
   model.add(gltf.scene);c.facing.add(model);c.model=model;c.asset=gltf.scene;c.hips=hips;c.choice=choice;
   const maxAnisotropy=Math.min(4,w.renderer?.capabilities.getMaxAnisotropy()||4);
@@ -145,7 +149,7 @@ export function detachHero(w){
       material.dispose();
     }
   });
-  c.loaded=false;c.model=c.asset=c.hips=c.mixer=c.clips=c.choice=undefined;
+  c.loaded=false;c.build=1;c.model=c.asset=c.hips=c.mixer=c.clips=c.choice=undefined;
   c.flower=null;c.actions={};c.weights={};c.state='idle';
   c.idleTime=0;c.idleVariant='idle';c.longIdlePlayed=false;
   c.spring=0;c.springV=0;c.gait=0;c.hurt=0;c.landing=0;c.death=false;c.lastVx=0;c.jumpKind='jump';
@@ -247,7 +251,7 @@ export function animateHero(w,game,dt){
   for(const [i,m]of (c.sporeMotes||[]).entries()){
     m.visible=p.stunTime>0;
     const angle=(w.reducedMotion?0:c.clock*8)+i*Math.PI*2/3;
-    m.position.set(Math.cos(angle)*.35,1.98+Math.sin(angle*2)*.04,Math.sin(angle)*.24);
+    m.position.set(Math.cos(angle)*.35,(1.98+Math.sin(angle*2)*.04)*c.build,Math.sin(angle)*.24);
   }
   const dying=game.respawnTimer>0;
   c.root.visible=c.loaded&&(!dying||game.respawnTimer>.22)&&(!!game.flowerCelebration||dying||!(p.invuln>.1&&Math.floor(c.clock*10)%2===1));
@@ -255,5 +259,6 @@ export function animateHero(w,game,dt){
   let beneath=null;
   for(const s of game.level.platforms)if(s.active&&!s.broken&&p.x>s.x-.2&&p.x<s.x+s.w+.2&&p.y>=s.y-.15&&(!beneath||s.y>beneath.y))beneath=s;
   c.shadow.visible=c.loaded&&!!beneath&&p.y-beneath.y<8&&!dying;
-  if(beneath){const height=Math.max(0,p.y-beneath.y),scale=1/(1+height*.15);c.shadow.position.set(p.x,beneath.y+.10,.48);c.shadow.scale.set(scale,scale*.58,1);c.shadow.material.opacity=.22/(1+height*.36);}
+  // The pool under a bigger character is bigger; its softening with height is not.
+  if(beneath){const height=Math.max(0,p.y-beneath.y),scale=c.build/(1+height*.15);c.shadow.position.set(p.x,beneath.y+.10,.48);c.shadow.scale.set(scale,scale*.58,1);c.shadow.material.opacity=.22/(1+height*.36);}
 }
