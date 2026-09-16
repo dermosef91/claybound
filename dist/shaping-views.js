@@ -60,7 +60,13 @@ export function animateClayView(view,s,dt,{near=false,playing=true,reducedMotion
   const clay=view.clay;if(!clay)return;
   // A block this size breathing would shift tons of clay under the player's
   // feet. Its surface is already alive, and that is the only motion it has.
-  if(clay.block){view.root.scale.set(1,1,1);view.root.position.set(s.x,s.y,0);return;}
+  if(clay.block){
+    view.root.scale.set(1,1,1);view.root.position.set(s.x,s.y,0);
+    if(clay.marble)animateMarbleView(clay.marble,s);
+    if(clay.socket)animateSocketView(clay.socket,s,playing?dt:0);
+    if(clay.mould)animateMouldView(clay.mould,s);
+    return;
+  }
   // Everything about the breath holds still when the game does, envelope
   // included, so a paused frame is genuinely a frozen frame.
   if(playing){clay.breath+=((near?1:0)-clay.breath)*(1-Math.exp(-dt*4));clay.time+=dt;}
@@ -220,7 +226,75 @@ function createBlockView(w,s,root,{form=false}={}){
   geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3(W/2,base+reachY/2,0),Math.hypot(W/2+.5,reachY/2+.6,D/2+.5));
   const block={rest:new Float32Array(rest),push,down,columns:Uint16Array.from(columns),xs:Float64Array.from(xs),lift:new Float64Array(NX),version:-1,form,H,base};
   const view={root,clay:{pieces:[{mesh,rest:block.rest}],block,breath:0,time:0},ropes:[],bounce:0};
+  if(form&&s.mould)view.clay.mould=createMouldView(s,root,D,base);
+  if(form&&s.marble)view.clay.marble=createMarbleView(w,s,root);
+  if(form&&s.marble&&s.socket)view.clay.socket=createSocketView(w,s,root);
   updateBlockView(view,s);return view;
+}
+
+// --- a mould to cast, and a marble to roll -----------------------------------
+
+// The shape the clay is to be cast into, drawn as a soft ribbon along the front
+// edge of the trough at the target's height, so the silhouette to match is
+// read against the clay's own silhouette. It brightens as the cast comes close
+// and turns green when it is done, which is the only scoreboard the mould has.
+const MOULD_INK=0xf6ecd6,MOULD_CAST=0x9be7a8,MOULD_BAND=.09;
+function createMouldView(s,root,D,base){
+  const target=s.mould,n=target.length,dx=s.w/(n-1),z=D/2+.06;
+  const positions=new Float32Array(n*2*3),indices=[];
+  for(let i=0;i<n;i++){
+    const x=i*dx,y=base+target[i],j=i*6;
+    positions[j]=x;positions[j+1]=y+MOULD_BAND;positions[j+2]=z;
+    positions[j+3]=x;positions[j+4]=y-MOULD_BAND;positions[j+5]=z;
+    if(i){const a=(i-1)*2,b=i*2;indices.push(a,a+1,b,a+1,b+1,b);}
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));geometry.setIndex(indices);
+  geometry.computeBoundingSphere();
+  const material=new THREE.MeshBasicMaterial({color:MOULD_INK,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false});
+  const mesh=new THREE.Mesh(geometry,material);mesh.name='Mould · '+s.id;mesh.renderOrder=2;root.add(mesh);
+  return mesh;
+}
+function animateMouldView(mesh,s){
+  const k=Math.max(0,Math.min(1,s.mouldMatch||0));
+  mesh.material.opacity=.45+.45*k;
+  mesh.material.color.setHex(k>=.995?MOULD_CAST:MOULD_INK);
+}
+
+// The marble: a bead-gold ball that sits on the surface where the rule has it
+// and turns as it rolls.
+const MARBLE_GOLD=0xe4b04a;
+function createMarbleView(w,s,root){
+  const m=s.marble;
+  const material=clayMaterial(w,new THREE.MeshStandardMaterial({color:MARBLE_GOLD,roughness:.38,metalness:.12,emissive:MARBLE_GOLD,emissiveIntensity:.08}),.04);
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(m.r,28,20),material);
+  mesh.name='Marble · '+s.id;mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
+  animateMarbleView(mesh,s);return mesh;
+}
+// The socket the marble is bound for is marked so the goal reads from the far
+// end of the trough: a gold hoop the marble's colour standing over the hollow,
+// facing the camera (flat on the clay it would be a line from the side), just
+// big enough that the seated marble sits inside it. It rides the surface as
+// the clay is worked, turns slowly until the marble is home, and glows green
+// once it is.
+const SOCKET_HOME=0x9be7a8;
+function createSocketView(w,s,root){
+  const m=s.marble,material=new THREE.MeshStandardMaterial({color:MARBLE_GOLD,roughness:.4,metalness:.15,emissive:MARBLE_GOLD,emissiveIntensity:.35});
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(m.r*1.5,.07,10,40),material);
+  ring.name='Socket · '+s.id;ring.castShadow=true;root.add(ring);
+  animateSocketView(ring,s,0);return ring;
+}
+function animateSocketView(ring,s,dt){
+  const f=s.form,socket=s.socket,m=s.marble;if(!f||!socket)return;
+  const x=(socket[0]+socket[1])/2,home=!!m?.home;
+  ring.position.set(x,-(s.h||0)+formHeight(f,x)+m.r,0);
+  ring.rotation.y+=home?0:dt*.9;
+  ring.material.color.setHex(home?SOCKET_HOME:MARBLE_GOLD);ring.material.emissive.setHex(home?SOCKET_HOME:MARBLE_GOLD);
+}
+function animateMarbleView(mesh,s){
+  const m=s.marble,f=s.form;if(!m||!f)return;
+  mesh.position.set(m.x,-(s.h||0)+formHeight(f,m.x)+m.r,0);
+  mesh.rotation.z=-m.spin;
 }
 
 // Thumbprints, glitter and depth for every piece of violet clay, keyed on a

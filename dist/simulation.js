@@ -117,8 +117,19 @@ export class Game {
       s.prevX=s.x;s.prevY=s.y;s.prevAngle=s.angle;
       updateCavernMachine(s,p,this.time,dt,this.channels);
       if(s.kind==='lift'&&!s.shapeLift){
-        const a=this.time*Math.PI*2/s.period+(s.phase||0);
-        s.x=s.baseX+Math.sin(a)*(s.moveX||0);s.y=s.baseY+Math.sin(a)*(s.moveY||0);
+        if(s.channel){
+          // A lift with a channel runs only while the channel is open: from
+          // rest at its base up `moveY` and back, over and over, on its own
+          // clock so it always sets off smoothly from where it rests; shut
+          // again, it eases back down and waits.
+          const on=!!this.latched[s.channel]||this.channels[s.channel]>0;
+          s.run=on?(s.run||0)+dt:0;
+          const target=s.baseY+(1-Math.cos(s.run*Math.PI*2/(s.period||5)))/2*(s.moveY||0);
+          s.x=s.baseX;s.y=on?target:approach(s.y,s.baseY,dt*1.8);
+        } else {
+          const a=this.time*Math.PI*2/s.period+(s.phase||0);
+          s.x=s.baseX+Math.sin(a)*(s.moveX||0);s.y=s.baseY+Math.sin(a)*(s.moveY||0);
+        }
       }
       if(s.kind==='counter')s.y=approach(s.y,s.baseY+(this.latched[s.channel]?s.rise:0),dt*1.8);
       if(s.kind==='timed')s.active=this.channels[s.channel]>0;
