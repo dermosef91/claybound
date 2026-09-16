@@ -117,7 +117,10 @@ export function validateDraft(source,base){
     });
   }
   // Shaping stations are data too: ids, a gesture, the clay they own and where
-  // the prompt applies. Never any behaviour, so an import stays inert.
+  // the prompt applies. Never any behaviour, so an import stays inert. The one
+  // rule a chapter carries, the formable mass, is data as well — a clump of
+  // knots and a solution of strokes, all bounded — and it is the only rule an
+  // import may name; without it the canyon's mass would arrive as a dead slab.
   if(source.shaping!==undefined){
     if(!Array.isArray(source.shaping)||source.shaping.length>30)throw new Error('Invalid shaping list (maximum 30).');
     const clay=new Set(out.platforms.filter(p=>p.shape).map(p=>p.id));
@@ -125,7 +128,7 @@ export function validateDraft(source,base){
     out.shaping=source.shaping.map(s=>{
       if(!s||typeof s!=='object')throw new Error('Invalid shaping station.');
       if(!idOK(s.id))throw new Error('Each shaping station needs an ID.');
-      if(!['down','right','out'].includes(s.gesture))throw new Error('A station gesture must be down, right or out.');
+      if(!['down','right','out','up'].includes(s.gesture))throw new Error('A station gesture must be down, right, out or up.');
       const parts=(Array.isArray(s.parts)?s.parts:[]).filter(id=>clay.has(id));
       if(!parts.length)throw new Error(`Station ${s.id} has no kneadable clay.`);
       const station={id:s.id,name:text(s.name,'name',80),verb:text(s.verb,'verb',40),gesture:s.gesture,parts,
@@ -137,6 +140,17 @@ export function validateDraft(source,base){
       if(s.lift!==undefined){
         if(!idOK(s.lift))throw new Error('Invalid station lift.');
         Object.assign(station,{lift:s.lift,liftFrom:finite(s.liftFrom,-40,160,'lift start'),liftTo:finite(s.liftTo,-40,160,'lift end')});
+      }
+      if(s.rule!==undefined){
+        if(s.rule!=='form')throw new Error(`Station ${s.id} asks for a clay rule that stays in the lab.`);
+        if(!Array.isArray(s.clump)||!s.clump.length||s.clump.length>24)throw new Error(`Station ${s.id} needs a clump of up to 24 knots.`);
+        if(!Array.isArray(s.solution)||s.solution.length>40)throw new Error(`Station ${s.id} needs a solution of up to 40 strokes.`);
+        Object.assign(station,{rule:'form',free:!!s.free,
+          clump:s.clump.map((k,i)=>[finite(k?.[0],0,1,`station ${s.id} knot ${i+1} across`),finite(k?.[1],-40,40,`station ${s.id} knot ${i+1} top`)]),
+          solution:s.solution.map((k,i)=>({x:finite(k?.x,...nums.x,`station ${s.id} stroke ${i+1} x`),lift:finite(k?.lift,-30,30,`stroke ${i+1} lift`),dx:finite(k?.dx,-30,30,`stroke ${i+1} dx`),dy:finite(k?.dy,-30,30,`stroke ${i+1} dy`),t:finite(k?.t,.05,10,`stroke ${i+1} t`)}))});
+        if(s.relax===false)station.relax=false;
+        if(s.shaped!==undefined)station.shaped=finite(s.shaped,.02,1,'station shaped share');
+        if(s.cueX!==undefined)station.cueX=finite(s.cueX,...nums.x,'station cue x');
       }
       return station;
     });

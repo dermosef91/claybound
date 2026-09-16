@@ -20,6 +20,10 @@
 // of its footprint, so it reads as a lump on a surface rather than a slab let
 // into it — but between its two ends it never thins past `minThick`, so it is
 // still one lump, however far it is spread.
+//
+// Left alone, a mass slumps back towards its clump; a mass in a chapter may
+// switch that slump off, so a bridge the player made is still there when they
+// come back to it, and R is the one way home.
 
 export const FORM=Object.freeze({
   // One column every quarter unit: fine enough that a step is a step and a bowl
@@ -79,7 +83,8 @@ export const FORM=Object.freeze({
   // all over: nobody lands on it or stands on it, they slide down it.
   step:.55,walk:1.7,
   // How much of the clay's volume has to have moved for the station to read
-  // as shaped in the pause menu: about one full pillar's worth.
+  // as shaped in the pause menu: about one full pillar's worth. A station may
+  // ask for more, where a dab must not count as the work.
   shaped:.08,
 });
 
@@ -137,11 +142,15 @@ export const formRest=(f,x)=>sample(f,f.rest,x);
 export function formPeak(f){let top=0;for(let i=0;i<f.n;i++)top=Math.max(top,f.h[i]);return top;}
 
 // How much of the clay has been moved from its clump, as a share of the work
-// the station counts as shaped. Half the absolute difference, since every unit
-// raised somewhere is a unit lowered somewhere else.
-export function formShare(f){
+// the station counts as shaped — `share` of the volume, the lab's by default.
+// Half the absolute difference, since every unit raised somewhere is a unit
+// lowered somewhere else.
+export function formMoved(f){
   let moved=0;for(let i=0;i<f.n;i++)moved+=Math.abs(f.h[i]-f.rest[i]);
-  return clamp(moved*f.dx/2/(f.volume*FORM.shaped),0,1);
+  return moved*f.dx/2;
+}
+export function formShare(f,share=FORM.shaped){
+  return clamp(formMoved(f)/(f.volume*(real(share)&&share>0?share:FORM.shaped)),0,1);
 }
 
 // --- the passes every deformation goes through --------------------------------
@@ -366,12 +375,13 @@ export function beginForm(f){f.prev.set(f.h);}
 
 // One fixed tick with the hand and the boots accounted for. Left alone long
 // enough, every column slumps back towards the clump, and what weight pressed
-// in is forgiven at the same rate. Returns whether the surface moved.
-export function stepForm(f,dt,{hand=false,standing=false}={}){
+// in is forgiven at the same rate — unless the slump is off, in which case the
+// clay simply holds whatever it was made. Returns whether the surface moved.
+export function stepForm(f,dt,{hand=false,standing=false,relax=true}={}){
   const step=clamp(finite(dt),0,1/30);
   if(!step)return false;
   const eased=easeForm(f);
-  f.idle=hand||standing?0:f.idle+step;
+  f.idle=hand||standing||!relax?0:f.idle+step;
   if(f.idle<=FORM.settle)return eased;
   const {h,rest,dent,n}=f,k=1-Math.exp(-step/FORM.relaxTime),floor=FORM.relaxMin*step;
   let moved=0;

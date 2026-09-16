@@ -7,6 +7,7 @@ import {updateCavernMachine,solidWall,solidDepth} from './cavern-machines.js';
 import {resetSpitter,contactSpitter,updateShots} from './spitter-rules.js';
 
 import {claySurface,clayWallBounds,updateShaping,stompClay,formWallAhead,formStaysGrounded,formSteepAt,resolveFormBody} from './shaping.js';
+import {solveFormStation} from './clay-rules.js';
 import {bridgeOffset} from './bridge-surface.js';
 import {MOTHER_PUFF,motherCinematic,motherIntroTarget,updateMotherPuff,contactMotherPuff,resetMotherPuff} from './mother-puff-rules.js';
 
@@ -45,9 +46,15 @@ export class Game {
     this.elapsed=Math.max(0,Number(save.elapsed)||0);this.deaths=Math.max(0,Number(save.deaths)||0);
     for(const name of ['coins','stamps']){const ids=new Set(Array.isArray(save[name])?save[name]:[]);this.level[name].forEach(c=>c.taken=ids.has(c.id));this[name]=this.level[name].filter(c=>c.taken).length;}
     // Clay the player already finished stays finished: a checkpoint past a
-    // kneaded ramp must never resume in front of an unshaped one.
+    // kneaded ramp must never resume in front of an unshaped one. A formable
+    // mass has no finished pose to jump to, so it is rebuilt from its authored
+    // solution — the player's own shape is not saved, only that they crossed.
     const shaped=new Set(Array.isArray(save.shaped)?save.shaped:[]);
-    for(const station of this.level.shaping||[])if(shaped.has(station.id)){station.target=1;station.amount=1;station.announced=true;}
+    for(const station of this.level.shaping||[])if(shaped.has(station.id)){
+      const mass=station.rule==='form'&&this.level.platforms.find(s=>s.id===station.parts[0]);
+      if(mass)solveFormStation(station,mass,{dt:FIXED_DT});
+      else {station.target=1;station.amount=1;station.announced=true;}
+    }
     updateShaping(this,0,{});
     const allowed=new Set(this.level.platforms.flatMap(s=>s.releases?[s.releases]:(s.latch||s.kind==='balance')&&s.channel?[s.channel]:[]));
     for(const c of Array.isArray(save.latched)?save.latched:[])if(allowed.has(c)){this.latched[c]=true;this.channels[c]=1;}

@@ -36,17 +36,14 @@ function fixture({width=1080,height=2160,viewH=8.7,captureThrows=false}={}){
 // Standing at one of a chapter's clay docks. The player is put where the level
 // says that clay is worked from and held there — these cases are about what a
 // pointer and a key reach, not about where an unattended body drifts to — and
-// the station under the hands is whichever one that spot belongs to. It is not
-// always the dock's own: the canyon lump is worked from the bridge its
-// neighbour becomes, so the lump's dock is the spire's, and clay the player is
-// not standing at refuses a hand by design. `shape` finishes the named
-// stations first, which is how a player reaches the later docks.
-async function rig(dockId,{chapter=3,options,shape=[],standX}={}){
+// the station under the hands is whichever one that spot belongs to; clay the
+// player is not standing at refuses a hand by design. `shape` finishes the
+// named stations first, which is how a player reaches a later dock.
+async function rig(dockId,{chapter=3,options,shape=[]}={}){
   const f=fixture(options);
   const game=new Game();game.start(chapter);
   const input={moveAxis:0,jumpHeld:false,jumpPressed:false,stompPressed:false};
   const stand={...game.level.shaping.find(s=>s.id===dockId).spawn};
-  if(standX!==undefined)stand.x=standX;
   Object.assign(game.player,stand,{vx:0,vy:0});
   const {ShapingControls}=await import('../dist/shaping-controls.js');
   const controls=new ShapingControls({game,world:()=>({camera:f.camera}),input,picker:{}});
@@ -63,10 +60,14 @@ async function rig(dockId,{chapter=3,options,shape=[],standX}={}){
   return r;
 }
 // Every clay dock in the campaign, and the station each one actually works.
-const docks=[0,1,2,3].flatMap(chapter=>{
+// The canyon's pocket is a formable mass with no pose to drag between, so the
+// stroke and the hold mean something else there; it has its own drill below.
+const stations=[0,1,2,3].flatMap(chapter=>{
   const probe=new Game();probe.start(chapter);
-  return probe.level.shaping.map(s=>({chapter,dock:s.id}));
+  return probe.level.shaping.map(s=>({chapter,dock:s.id,rule:s.rule}));
 });
+const docks=stations.filter(d=>!d.rule),formDocks=stations.filter(d=>d.rule==='form');
+assert(docks.length>=6&&formDocks.length>=1,'hand-worked docks and a formable one to drill');
 
 // Every chapter's clay, not just the one this file started with: a stroke that
 // works in the Hanging Quarter and nowhere else is not a working stroke.
@@ -97,18 +98,6 @@ for(const {chapter,dock} of docks){
   // Nothing about the drag depends on the tap path: it moved the clay long
   // before the pointer came up, which is what "primary" has to mean.
   assert(live().announced,`${chapter}/${id}: the station reports itself shaped`);
-}
-// And the one station no dock of its own reaches: the canyon lump is worked
-// from the bridge the spire becomes, so it is only draggable once that is done.
-{
-  const r=await rig('canyon-lump',{chapter:0,shape:['canyon-spire'],standX:134});
-  assert.equal(r.station.id,'canyon-lump','the flattened spire puts the player at the lump');
-  const grip=r.grip();
-  r.f.emit('pointerdown',{pointerId:2,...grip});
-  assert.equal(r.input.shapeId,'canyon-lump','pressing the lump takes hold of it');
-  r.f.emit('pointermove',{pointerId:2,...grip,[r.axis]:grip[r.axis]+150});
-  r.step(2);
-  assert.equal(r.live().target,1,'one stroke finishes the lump');
 }
 console.log('PASS dragging clay: the pointer takes hold of it, it follows the thumb, and one stroke shapes it');
 
@@ -179,6 +168,74 @@ for(const {chapter,dock} of docks){
   assert.equal(live().target,1,`${chapter}/${id}: holding E through finishes it`);
 }
 console.log('PASS holding E works the station the player is standing at, in every chapter');
+
+// The formable mass: the pointer is the tool itself, carrying a world point to
+// the clay every tick it is down, so this drives the same real handlers and
+// camera with strokes in world units. The station's authored solution is what
+// the game means by "shaped" there (solveFormStation), and it has to come out
+// the same whether the strokes arrive as pointer events or as the solver's
+// own ticks — that is what makes the pointer path the solver path.
+{
+  const {solveFormStation,formSolutionInputs}=await import('../dist/clay-rules.js');
+  const {surfaceAt}=await import('../dist/simulation.js');
+  const {FORM}=await import('../dist/clay-form.js');
+  // Landscape, wide enough to see the whole pocket from the dock.
+  const wide={width:1920,height:1080,viewH:12};
+  for(const {chapter,dock} of formDocks){
+    const r=await rig(dock,{chapter,options:wide}),s=r.live(),mass=r.part,f=mass.form;
+    assert.equal(s.rule,'form');assert.equal(r.station.id,dock);
+    // A press on the clay takes hold of it and carries the world point; a drag
+    // up raises the surface under the grip, and the station reads as worked.
+    const x=s.cueX,top=surfaceAt(mass,x),at=r.f.screen(x,top);
+    r.f.emit('pointerdown',{pointerId:41,...at});
+    assert.equal(r.input.shapeId,dock,`${chapter}/${dock}: pressing the clay takes hold of it`);
+    assert(Math.abs(r.input.shapeX-x)<1e-6&&Math.abs(r.input.shapeY-top)<1e-6,'and carries the world point under the pointer');
+    r.step(1);assert.equal(s.grip?.mode,'grab','on the surface, the hand grabs rather than presses');
+    const unit=wide.height/wide.viewH;
+    for(const u of [.2,.4,.6,.8,1])r.f.emit('pointermove',{pointerId:41,...at,clientY:at.clientY-u*unit}),r.step(3);
+    r.step(30);
+    const raised=surfaceAt(mass,x)-top;
+    assert(raised>.6&&raised<1.3,`${chapter}/${dock}: a unit's drag upward raises the clay under the grip (${raised.toFixed(2)})`);
+    assert(s.amount>0&&s.amount<1,`${chapter}/${dock}: a short pull is worked, not shaped (${s.amount.toFixed(2)})`);
+    r.f.emit('pointerup',{pointerId:41,...at,clientY:at.clientY-unit});
+    assert.equal(r.input.shapeId,null,'letting go releases the clay');
+    // R from the dock puts the clump back, through the real key.
+    r.f.key('keydown',{code:'KeyR'});r.step(2);
+    assert.equal(s.amount,0,'R softens the pocket back');
+    assert(Math.abs(surfaceAt(mass,x)-top)<1e-9);
+    // The authored solution as pointer events: each tick's world point
+    // projected to the screen and back through the handlers.
+    const solved=(()=>{const g=new Game();g.start(chapter);const st=g.level.shaping.find(q=>q.id===dock);return Float64Array.from(solveFormStation(st,g.level.platforms.find(q=>q.id===st.parts[0]),{dt:FIXED_DT}).h);})();
+    let down=false,ticks=0;
+    for(const input of formSolutionInputs(r.game,s,{dt:FIXED_DT})){
+      if(input.shapeId){const at=r.f.screen(input.shapeX,input.shapeY);r.f.emit(down?'pointermove':'pointerdown',{pointerId:42,...at});down=true;}
+      else {r.f.emit('pointerup',{pointerId:42,...r.f.screen(r.input.shapeX,r.input.shapeY)});down=false;}
+      r.step(1);ticks++;
+    }
+    r.step(60);
+    assert.equal(s.amount,1,`${chapter}/${dock}: the strokes shape the pocket`);assert(s.announced);
+    let worst=0;for(let i=0;i<f.n;i++)worst=Math.max(worst,Math.abs(f.h[i]-solved[i]));
+    assert(worst<1e-6,`${chapter}/${dock}: ${ticks} pointer ticks make the solver's surface (max |Δh| ${worst.toExponential(2)})`);
+    // E raises a step ahead of the player, and nowhere else: from the dock's
+    // spawn the step would land on rock, so nothing happens — the pocket is
+    // opened by the pointer, not the key. On the clay, a held E builds the
+    // step, and the step stays when the key is let go, since this clay does
+    // not slump back.
+    r.f.key('keydown',{code:'KeyE'});
+    const before=Float64Array.from(f.h);r.step(30);
+    assert.deepEqual(Array.from(f.h),Array.from(before),`${chapter}/${dock}: E from the spawn reaches no clay`);
+    r.f.key('keyup',{code:'KeyE'});
+    Object.assign(r.stand,{x:140,y:surfaceAt(mass,140),groundId:mass.id});r.step(2);
+    const ahead=r.game.player.x+FORM.stepReach,was=surfaceAt(mass,ahead);
+    r.f.key('keydown',{code:'KeyE'});r.step(60);
+    assert(surfaceAt(mass,ahead)-was>.6,`${chapter}/${dock}: half a second of E on the clay raises a step ahead (${(surfaceAt(mass,ahead)-was).toFixed(2)})`);
+    r.f.key('keyup',{code:'KeyE'});
+    const step=surfaceAt(mass,ahead);r.step(120);
+    assert(Math.abs(surfaceAt(mass,ahead)-step)<.05,`${chapter}/${dock}: the step stays once E is let go (${(surfaceAt(mass,ahead)-step).toFixed(3)})`);
+    assert.equal(r.game.deaths,0);
+  }
+}
+console.log('PASS the formable pocket: the pointer grabs and raises it, the authored strokes as pointer events make the solver\'s surface, R resets it from the dock, and E builds a step only ahead of a player on the clay');
 
 // The clay answers one hand exactly as it answers another. A spore's stun used
 // to switch the hold and the drag off while leaving the tap working, which is

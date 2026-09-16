@@ -6,7 +6,7 @@ const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,
 // make the room, and the pocket itself is built into the space afterwards.
 const POCKET=124,GAP=36;
 const L=makeRoom({
-  layoutVersion:8,
+  layoutVersion:9,
   name:'The Sunbaked Canyon',short:'Sunbaked Canyon',label:'Windwells & ropeways',biome:'desert',
   intro:'Wake the windwells. Ride the sandstone sky to the caravan bell.',
   sky:'#80afe0',fog:'#f1bba0',spawn:{x:1.5,y:0},end:246,previousDistance:935,cameraY:2,
@@ -34,7 +34,7 @@ const L=makeRoom({
     p('clay-1',199.25,4,13.5,'crumble'),p('clay-2',160.75,2.25,17,'crumble')
   ],
   route:['start','lift1','arrival','notch','rope-cross','lookout',['windwell','walk'],['valve1','walk'],'wind-step','wind-crown','wind-exit','downstep','wind-gondola','oasis',['basin','walk'],'sand1','sand2','sand3','sand-rest',
-    'pocket-dock','canyon-spire','canyon-lump','pocket-landing',
+    'pocket-dock','pocket-clay','pocket-landing',
     'sand4','sand5','arch-entry','arch-shelf','arch-lift','arch-balcony','arch-roof',['arch-bridge-left','fall'],['arch-drop','walk'],['arch-bridge-right','walk'],['last-rest','fall'],['last-well','walk'],['valve2','walk'],'clay-1','sky-lift','sky2','sky-rest','sky-sand','sky-rope','bell-roof'],
   detours:[path(['wind-crown','wind-turn','well-flower','wind-turn','wind-crown','wind-exit']),path(['sand2',['basin-flower','fall'],'sand3']),path(['arch-balcony','clay-2','arch-flower','clay-2','arch-balcony','arch-roof'])],
   recoveries:[],
@@ -64,31 +64,42 @@ const L=makeRoom({
 },POCKET,GAP);
 
 // --- The Sandwright's Pocket (124 – 160) -------------------------------------
-// Two pieces of clay, each worked on its own, and neither gains or loses any
-// clay on the way: what gets wider gets lower. A spire stands at the end of the
-// dock, too tall to climb and blocking the chasm; spread it and it slumps into the
-// bridge across. On the far side a lump blocks the climb; pull it over and it
-// lies down into the ramp up to the landing.
+// One mass of clay, formable the way the lab's lump is — no pose, only a
+// surface the hand drags where it likes — sitting free on a sandstone shelf
+// that fills the chasm from its floor up to 2.15 below the dock. It rests as
+// two towers with a skim of clay over the pit between them: a spire flush with
+// the dock's end, a unit out of a jump's reach and a wall to walk into, and a
+// lump against the landing's cliff, cresting a unit above the landing. The
+// shelf is sown with spikes half a unit below the clay's base, so bare
+// sandstone kills and any clay at all is safe — and the mass never thins past
+// FORM.minThick between its ends, so the rule the player learns is that clay is
+// ground and the sand it covered is not. Nothing here can be jumped; the pocket
+// opens only once the clay is worked, and any shape that carries the player
+// counts. The station's `solution` is one way of many — grab the spire's crest
+// and lean it into the pit, grab the lump's crest and slump it into a ramp —
+// and it is what the routes sweep, the playthrough pilot and a resumed
+// checkpoint mean by "shaped" (clay-rules.js, solveFormStation). The clay
+// keeps whatever it is made into rather than slumping back; R softens the whole
+// pocket, from off the clay. The clump's tops are over dock level; the
+// limiting passes round them, so the towers crest higher than the knots say.
+const K=(x,top)=>[(x-133.3)/17.2,top];
 L.platforms.push(
   p('pocket-dock',124,9.3,10.75,'stone',{checkpoint:129,landmark:'sandwheel'}),
-  p('spire-foot',133.4,1.6,8.6,'wall',{h:6.6}),
-  part('canyon-spire',{x:133.4,w:1.6,y:19.6,h:11},{x:130.2,w:8,y:10.8,h:2.2},{station:'canyon-spire',clayRole:'bridge'}),
-  p('lump-foot',140,1.6,10.2,'wall',{h:8.2}),
-  part('canyon-lump',{x:140,w:1.6,y:22.575,h:12.375},{x:140,w:9,y:10.8,h:.6,slope:3.2},{station:'canyon-lump',clayRole:'ramp'}),
-  p('pocket-landing',150.5,7.5,14.2)
+  p('pocket-floor',133.3,17.2,8.6,'wall',{h:6.6}),
+  part('pocket-clay',{x:133.3,w:17.2,y:10.75,h:2.15},{x:133.3,w:17.2,y:10.75,h:2.15},{station:'canyon-pocket',clayRole:'mass'}),
+  p('pocket-landing',150.5,7.5,14.2,'stone',{checkpoint:154})
 );
 L.sections.splice(3,0,{x:POCKET,name:"The Sandwright's Pocket",landmark:'sandwheel'});
+L.hazards.push({x:133.3,w:17.2,y:8.1});
 L.shaping.push(
-  {id:'canyon-spire',icon:'landing',name:'Spread the spire',verb:'Pull outward',gesture:'out',parts:['canyon-spire'],x:124,end:133.3,
-   spawn:{x:126.5,y:10.8,groundId:'pocket-dock'},
-   hint:'Pull the violet spire apart until it slumps into a bridge. Drag it, or hold E / KNEAD.'},
-  {id:'canyon-lump',icon:'ramp',name:'Pull the lump over',verb:'Pull right',gesture:'right',parts:['canyon-lump'],x:133.3,end:150,
-   spawn:{x:127.5,y:10.8,groundId:'pocket-dock'},
-   hint:'Pull the violet lump to the right until it lies down into a ramp. Drag it, or hold E / KNEAD.'}
+  {id:'canyon-pocket',rule:'form',free:true,relax:false,shaped:.2,icon:'knead',name:'Shape the pocket',verb:'Grab it and drag',gesture:'up',cueX:134.6,
+   parts:['pocket-clay'],x:124,end:158,spawn:{x:128,y:10.75,groundId:'pocket-dock'},
+   clump:[K(133.3,3.7),K(136,3.7),K(137.2,-1.8),K(143.8,-1.8),K(145,4.4),K(150.5,4.4)],
+   solution:[{x:134.5,lift:0,dx:6.5,dy:-3,t:1.7},{x:147,lift:0,dx:-5.5,dy:-2.6,t:1.8}],
+   hint:'Grab the violet clay and drag it: lean the spire into a bridge, slump the lump into a ramp, or shape your own way. Clay is ground; the sand under it is not. On the clay, hold E for a step ahead. Step off and press R to soften it back.'}
 );
 L.hints.push(
-  {x:124,end:133.3,icon:'landing',title:'Shape the clay',text:'Drag the violet spire apart, or hold E.',touchText:'Drag the violet spire apart.'},
-  {x:133.3,end:150,icon:'ramp',title:'Clay pulls too',text:'Drag the lump to the right, or hold E, to lay it down as a ramp.',touchText:'Drag the lump to the right to lay it down as a ramp.'}
+  {x:124,end:150.4,icon:'knead',title:'Shape the clay',text:'Grab the violet clay and drag it. Lean the spire into a bridge, slump the lump into a ramp. On the clay, hold E for a step ahead; step off and press R to soften it.',touchText:'Grab the violet clay and drag it: lean the spire into a bridge, slump the lump into a ramp. Clay is ground; bare sand is not.'}
 );
-L.coins.push({x:126.25,y:12.2},...row(132,12.2,4,1.3),{x:143,y:12.6},{x:146,y:13.8},{x:152.5,y:15.6},{x:155,y:15.6});
+L.coins.push({x:126.25,y:12.2},...row(136.3,13.2,3,1.3),{x:148.5,y:16.3},{x:152.5,y:15.6},{x:155,y:15.6});
 export default chapter(L);

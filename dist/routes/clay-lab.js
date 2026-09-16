@@ -1,8 +1,9 @@
 import {p,row,path} from '../route-authoring.js';
 
 // The Clay Lab: a flat workshop bench of experiments that ask what clay does
-// beyond holding a shape you pushed it into. Nothing here is in the campaign —
-// every station carries a `rule`, and no chapter station has one.
+// beyond holding a shape you pushed it into. Every station carries a `rule`;
+// one of them, the formable mass, has gone on into the campaign as the
+// canyon's Sandwright's Pocket, and the rest are still only here.
 //
 // The bench is deliberately boring underneath: one long safe floor at y 0 with
 // a pit only where an experiment needs a consequence. You can walk between

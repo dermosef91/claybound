@@ -10,8 +10,16 @@ const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
 // The incognito export is the source of truth, including deliberate deletions.
 {
  const canonical=validateDraft(LEVELS[0],LEVELS[0]);
- assert.equal(LEVELS[0].layoutVersion,8);assert(!LEVELS[0].custom);
- assert.equal(canonical.layoutVersion,'editor-8-xtiw06','canonical canyon matches the approved editor export');
+ assert.equal(LEVELS[0].layoutVersion,9);assert(!LEVELS[0].custom);
+ assert.equal(canonical.layoutVersion,'editor-9-1s6kjcr','canonical canyon matches the approved editor export');
+ // The pocket's formable mass survives the round trip as data: its rule, its
+ // clump and its solution, bounded, and no other rule is ever let in.
+ const pocket=canonical.shaping.find(s=>s.id==='canyon-pocket'),authored=LEVELS[0].shaping.find(s=>s.id==='canyon-pocket');
+ for(const key of ['rule','free','relax','shaped','cueX','gesture','clump','solution'])assert.deepEqual(pocket[key],authored[key],`the canonical canyon keeps its formable mass's ${key}`);
+ for(const bad of [{rule:'sag'},{gesture:'sideways'},{clump:[[2,0]]},{clump:[]},{solution:[{x:130,lift:0,dx:0,dy:0,t:0}]},{shaped:0},{solution:Array.from({length:41},()=>({x:130,lift:0,dx:1,dy:1,t:1}))}]){
+  const draft=structuredClone(LEVELS[0]);Object.assign(draft.shaping.find(s=>s.id==='canyon-pocket'),bad);
+  assert.throws(()=>validateDraft(draft,LEVELS[0]),`a station with ${JSON.stringify(bad)} is refused`);
+ }
 }
 {
  const exported=JSON.parse(readFileSync(new URL('../docs/forest-canopy-canon/editor-backup.json',import.meta.url),'utf8'));

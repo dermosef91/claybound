@@ -6,6 +6,7 @@ import {Game,FIXED_DT as dt} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
 import {cloneGame,steer} from './routes.mjs';
 import {nearbyStation} from '../dist/shaping.js';
+import {formSolutionInputs} from '../dist/clay-rules.js';
 import {machineTransfer} from './machine-pilot.mjs';
 import {motherTransfer} from './mother-puff-pilot.mjs';
 
@@ -15,13 +16,20 @@ function attempt(original,link,{offset,wait,hold}){
  if(a.kind==='ferry'||(link.mode==='ride'||link.mode==='board'))return machineTransfer(original,link);
  let spring=false;g.onEvent=e=>{if(e.type==='spring'&&b.kind==='spring'&&Math.abs(e.y-b.y)<.2&&e.x>b.x-.25&&e.x<b.x+b.w+.25)spring=true;};
  const dir=Math.sign(b.x+b.w/2-a.x-a.w/2)||1,overlap=a.x<b.x+b.w&&a.x+a.w>b.x,drop=link.mode==='drop',fall=link.mode==='fall',walk=link.mode==='walk';
- const controls=[];let launched=!g.player.groundId&&g.player.springing,jumpAge=0,waiting=wait,stomped=false;
+ const controls=[];let launched=!g.player.groundId&&g.player.springing,jumpAge=0,waiting=wait,stomped=false,lastX=g.player.x,stuck=0;
  for(let f=0;f<1080;f++){
   const p=g.player;let jumpPressed=false,stompPressed=false,aim=fall&&overlap?b.x+Math.min(offset,b.w/2):b.x+b.w/2;
   // Kneadable clay blocks the way until it is shaped. Stand still and hold the
   // knead input, like the station prompt asks, then carry on with the crossing.
+  // A formable mass has no pose for E to work towards; journey() plays its
+  // authored strokes before any candidate gets here.
   const station=nearbyStation(g);
-  if(station&&station.amount<1&&p.groundId){const knead={moveAxis:0,shapeHeld:true};controls.push(knead);g.tick(dt,knead);continue;}
+  if(station&&!station.rule&&station.amount<1&&p.groundId){const knead={moveAxis:0,shapeHeld:true};controls.push(knead);g.tick(dt,knead);continue;}
+  // Walking on formable clay, a rise too tall to step up stops the walk; a
+  // player hops it, and so does the pilot — a real jump, nothing edited.
+  const ground=p.groundId&&g.level.platforms.find(s=>s.id===p.groundId);
+  if(!launched&&ground?.form){stuck=Math.abs(p.x-lastX)<.004?stuck+1:0;if(stuck>6){jumpPressed=true;stuck=0;}}else stuck=0;
+  lastX=p.x;
   if(a.kind==='balance'&&a.channel&&!g.latched[a.channel])aim=a.x+a.w-.7;
   else if(!launched&&!walk&&!fall){
    const takeoff=drop?Math.max(a.x+.4,Math.min(a.x+a.w-.4,b.x+b.w/2)):overlap&&b.y>a.y?Math.max(a.x+.4,Math.min(a.x+a.w-.4,b.x+b.w/2-dir*offset)):dir>0?a.x+a.w-offset:a.x+offset;
@@ -86,6 +94,16 @@ for(const [i,L]of LEVELS.entries()){
  function journey(state,li){
   if(li>furthest&&process.env.TRACE)console.log('Reached',li,links[li]?.from||'bell');furthest=Math.max(furthest,li);if(li===links.length)return {g:state,parts:[]};
   if(attempts>=budget)return null;
+  // A formable mass has no pose to hold E for: standing at its dock, the pilot
+  // plays the station's authored solution as real pointer inputs — once, here,
+  // so a failed take-off candidate never replays the strokes — then crosses.
+  const station=nearbyStation(state);
+  if(station?.rule==='form'&&station.amount<1&&state.player.groundId){
+   attempts++;const g=cloneGame(state),live=g.level.shaping.find(s=>s.id===station.id),inputs=[];
+   for(const input of formSolutionInputs(g,live,{dt})){inputs.push(input);g.tick(dt,input);}
+   if(live.amount<1||g.deaths>state.deaths)return null;
+   const rest=journey(g,li);return rest?{g:rest.g,parts:[inputs,...rest.parts]}:null;
+  }
   // Machine transfers ignore jump offsets/holds/waits. Repeating their exact
   // input search 112 times cannot discover another result; backtrack upstream.
   const link=links[li],from=state.level.platforms.find(p=>p.id===link.from);

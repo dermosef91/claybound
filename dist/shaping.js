@@ -2,7 +2,8 @@
 //
 // A station with no `rule` behaves exactly as it always has; the experimental
 // rules live in clay-rules.js and can only be reached by a level that asks for
-// one, which no chapter does.
+// one. One chapter does: the canyon's Sandwright's Pocket is a `form` mass,
+// the one rule that has left the lab.
 import {giveDepth,resetGive} from './clay-give.js';
 import {initializeRule,applyRule,stepAmounts,partAmount,perPart,stompRule,standingOn,handRule,nudgeRule,resetFormStation} from './clay-rules.js';
 import {FORM,formHeight} from './clay-form.js';
@@ -49,15 +50,21 @@ export function updateShaping(game,dt,input){
     // when a player who had just been hit was leaning on them, while tapping
     // the same clay still worked — clay that answers one hand and not another
     // reads as broken clay. Respawning still refuses: the player is on their
-    // way back to a checkpoint and is not working anything.
-    const live=station===near&&!game.respawnTimer;
+    // way back to a checkpoint and is not working anything. (The timer runs a
+    // fraction past zero when it fires, so only a timer still running counts;
+    // testing it for truth left every station dead after the first death.)
+    const live=station===near&&!(game.respawnTimer>0);
     // A ruled station decides its own target from the world. The hold and drag
     // reach it only where its rule says that clay takes a hand, and they go
     // first so the rule can tell a hand is on it; clay with no rule takes them
     // below, exactly as it always has.
     if(station.rule){handRule(game,station,dt,input,{live:live&&!input.shapeReset});applyRule(game,station,dt,{near:station===near});}
     if(live){
-      if(input.shapeReset)resetStation(station);
+      // R softens the clay back. Not under the player's own feet in a chapter,
+      // though: a formable mass springing back to its clump would set them
+      // inside a regrown tower or drop them onto the sand it had covered, so
+      // there R waits until they have stepped off it.
+      if(input.shapeReset){if(!(station.rule==='form'&&!L.playground&&standingOn(station,p)>=0))resetStation(station);}
       // Ruled clay never falls through to here, whatever its rule returns, so
       // handRule is the only way a hand reaches it.
       else if(!station.rule){
