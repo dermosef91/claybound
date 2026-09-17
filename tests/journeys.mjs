@@ -19,9 +19,12 @@ for(const [i,L]of LEVELS.entries())for(const cp of L.platforms.filter(s=>s.check
 }
 console.log('PASS',checkpoints,'checkpoints restore health, collectibles and solved systems; old layouts cannot resume into new geometry');
 {
- const g=new Game();g.start(0);const wind=g.level.winds[0];Object.assign(g.player,{x:53,y:7,groundId:null,coyote:0});g.tick(dt,{});assert.equal(g.player.windY,0);
+ const g=new Game();g.start(0);const wind=g.level.winds[0];
+ // Stand in the middle of the well the chapter actually authors.
+ const inside=()=>({x:wind.x+wind.w/2,y:wind.y+wind.h/2,groundId:null,coyote:0});
+ Object.assign(g.player,inside());g.tick(dt,{});assert.equal(g.player.windY,0);
  const valve=g.level.platforms.find(s=>s.id==='valve1');at(g,valve);g.tick(dt,{});assert(g.latched['wind-a']);tick(g,1600);assert.equal(g.channels['wind-a'],1);
- Object.assign(g.player,{x:53,y:7,groundId:null,coyote:0});g.tick(dt,{});assert.equal(g.player.windY,19);
+ Object.assign(g.player,inside());g.tick(dt,{});assert.equal(g.player.windY,wind.fy);
  console.log('PASS windwell has no force before its valve opens, then stays open');
 }
 {

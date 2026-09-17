@@ -185,7 +185,7 @@ console.log('PASS holding E works the station the player is standing at, in ever
   // Where to take hold of each mass for a short pull upward — somewhere with
   // clay under the grip and headroom above it — and where to stand on its
   // solved surface for E, with clay ahead of the boots.
-  const SPOTS={'canyon-pocket':{drag:null,stand:140},'weave-bough':{drag:199.6,stand:203},'weave-mound':{drag:223.4,stand:224}};
+  const SPOTS={'canyon-pocket':{drag:null,stand:108},'weave-bough':{drag:199.6,stand:203},'weave-mound':{drag:223.4,stand:224}};
   for(const {chapter,dock} of formDocks){
     const r=await rig(dock,{chapter,options:wide}),s=r.live(),mass=r.part,f=mass.form,spot=SPOTS[dock];
     assert(spot,`${dock} has a drill spot`);
