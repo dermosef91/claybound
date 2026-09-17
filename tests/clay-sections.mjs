@@ -128,7 +128,8 @@ const SECTIONS=[
   {level:2,station:'kiln-plug',bypass:{from:'kiln-tunnel',to:'kiln-run',mode:'jump'}},
   // The Soft Dream: one purple beat per section — three in the Folding Path,
   // whose two free masses are walked onto flat — and three strands in the knot.
-  {level:4,station:'garden-roll',bypass:{from:'garden-slab-2',to:'garden-mound',mode:'jump'}},
+  // The garden's is a free mass whose bulb bars the bed until it is worked.
+  {level:4,station:'garden-bed',bypass:{from:'garden-dock',to:'garden-exit',mode:'jump'},form:true},
   // The roll hangs beside the cliff within a hop's reach; standing on it gains nothing while the wall beyond stands.
   {level:4,station:'folding-tongue',bypass:{from:'folding-entry',to:'folding-wall-bridge',mode:'jump'},rideable:true},
   // The slab is a floor under a hanging sheet until a trench is cast through it;

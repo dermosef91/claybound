@@ -69,10 +69,11 @@ export default {
     // a ramp and one pillar is the stair this clay will hold.) The route
     // walks onto the flat mass, so the station is rideable; its bypass (mid →
     // under, a 7.8 rise; flat-top stomp launch 3.6 + 6.69 = 10.29 < 10.8) is
-    // impossible unworked. The stretch begins at orchard-mid's left edge so
-    // a player who has just dropped onto the deck is already at the station.
+    // impossible unworked. The stretch begins a half-width before orchard-mid's
+    // left edge so a player who has just dropped onto the deck — even onto its
+    // very lip, centre hanging past the edge — is already at the station.
     {id:'orchard-blob',rule:'form',free:true,relax:false,shaped:.24,name:'Pull the orchard up',verb:'Grab it and drag',gesture:'up',icon:'knead',cueX:53,
-     parts:['orchard-blob'],x:37,end:60,spawn:{x:41,y:3,groundId:'orchard-mid'},rideable:true,
+     parts:['orchard-blob'],x:36.6,end:60,spawn:{x:41,y:3,groundId:'orchard-mid'},rideable:true,
      clump:[K(44,0),K(57,0)],
      solution:[{x:50,lift:0,dx:0,dy:7,t:3},{x:50,lift:0,dx:6,dy:-1,t:3.5},{x:56.5,lift:0,dx:0,dy:2.5,t:1.6},{x:45.5,lift:0,dx:0,dy:.6,t:.8}],
      hint:STATION_HINT}

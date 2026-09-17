@@ -24,14 +24,16 @@ function visualAt(L,x){
 
 const rand=n=>{const v=Math.sin(n*127.1+87.3)*43758.5453;return v-Math.floor(v);};
 const WHITE=new THREE.Color(0xffffff);
-// The chapter opens on the garden's pastel palette, so the theme the shared
-// materials are tinted with at build is that palette spelt out in theme slots.
-// `top` has to differ from every other chapter's (tests/scene.mjs holds each
-// chapter to its own terrain palette).
+// The chapter opens on the garden's first palette — the familiar world,
+// terracotta under green frosting, the one every other chapter is made of —
+// so the theme the shared materials are tinted with at build is that palette
+// spelt out in theme slots the way applyDreamPalette would. `top` has to
+// differ from every other chapter's (tests/scene.mjs holds each chapter to
+// its own terrain palette): this green is not the Wildwood's.
 export const THEME_DREAM={
-  terrain:0xb9a3dc,terrain2:0x907fac,top:0xa9e4c8,bark:0x76a08c,barkLight:0xffd6e8,foliage:0xa9e4c8,leafLight:0xffe6f1,vine:0x76a08c,
-  back:0xd9c8ee,back2:0xb8aaca,accent:0xffd6e8,water:0xd9c8ee,rope:0xe8d3f2,dust:0xffe6f1,
-  skyLight:0xf1eaf9,groundLight:0x534962,sun:0xfff0e0,sunPower:3,ambient:2.2,fill:0xd8cdf3,fillPower:.7,cameraElevation:1.7
+  terrain:0xd9713f,terrain2:0xa95831,top:0x6db34d,bark:0x4c7d36,barkLight:0xf26d8c,foliage:0x6db34d,leafLight:0xf7a0b4,vine:0x4c7d36,
+  back:0xc8785e,back2:0xaa6650,accent:0xf26d8c,water:0xc8785e,rope:0xf3dcc8,dust:0xf7a0b4,
+  skyLight:0xacc6f0,groundLight:0x62331c,sun:0xfff0e0,sunPower:3,ambient:2.2,fill:0xcfe0f8,fillPower:.7,cameraElevation:1.7
 };
 
 // --- terrain -----------------------------------------------------------------
@@ -117,9 +119,13 @@ export function dreamLayers(w){
 // repeats every 150 units, so items are laid inside 0..150. The columns are
 // registered as leaners (they turn toward the player) and the swirls spin.
 // Then every section's module adds its own far scenery through dreamLayers.
+// A module that brings a whole sky of its own declares `quietBackdrop:true`,
+// and animateDream sinks these three layers into the ground while the player
+// is in that section (they rise again over a second or so past its end).
 export function buildDreamBackdrop(w,L){
-  w.dreamLeaners=[];w.dreamSwirls=[];
+  w.dreamLeaners=[];w.dreamSwirls=[];w.dreamPlaceholderK=null;
   const far=group(w.backRoot,'Dream far blobs'),mid=group(w.backRoot,'Dream near blobs'),sky=group(w.backRoot,'Dream sky swirls');
+  w.dreamPlaceholder=[far,mid,sky];
   w.parallax.push({group:far,factor:.16,heightFollow:.6,repeat:150},{group:mid,factor:.38,heightFollow:.8,repeat:150},{group:sky,factor:.1,heightFollow:.5,repeat:150});
   for(let i=0;i<8;i++){
     const x=i*18.75+rand(i)*4;
@@ -275,6 +281,20 @@ function leanStep(w,x,dt){
   }
 }
 
+// --- the placeholder sky -----------------------------------------------------
+// The shared blobs, columns and rings stand in every section that has not
+// asked for a quiet backdrop; in one that has, they are squashed into the
+// ground — the layers scale about their own origin at the horizon — and rise
+// again once the player has walked on. The first frame of a level starts in
+// the state its section wants, so nothing sinks in front of the spawn.
+function placeholderStep(w,L,x,dt){
+  const groups=w.dreamPlaceholder;if(!groups)return;
+  const quiet=!!dreamVisual(dreamSectionAt(L,x)?.key)?.quietBackdrop,target=quiet?0:1;
+  const k=w.dreamPlaceholderK??target;
+  w.dreamPlaceholderK=w.reducedMotion?target:k+(target-k)*(1-Math.exp(-dt*2.5));
+  for(const g of groups){g.scale.y=Math.max(.001,w.dreamPlaceholderK);g.visible=w.dreamPlaceholderK>.01;}
+}
+
 // --- per frame ---------------------------------------------------------------
 // Section modules' animate() runs for every section the player is within 40
 // units of, with one shared context record (read it, do not keep it).
@@ -286,6 +306,7 @@ export function animateDream(w,game,dt){
   paletteStep(w,L,x);
   cameraStep(w,L,x,dt);
   leanStep(w,x,dt);
+  placeholderStep(w,L,x,dt);
   if(!w.reducedMotion)for(const s of w.dreamSwirls||[])s.mesh.rotation.z+=dt*s.speed;
   animateDreamViews(w,game,dt);
   ctx.playerX=x;ctx.time=game.time;ctx.reducedMotion=!!w.reducedMotion;

@@ -35,38 +35,43 @@ const WIDTH=Number(process.env.WIDTH||1664),HEIGHT=Number(process.env.HEIGHT||93
 // four units in from each start, plus the garden's arch and the wake deck.
 const SPOTS={
  'garden-start':{x:1.5,y:0,ground:'start',ticks:120},
- 'garden-arch':{x:26,y:2.4,ground:'garden-arch',ticks:120},
- 'folding':{x:66,y:0,ground:'folding-entry',ticks:120},
- 'orchard':{x:176,y:0,ground:'orchard-entry',ticks:120},
- 'corridor':{x:251,y:0,ground:'corridor-entry',ticks:120},
- 'parade':{x:306,y:0,ground:'parade-entry',ticks:120},
+ 'garden-pads':{x:15,y:1.6,ground:'garden-step-2',ticks:120},
+ 'garden-arch':{x:34.5,y:4.6,ground:'garden-mound',ticks:120},
+ 'garden-eyes':{x:42.3,y:5.4,ground:'garden-eye-1',ticks:120},
+ 'garden-bed':{x:70,y:3,ground:'garden-dock',ticks:120},
+ 'garden-exit':{x:92,y:0,ground:'garden-exit',ticks:120},
+ 'folding':{x:101,y:0,ground:'folding-entry',ticks:120},
+ 'orchard':{x:211,y:0,ground:'orchard-entry',ticks:120},
+ 'corridor':{x:286,y:0,ground:'corridor-entry',ticks:120},
+ 'parade':{x:341,y:0,ground:'parade-entry',ticks:120},
  // On the giraffe's head beside the hat-worm: the coil on its plinth, the
  // camera raised to the stack of supplied hats on the coil's top (the play
  // camera leaves the stack above the frame), and the pulled bridge resting on
  // the plinth with the hats landed along its back.
  // Beside the ground hatworm under the boots, then up the supplied giraffe:
  // on its back with the second hatworm, on the collar at its neck, and a
- // pulled-back look at the whole animal from its knee.
- 'parade-boots':{x:314.5,y:0,ground:'parade-ground-1',ticks:120,creatures:true},
- 'parade-back':{x:324.5,y:4,ground:'parade-back',ticks:120,creatures:true},
- 'parade-neck':{x:329.8,y:6.2,ground:'parade-neck',ticks:120},
- 'parade-giraffe':{x:319.8,y:2,ground:'parade-knee',cameraX:326.5,cameraY:4.6,ticks:120},
+ // pulled-back look at the whole animal from its knee. (The parade begins at
+ // chapter x 337.)
+ 'parade-boots':{x:349.5,y:0,ground:'parade-ground-1',ticks:120,creatures:true},
+ 'parade-back':{x:359.5,y:4,ground:'parade-back',ticks:120,creatures:true},
+ 'parade-neck':{x:364.8,y:6.2,ground:'parade-neck',ticks:120},
+ 'parade-giraffe':{x:354.8,y:2,ground:'parade-knee',cameraX:361.5,cameraY:4.6,ticks:120},
  // The gait runs on frame time: .6 s of live frames lands its swing near a
  // peak (GIRAFFE_MARCH.rate 2.6). Leaving: the player across on the bridge,
  // the camera held on the giraffe as it turns (2.6 s) and walks off left.
- 'parade-awake':{x:329.8,y:6.2,ground:'parade-neck',cameraX:326.5,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:.6},
- 'parade-leaving':{x:340,y:7.8,ground:'parade-worm',cameraX:324,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:3.2,creatures:true},
- 'parade-gone':{x:340,y:7.8,ground:'parade-worm',cameraX:324,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:7,creatures:true},
+ 'parade-awake':{x:364.8,y:6.2,ground:'parade-neck',cameraX:361.5,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:.6},
+ 'parade-leaving':{x:375,y:7.8,ground:'parade-worm',cameraX:359,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:3.2,creatures:true},
+ 'parade-gone':{x:375,y:7.8,ground:'parade-worm',cameraX:359,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:7,creatures:true},
  // Aboard the caterpillar float at its rest, before the parade wakes.
- 'parade-ride':{x:344.7,y:3.6,ground:'parade-caterpillar',cameraX:345,cameraY:5,ticks:1,settle:.5},
- 'parade-worm':{x:332,y:8.2,ground:'parade-head',ticks:120},
- 'parade-stack':{x:332,y:8.2,ground:'parade-head',cameraX:334.3,cameraY:13.5,ticks:120},
- 'parade-pulled':{x:332,y:8.2,ground:'parade-head',ticks:120,shaped:['parade-worm']},
- 'river':{x:381,y:0,ground:'river-entry',ticks:120},
- 'room':{x:461,y:0,ground:'room-entry',ticks:120},
- 'knot':{x:581,y:0,ground:'knot-entry',ticks:120},
- 'knot-climb':{x:617,y:4,ground:'knot-ledge-b',ticks:120},
- 'knot-wake':{x:673,y:0,ground:'knot-wake',ticks:120}
+ 'parade-ride':{x:379.7,y:3.6,ground:'parade-caterpillar',cameraX:380,cameraY:5,ticks:1,settle:.5},
+ 'parade-worm':{x:367,y:8.2,ground:'parade-head',ticks:120},
+ 'parade-stack':{x:367,y:8.2,ground:'parade-head',cameraX:369.3,cameraY:13.5,ticks:120},
+ 'parade-pulled':{x:367,y:8.2,ground:'parade-head',ticks:120,shaped:['parade-worm']},
+ 'river':{x:416,y:0,ground:'river-entry',ticks:120},
+ 'room':{x:496,y:0,ground:'room-entry',ticks:120},
+ 'knot':{x:616,y:0,ground:'knot-entry',ticks:120},
+ 'knot-climb':{x:652,y:4,ground:'knot-ledge-b',ticks:120},
+ 'knot-wake':{x:708,y:0,ground:'knot-wake',ticks:120}
 };
 const section=process.env.SPOTS?'':(process.env.SECTION||'');
 const raw=process.env.SPOTS||'garden-start,knot-wake';
@@ -107,7 +112,7 @@ async function serve(){
   await page.route('**/app.js*',async route=>{
    let body=fs.readFileSync(path.join(root,'dist/app.js'),'utf8');
    body=body.replace('function frame(now){','function frame(now){ if(window.playtest?.manual){requestAnimationFrame(frame);return;}');
-   body+='\nwindow.playtest={manual:false,get game(){return game},get world(){return world},get input(){return input},begin,home,draw(dt=0){world.render(game,dt);healthHUD.draw(game,dt);updateHUD(performance.now());},tick(n){for(let i=0;i<n;i++)game.tick(FIXED_DT,input);}};';
+   body+='\nwindow.playtest={manual:false,get game(){return game},get world(){return world},get input(){return input},get saved(){return saved},begin,home,draw(dt=0){world.render(game,dt);healthHUD.draw(game,dt);updateHUD(performance.now());},tick(n){for(let i=0;i<n;i++)game.tick(FIXED_DT,input);}};';
    await route.fulfill({contentType:'text/javascript',body});
   });
   // The dream is offered only once ß has been typed on the chapter list; a
@@ -115,7 +120,9 @@ async function serve(){
   await page.addInitScript(()=>{try{const key='claybound-v1',s=JSON.parse(localStorage.getItem(key)||'{}');s.labUnlocked=true;localStorage.setItem(key,JSON.stringify(s));}catch{}});
   await page.goto(`http://127.0.0.1:${port}/`);
   await page.waitForFunction(()=>window.playtest&&document.body.classList.contains('title-scene-ready'),null,{timeout:120000});
-  await page.evaluate(()=>{playtest.manual=true;});
+  // The dream is kept behind ß while it is built; begin() would otherwise
+  // send a hidden chapter's index to the last chapter anyone is shown.
+  await page.evaluate(()=>{playtest.manual=true;playtest.saved.labUnlocked=true;});
   await page.evaluate(async level=>{await playtest.begin(level,true,'original');},level);
   await page.waitForFunction(()=>playtest.game?.status==='playing'&&document.getElementById('loading').classList.contains('hidden'),null,{timeout:120000});
   // Overlays that belong to a live session, not to a judged frame.

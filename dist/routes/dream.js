@@ -74,7 +74,11 @@ function assemble(parts,table,{spawn,name,short,label,intro}){
   // spawn is always inside a section.
   sections[0].x=Math.min(sections[0].x,...platforms.map(s=>s.x));
   return chapter({
-    layoutVersion:1,
+    // 4: the Crooked Garden redesigned (105 long, the eye pads, the flowerbed
+    // in place of the roll), which moves every later section by 35. (2 and 3
+    // are skipped: the save tests use them as the stale layout a checkpoint
+    // must refuse to resume into.)
+    layoutVersion:4,
     // Still being built: the chapter list keeps it behind ß, like the Clay Lab,
     // and the Hanging Quarter stays the last chapter anyone is led to. Hidden
     // chapters have to be the last entries of LEVELS: the app walks back from

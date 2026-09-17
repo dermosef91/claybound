@@ -6,12 +6,14 @@ Usage: python3 scripts/prepare-dream-assets.py UPLOAD_DIRECTORY [DECIMATED_HAT_G
 The source GLBs are untouched. Only the embedded textures are repacked — thumbnailed
 to 1024 and re-encoded as JPEG — while every geometry buffer view is copied across
 unchanged. That matters here more than elsewhere: PLANET_ORBS in dist/dream-assets.js
-was fitted on these vertices, so the manifest records each geometry buffer's digest
-and the triangle count, and tests/dream-models.mjs checks the shipped file against
-them. Sources absent from the given directory keep their existing manifest entry, so
-a single new upload can be prepared without re-encoding the others. A source is looked
-for in the given directory and then in its parent: the parade's caterpillar and giraffe
-were uploaded to "new assets" itself, beside the chapter folder.
+was fitted on these vertices, and the Crooked Garden's watching flower is cut into
+head and stem and has its eyeball fitted from them at load, so the manifest records
+each geometry buffer's digest and the triangle count, and tests/dream-models.mjs
+checks the shipped file against them. Sources absent from the given directory keep
+their existing manifest entry, so a single new upload can be prepared without
+re-encoding the others. A source is looked for in the given directory and then in its
+parent: the parade's caterpillar and giraffe were uploaded to "new assets" itself,
+beside the chapter folder.
 
 The caterpillar ships unrigged, as it arrived; dist/dream-rigs.js builds its bones at
 load, so its geometry too stays byte-identical. The giraffe arrives rigged, and its
@@ -40,6 +42,7 @@ import numpy as np
 
 root=Path(__file__).resolve().parents[1]
 assets={
+ 'dream-flower.glb':'clay+flower+model.glb',
  'dream-planet-mint.glb':'colorful+clay+planet+3d+model.glb',
  'dream-planet-raspberry.glb':'colorful+planet+3d+model.glb',
  'dream-saucer-mint.glb':'colorful+clay+platform+1.glb',

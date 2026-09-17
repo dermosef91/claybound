@@ -55,11 +55,13 @@ export async function sceneStage(){
   await attachCanyon(w);
   await attachWindmills(w);
   await attachForest(w);
-  await attachDream(w);
   await attachGrotto(w);
   await attachDrifter(w);
   prepareSporeAsset(w,await readGLB(asset('spore-puff.glb')));
   await attachClay(w);
+  // After the clay: the dream's flower stands by the spawn and its paint takes
+  // the relief the scene checks expect.
+  await attachDream(w);
   for(const pose of ['idle','cast','friendly'])prepareMotherPuff(w,pose,await readGLB(asset(`mother-puff-${pose}.glb`)));
   await attachSpitter(w);
   prepareTitleMesa(w,await readGLB(asset('title/cactus-mesa.glb')));

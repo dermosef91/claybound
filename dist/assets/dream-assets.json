@@ -128,6 +128,27 @@
     ],
     "geometryUnchanged": true
   },
+  "dream-flower.glb": {
+    "source": "clay+flower+model.glb",
+    "sourceSha256": "3a4bed517c69a5de45782a79714d1bceeac7a290aa404d86941fe14ca1dd161d",
+    "shippedSha256": "9dfdff30d96aad2f79f20fde4fdab764a2f41b16ca1fa6963c084326413f0fee",
+    "sourceBytes": 1004076,
+    "shippedBytes": 617216,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 12756,
+    "geometryBufferSha256": [
+      "9b8af79348f2dd746d7ccdbaaa7a76d09d7f25d78439c45e35aa017bd8a05ae3",
+      "89e7ca2fb49dfd169d02525bb8e07e6981d63c1c1feb20841c6fd1189fa30433",
+      "58597d47495fbebc6997405ff4f75cccc1f9aed468697bf10cc9b9bdecb2bead",
+      "a864f557336943ad4dd37d3c8e6cf689045d7de2070d15d3e6b6a8b51b957d0f"
+    ],
+    "geometryUnchanged": true
+  },
   "dream-caterpillar.glb": {
     "source": "caterpillar.glb",
     "sourceSha256": "fb5faf418f617a026932fb1457377c410d7f328e68dd1bbe40eae1ffb10f1578",
