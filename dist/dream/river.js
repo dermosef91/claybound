@@ -34,14 +34,39 @@ const attached=(o,scene)=>{for(let p=o;p;p=p.parent)if(p===scene)return true;ret
 // Sixteen sides and eight rings a unit, because a gloss highlight facets on
 // fewer and the wave bends the rope by a fifth of its radius; sculpted at a
 // third of the usual amplitude, since a pour is smooth where kneaded clay is
-// lumpy (w.mesh sees the sculpt and skips its own).
-function tube(w,parent,points,r,mat,name,speed=SPEED[mat]??3){
-  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],p[1],p[2]??0)),false,'catmullrom',.5),len=curve.getLength();
+// lumpy (w.mesh sees the sculpt and skips its own). `squash` and `spread`
+// flatten the section into an ellipse (a river lying on something is wider
+// than it is tall); the path is pre-divided so it still lands where the
+// points say. `hold` keeps the crest still for a river the player walks on.
+function stream(w,parent,points,r,mat,name,{speed=SPEED[mat]??3,hold=0,squash=1,spread=1}={}){
+  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],p[1]/squash,(p[2]??0)/spread)),false,'catmullrom',.5),len=curve.getLength();
   const n=Math.min(320,Math.max(16,Math.round(len*8)));
-  const base=new THREE.TubeGeometry(curve,n,r,16,false),g=sculptClay(w,base,{amplitude:.02});
+  const base=new THREE.TubeGeometry(curve,n,r,16,false);
+  if(squash!==1||spread!==1)base.applyMatrix4(new THREE.Matrix4().makeScale(1,squash,spread));
+  const g=sculptClay(w,base,{amplitude:.02});
   if(g!==base)base.dispose();
-  const m=w.mesh(flowTube(g,len,speed),mat,parent);
+  const m=w.mesh(flowTube(g,len,speed,hold),mat,parent);
   m.name=name;return m;
+}
+const tube=(w,parent,points,r,mat,name,speed)=>stream(w,parent,points,r,mat,name,speed===undefined?{}:{speed});
+// A river lying along a deck, in the deck's own coordinates (x 0..width, the
+// walk line at `top`): an ellipse in section, its crest on the walk line and
+// held still there, curling down past both ends so the tube's open mouths
+// face the ground. The downstream end hangs the full `hang`, the pour
+// spilling off; the upstream end, where a source lands on it, only dips.
+// `dir` is the flow, +1 left to right.
+function deckRiver(w,parent,width,mat,name,{speed,dir=1,top=0,r=.75,squash=.66,spread=1.25,hang=1.4,reach=.9}){
+  const c=top-r*squash,sign=dir<0?-1:1,[x0,x1]=sign>0?[0,width]:[width,0];
+  // A curl leaving the deck at x, outward by `sign`, down by h over rch.
+  const curl=(x,out,h,rch)=>[[x+out*rch*.6,c-h*.32],[x+out*rch,c-h]];
+  const pts=[...curl(x0,-sign,hang*.4,reach*.6).reverse(),[x0+sign*.1,c-.02],[width/2,c],[x1-sign*.1,c-.02],...curl(x1,sign,hang,reach)];
+  return stream(w,parent,pts.map(([x,y])=>[x,y,0]),r,mat,name,{speed,hold:1,squash,spread});
+}
+// A flowing sheet over a slab: a wide, low ellipse whose centre sits on the
+// slab's top, so its upper half heaves above the old flat face. Hazard water,
+// so nothing holds its crest.
+function sheet(w,parent,x0,x1,y,mat,name,speed){
+  return stream(w,parent,[[x0,y,0],[(x0+x1)/2,y,0],[x1,y,0]],.45,mat,name,{speed,squash:.7,spread:3.2});
 }
 // Bubbles: small glossy balls that bob on the spot. Registered for animate();
 // entries whose mesh has streamed out are dropped there.
@@ -50,31 +75,27 @@ function bubble(w,parent,x,y,z,r,mat,seed){
   (w.riverBubbles??=[]).push({mesh:m,y,phase:rand(seed)*6.28,rate:1.3+rand(seed+1)*.8});
   return m;
 }
-// Give named meshes under a view another material.
-function retint(w,root,map){root.traverse(o=>{if(o.isMesh&&map[o.name])o.material=w.mat[map[o.name]];});}
+const hide=(root,...names)=>{for(const n of names){const o=root.getObjectByName(n);if(o)o.visible=false;}};
 
 // --- decks -----------------------------------------------------------------------
-// A yellow river ledge: the dream's conveyor deck (its cream stripes scroll at
-// the river's speed) in the glossy yellow, with a rounded underbelly, curled
-// ends and a few drips so it reads as a thick pour rather than a plank.
+// A yellow river ledge IS the river: the dream's conveyor deck keeps its
+// simulation and its cream stripes (shrunk to bits of foam riding the flow),
+// but the plank is hidden and a fat yellow river lies along the walk line in
+// its place, flowing the way the conveyor carries and spilling off both ends.
 function yellowDeck(w,s,g){
   const view=createDreamView(w,s,g),Y=yellow(w);
-  retint(w,g,{'River deck top':Y});
-  const body=g.getObjectByName('River deck body');if(body)body.visible=false;
-  const belly=group(g,'Yellow belly');
-  w.box(s.w-.2,.62,1.72,Y,belly,s.w/2,-.5,0,.3);
-  for(const x of [.15,s.w-.15])w.ball(.5,.36,.9,Y,belly,x,-.2,0);
-  for(let i=0;i<Math.max(2,Math.round(s.w/2.8));i++){
-    const x=.9+rand(i*3+s.x)*(s.w-1.8),len=.5+rand(i+s.x)*.4;
-    w.ball(.26,len,.24,Y,belly,x,-.82-len*.45,.35+rand(i*7+s.x)*.3);
-  }
+  hide(g,'River deck top','River deck body');
+  for(const stripe of view.dream?.stripes||[]){stripe.scale.y=.7;stripe.scale.z=.42;}
+  deckRiver(w,g,s.w,Y,'Yellow river',{speed:Math.abs(s.conveyor)*.9,dir:Math.sign(s.conveyor)||1});
   return view;
 }
-// A blue pad or raft: the dream's sinking raft (its ripple rings spread as it
-// goes under) in the glossy blue, over a saucer hull that sits half sunk.
+// A blue pad or raft: the dream's sinking raft keeps its floats and the
+// ripple rings that spread as it goes under, but its deck and hull give way
+// to a short blue river over a saucer hull that sits half sunk.
 function blueDeck(w,s,g){
   const view=createDreamView(w,s,g),B=blue(w);
-  retint(w,g,{'Raft deck':B,'Raft hull':B});
+  hide(g,'Raft deck','Raft hull');
+  deckRiver(w,g,s.w,B,'Blue pad river',{speed:1.2,r:.55,squash:.65,spread:1.45,hang:.7,reach:.5});
   const r=s.w*.5;
   const saucer=w.mesh(new THREE.LatheGeometry([[0,-1.05],[r*.3,-1],[r*.62,-.78],[r*.86,-.5],[r*.98,-.3]].map(([a,b])=>new THREE.Vector2(a,b)),22),B,g,s.w/2,0,0);
   saucer.scale.z=.62;saucer.name='Blue saucer';
@@ -173,6 +194,7 @@ export default {
       const left=PB.x+PB.w,right=FB.x,surface=PB.y-4;
       const pool=group(parent,'Blue pool');
       w.box(right-left+.3,1.6,3,B,pool,...P((left+right)/2,surface-.8,0),.3);
+      sheet(w,pool,P(left-.15,0)[0],P(right+.15,0)[0],P(0,surface)[1],B,'Pool flow',.7);
       w.ball(.8,.25,.7,B,pool,...P(left+1.2,surface+.05,.4));w.ball(.55,.2,.5,B,pool,...P(right-1.1,surface+.05,-.3));
       const gx=R.x+R.w-.5;
       const geyser=group(parent,'Geyser',...P(gx,surface,-1.2));
@@ -195,16 +217,17 @@ export default {
       bubble(w,g,...P(bx+.6,B4.y-1.6,-.75),.18,B,10);bubble(w,g,...P(bx-.55,EX.y+.9,-.75),.15,B,11);
     });
 
-    // 6. The deep: every hazard band in the section wears a glossy blue
-    //    surface just over its spikes — the same blue that sinks — so the
-    //    undertow, the blue river's surface and the trench read as one deep
-    //    water. Render-only: the kill line is the band's own. The pool has
-    //    its surface from the geyser prop above.
+    // 6. The deep: every hazard band in the section wears a blue slab just
+    //    over its spikes with a flowing blue sheet heaving on top — the same
+    //    blue that sinks — so the undertow, the blue river's surface and the
+    //    trench read as one deep water. Render-only: the kill line is the
+    //    band's own. The pool has its surface from the geyser prop above.
     for(const [i,h] of L.hazards.entries()){
       if(h.x<section.x-1||h.x>section.x+section.length||h.x>=PB.x+PB.w-1)continue;
       prop('deep-'+i,h.x,h.x+h.w,(w,parent)=>{
         const P=local(parent),B=blue(w),g=group(parent,'Blue deep');
         w.box(h.w+.5,1.6,3,B,g,...P(h.x+h.w/2,h.y+.2,0),.3);
+        sheet(w,g,P(h.x-.25,0)[0],P(h.x+h.w+.25,0)[0],P(0,h.y+1)[1],B,'Deep flow',1.4);
       });
     }
     return list;

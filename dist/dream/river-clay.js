@@ -11,11 +11,14 @@ import {MAGIC_SKIN} from '../shaping-views.js';
 //
 // Where a mesh is *flowing* comes from a `riverFlow` vertex attribute
 // (distance along the stream in world units, 0..1 round it, speed in units per
-// second) stamped only on the fresh tube geometries. Shared and cached shapes —
-// the deck tops, pads, pools and bubbles built from w.box/w.ball — carry none,
-// read as (0,0,0), and take the still branch: the same wet colour and sheen
-// with a slow marbling and a normal-only ripple, but no displacement, so a
-// surface the player stands on never disagrees with its collider.
+// second, and how far the crest is held still) stamped only on the fresh tube
+// geometries. Shared and cached shapes — bubbles, saucers, the slabs under the
+// deep — carry none, read as (0,0,0,0), and take the still branch: the same
+// wet colour and sheen with a slow marbling and a normal-only ripple, but no
+// displacement. A river the player stands on is a flowing tube with its top
+// held (fourth component 1): the wave fades out on upward-facing surface, so
+// the crest stays on the collider's line while the face bulges and drops hang
+// underneath.
 //
 // Shadows come from the shared depth material, which never runs this hook, so
 // a stream's shadow keeps the undisplaced silhouette: at ±.06 on a rope behind
@@ -33,13 +36,16 @@ const WHITE=new THREE.Color(1,1,1);
 // first harmonic round the tube shifts the whole cross-section, so the rope
 // sways as well as bulges); a quick ripple; and drops that hang under the
 // rope and slide along it. The across coordinate only enters through its
-// angle, keeping the seam ring watertight. Still meshes (speed 0) get none.
+// angle, keeping the seam ring watertight. Still meshes (speed 0) get none;
+// a held crest (f.w) loses the wave where the surface faces up, and keeps its
+// drops, which hang from the underside anyway.
 const RIVER_WAVE=`
-float riverWave(vec3 f, float t, vec3 n) {
+float riverWave(vec4 f, float t, vec3 n) {
   float u = f.x - t * f.z, a = f.y * PI2;
   float bead = pow(0.5 + 0.5 * sin(u * 1.35 + 0.4 * sin(u * 0.37)), 3.0);
   float drop = pow(0.5 + 0.5 * sin(u * 1.1 + 2.0 + 0.3 * sin(u * 0.53)), 2.0) * max(0.0, -n.y);
-  return step(0.001, f.z) * (0.035 * sin(u * 0.9) + 0.09 * bead - 0.03 + 0.045 * sin(u * 2.6 + a) + 0.02 * sin(u * 5.3 - 2.0 * a + 1.3) + 0.06 * drop);
+  float held = 1.0 - f.w * smoothstep(0.0, 0.7, n.y);
+  return step(0.001, f.z) * ((0.035 * sin(u * 0.9) + 0.09 * bead - 0.03 + 0.045 * sin(u * 2.6 + a) + 0.02 * sin(u * 5.3 - 2.0 * a + 1.3)) * held + 0.06 * drop);
 }`;
 // Fragment helpers, pure functions only: they land ahead of the clay relief's
 // own declarations at <common>.
@@ -47,7 +53,7 @@ const RIVER_SURFACE=`
 uniform float riverTime;
 uniform vec3 riverDeep;
 uniform vec3 riverSheen;
-varying vec3 vRiverFlow;
+varying vec4 vRiverFlow;
 float riverNoise(vec3 p) {
   vec3 i = floor(p), f = p - i;f = f * f * (3.0 - 2.0 * f);
   return mix(mix(mix(magicHash3(i), magicHash3(i + vec3(1.0, 0.0, 0.0)), f.x), mix(magicHash3(i + vec3(0.0, 1.0, 0.0)), magicHash3(i + vec3(1.0, 1.0, 0.0)), f.x), f.y),
@@ -92,7 +98,7 @@ function riverSkin(m,hex){
     shader.uniforms.riverDeep={value:deep};
     shader.uniforms.riverSheen={value:sheen};
     let v=shader.vertexShader;
-    v=swap(v,'#include <common>','#include <common>\nattribute vec3 riverFlow;\nuniform float riverTime;\nvarying vec3 vRiverFlow;'+RIVER_WAVE);
+    v=swap(v,'#include <common>','#include <common>\nattribute vec4 riverFlow;\nuniform float riverTime;\nvarying vec4 vRiverFlow;'+RIVER_WAVE);
     v=swap(v,'#include <project_vertex>',`vRiverFlow = riverFlow;
 transformed += objectNormal * riverWave(riverFlow, riverTime, objectNormal);
 #include <project_vertex>`);
@@ -142,13 +148,15 @@ if (riverSparkle > 0.0) totalEmissiveRadiance += magicGlitter(riverP, riverN, ri
 
 // Stamp a fresh tube with its flow coordinates, read off TubeGeometry's uv:
 // u runs 0..1 along the path (sampled by arc length, so times the curve's
-// length it is a distance) and v 0..1 round it. Call it on the geometry that
-// will be drawn — after sculpting — and never on a shared shape.
-export function flowTube(g,length,speed){
+// length it is a distance) and v 0..1 round it. `hold` (0..1) is how much of
+// the wave the crest gives up, 1 for a river the player walks on. Call it on
+// the geometry that will be drawn — after sculpting — and never on a shared
+// shape.
+export function flowTube(g,length,speed,hold=0){
   const uv=g.attributes.uv;if(!uv)return g;
-  const flow=new Float32Array(uv.count*3);
-  for(let i=0;i<uv.count;i++){flow[i*3]=uv.getX(i)*length;flow[i*3+1]=uv.getY(i);flow[i*3+2]=speed;}
-  g.setAttribute('riverFlow',new THREE.BufferAttribute(flow,3));return g;
+  const flow=new Float32Array(uv.count*4);
+  for(let i=0;i<uv.count;i++){flow[i*4]=uv.getX(i)*length;flow[i*4+1]=uv.getY(i);flow[i*4+2]=speed;flow[i*4+3]=hold;}
+  g.setAttribute('riverFlow',new THREE.BufferAttribute(flow,4));return g;
 }
 
 // Per frame, from the section's animate(). Reduced motion holds the streams
