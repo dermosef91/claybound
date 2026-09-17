@@ -4,8 +4,8 @@ import {createCrumble} from '../crumble.js';
 import {dreamPlanet,dreamSaucer,dreamSculpture} from '../dream-assets.js';
 import {deck,slot,rand} from './support.js';
 // Section 3 — The Upside-Down Orchard (visual module).
-// ONE idea: the orchard grows down. A canopy of supplied sculptures, hung
-// top-down, spans the top of the world with lemon apples under it; saucers
+// ONE idea: the orchard grows down. A canopy of supplied sculptures spans
+// the top of the world with lemon apples under it; saucers
 // hang from it on lemon ropes; the ground is a pair of clay planets in a
 // lavender pool; and the great tree grows the wrong way — roots waving in the
 // sky, trunk hanging, crown at the bottom. Four colours: mint (main),
@@ -32,17 +32,18 @@ function canopyY(x){
   for(let i=0;i<CANOPY.length-1;i++){const [a,ya]=CANOPY[i],[b,yb]=CANOPY[i+1];if(x<=b){const t=(x-a)/(b-a),s=t*t*(3-2*t);return ya+(yb-ya)*s;}}
   return CANOPY.at(-1)[1];
 }
-// The canopy itself: pieces of the supplied abstract sculpture hung top-down
-// along that curve (a half turn about z, which keeps the upload's viewer side
-// toward the camera), so its level, bumpy crown is the underside the player
-// looks up at and every rope end and apple stalk vanishes into it. Each piece
-// is a little wider or narrower, turned and tilted from its own seed, so
-// twelve of one model do not read as a stamp: CANOPY_WIDTH is [least, spread],
+// The canopy itself: pieces of the supplied abstract sculpture hung along that
+// curve the way they were modelled — swirl side to the camera, crown up — so
+// the player looks up at each one's foot and the undersides of its overhanging
+// sides, and every rope end and apple stalk vanishes into them. Each piece is
+// a little wider or narrower, turned and tilted from its own seed, so twelve
+// of one model do not read as a stamp: CANOPY_WIDTH is [least, spread],
 // CANOPY_TURN and CANOPY_TILT the full ranges in radians (±12° about y, ±4°
-// about x and z). CANOPY_DROP is how far a piece's underside hangs below the
-// curve at its centre — the ropes end ON the curve and the stalks reach to
-// within half a unit of it, and the sculpted balls bulged about this far.
-const CANOPY_WIDTH=[7.7,1.3],CANOPY_DROP=.9,CANOPY_TURN=.42,CANOPY_TILT=.14;
+// about x and z). CANOPY_DROP is how far a piece's foot hangs below the curve
+// at its centre — the ropes end ON the curve and the stalks reach to within
+// half a unit of it, and the sides' undersides climb about a unit from the
+// foot to the rim, so the foot hangs deeper than the sculpted balls bulged.
+const CANOPY_WIDTH=[7.7,1.3],CANOPY_DROP=1.3,CANOPY_TURN=.42,CANOPY_TILT=.14;
 function group(parent,name,x=0,y=0,z=0){const g=new THREE.Group();g.name=name;g.position.set(x,y,z);parent.add(g);return g;}
 
 // --- islands ---------------------------------------------------------------------
@@ -223,12 +224,10 @@ export default {
         for(const k of [0,1]){
           const seed=i*2+k,bx=localX+(k-.5)*6.2+(rand(seed)-.5)*.6;
           if(w.dreamAssets?.sculpture){
-            // Hung top-down by the half turn about z, not x, so the side the upload
-            // faces the viewer with is the side the camera sees; the second piece
-            // sits a step behind the first, as the balls did.
+            // As modelled, bar the jitter; the second piece sits a step behind the first, as the balls did.
             const piece=dreamSculpture(w,'sculpture',g,CANOPY_WIDTH[0]+rand(seed+20)*CANOPY_WIDTH[1]);
             piece.position.set(bx-localX,canopyY(bx)-CANOPY_DROP+piece.userData.size.y/2,.6-k*.8+(rand(seed+40)-.5)*.3);
-            piece.rotation.set((rand(seed+60)-.5)*CANOPY_TILT,(rand(seed+80)-.5)*CANOPY_TURN,Math.PI+(rand(seed+100)-.5)*CANOPY_TILT);
+            piece.rotation.set((rand(seed+60)-.5)*CANOPY_TILT,(rand(seed+80)-.5)*CANOPY_TURN,(rand(seed+100)-.5)*CANOPY_TILT);
           }else{
             const ry=2.1+rand(i*3+k)*.4;
             w.ball(3.9+rand(i+k*5)*.5,ry,2.8,slot(w,'foliage','top'),g,bx-localX,canopyY(bx)+ry*.62,-(k*.7)).name='Canopy ball';

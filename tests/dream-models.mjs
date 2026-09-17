@@ -6,7 +6,7 @@
 // against the constants the placement relies on, and builds the orchard on a
 // CPU World to prove the orb lands exactly on the dome's collider, every
 // rope-hung saucer's flat top lies on its walk plane, the canopy's sculptures
-// hang top-down over the ropes with variety, the bare-rig fallback still
+// hang over the ropes as modelled with variety, the bare-rig fallback still
 // builds, and the rider's spin still turns the planet. Then the parade: five
 // hats stacked foot on crown on the hat-worm's plinth, tumbling to the pulled
 // bridge's back exactly as the sculpted ones did, and the sculpted ones back
@@ -208,9 +208,10 @@ for(const id of SAUCERS){
 assert.equal(bowls.size,2,'both bowls appear across the orchard\'s five saucers: '+[...bowls].join(', '));
 console.log('PASS all five rope-hung saucers are the supplied bowls, top on the walk plane and spanning the deck, rope kept, both bowls used');
 
-// The canopy: every streamed canopy prop hangs two sculptures top-down, the balls
-// gone, the apples kept; the twelve differ in size and turn; and each rope's top
-// ends inside a piece's box — the flat crown that faces the player hides it.
+// The canopy: every streamed canopy prop hangs two sculptures as modelled, the
+// balls gone, the apples kept; the twelve differ in size and turn; and each
+// rope's top ends inside a piece's box — the foot and the overhanging sides
+// that face the player hide it.
 const canopyGroups=()=>[...Array(6).keys()].map(i=>w.levelRoot.getObjectByName('dream:orchard:canopy-'+i)).filter(Boolean);
 {
   const groups=canopyGroups(),pieces=[],boxes=[];
@@ -223,8 +224,7 @@ const canopyGroups=()=>[...Array(6).keys()].map(i=>w.levelRoot.getObjectByName('
     pieces.push(...here);
   }
   for(const piece of pieces){
-    assert(Math.abs(piece.rotation.z-Math.PI)<=.08,'a piece hangs top-down, within the tilt of a half turn about z');
-    assert(Math.abs(piece.rotation.x)<=.08&&Math.abs(piece.rotation.y)<=.22,'turned and tilted only subtly');
+    assert(Math.abs(piece.rotation.x)<=.08&&Math.abs(piece.rotation.z)<=.08&&Math.abs(piece.rotation.y)<=.22,'a piece hangs as modelled, turned and tilted only subtly');
     const box=new THREE.Box3().setFromObject(piece,true);boxes.push(box);
     assert(near(box.max.x-box.min.x,piece.userData.size.x,piece.userData.size.x*.03),'its width survives the turn to within 3%');
     piece.traverse(o=>{if(o.isMesh)assert(o.material.userData.clay,'the canopy wears the clay surface');});
@@ -241,7 +241,7 @@ const canopyGroups=()=>[...Array(6).keys()].map(i=>w.levelRoot.getObjectByName('
     assert(under<anchor.y&&anchor.y<above,`${id}: the rope top ${anchor.y.toFixed(2)} ends inside the canopy (${under.toFixed(2)}..${above.toFixed(2)})`);
   }
   assert(ropes>=2,'at least two streamed ropes rise under a streamed piece ('+ropes+')');
-  console.log(`PASS the canopy is the supplied sculpture, hung top-down with subtle variety, balls gone, apples kept: ${groups.length} props, ${pieces.length} pieces, ${ropes} rope tops inside it`);
+  console.log(`PASS the canopy is the supplied sculpture, hung as modelled with subtle variety, balls gone, apples kept: ${groups.length} props, ${pieces.length} pieces, ${ropes} rope tops inside it`);
 }
 
 // Streaming out and back in keeps the shared resources and brings the models back.

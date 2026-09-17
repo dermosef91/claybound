@@ -5,7 +5,7 @@ import {clayModel} from './clay.js';
 // The Soft Dream's supplied models: the Upside-Down Orchard's two clay
 // planets, which stand in for the dome islands' spheres, its two frosted
 // saucer bowls, which hang from the canopy on the orchard's ropes, the
-// abstract sculpture whose pieces, hung top-down, ARE that canopy, and the
+// abstract sculpture whose hung pieces ARE that canopy, and the
 // Melted Parade's clay hat, stacked five high on the hat-worm's plinth. Loaded
 // once per World, kept across level rebuilds, cloned per placement — the same
 // shape as the forest's and the canyon's sets. The collision never comes from
