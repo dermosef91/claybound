@@ -129,7 +129,8 @@ const SECTIONS=[
   // The Soft Dream: one purple beat per section — three in the Folding Path,
   // whose two free masses are walked onto flat — and three strands in the knot.
   {level:4,station:'garden-roll',bypass:{from:'garden-slab-2',to:'garden-mound',mode:'jump'}},
-  {level:4,station:'folding-tongue',bypass:{from:'folding-entry',to:'folding-wall-bridge',mode:'jump'}},
+  // The roll hangs beside the cliff within a hop's reach; standing on it gains nothing while the wall beyond stands.
+  {level:4,station:'folding-tongue',bypass:{from:'folding-entry',to:'folding-wall-bridge',mode:'jump'},rideable:true},
   // The slab is a floor under a hanging sheet until a trench is cast through it;
   // the wall's bed is bare nails until the wall is laid down over them.
   {level:4,station:'folding-cast',bypass:{from:'folding-land',to:'folding-cast-bridge',mode:'jump'},rideable:true,form:true},
@@ -213,12 +214,15 @@ for(const {level,station,bypass,rideable,form} of SECTIONS){
 
 // Softening finished clay (R) while standing on it puts the player on top of the
 // unworked pose. From there, the next piece in the section must still be
-// impossible to get past.
+// impossible to get past. A next piece that is stood on unworked (rideable) is
+// reached by design — it is walked onto to be worked — so for it only the way
+// past, its bypass, has to stay out of reach.
 for(const [k,here] of SECTIONS.entries()){
   const next=SECTIONS[k+1];if(!next||next.level!==here.level)continue;
   const L=LEVELS[here.level],piece=L.shaping.find(s=>s.id===here.station).parts[0];
   const unworked=other=>other.id!==here.station&&other.id!==next.station;
-  for(const to of [L.shaping.find(s=>s.id===next.station).parts[0],next.bypass.to])
+  const nextPiece=L.shaping.find(s=>s.id===next.station).parts[0];
+  for(const to of next.rideable?[next.bypass.to]:[nextPiece,next.bypass.to])
     assert.equal(crossing(here.level,{from:piece,to,mode:'jump'},{shaped:unworked}),null,
       `${L.short}: from on top of the unworked ${piece}, ${to} is reachable without shaping ${next.station}`);
 }

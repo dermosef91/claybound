@@ -46,16 +46,17 @@ export default {
   key:'folding',name:'The Folding Path',landmark:'tongue',length:110,entryId:'folding-entry',exitId:'folding-exit',
   platforms:[
     p('folding-entry',0,8,0,'stone',{checkpoint:3}),
-    // The cliff lip the rolled tongue rests on: the clay's from-pose (bottom
-    // at 0) sits on this post, so it never covers a deck anyone stands on.
+    // The cliff lip the carpet will lie over once it is out; the roll itself
+    // hangs beside the lip, so the post keeps its frosting until then.
     p('folding-tongue-post',8,2.4,0,'wall',{h:3}),
     // 3.8 × 3.8 rolled up → 12.4 × 1.161 rolled out (14.44 → 14.4 of clay): a
-    // carpet 1.161 thick and 12.4 long wound up is a roll 3.8 across, so the
-    // rest pose is the roll's own box, standing on the post with its crown 3.8
-    // over the entry — past a jump's reach. Between the poses the box's
-    // underside sinks from the lip to the carpet's depth below it, so the
-    // carpet settles into place as it pays out (dist/dream/folding.js).
-    part('folding-tongue',{x:8,w:3.8,y:3.8,h:3.8},{x:8,w:12.4,y:0,h:1.161},{station:'folding-tongue',clayRole:'bridge'}),
+    // carpet 1.161 thick and 12.4 long wound up is a roll 3.8 across. At rest
+    // the roll's box hangs just right of the cliff face, its bottom at the
+    // depth the carpet will lie at (1.161 under the lip) and its crown 2.64
+    // over the entry; pressed, the box widens right and slides its left edge
+    // back onto the lip, so the carpet pays out from under the roll and ends
+    // level with the deck from the lip to the wall (dist/dream/folding.js).
+    part('folding-tongue',{x:10.4,w:3.8,y:2.639,h:3.8},{x:8,w:12.4,y:0,h:1.161},{station:'folding-tongue',clayRole:'bridge'}),
     // A lemon wall 20.45–21.35 standing 6 high that falls right into a deck 20.9–26.9.
     p('folding-wall-bridge',20.9,6,0,'fold',{channel:'folding-tongue-out',duration:1.6,pivot:'left',from:'wall',to:'deck'}),
     p('folding-land',26.9,8,0,'stone',{checkpoint:30}),
@@ -134,7 +135,7 @@ export default {
   ],
   crushers:[],
   shaping:[
-    {id:'folding-tongue',name:'Roll the tongue out',verb:'Press down',gesture:'down',icon:'bridge',parts:['folding-tongue'],
+    {id:'folding-tongue',name:'Roll the tongue out',verb:'Press down',gesture:'down',icon:'bridge',parts:['folding-tongue'],rideable:true,
      x:4,end:21,spawn:{x:5,y:0,groundId:'folding-entry'},cueX:7.6,channel:'folding-tongue-out',
      hint:'The violet tongue is rolled up at the brink. Press it down — drag it, or hold E / KNEAD — and it rolls out across the gap like a carpet. What it touches, it topples.'},
     // Cast the fold. The slab starts flat and flush with the deck; the mould
