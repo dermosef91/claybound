@@ -1,6 +1,6 @@
 # The clay workshop
 
-Open **Level editor** on the title screen, or **Edit this chapter** from pause. All five existing chapters can be edited in their actual Three.js environment.
+Open **Level editor** on the title screen, or **Edit this chapter** from pause. All four shipped chapters can be edited in their actual Three.js environment; The Soft Dream joins the list once it has been unlocked with `ß` in the chapter menu.
 
 ## Design controls
 

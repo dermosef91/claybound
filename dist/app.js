@@ -105,13 +105,18 @@ function onEvent(e){
     const bestStore=game.level.custom?saved.customBest:saved.best;
     const record=completionRecord(e,game.level,bestStore[e.index]);
     if(record.previous&&!game.level.custom){saved.previousRoutes??={};saved.previousRoutes[e.index]=record.previous;}
-    bestStore[e.index]=record.best;delete runStore()[e.index];saved.last=Math.min(LEVELS.length-1,e.index+1);persist();
+    bestStore[e.index]=record.best;delete runStore()[e.index];saved.last=Math.min(lastShown(),e.index+1);persist();
     lastResult=record.result;clearTimeout(completionTimer);
     completionTimer=setTimeout(()=>{if(game.status==='complete'&&game.index===e.index)result(record.result);},750);
   }
 }
 game=new Game(onEvent);
-saved.last=Math.max(0,Math.min(LEVELS.length-1,Math.floor(Number(saved.last)||0)));
+// A chapter marked hidden is kept out of the list, the progression and the
+// editor until someone has typed ß with the chapter list open — the same key
+// that reveals the Clay Lab — so the last shown chapter is the last chapter.
+const shown=i=>!LEVELS[i]?.hidden||!!saved.labUnlocked;
+const lastShown=()=>{let i=LEVELS.length-1;while(i>0&&!shown(i))i--;return i;};
+saved.last=Math.max(0,Math.min(lastShown(),Math.floor(Number(saved.last)||0)));
 function updatePlayLabel(){
   const level=activeLevel(saved.last),run=(level.custom?saved.customRuns:saved.runs)[saved.last];
   const resume=run?.version===level.layoutVersion;
@@ -167,7 +172,7 @@ async function begin(index=0,restart=false,sourceChoice,playgroundSource=null){
   saveJourney();
   if(editor)editor.request++;
   sound.unlock();
-  index=Math.max(0,Math.min(LEVELS.length-1,Number(index)||0));const request=++chapterRequest;
+  index=Math.max(0,Math.min(LEVELS.length-1,Number(index)||0));if(!playgroundSource&&!shown(index))index=lastShown();const request=++chapterRequest;
   if(!await ensureWorld()||request!==chapterRequest)return;
   const choice=['original','edited'].includes(sourceChoice)?sourceChoice:saved.chapterSource[index];
   const nextLevel=playgroundSource||(choice==='original'?LEVELS[index]:drafts.get(index));
@@ -226,12 +231,13 @@ function pause(){
   openDialog(`<button class="dialog-close" data-action="resume" aria-label="Resume game">${icon('x')}</button><span class="eyebrow">TAKE YOUR TIME</span><h2>A little breather.</h2><p>${game.level.name} · ${game.level.sections[game.sectionId].name}</p><button class="primary" data-action="resume">Keep going ${icon('play')}</button><div class="dialog-actions"><button class="secondary" data-action="restart">${icon('rotate-ccw')} Start over</button><button class="secondary" data-action="chapters">${icon('layers-2')} Chapters</button></div>${game.level.playground?'<button class="quiet-button" data-action="stations">Choose a shaping station</button>':''}<button class="quiet-button" data-action="home">Return to title</button><div class="dialog-icons">${game.level.playground?'':`<button class="icon-button" data-action="editor" aria-label="Edit this chapter" title="Edit this chapter">${icon('pencil-ruler')}</button>`}<button class="icon-button" data-action="sound" aria-label="Sound ${sound.enabled?'on':'off'}" title="Sound ${sound.enabled?'on':'off'}">${icon(sound.enabled?'volume-2':'volume-x')}</button><button class="icon-button" data-action="fullscreen" data-fullscreen aria-label="${fullscreen.active?'Exit fullscreen':'Fullscreen'}" title="${fullscreen.active?'Exit fullscreen':'Fullscreen'} (F)">${icon(fullscreen.active?'minimize':'expand')}</button></div>`);
 }
 function chapters(){
-  const choices=LEVELS.map((base,i)=>{const L=activeLevel(i),edited=drafts.has(i),run=(L.custom?saved.customRuns:saved.runs)[i],r=chapterCollections(L,i,saved);return `<div class="chapter-option"><button class="chapter-choice" data-level="${i}"><span>${String(i+1).padStart(2,'0')}</span><div><strong>${L.short}${edited?L.custom?' · Your edit':' · Original':''}</strong><small>${L.sections.length} passages${run?.version===L.layoutVersion?' · Checkpoint saved':''}</small><span class="chapter-collectibles"><img src="./assets/completion/flower.webp" alt="" class="chapter-flower" width="16" height="16">${r.stamps}/${r.stampTotal}<img src="./assets/completion/bead.webp" alt="" class="chapter-bead" width="16" height="16">${r.coins}/${r.coinTotal}</span></div>${icon('arrow-up-right')}</button>${edited?`<button class="quiet-button chapter-alternate" data-level="${i}" data-source="${L.custom?'original':'edited'}">${icon(L.custom?'refresh-cw':'pencil-ruler')} ${L.custom?'Play updated original':'Play your edit'}</button>`:''}</div>`;}).join('');
+  const choices=LEVELS.map((base,i)=>{if(!shown(i))return '';const L=activeLevel(i),edited=drafts.has(i),run=(L.custom?saved.customRuns:saved.runs)[i],r=chapterCollections(L,i,saved);return `<div class="chapter-option"><button class="chapter-choice" data-level="${i}"><span>${String(i+1).padStart(2,'0')}</span><div><strong>${L.short}${edited?L.custom?' · Your edit':' · Original':''}</strong><small>${L.sections.length} passages${run?.version===L.layoutVersion?' · Checkpoint saved':''}</small><span class="chapter-collectibles"><img src="./assets/completion/flower.webp" alt="" class="chapter-flower" width="16" height="16">${r.stamps}/${r.stampTotal}<img src="./assets/completion/bead.webp" alt="" class="chapter-bead" width="16" height="16">${r.coins}/${r.coinTotal}</span></div>${icon('arrow-up-right')}</button>${edited?`<button class="quiet-button chapter-alternate" data-level="${i}" data-source="${L.custom?'original':'edited'}">${icon(L.custom?'refresh-cw':'pencil-ruler')} ${L.custom?'Play updated original':'Play your edit'}</button>`:''}</div>`;}).join('');
   // The lab is not a chapter and keeps no record: it is a bench of ideas that
   // are not in the game yet, so it sits under the five rather than among them —
-  // and, like the cast, only once someone has typed ß with this list open.
+  // and, like the cast and the chapter still being built, only once someone
+  // has typed ß with this list open.
   const lab=saved.labUnlocked?labMarkup():'';
-  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">${saved.labUnlocked?'FIVE CHAPTERS &amp; A CLAY LAB':'FIVE CHAPTERS'}</span><h2>Choose your path.</h2><div class="chapters-list">${choices}${lab}</div>`);
+  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close chapters">${icon('x')}</button><span class="eyebrow">${saved.labUnlocked?'FIVE CHAPTERS &amp; A CLAY LAB':'FOUR CHAPTERS'}</span><h2>Choose your path.</h2><div class="chapters-list">${choices}${lab}</div>`);
 }
 const labMarkup=()=>`<button class="chapter-choice playground-choice" data-action="playground"><span>${icon('pencil-ruler')}</span><div><strong>${clayLab.short}</strong><small>${clayLab.label}</small></div>${icon('arrow-up-right')}</button>`;
 function help(){
@@ -260,9 +266,9 @@ window.addEventListener('keydown',e=>{
     const list=content.querySelector('.chapters-list');
     if(list&&content.querySelector('.chapter-choice[data-level]')){
       saved.labUnlocked=true;persist();
-      list.insertAdjacentHTML('beforeend',labMarkup());
-      const eyebrow=content.querySelector('.eyebrow');if(eyebrow)eyebrow.innerHTML='FIVE CHAPTERS &amp; A CLAY LAB';
-      icons();toast('Clay Lab unlocked.');
+      // The list is drawn again rather than appended to: the unlock also adds
+      // the chapter still being built, in its place among the others.
+      chapters();toast('Clay Lab and The Soft Dream unlocked.');
     }
   }
 });
@@ -301,9 +307,9 @@ $('dialog-content').addEventListener('input',e=>{
 });
 function result(e){
   lastResult=e;document.body.classList.add('is-complete');
-  openDialog(completionMarkup(e,game.level,LEVELS.length),'complete');
+  openDialog(completionMarkup(e,game.level,lastShown()+1),'complete');
 }
-editor=new LevelEditor({world,game,levels:LEVELS,library:drafts,
+editor=new LevelEditor({world,game,levels:LEVELS,library:drafts,chapterShown:shown,
   onFullscreen(){fullscreenTransition=performance.now()+1000;fullscreen.toggle();},
   onEnter(){titleScene?.hide();clearInput();resetDialog();lastResult=null;menu=false;hitStop=0;document.body.classList.remove('is-menu');['menu','hud','dialog','hint','chapter-intro','touch-controls','desktop-controls','timer'].forEach(id=>show(id,false));$('fade').classList.remove('active');},
   onTest(index,level,spawn){

@@ -31,12 +31,13 @@ export function jumpGuide(level,index,platform,direction){
 }
 
 export class LevelEditor{
-  constructor({world,game,levels,library,onEnter,onTest,onExit,onFullscreen=()=>{}}){
+  constructor({world,game,levels,library,onEnter,onTest,onExit,onFullscreen=()=>{},chapterShown=()=>true}){
+    this.chapterShown=chapterShown;
     Object.assign(this,{world,game,levels,library,onEnter,onTest,onExit,onFullscreen});
     this.active=false;this.testing=false;this.mode='select';this.decorating=false;this.snap=.25;this.carry=true;this.guides=true;this.pointers=new Map();this.camera={x:5,y:2,viewH:24};this.collapsed=false;this.request=0;this.trace=[];
     const root=document.createElement('section');root.id='level-editor';root.className='level-editor hidden';root.setAttribute('aria-label','Level editor');
     root.innerHTML=`<canvas id="editor-plane" tabindex="0" aria-label="Level design canvas. Select objects by touch or use Browse objects. Arrow keys nudge a selection; drag empty space to pan."></canvas>
-      <header class="editor-top"><div class="editor-identity">${button('exit','chevron-left','Game','editor-icon')}<div><strong>The clay workshop<span>.</span></strong><small>Make the next leap your own.</small></div></div><label class="editor-level-label"><span class="sr-only">Chapter to edit</span><select id="editor-level">${levels.map((L,i)=>option(i,`${String(i+1).padStart(2,'0')} · ${L.short}`,0)).join('')}</select></label><div class="editor-top-actions">${button('more','ellipsis','More','editor-icon')}${button('test','play','Test','editor-primary')}</div></header>
+      <header class="editor-top"><div class="editor-identity">${button('exit','chevron-left','Game','editor-icon')}<div><strong>The clay workshop<span>.</span></strong><small>Make the next leap your own.</small></div></div><label class="editor-level-label"><span class="sr-only">Chapter to edit</span><select id="editor-level">${levels.map((L,i)=>this.chapterShown(i)?option(i,`${String(i+1).padStart(2,'0')} · ${L.short}`,0):'').join('')}</select></label><div class="editor-top-actions">${button('more','ellipsis','More','editor-icon')}${button('test','play','Test','editor-primary')}</div></header>
       <nav class="editor-tools" aria-label="Editing tools">${button('select','mouse-pointer-2','Select','editor-tool active')}${button('pan','hand','Pan','editor-tool')}${button('decorate','sparkles','Decorate','editor-tool editor-decorate')}${button('undo','undo-2','Undo','editor-icon')}${button('redo','redo-2','Redo','editor-icon')}${button('add','plus','Add','editor-add')}</nav>
       <div class="editor-zoom">${button('zoom-in','plus','Zoom in','editor-icon')}${button('zoom-out','minus','Zoom out','editor-icon')}${button('focus','scan','Frame selection','editor-icon')}</div>
       <div class="editor-overview"><canvas id="editor-map" aria-label="Chapter overview. Drag to travel through the level."></canvas><label><span class="sr-only">Jump to passage</span><select id="editor-passage"></select></label></div>

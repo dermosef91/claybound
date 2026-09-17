@@ -21,6 +21,9 @@ for(let i=0;i<LEVELS.length;i++){
  assert.equal(html.includes('data-action="next"'),i<LEVELS.length-1);
  for(const [,src]of html.matchAll(/src="([^"]+)"/g))await access(new URL('../dist/'+src,import.meta.url));
 }
+// While the dream is hidden the Hanging Quarter is the last chapter shown, and
+// its completion offers no next chapter.
+assert(!completionMarkup(completionRecord({...run,index:3},LEVELS[3],null).result,LEVELS[3],4).includes('data-action="next"'));
 const old=completionRecord({...run,time:130},L,{version:L.layoutVersion,time:108}).result;
 const html=completionMarkup(old,L,LEVELS.length);assert(!html.includes('New best!'));assert(html.includes('Best 1:48'));assert(html.includes('2:10'));
 console.log('PASS completion results, record timing, old-layout isolation, all five scenes and chapter actions');

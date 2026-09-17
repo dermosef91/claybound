@@ -75,6 +75,9 @@ function assemble(parts,table,{spawn,name,short,label,intro}){
   sections[0].x=Math.min(sections[0].x,...platforms.map(s=>s.x));
   return chapter({
     layoutVersion:1,
+    // Still being built: the chapter list keeps it behind ß, like the Clay Lab,
+    // and the Hanging Quarter stays the last chapter anyone is led to.
+    hidden:true,
     name,short,label,biome:'dream',intro,
     sky:palettes[0].sky,fog:palettes[0].fog,spawn,end,previousDistance:(end-spawn.x)/.3,cameraY:3,
     sections,
