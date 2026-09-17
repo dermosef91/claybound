@@ -106,9 +106,9 @@ function dreamSky(w){
     fragmentShader:`uniform vec3 top,horizon,bottom;varying vec2 vUv;
       void main(){
         float h=(vUv.y-.5)*${SKY_H.toFixed(1)};
-        float t=clamp((h+4.5)/10.5,0.,1.);
-        vec3 c=mix(bottom,horizon,smoothstep(0.,.42,t));
-        c=mix(c,top,smoothstep(.42,1.,t));
+        float t=clamp((h+3.5)/8.,0.,1.);
+        vec3 c=mix(bottom,horizon,smoothstep(0.,.4,t));
+        c=mix(c,top,smoothstep(.4,1.,t));
         gl_FragColor=vec4(c,1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>

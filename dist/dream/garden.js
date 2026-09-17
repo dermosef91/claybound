@@ -45,6 +45,14 @@ const peach=w=>fixedMaterial(w,'gardenPeach',0xf6b48f,{depth:.05});
 const falls=w=>fixedMaterial(w,'gardenFalls',0x8fd0f4,{roughness:.4,depth:.03});
 const petal=w=>fixedMaterial(w,'dreamPetal',0xe8598a,{depth:.06});
 const pupilInk=w=>fixedMaterial(w,'dreamPupil',0x1a1416,{roughness:.35,depth:.02});
+// The boards' purple: lilac and violet clay mounds with moss caps and pink
+// beads, in the foreground and at the pillars' feet, and the paler lilac of
+// the farthest silhouettes (fog does most of that fading).
+const lilac=w=>fixedMaterial(w,'gardenLilac',0xb493d8,{depth:.06});
+const violet=w=>fixedMaterial(w,'gardenViolet',0x8e6cc2,{depth:.06});
+const moss=w=>fixedMaterial(w,'gardenMoss',0x9dd061,{depth:.05});
+const bead=w=>fixedMaterial(w,'gardenBead',0xf3a3c9,{depth:.04});
+const farLilac=w=>fixedMaterial(w,'gardenFarLilac',0xc9a6d8,{depth:.02});
 
 // --- where the arch stands -----------------------------------------------------------
 // The palette flips at the arch's centre, 3.75 into the arch deck; everything
@@ -291,12 +299,50 @@ function crookedArch(w,parent){
 }
 
 // --- backdrop pieces --------------------------------------------------------------------
-function mesa(w,g,width,height,seed){
-  w.box(width,height,width*.8,'back',g,0,height/2,0,width*.22).name='Far mesa';
-  w.box(width*.72,height*.22,width*.6,'back2',g,width*.1,height*.8,.2,width*.14).name='Far mesa shoulder';
-  w.ball(width*.55,height*.06+.4,width*.45,'top',g,0,height+.1,0).name='Far mesa cap';
-  w.ball(width*.3,.5,width*.25,'top',g,-width*.3,height*.62,.3).name='Far mesa tuft';
-  if(seed%2)w.ball(width*.22,.4,width*.2,'top',g,width*.32,height*.42,.3).name='Far mesa tuft';
+// A pillar of the boards: a slender rounded column of salmon clay, a bulge on
+// one flank, under a mossy dome that has run over the lip in one drip, with
+// a tuft on the flank. `window` pierces the column with an arched opening
+// two thirds of the way up — the body is then one extruded shape with a hole,
+// cached by seed like the arch.
+function roundedRect(s,x,y,w,h,r){
+  s.moveTo(x+r,y);s.lineTo(x+w-r,y);s.absarc(x+w-r,y+r,r,-Math.PI/2,0,false);
+  s.lineTo(x+w,y+h-r);s.absarc(x+w-r,y+h-r,r,0,Math.PI/2,false);
+  s.lineTo(x+r,y+h);s.absarc(x+r,y+h-r,r,Math.PI/2,Math.PI,false);
+  s.lineTo(x,y+r);s.absarc(x+r,y+r,r,Math.PI,Math.PI*1.5,false);
+}
+const windowPillar=(w,width,height,seed)=>clayShape(w,`garden-pillar-window:${width}:${height}:${seed}`,()=>{
+  const s=new THREE.Shape();roundedRect(s,-width/2,0,width,height,width*.42);
+  const hw=width*.21,y0=height*.56,y1=height*.72,hole=new THREE.Path();
+  hole.moveTo(-hw,y0);hole.lineTo(-hw,y1-hw);hole.absarc(0,y1-hw,hw,Math.PI,0,true);hole.lineTo(hw,y0);hole.lineTo(-hw,y0);
+  s.holes.push(hole);
+  const depth=width*.7,geo=new THREE.ExtrudeGeometry(s,{depth,bevelEnabled:true,bevelThickness:.3,bevelSize:.22,bevelSegments:3,curveSegments:14});
+  geo.translate(0,0,-depth/2);return sculptClay(w,geo,{amplitude:.06});
+});
+function pillar(w,g,{width,height,seed,window=false,body='back',cap='top'}){
+  const side=seed%2?1:-1;
+  if(window)w.mesh(windowPillar(w,width,height,seed),body,g,0,0,0).name='Far pillar';
+  else w.box(width,height,width*.9,body,g,0,height/2,0,width*.42).name='Far pillar';
+  w.ball(width*.36,height*.14,width*.3,body,g,side*width*.24,height*(.36+rand(seed)*.2),-.05).name='Far pillar bulge';
+  w.ball(width*.74,height*.06+.6,width*.64,cap,g,0,height+.05,0).name='Far pillar cap';
+  w.ball(width*.42,.5,width*.36,cap,g,-side*width*.36,height+.2,.25).name='Far pillar cap';
+  drip(w,g,side*width*.22,height-.02,width*.42,.17,.5+rand(seed*3)*.5,cap,seed);
+  w.ball(width*.26,.38,width*.22,cap,g,side*width*.42,height*.62,width*.3).name='Far pillar tuft';
+}
+// The farthest shapes: a soft column and a low mound in pale lilac, drawn
+// almost entirely by the fog.
+function silhouette(w,g,width,height){
+  w.box(width,height,width*.8,farLilac(w),g,0,height/2,0,width*.4).name='Far silhouette';
+  w.ball(width*.62,.6,width*.5,farLilac(w),g,0,height+.05,0).name='Far silhouette cap';
+  w.ball(width*.9,width*.5,width*.7,farLilac(w),g,width*.9,0,.2).name='Far silhouette mound';
+}
+// A mound cluster: violet under lilac, a moss cap and a pink bead.
+function mound(w,g,size,seed){
+  const flip=seed%2?-1:1;
+  w.ball(size,size*.62,size*.8,violet(w),g,0,0,0).name='Mound';
+  w.ball(size*.7,size*.48,size*.6,lilac(w),g,flip*size*.85,-size*.1,.2).name='Mound';
+  w.ball(size*.5,size*.4,size*.45,lilac(w),g,-flip*size*.7,-size*.15,.1).name='Mound';
+  w.ball(size*.36,size*.2,size*.3,moss(w),g,flip*size*.1,size*.55,size*.25).name='Mound moss';
+  w.ball(size*.15,size*.15,size*.13,bead(w),g,flip*size*.8,size*.32,size*.4).name='Mound bead';
 }
 function farMushroom(w,g,height,cap,stem,capMat,spots){
   w.box(height*.16,height,height*.16,stem,g,0,height/2,0,height*.06).name='Far mushroom stem';
@@ -402,27 +448,41 @@ export default {
     return true;
   },
 
-  // Far scenery, placed once by world x. Before the arch: salmon mesas, far
-  // pink mushrooms, and a sky of pink swirl streaks and puffy clouds. After it:
-  // coils that turn, floating islands with waterfalls, giant purple mushrooms.
+  // Far scenery, placed once by world x. Before the arch, three depths of
+  // pillars — pale lilac silhouettes far back, slender salmon pillars under
+  // mossy domes (two pierced by windows) in the middle, two nearer ones with
+  // purple mounds at their feet — plus tall pink mushrooms and a sky of
+  // swirl streaks and puffy clouds. After it: coils that turn, floating
+  // islands with waterfalls, giant purple mushrooms.
   // Parallax shows a far item from up to |Δx|·factor < 15 away, so the
   // post-arch pieces sit far enough right (factor .3, ≥ +95) that none of
   // them shows before the player has passed the arch.
   // The camera is orthographic, so far things are drawn small rather than
-  // shrunk by distance; the view is only ten units tall, so the sky sits
-  // between y 5 and 9; and the fog (30..98 from a camera at z 26) has taken
-  // most of a colour by z −40, so the rock stands at z −25 where a third of
-  // it is haze, and only the clouds sit deeper.
+  // shrunk by distance; the view is twelve units tall, so the sky sits
+  // between y 5 and 9. Depth is authored in z against the fog (26..90 from a
+  // camera at z 26): the near pillars at z −20 keep two thirds of their
+  // colour, the middle ones at z −30 half, the silhouettes at z −56 a
+  // seventh, and the backdrop blur softens all of them alike.
   quietBackdrop:true,
   // The far scenery is drawn through the backdrop blur (citadel-depth.js) at
   // this texel radius, so the pillars read as a set photographed with a
   // short depth of field while the decks stay crisp.
   softBackdrop:1.3,
   backdrop(w,L,section,layers){
-    const far=layers.at(.22),sky=layers.at(.1),mid=layers.at(.3);
+    const deep=layers.at(.14),far=layers.at(.22),near=layers.at(.32),sky=layers.at(.1),mid=layers.at(.3);
     const x0=section.x;
-    for(const [dx,width,height,seed] of [[3,3,5.2,1],[18,3.8,6.4,2],[33,2.6,4.4,3],[49,3.2,5.4,4]])mesa(w,layers.place(far,x0+dx,-3.5,-25),width,height,seed);
+    for(const [dx,width,height] of [[-2,3.2,6.5],[14,2.8,5],[30,3.6,7.5],[46,2.6,6]])silhouette(w,layers.place(deep,x0+dx,-3.5,-56),width,height);
+    for(const [i,[dx,width,height]] of [[2,2.2,6.5],[14,2.6,9],[26,2,7],[37,2.4,8.5],[49,1.9,6]].entries()){
+      const g=layers.place(far,x0+dx,-3.5,-30);
+      pillar(w,g,{width,height,seed:i+1,window:i===1||i===3});
+      if(i%2===0)mound(w,layers.place(far,x0+dx+width*.9,-3.3,-29),1.1+rand(i)*.4,i);
+    }
+    for(const [i,[dx,width,height]] of [[9,1.8,5],[31,2.1,5.6]].entries()){
+      pillar(w,layers.place(near,x0+dx,-3.5,-20),{width,height,seed:7+i});
+      mound(w,layers.place(near,x0+dx-width*1.1,-3.2,-19),1.4+i*.3,i+5);
+    }
     for(const [dx,height,cap] of [[10,4.2,1.5],[40,4.6,1.7]])farMushroom(w,layers.place(far,x0+dx,-3.5,-23),height,cap,'back2','back','cream');
+    for(const [dx,height,cap] of [[5,2.2,.9],[29,2.6,1]])farMushroom(w,layers.place(far,x0+dx,-3.5,-28),height,cap,'back2','back','cream');
     for(const [dx,y,len,tilt] of [[-6,5,.8,.04],[10,6.6,.62,-.05],[24,4.4,.9,.03],[38,6.2,.7,-.04],[50,5.4,.8,.05]]){
       const g=layers.place(sky,x0+dx,y,-38);
       const s=w.mesh(streak(w),cloud(w),g,0,0,0);s.scale.set(len,.36,.3);s.rotation.z=tilt;s.name='Sky swirl streak';

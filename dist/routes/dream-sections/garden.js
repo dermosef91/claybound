@@ -119,7 +119,7 @@ export default {
   // `sky` is the gradient's top and `fog` its horizon band (dream.js), so the
   // four entries stay in one peach→pink family and the sky never snaps.
   palettes:[
-    {x:0,main:'#e07a3c',secondary:'#93c957',backdrop:'#e39a86',accent:'#ec6f9d',sky:'#f6c6a6',fog:'#f3bfc8'},
+    {x:0,main:'#e07a3c',secondary:'#93c957',backdrop:'#e39a86',accent:'#ec6f9d',sky:'#f9bf95',fog:'#f4b4c6'},
     {x:42.75,main:'#8a3f9e',secondary:'#c9ef5a',backdrop:'#b98ad4',accent:'#f27ab8',sky:'#f4b4a3',fog:'#f0b9d3'},
     {x:62,main:'#7a2f9e',secondary:'#d4f542',backdrop:'#a97cca',accent:'#ff6fc2',sky:'#f5a793',fog:'#f3b5d6'},
     {x:88,main:'#5a3ab8',secondary:'#e2f25c',backdrop:'#b09bd6',accent:'#f75fb6',sky:'#dfa9c9',fog:'#f0bcd8'}
