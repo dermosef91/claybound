@@ -42,7 +42,7 @@ const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
  assert.equal(LEVELS[3].layoutVersion,6);assert(!LEVELS[3].custom);
  for(const key of ['spawn',...LISTS])assert.deepEqual(canonical[key],draft[key],`canonical city ${key} matches the approved export`);
 }
-for(let index=0;index<4;index++){
+for(let index=0;index<LEVELS.length;index++){
  const normalized=validateDraft(LEVELS[index],LEVELS[index]);
  assert.equal(normalized.platforms.length,LEVELS[index].platforms.length);assert.equal(normalized.winds.filter(w=>w.spores).length,LEVELS[index].winds.filter(w=>w.spores).length);
  assert.deepEqual(normalized.circuits,LEVELS[index].circuits);
@@ -55,7 +55,7 @@ for(let index=0;index<4;index++){
  const game=new Game();game.start(index,reopened.get(index));assert.equal(game.player.groundId,'start');assert.equal(game.player.y,1);
  game.tick(FIXED_DT,{jumpPressed:true,jumpHeld:true});assert(game.player.vy>0);assert(game.player.y>1);assert.equal(reopened.get(index).platforms[0].y,1,'runtime never mutates saved draft');
 }
-console.log('PASS all four drafts: normalization, connections, persistence, carry contents, undo/redo, and real runtime loading');
+console.log('PASS all five drafts: normalization, connections, persistence, carry contents, undo/redo, and real runtime loading');
 {
  const s=new DraftSession(library,0),index=s.level.platforms.findIndex(p=>p.goal),oldEnd=s.level.end;s.selection={list:'platforms',index};s.startChange();s.move(3,2);s.commit();assert.equal(s.level.end,oldEnd+3);
  assert.throws(()=>s.remove(),/finish/);s.set('w',8);assert(s.level.end<s.level.platforms[index].x+8);s.undo();

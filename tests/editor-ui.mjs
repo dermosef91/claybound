@@ -54,16 +54,16 @@ const pointer=(id,x,y)=>({pointerId:id,clientX:x,clientY:y,button:0,preventDefau
 // Title navigation is available before the expensive WebGL scene loads.
 assert($('loading').classList.contains('hidden'));assert(!$('menu').inert);
 assert.equal($('play-label').textContent,'Play');assert(!$('menu').textContent.toLowerCase().includes('handmade'));
-await click('#chapters');assert.equal(document.querySelectorAll('.chapter-collectibles').length,4);assert(document.querySelector('.chapter-choice[data-level="0"] .chapter-collectibles').textContent.includes('0/'));assert($('menu').inert);
+await click('#chapters');assert.equal(document.querySelectorAll('.chapter-collectibles').length,5);assert(document.querySelector('.chapter-choice[data-level="0"] .chapter-collectibles').textContent.includes('0/'));assert($('menu').inert);
 await click('[data-action="close"]');assert(!$('menu').inert);
 await click('#settings');assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'true');
 await click('[data-action="settings-sound"]');assert.equal(app.saved.sound,false);assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'false');assert.equal($('menu-sound').getAttribute('aria-label'),'Enable sound');
 await click('[data-action="close"]');await click('#settings');assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'false');
 await click('[data-action="close"]');await click('#menu-sound');assert.equal(app.saved.sound,true);
 $('settings').focus();await click('#settings');await click('[data-action="help"]');await click('[data-action="close"]');assert.equal(document.activeElement,$('settings'),'Nested help returns focus to the title trigger');
-await click('#chapters');assert.equal(document.querySelectorAll('.chapter-choice[data-level]').length,4);assert.equal(document.querySelectorAll('.chapter-choice[data-action="playground"]').length,0,'the clay lab is hidden until it is unlocked');
+await click('#chapters');assert.equal(document.querySelectorAll('.chapter-choice[data-level]').length,5);assert.equal(document.querySelectorAll('.chapter-choice[data-action="playground"]').length,0,'the clay lab is hidden until it is unlocked');
 window.dispatchEvent(Object.assign(new window.Event('keydown'),{key:'ß'}));await settle();
-assert.equal(app.saved.labUnlocked,true,'ß with the chapter list open unlocks the lab');assert.equal(document.querySelectorAll('.chapter-choice[data-action="playground"]').length,1,'and the clay lab sits under the four chapters');
+assert.equal(app.saved.labUnlocked,true,'ß with the chapter list open unlocks the lab');assert.equal(document.querySelectorAll('.chapter-choice[data-action="playground"]').length,1,'and the clay lab sits under the five chapters');
 await click('[data-action="close"]');await click('#chapters');assert.equal(document.querySelectorAll('.chapter-choice[data-action="playground"]').length,1,'found once, it stays');await click('[data-action="close"]');
 assert.equal(editor.world,undefined,'Menu dialogs stay responsive during a slow asset load');
 assert.equal(worldCount,1,'The title creates just one renderer');
@@ -71,7 +71,7 @@ const firstBegin=app.begin(0),secondBegin=app.begin(0);releaseFirstWorld();await
 assert.equal(worldCount,1,'Overlapping play requests share the in-flight title load');
 assert.equal(editor.world.prepared,1,'Only the latest play request prepares a chapter');
 app.home();assert(editor.world.titleView.active,'Title scene runs while menus remain available');
-console.log('PASS title menu: slow/shared loading, overlapping play requests, immediate navigation, four chapters, saved collectibles, sound preference and dialog focus boundaries');
+console.log('PASS title menu: slow/shared loading, overlapping play requests, immediate navigation, five chapters, saved collectibles, sound preference and dialog focus boundaries');
 await click('#play');assert.equal(app.game.status,'playing');assert(editor.world);assert($('loading').classList.contains('hidden'));
 assert(!editor.world.titleView.active,'Gameplay releases the title hero and stops its render');
 app.pause();await click('[data-action="home"]');assert.equal(app.game.status,'menu');assert(!$('menu').inert);assert.equal($('play-label').textContent,'Play');

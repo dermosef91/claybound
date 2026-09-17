@@ -61,7 +61,7 @@ assert.equal(shotWall(5,-1,12,-1,[wall]),Infinity,'shots pass below a floating b
 assert.equal(shotWall(5,7,12,7,[wall]),Infinity,'shots pass above the block');
 console.log('PASS wall collision: both sides, move away, landing, stomp, ceiling, passage below, jump over, high speed and projectile cover');
 
-for(const biome of ['desert','forest','cave','citadel']){
+for(const biome of ['desert','forest','cave','citadel','dream']){
   const world=Object.create(World.prototype);world.biome=biome;world.levelRoot=new THREE.Group();world.mat={terrain:new THREE.MeshStandardMaterial()};
   for(const [w,h] of [[.6,.6],[2,8],[12,2],[80,80]]){
     const view=world.makePlatform({...wall,w,h}),bounds=new THREE.Box3().setFromObject(view.root);
@@ -70,4 +70,4 @@ for(const biome of ['desert','forest','cave','citadel']){
     assert(view.root.children.some(c=>c.isMesh),'every biome renders wall geometry');
   }
 }
-console.log('PASS wall geometry: all four biomes, narrow/tall/wide/maximum dimensions and collision-aligned bounds (CPU scene check)');
+console.log('PASS wall geometry: all five biomes, narrow/tall/wide/maximum dimensions and collision-aligned bounds (CPU scene check)');

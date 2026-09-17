@@ -23,4 +23,4 @@ for(let i=0;i<LEVELS.length;i++){
 }
 const old=completionRecord({...run,time:130},L,{version:L.layoutVersion,time:108}).result;
 const html=completionMarkup(old,L,LEVELS.length);assert(!html.includes('New best!'));assert(html.includes('Best 1:48'));assert(html.includes('2:10'));
-console.log('PASS completion results, record timing, old-layout isolation, all four scenes and chapter actions');
+console.log('PASS completion results, record timing, old-layout isolation, all five scenes and chapter actions');

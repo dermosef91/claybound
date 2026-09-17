@@ -99,7 +99,7 @@ for(const [index,L]of LEVELS.entries())for(const e of L.enemies.filter(e=>e.kind
   for(let i=1;i<1800;i++){moveEnemy(copy,dt,i*dt);assert(copy.y>=copy.baseY-copy.bob-1e-6&&copy.y<=copy.baseY+copy.bob+1e-6);assert(copy.x>=copy.min&&copy.x<=copy.max);}
   for(const p of L.platforms.filter(p=>p.checkpoint))assert(Math.abs(p.checkpoint-e.x)>1.5||Math.abs(p.y-e.y)>3,`checkpoint arrivals remain clear (chapter ${index+1})`);
 }
-assert.deepEqual(LEVELS.map(l=>l.enemies.filter(e=>e.kind==='bat').length),[0,0,4,2]);
+assert.deepEqual(LEVELS.map(l=>l.enemies.filter(e=>e.kind==='bat').length),[0,0,4,2,0]);
 console.log('PASS bat jump/stomp kills, edge forgiveness, moving top contacts, side damage, cooldown, pause, and cave plus rooftop placement');
 
 const storage={value:'',getItem(){return this.value},setItem(_,v){this.value=v}},library=new DraftLibrary(LEVELS,storage),session=new DraftSession(library,2);

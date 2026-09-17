@@ -7,7 +7,7 @@ import {cloneGame,steer} from './routes.mjs';
 const original=JSON.stringify(LEVELS),source=JSON.stringify(playground);
 const boot=()=>{const g=new Game();g.start(3,playground);return g;};
 const step=(g,n,input={})=>{for(let i=0;i<n;i++)g.tick(dt,{...input,jumpPressed:i===0&&input.jumpPressed,stompPressed:i===0&&input.stompPressed});};
-assert.equal(LEVELS.length,4);
+assert.equal(LEVELS.length,5);
 assert.equal(new Set(playground.platforms.map(p=>p.id)).size,playground.platforms.length);
 // Five workshop experiments, plus the three stations chapter four now owns and
 // the playground inherits with the rest of its copy of that chapter.

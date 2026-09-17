@@ -659,7 +659,7 @@ console.log('PASS Great Arch model/maps, cavity shade, clear play lane, fixed ro
 // workshop offers is built here at its own default size, in the chapter that
 // offers it, so a palette entry can never be a name with nothing behind it.
 {
-  const biomes=['desert','forest','cave','citadel'];
+  const biomes=['desert','forest','cave','citadel','dream'];
   for(const [index,biome]of biomes.entries()){
     const g=new Game();g.start(index);
     const anchor=g.level.platforms.find(p=>p.kind==='stone')||g.level.platforms[0];
@@ -705,7 +705,7 @@ console.log('PASS decoration: every palette shape builds in its chapter, exact p
 // promising a prop the chapter will not make. Every name is put on a real deck
 // in every chapter that offers it, and measured against that deck bare.
 {
-  const biomes=['desert','forest','cave','citadel'];
+  const biomes=['desert','forest','cave','citadel','dream'];
   for(const [index,biome]of biomes.entries()){
     const g=new Game();g.start(index);
     // A plain deck with no story of its own, so only the landmark can add to it.

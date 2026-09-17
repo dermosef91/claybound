@@ -94,4 +94,4 @@ for(const [i,L]of LEVELS.entries()){
   console.log(`\n${L.short}: ${notes.length?notes.length+' notes':'clean'}`);
   for(const n of notes)console.log('  ·',n);
 }
-if(only===null)console.log(`\n${total} authoring notes across four chapters`);
+if(only===null)console.log(`\n${total} authoring notes across five chapters`);
