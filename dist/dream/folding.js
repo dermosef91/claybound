@@ -1,7 +1,8 @@
 import * as THREE from '../lib/three.module.js';
 import {createDreamView} from '../dream-views.js';
 import {magicClayMaterial} from '../shaping-views.js';
-import {deck,slot} from './support.js';
+import {clayMaterial} from '../clay.js';
+import {deck,slot,rand} from './support.js';
 // Section 2 — The Folding Path. The one idea is that orientation is
 // negotiable: the decks are sheets of clay folded under themselves, the
 // standing walls are the same sheets on end, a sheet hangs from the sky with
@@ -24,6 +25,33 @@ const group=(parent,name,x=0,y=0,z=0)=>{const g=new THREE.Group();g.name=name;g.
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
 const attached=(o,scene)=>{for(let p=o;p;p=p.parent)if(p===scene)return true;return false;};
 const mats=w=>({T:slot(w,'terrain','blue'),T2:slot(w,'terrain2','blueDark'),TOP:slot(w,'top','gold'),A:slot(w,'accent','gold')});
+
+// Two colours the palette does not carry, made once and kept on w.mat so the
+// streaming disposer and the level rebuild treat them as shared: the teal of
+// the reference's portholes and mushroom stems, with the clay relief, and a
+// glossy sky-blue for the islets' waterfalls, tagged like the river's streams
+// (the relief hook would dull it: a stream is meant to shine).
+const TEAL=0x4fb8b0,WATER=0x7fd6ff;
+function teal(w){
+  if(!w.mat.foldingTeal){const m=new THREE.MeshStandardMaterial({color:TEAL,roughness:.6,metalness:0});clayMaterial(w,m,.04);m.name='foldingTeal';w.mat.foldingTeal=m;}
+  return 'foldingTeal';
+}
+function water(w){
+  if(!w.mat.foldingWater){const m=new THREE.MeshStandardMaterial({color:WATER,roughness:.22,metalness:0,emissive:WATER,emissiveIntensity:.12});m.userData.clay={type:'gloss',requestedDepth:0,depth:0};m.name='foldingWater';w.mat.foldingWater=m;}
+  return 'foldingWater';
+}
+// A lemon drip hanging from a frosting edge, a lathe at any size. The profile
+// runs from the tip up to the rim: a lathe turned the other way faces inward.
+function drip(w,parent,x,y,z,len,r,mat){
+  const points=[[0,-len],[r*.24,-len*.84],[r*.6,-len*.5],[r*.92,-.22],[r,0],[0,.05]].map(([a,b])=>new THREE.Vector2(a,b));
+  const mesh=w.mesh(new THREE.LatheGeometry(points,14),mat,parent,x,y,z);mesh.name='Frosting drip';return mesh;
+}
+// A porthole in a cliff face: a teal ring around a dark hollow, the way the
+// reference's cliffs are eaten through.
+function porthole(w,parent,x,y,z,r){
+  const ring=w.mesh(new THREE.TorusGeometry(r,r*.32,8,22),teal(w),parent,x,y,z);ring.name='Porthole rim';
+  const hollow=w.cylinder(r*.8,.16,'dark',parent,x,y,z+.1);hollow.rotation.x=Math.PI/2;hollow.name='Porthole';
+}
 
 // --- the twisted tongue -----------------------------------------------------------
 // The shared clay view draws a station's piece as one rounded box remapped to
@@ -219,7 +247,17 @@ function foldedSheet(w,g,width,{lip=null}={}){
     w.box(.5,1.5,3.5,TOP,g,x,-.85,0,.2).name='Frosting lip';
     w.ball(.42,.3,.5,TOP,g,x,-1.65,.9).name='Frosting drip';
   }
+  // The frosting runs over the front edge in drips, two or three to a sheet,
+  // where the reference's lime pours down every cliff.
+  const seed=Math.floor(width*7.3+(lip==='right'?3:lip?5:0));
+  for(let i=0,n=width>=6?3:2;i<n;i++){
+    const x=width*(.15+.7*(i+rand(seed+i))/n),len=.9+rand(seed+i+11)*1.1;
+    drip(w,g,x,-.42,1.68,len,.3+rand(seed+i+23)*.16,TOP);
+  }
+  // Wide sheets are eaten through: a teal-rimmed hollow in the body's face.
+  if(width>=6)porthole(w,g,width*(.3+.4*rand(seed+41)),-2.2,1.62,.55+.25*rand(seed+43));
   w.ball(.28,.22,.24,A,g,width*.3,.1,-1.2).name='Sheet bead';
+  w.ball(.2,.16,.18,teal(w),g,width*.72,.08,-1.25).name='Sheet bead';
 }
 // The lip goes where nothing abuts: seams between decks (and between sections)
 // are left plain so a fold never pokes into a neighbour's face.
@@ -265,6 +303,16 @@ function foldStand(w,s,g){
   return view;
 }
 
+// --- a mushroom -----------------------------------------------------------------
+// A stem under a squashed cap with two cream dots, sized by `size` and capped
+// in a palette slot; a deck's clutter, built at its foot.
+function mushroom(w,parent,size,cap,seed){
+  const g=group(parent,'Mushroom');g.rotation.z=(rand(seed)-.5)*.2;
+  w.cylinder(.3*size,1.3*size,teal(w),g,0,.65*size,0).name='Mushroom stem';
+  w.ball(1*size,.48*size,.9*size,slot(w,cap,'gold'),g,0,1.32*size,0).name='Mushroom cap';
+  for(const [dx,dz,r] of [[-.42,.35,.17],[.33,.45,.13]])w.ball(r*size,r*.5*size,r*size,'cream',g,dx*size,1.7*size,dz*size).name='Mushroom dot';
+}
+
 // --- far scenery pieces -----------------------------------------------------------------
 // A slab standing on end: the fold's wall pose, already happened. The
 // frosting that was its top is now a vertical face on the side the player
@@ -277,6 +325,40 @@ function standingSlab(w,g,h){
   w.box(.9,h,2.2,B2,g,0,h/2,0,.28).name='Slab body';
   w.box(.3,h+.1,2.4,B,g,-.55,h/2+.05,0,.12).name='Slab face';
   const axle=w.cylinder(.22,2.4,'dark',g,0,.05,0);axle.rotation.x=Math.PI/2;axle.name='Slab hinge';
+}
+// A coil in the haze: a path that curled instead of folding, spiralling in
+// on itself like a ram's horn, its tube thinning toward the centre. Backdrop
+// slots again, so a coil is never taken for a way on.
+class Coil extends THREE.Curve{
+  constructor(radius,turns){super();this.radius=radius;this.turns=turns;}
+  getPoint(t,target=new V()){
+    const a=t*this.turns*Math.PI*2,r=this.radius*(1-.82*t);
+    return target.set(Math.cos(a)*r,Math.sin(a)*r,Math.sin(a*.5)*.4);
+  }
+}
+function coil(w,g,radius,turns=2.2,thickness=.42,mat){
+  const mesh=w.mesh(new THREE.TubeGeometry(new Coil(radius,turns),96,thickness,7,false),mat,g,0,0,0);
+  mesh.name='Haze coil';return mesh;
+}
+// An islet adrift in the haze: a frosted drum on a tapered underside, a
+// mushroom on top and a waterfall spilling off its rim into a ring of spray.
+// Haze colours for the rock, so it never reads as a deck; only the water and
+// the mushroom's cap carry colour.
+function islet(w,g,size,seed){
+  const B=slot(w,'back','cream'),B2=slot(w,'back2','cream'),A=slot(w,'accent','gold');g.name='Haze islet';
+  w.box(size*2.2,size*.7,size*1.6,B2,g,0,-size*.35,0,size*.3).name='Islet drum';
+  w.box(size*2.3,size*.28,size*1.7,B,g,0,size*.02,0,size*.12).name='Islet frosting';
+  const under=[[0,-size*2.3],[size*.18,-size*2],[size*.5,-size*1.3],[size*.9,-size*.5],[size*1,0],[0,.05]].map(([a,b])=>new THREE.Vector2(a,b));
+  w.mesh(new THREE.LatheGeometry(under,14),B2,g,0,-size*.6,0).name='Islet root';
+  const mx=size*(-.5+rand(seed)*1);
+  w.cylinder(size*.16,size*.5,teal(w),g,mx,size*.35,size*.2).name='Islet stem';
+  w.ball(size*.5,size*.24,size*.42,A,g,mx,size*.62,size*.2).name='Islet cap';
+  // The fall: a glossy ribbon off the rim, thinning as it drops, and the
+  // spray where it ends.
+  const fx=size*(.5+rand(seed+3)*.5),len=size*(2.4+rand(seed+7)*1.6);
+  const fall=w.mesh(new THREE.CylinderGeometry(size*.14,size*.3,len,9,1),water(w),g,fx,-len/2+size*.1,size*.6);fall.scale.z=.45;fall.name='Waterfall';
+  w.ball(size*.6,size*.16,size*.42,water(w),g,fx,-len+size*.1,size*.6).name='Spray';
+  w.ball(size*.28,size*.1,size*.22,water(w),g,fx+size*.55,-len+size*.06,size*.7).name='Spray';
 }
 // A pale hand from the haze: a palm and five rounded fingers, in the backdrop
 // slot so it fades into the fog like something half-remembered. Built with
@@ -321,6 +403,13 @@ export default {
   props(section,L){
     const list=[];
     const ceiling=deck(L,'folding-ceiling'),step=deck(L,'folding-step');
+    // Mushrooms on every stone deck, two or three to a deck, the reference's
+    // clutter: teal stems under hot-pink or lime caps with cream dots. Still,
+    // like everything here — the section keeps its no-leaners rule.
+    for(const [id,spots] of [['folding-entry',[[1.2,.7],[6.6,.5]]],['folding-land',[[1,.55],[4.6,.8],[6.9,.45]]],['folding-cast-land',[[1.1,.6],[3.1,.45]]],['folding-far',[[1,.5],[3.4,.75]]],['folding-wall-land',[[.8,.55],[3.8,.5]]],['folding-exit',[[.9,.7],[4.2,.5],[5.9,.4]]]]){
+      const on=deck(L,id);if(!on)continue;
+      spots.forEach(([dx,size],i)=>list.push({key:`shroom-${id}-${i}`,x:on.x+dx,y:on.y,w:2.2*size,z:-1.1,make(w,parent){mushroom(w,parent,size,i%2?'top':'accent',on.x*3.1+i);}}));
+    }
     if(ceiling){
       // The ceiling the auto ramp hangs from: a mass over the block's resting
       // place with two lemon drips, so the clay reads as ceiling that sagged.
@@ -329,10 +418,7 @@ export default {
         const {T,T2,TOP}=mats(w);
         w.box(9.4,2.6,3.2,T,parent,0,1.3,0,.7).name='Ceiling mass';
         w.box(6.6,1.8,2.8,T2,parent,.7,3.4,-.2,.6).name='Ceiling mass upper';
-        for(const [x,len,r] of [[2.7,2,.5],[-3.7,1.4,.42]]){
-          const points=[[0,.05],[r,0],[r*.92,-.22],[r*.6,-len*.5],[r*.24,-len*.84],[0,-len]].map(([a,b])=>new THREE.Vector2(a,b));
-          w.mesh(new THREE.LatheGeometry(points,16),TOP,parent,x,0,.3).name='Lemon drip';
-        }
+        for(const [x,len,r] of [[2.7,2,.5],[-3.7,1.4,.42]])drip(w,parent,x,0,.3,len,r,TOP);
       }});
     }
     if(step){
@@ -374,7 +460,15 @@ export default {
     // toppled wall, as if they had just let go: the first over the tongue's
     // bridge at deck height, the second over the high stretch.
     hazeHand(w,layers.place(far,section.x+23,4.5,-36),1).rotation.z=2.5;
-    hazeHand(w,layers.place(far,section.x+50,7.5,-36),-1).rotation.z=2.7;
+    hazeHand(w,layers.place(far,section.x+73,7.5,-36),-1).rotation.z=2.7;
+    // Coils in the haze — paths that curled instead of folding — big and far
+    // behind the cast slab and the wall's bed, smaller and nearer elsewhere.
+    const B=slot(w,'back','cream'),B2=slot(w,'back2','cream');
+    for(const [dx,y,z,r,layer,mat] of [[12,9,-36,4.2,far,B2],[44,7.5,-36,5,far,B],[66,11,-18,2.6,mid,B2],[92,8.5,-36,4.6,far,B2],[106,12,-18,2.2,mid,B]]){
+      const g=layers.place(layer,section.x+dx,y,z);coil(w,g,r,2.2,r*.16,mat);g.rotation.z=rand(dx)*Math.PI*2;
+    }
+    // Islets adrift over the pits, each with its waterfall, in the mid haze.
+    for(const [dx,y,size] of [[17,4.6,1.1],[41,6.8,.9],[62,3.6,1],[87,8,1.05],[101,3.2,.8]])islet(w,layers.place(mid,section.x+dx,y,-18),size,dx);
   },
 
   // The tongue follows its collider's pose every frame (a rebuild only when
