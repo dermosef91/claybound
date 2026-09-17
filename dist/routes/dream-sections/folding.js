@@ -51,9 +51,10 @@ export default {
     p('folding-tongue-post',8,2.4,0,'wall',{h:3}),
     // 3.8 × 3.8 rolled up → 12.4 × 1.161 rolled out (14.44 → 14.4 of clay): a
     // carpet 1.161 thick and 12.4 long wound up is a roll 3.8 across, so the
-    // rest pose is the roll's own box and the tongue keeps its thickness and
-    // its length at every point between (dist/dream/folding.js draws it so).
-    // Rolled, its top stands 3.8 over the entry — past a jump's reach.
+    // rest pose is the roll's own box, standing on the post with its crown 3.8
+    // over the entry — past a jump's reach. Between the poses the box's
+    // underside sinks from the lip to the carpet's depth below it, so the
+    // carpet settles into place as it pays out (dist/dream/folding.js).
     part('folding-tongue',{x:8,w:3.8,y:3.8,h:3.8},{x:8,w:12.4,y:0,h:1.161},{station:'folding-tongue',clayRole:'bridge'}),
     // A lemon wall 20.45–21.35 standing 6 high that falls right into a deck 20.9–26.9.
     p('folding-wall-bridge',20.9,6,0,'fold',{channel:'folding-tongue-out',duration:1.6,pivot:'left',from:'wall',to:'deck'}),
