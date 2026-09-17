@@ -63,10 +63,11 @@ function deckRiver(w,parent,width,mat,name,{speed,dir=1,top=0,r=.75,squash=.66,s
   return stream(w,parent,pts.map(([x,y])=>[x,y,0]),r,mat,name,{speed,hold:1,squash,spread});
 }
 // A flowing sheet over a slab: a wide, low ellipse whose centre sits on the
-// slab's top, so its upper half heaves above the old flat face. Hazard water,
-// so nothing holds its crest.
-function sheet(w,parent,x0,x1,y,mat,name,speed){
-  return stream(w,parent,[[x0,y,0],[(x0+x1)/2,y,0],[x1,y,0]],.45,mat,name,{speed,squash:.7,spread:3.2});
+// slab's top (or, set forward in z, on its face), so its upper half heaves
+// out of the flat clay. Hazard water, so nothing holds its crest.
+function sheet(w,parent,x0,x1,y,mat,name,speed,{dir=1,z=0,spread=3.2}={}){
+  const pts=[[x0,y,z],[(x0+x1)/2,y,z],[x1,y,z]];if(dir<0)pts.reverse();
+  return stream(w,parent,pts,.45,mat,name,{speed,squash:.7,spread});
 }
 // Bubbles: small glossy balls that bob on the spot. Registered for animate();
 // entries whose mesh has streamed out are dropped there.
@@ -126,6 +127,11 @@ export default {
   // The banks keep the chapter's rolled slab: in this palette that is exactly
   // "mint bodies, lavender tops", and it pays for the streams.
 
+  // The deep water drawn by the props below is the whole picture of a hazard
+  // here: the engine's cream spike rows would poke through its surface, so
+  // the section keeps them out. The kill line is still the band's own.
+  hazard(){return true;},
+
   // The streams themselves, streamed in by WORLD x. Every point is taken from
   // a deck by id, so the same list serves the full chapter and a solo build.
   props(section,L){
@@ -138,17 +144,18 @@ export default {
     // Local coordinates for a group parked at the prop's centre.
     const local=parent=>(x,y,z=-1.15)=>[x-parent.position.x,y-parent.position.y,z];
 
-    // 1. The yellow source wells out of the entry bank and runs onto the
-    //    river; at the river's end it plunges, and the pink column rises
-    //    through the plunge to its crest — the first spring.
+    // 1. The yellow source wells out of the entry bank and runs the length of
+    //    the ledge as the river's upper layer, behind the crest; at the
+    //    ledge's end it plunges, and the pink column rises through the plunge
+    //    to its crest — the first spring. One tube, so the beads travel from
+    //    the bank to the plunge unbroken.
     prop('stream-a',E.x+5,S1.x+2.2,(w,parent)=>{
       const P=local(parent),Y=yellow(w),A=pink(w);
-      const g=group(parent,'Yellow source and plunge');
-      tube(w,g,[P(E.x+5.2,-1.1,-1.45),P(E.x+6.3,.05,-1.35),P(E.x+7.6,.3,-1.25),P(Y1.x+1.4,.14,-1.15),P(Y1.x+2.6,.1,-1.12)],.5,Y,'Yellow source');
-      const end=Y1.x+Y1.w;
+      const g=group(parent,'Yellow source and plunge'),end=Y1.x+Y1.w;
       // The plunge crosses the pink column just above the deep's surface,
-      // so the pierce is seen, then dives — faster, as a fall does.
-      tube(w,g,[P(end-1.2,.1,-1.12),P(end+.4,-.04,-1.1),P(S1.x+.9,-.5,-1.1),P(S1.x+1.55,-.98,-1.1),P(S1.x+1.75,-1.7,-1.1),P(S1.x+1.6,-3.6,-1.1)],.5,Y,'Yellow plunge',6);
+      // so the pierce is seen, then dives.
+      tube(w,g,[P(E.x+5.2,-1.1,-1.45),P(E.x+6.3,.05,-1.35),P(E.x+7.6,.3,-1.25),P(Y1.x+1.4,.14,-1.15),P(Y1.x+3,.1,-1.12),P((Y1.x+end)/2,.14,-1.12),
+        P(end-1.2,.1,-1.12),P(end+.4,-.04,-1.1),P(S1.x+.9,-.5,-1.1),P(S1.x+1.55,-.98,-1.1),P(S1.x+1.75,-1.7,-1.1),P(S1.x+1.6,-3.6,-1.1)],.5,Y,'Yellow run',5);
       const column=group(parent,'Pink column');
       tube(w,column,[P(S1.x+.9,-4,-1.05),P(S1.x+.82,-2.3,-1.05),P(S1.x+.98,-.9,-1.05),P(S1.x+.9,.5,-1.02)],.56,A,'Pink column');
       bubble(w,g,...P(Y1.x+3.4,.55,-1.3),.2,Y,1);bubble(w,g,...P(end+1.5,-1.2,-.7),.17,Y,2);bubble(w,column,...P(S1.x+1.6,-1.8,-.7),.21,A,3);
@@ -217,17 +224,25 @@ export default {
       bubble(w,g,...P(bx+.6,B4.y-1.6,-.75),.18,B,10);bubble(w,g,...P(bx-.55,EX.y+.9,-.75),.15,B,11);
     });
 
-    // 6. The deep: every hazard band in the section wears a blue slab just
-    //    over its spikes with a flowing blue sheet heaving on top — the same
-    //    blue that sinks — so the undertow, the blue river's surface and the
-    //    trench read as one deep water. Render-only: the kill line is the
-    //    band's own. The pool has its surface from the geyser prop above.
+    // 6. The deep: every hazard band in the section wears a slab that runs
+    //    from just over its spikes down past the bottom of the view, so from
+    //    the camera nothing shows beneath the water, with a flowing sheet
+    //    heaving on top. Under a yellow ledge the deep is the yellow river's
+    //    own body — its top set lower so the ledge floats clear of it, and
+    //    pours stacked down its face flowing the ledge's way; elsewhere it
+    //    is the blue that sinks, so the undertow, the blue river's surface
+    //    and the trench read as one deep water. Render-only: the kill line
+    //    is the band's own. The pool has its surface from the geyser prop.
     for(const [i,h] of L.hazards.entries()){
       if(h.x<section.x-1||h.x>section.x+section.length||h.x>=PB.x+PB.w-1)continue;
+      const ledge=L.platforms.find(p=>p.conveyor&&p.x<h.x+h.w&&p.x+p.w>h.x&&p.y>h.y);
       prop('deep-'+i,h.x,h.x+h.w,(w,parent)=>{
-        const P=local(parent),B=blue(w),g=group(parent,'Blue deep');
-        w.box(h.w+.5,1.6,3,B,g,...P(h.x+h.w/2,h.y+.2,0),.3);
-        sheet(w,g,P(h.x-.25,0)[0],P(h.x+h.w+.25,0)[0],P(0,h.y+1)[1],B,'Deep flow',1.4);
+        const P=local(parent),g=group(parent,ledge?'Yellow deep':'Blue deep'),M=ledge?yellow(w):blue(w);
+        const dir=ledge?Math.sign(ledge.conveyor)||1:1,top=ledge?h.y+.3:h.y+1,x0=P(h.x-.25,0)[0],x1=P(h.x+h.w+.25,0)[0];
+        w.box(h.w+.5,7,3,M,g,...P(h.x+h.w/2,top-3.5,0),.3);
+        const layer=(y,z,speed,spread)=>sheet(w,g,x0,x1,P(0,y)[1],M,'Deep flow',speed,{dir,z,spread});
+        layer(top,0,ledge?2.2:1.4,3.2);
+        if(ledge){layer(top-1.6,1.25,1.4,2.2);layer(top-3.4,1.2,1,2.2);}
       });
     }
     return list;
