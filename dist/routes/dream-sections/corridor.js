@@ -45,8 +45,10 @@ export default {
     p('corridor-throat',31,5,7,'wall',{h:6.2,breathe:{dh:.5,period:BREATH}}),
     // The plug: 2 × 3 of violet clay flush with the floor between two goo
     // pits; spread to 8 × .75, it fills both pits and sinks into a pocket
-    // whose floor lies 2.2 below the corridor (volume 6 → 6).
-    part('corridor-plug',{x:33,w:2,y:0,h:3},{x:30,w:8,y:-2.2,h:.75},{station:'corridor-plug',clayRole:'block'}),
+    // whose floor lies 2.2 below the corridor (volume 6 → 6). Drawn as a
+    // bridge: that view follows the pose, where a `block` is built once at
+    // its first size and would stay a 2 × 3 lump over the spread collider.
+    part('corridor-plug',{x:33,w:2,y:0,h:3},{x:30,w:8,y:-2.2,h:.75},{station:'corridor-plug',clayRole:'bridge'}),
     p('corridor-floor-2',38,8,0,'stone',{checkpoint:38.8}),
     // Two teeth breathing in anti-phase over the last trench: board the near
     // one at its low, ride up, hop across as the tops pass each other.
