@@ -24,6 +24,7 @@ import {createCaveLights} from '../../dist/cave-lighting.js';
 import {attachCanyon} from '../load-canyon.mjs';
 import {attachWindmills} from '../load-windmills.mjs';
 import {attachForest} from '../load-forest.mjs';
+import {attachDream} from '../load-dream.mjs';
 import {attachGrotto} from '../load-grotto.mjs';
 import {attachDrifter} from '../load-drifter.mjs';
 import {attachClay} from '../load-clay.mjs';
@@ -54,6 +55,7 @@ export async function sceneStage(){
   await attachCanyon(w);
   await attachWindmills(w);
   await attachForest(w);
+  await attachDream(w);
   await attachGrotto(w);
   await attachDrifter(w);
   prepareSporeAsset(w,await readGLB(asset('spore-puff.glb')));

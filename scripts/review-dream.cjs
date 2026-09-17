@@ -88,6 +88,9 @@ async function serve(){
    body+='\nwindow.playtest={manual:false,get game(){return game},get world(){return world},get input(){return input},begin,home,draw(dt=0){world.render(game,dt);healthHUD.draw(game,dt);updateHUD(performance.now());},tick(n){for(let i=0;i<n;i++)game.tick(FIXED_DT,input);}};';
    await route.fulfill({contentType:'text/javascript',body});
   });
+  // The Soft Dream is a hidden chapter: begin() falls back to the last shown
+  // one unless the save carries the ß unlock, so a fresh profile is given it.
+  await page.addInitScript(()=>{try{const key='claybound-v1',s=JSON.parse(localStorage.getItem(key)||'{}');if(!s.labUnlocked){s.labUnlocked=true;localStorage.setItem(key,JSON.stringify(s));}}catch{}});
   await page.goto(`http://127.0.0.1:${port}/`);
   await page.waitForFunction(()=>window.playtest&&document.body.classList.contains('title-scene-ready'),null,{timeout:120000});
   await page.evaluate(()=>{playtest.manual=true;});
