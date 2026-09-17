@@ -223,8 +223,8 @@ const canopyGroups=()=>[...Array(6).keys()].map(i=>w.levelRoot.getObjectByName('
     pieces.push(...here);
   }
   for(const piece of pieces){
-    assert(Math.abs(piece.rotation.x-Math.PI)<=.08,'a piece hangs top-down, within the tilt of a half turn about x');
-    assert(Math.abs(piece.rotation.z)<=.08&&Math.abs(piece.rotation.y)<=.22,'turned and tilted only subtly');
+    assert(Math.abs(piece.rotation.z-Math.PI)<=.08,'a piece hangs top-down, within the tilt of a half turn about z');
+    assert(Math.abs(piece.rotation.x)<=.08&&Math.abs(piece.rotation.y)<=.22,'turned and tilted only subtly');
     const box=new THREE.Box3().setFromObject(piece,true);boxes.push(box);
     assert(near(box.max.x-box.min.x,piece.userData.size.x,piece.userData.size.x*.03),'its width survives the turn to within 3%');
     piece.traverse(o=>{if(o.isMesh)assert(o.material.userData.clay,'the canopy wears the clay surface');});

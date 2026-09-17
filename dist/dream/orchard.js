@@ -33,7 +33,8 @@ function canopyY(x){
   return CANOPY.at(-1)[1];
 }
 // The canopy itself: pieces of the supplied abstract sculpture hung top-down
-// along that curve, so its level, bumpy crown is the underside the player
+// along that curve (a half turn about z, which keeps the upload's viewer side
+// toward the camera), so its level, bumpy crown is the underside the player
 // looks up at and every rope end and apple stalk vanishes into it. Each piece
 // is a little wider or narrower, turned and tilted from its own seed, so
 // twelve of one model do not read as a stamp: CANOPY_WIDTH is [least, spread],
@@ -222,10 +223,12 @@ export default {
         for(const k of [0,1]){
           const seed=i*2+k,bx=localX+(k-.5)*6.2+(rand(seed)-.5)*.6;
           if(w.dreamAssets?.sculpture){
-            // Flipped by the half turn about x; the second piece sits a step behind the first, as the balls did.
+            // Hung top-down by the half turn about z, not x, so the side the upload
+            // faces the viewer with is the side the camera sees; the second piece
+            // sits a step behind the first, as the balls did.
             const piece=dreamSculpture(w,'sculpture',g,CANOPY_WIDTH[0]+rand(seed+20)*CANOPY_WIDTH[1]);
             piece.position.set(bx-localX,canopyY(bx)-CANOPY_DROP+piece.userData.size.y/2,.6-k*.8+(rand(seed+40)-.5)*.3);
-            piece.rotation.set(Math.PI+(rand(seed+60)-.5)*CANOPY_TILT,(rand(seed+80)-.5)*CANOPY_TURN,(rand(seed+100)-.5)*CANOPY_TILT);
+            piece.rotation.set((rand(seed+60)-.5)*CANOPY_TILT,(rand(seed+80)-.5)*CANOPY_TURN,Math.PI+(rand(seed+100)-.5)*CANOPY_TILT);
           }else{
             const ry=2.1+rand(i*3+k)*.4;
             w.ball(3.9+rand(i+k*5)*.5,ry,2.8,slot(w,'foliage','top'),g,bx-localX,canopyY(bx)+ry*.62,-(k*.7)).name='Canopy ball';
