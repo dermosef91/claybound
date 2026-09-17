@@ -17,7 +17,7 @@ import {LEVELS} from '../dist/levels.js';
 import {cloneGame,steer} from './routes.mjs';
 import {nearbyStation} from '../dist/shaping.js';
 import {formSolutionInputs} from '../dist/clay-rules.js';
-import {machineTransfer} from './machine-pilot.mjs';
+import {machineTransfer,finaleTransfer} from './machine-pilot.mjs';
 import {motherTransfer} from './mother-puff-pilot.mjs';
 import {fingerprint} from './support/fingerprint.mjs';
 import {encode,decode} from './support/trace.mjs';
@@ -63,6 +63,7 @@ async function record(i,controls,result){
 
 function attempt(original,link,{offset,wait,hold}){
  if(link.mode==='boss')return motherTransfer(original,link);
+ if(link.mode==='finale')return finaleTransfer(original,link);
  const g=cloneGame(original),a=g.level.platforms.find(p=>p.id===link.from),b=g.level.platforms.find(p=>p.id===link.to);
  if(a.kind==='ferry'||(link.mode==='ride'||link.mode==='board'))return machineTransfer(original,link);
  let spring=false;g.onEvent=e=>{if(e.type==='spring'&&b.kind==='spring'&&Math.abs(e.y-b.y)<.2&&e.x>b.x-.25&&e.x<b.x+b.w+.25)spring=true;};
@@ -73,9 +74,10 @@ function attempt(original,link,{offset,wait,hold}){
   // Kneadable clay blocks the way until it is shaped. Stand still and hold the
   // knead input, like the station prompt asks, then carry on with the crossing.
   // A formable mass has no pose for E to work towards; journey() plays its
-  // authored strokes before any candidate gets here.
+  // authored strokes before any candidate gets here. A station that works
+  // itself once its channel opens takes no hand at all, so it is walked past.
   const station=nearbyStation(g);
-  if(station&&!station.rule&&station.amount<1&&p.groundId){const knead={moveAxis:0,shapeHeld:true};controls.push(knead);g.tick(dt,knead);continue;}
+  if(station&&!station.rule&&!station.auto&&station.amount<1&&p.groundId){const knead={moveAxis:0,shapeHeld:true};controls.push(knead);g.tick(dt,knead);continue;}
   // Walking on formable clay, a rise too tall to step up stops the walk; a
   // player hops it, and so does the pilot — a real jump, nothing edited.
   const ground=p.groundId&&g.level.platforms.find(s=>s.id===p.groundId);
@@ -134,7 +136,9 @@ for(const [i,L]of LEVELS.entries()){
  const waitsBefore=li=>{
    const l=links[li+1];if(!l)return SHORT;
    const from=L.platforms.find(s=>s.id===l.from),to=L.platforms.find(s=>s.id===l.to);
-   const machine=from?.kind==='ferry'||l.mode==='ride'?from:l.mode==='board'?to:null;
+   // A lift that waits on a channel is a machine like a ferry: once woken it
+   // has a period to come round in, and the step before it waits that long.
+   const machine=from?.kind==='ferry'||l.mode==='ride'||from?.waitFor?from:l.mode==='board'||to?.waitFor?to:null;
    if(!machine)return SHORT;
    const waits=[...SHORT];for(let f=420;f<=Math.ceil((machine.period||5)*120);f+=90)waits.push(f);
    return waits;
@@ -164,9 +168,9 @@ for(const [i,L]of LEVELS.entries()){
   // Machine transfers ignore jump offsets/holds/waits. Repeating their exact
   // input search 112 times cannot discover another result; backtrack upstream.
   const link=links[li],from=state.level.platforms.find(p=>p.id===link.from);
-  if(from.kind==='ferry'||link.mode==='ride'||link.mode==='board'||link.mode==='boss'){
+  if(from.kind==='ferry'||link.mode==='ride'||link.mode==='board'||link.mode==='boss'||link.mode==='finale'){
    if(link.mode==='boss'){attempts++;const r=motherTransfer(state,link);if(!r)return null;const rest=journey(r.g,li+1);return rest?{g:rest.g,parts:[r.controls,...rest.parts]}:null;}
-   attempts++;const r=machineTransfer(state,link);if(!r)return null;
+   attempts++;const r=link.mode==='finale'?finaleTransfer(state,link):machineTransfer(state,link);if(!r)return null;
    const rest=journey(r.g,li+1);return rest?{g:rest.g,parts:[r.controls,...rest.parts]}:null;
   }
   for(const wait of waitsBefore(li))for(const offset of [.55,1.1,1.75,2.4])for(const hold of [600,48,30,18]){

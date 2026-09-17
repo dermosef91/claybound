@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import {Game,FIXED_DT as dt,surfaceAt} from '../dist/simulation.js';
+import {Game,FIXED_DT as dt,surfaceAt,finaleFlower} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
-import {machineTransfer} from './machine-pilot.mjs';
+import {machineTransfer,finaleTransfer} from './machine-pilot.mjs';
 import {motherTransfer} from './mother-puff-pilot.mjs';
 import {solveFormStation} from '../dist/clay-rules.js';
 import {formShare} from '../dist/clay-form.js';
@@ -30,16 +30,21 @@ export function applySolvedForm(g,station){
 // it": at shaped:false every station stays at its unworked pose, so a link that
 // still succeeds is a link the clay was never needed for. It can also be a
 // function of the station, to leave exactly one piece unworked.
-export function crossing(index,link,{shaped=true}={}){
+// `source` stands in for the registered chapter at `index`, so a synthetic
+// level can be swept by the same pilot the chapters are.
+export function crossing(index,link,{shaped=true,source}={}){
   const worked=typeof shaped==='function'?shaped:()=>shaped;
   for(const phase of [0,.5,1,1.5,2,2.5,3,3.5,4,4.5,5,5.5])for(const offset of [.35,.85,1.4,2.1]){
-    const g=new Game();g.start(index);g.level.enemies=[];g.level.crushers=[];g.level.coins=[];g.level.stamps=[];
+    const g=new Game();g.start(index,source);g.level.enemies=[];g.level.crushers=[];g.level.coins=[];g.level.stamps=[];
     const a=g.level.platforms.find(s=>s.id===link.from),b=g.level.platforms.find(s=>s.id===link.to);assert(a&&b);
     // Spikes are cleared so a sweep measures reach alone — except around a free
     // formable mass, whose bare base is walkable sand that only the spikes make
     // deadly: without them a sweep would "land" on the base the clay has left.
     if(!(a.form||b.form))g.level.hazards=[];
     for(const s of g.level.platforms){if(s.channel){g.channels[s.channel]=100;g.latched[s.channel]=true;}if(s.releases){g.channels[s.releases]=1;g.latched[s.releases]=true;}if(s.kind==='counter')s.y=s.prevY=s.baseY+s.rise;}
+    // Trigger zones are channel sources too; a sweep measures reach with
+    // everything they wake already awake.
+    for(const t of g.level.triggers||[]){g.channels[t.channel]=100;g.latched[t.channel]=true;}
     for(const station of g.level.shaping||[]){station.announced=true;if(worked(station)){if(station.rule==='form')applySolvedForm(g,station);else{station.target=1;station.amount=1;}}}
     g.time=phase;g.tick(dt,{});
     const dir=Math.sign(b.x+b.w/2-a.x-a.w/2)||1,overlap=a.x<b.x+b.w&&a.x+a.w>b.x,fall=link.mode==='fall',drop=link.mode==='drop',walk=link.mode==='walk';
@@ -52,8 +57,11 @@ export function crossing(index,link,{shaped=true}={}){
     if((drop||fall)&&overlap)x=Math.max(a.x+.35,Math.min(a.x+a.w-.35,landingX));
     if(a.kind==='spring')x=a.x+a.w/2;
     if(link.mode==='boss')x=a.x+.75;
+    // The ending is crossed from the flower, with every strand worked.
+    if(link.mode==='finale')x=Math.max(a.x+.35,Math.min(a.x+a.w-.35,finaleFlower(g.level).x));
     Object.assign(g.player,{x,y:surfaceAt(a,x),vx:drop||a.kind==='spring'?0:dir*6.7,vy:0,groundId:a.id,coyote:a.kind==='spring'?0:.13});g.checkpoint={x,y:Math.min(a.y,b.y)};
     if(link.mode==='boss'){const r=motherTransfer(g,link);if(r)return {phase,offset,frames:r.controls.length};continue;}
+    if(link.mode==='finale'){const r=finaleTransfer(g,link);if(r)return {phase,offset,frames:r.controls.length};continue;}
     if(a.kind==='ferry'||(link.mode==='ride'||link.mode==='board')){const r=machineTransfer(g,link);if(r)return {phase,offset,frames:r.controls.length};continue;}
     let landedSpring=false;g.onEvent=e=>{if(e.type==='spring'&&b.kind==='spring'&&Math.abs(e.y-b.y)<.2&&e.x>b.x-.3&&e.x<b.x+b.w+.3)landedSpring=true;};
     for(let frame=0;frame<600;frame++){

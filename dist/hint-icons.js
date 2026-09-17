@@ -33,6 +33,14 @@ const ICONS={
   landing:`<path d="M4.6 17.4h14.8" stroke-width="3.6"/><path d="M7.4 12.8H3.2"/><path d="M5.8 10.2 3 12.8l2.8 2.6"/><path d="M16.6 12.8h4.2"/><path d="M18.2 10.2 21 12.8l-2.8 2.6"/>`,
   stairs:`<path d="M3.8 19.6h5.1v-4.4h5.1v-4.4h5.2V6.4"/>`,
   bridge:`<path d="M4.4 11.4h15.2" stroke-width="3.4"/><path d="M5.6 13.4v6.2"/><path d="M18.4 13.4v6.2"/><path d="M12 3.2v4.8"/><path d="M9.2 5.4 12 8.4 14.8 5.4"/>`,
+  // The Soft Dream: a deck folding up on its hinge, a wall breathing out to
+  // both sides, a coloured river carrying you along, the knot of strands the
+  // ending unties, and the eye that watches from the corridor.
+  fold:`<path d="M4.2 18.8h13.6" stroke-width="3.2"/><circle cx="4.2" cy="18.8" r="1.7" ${solid}/><path d="M17.8 15.2a11.2 11.2 0 0 0-8-11"/><path d="M6.6 4.4 9.8 4.2l-.4 3.2"/>`,
+  breathe:`<rect x="8.4" y="5" width="7.2" height="14" rx="1.7" ${solid}/><path d="M6.2 12H2.8"/><path d="M4.8 9.8 2.6 12l2.2 2.2"/><path d="M17.8 12h3.4"/><path d="M19.2 9.8 21.4 12l-2.2 2.2"/>`,
+  river:`<path d="M3 8.8q3-2.6 6 0t6 0 6 0"/><path d="M3 13.6q3-2.6 6 0t6 0 6 0"/><path d="M6.6 19h10.4"/><path d="M14.4 16.4l2.6 2.6-2.6 2.6"/>`,
+  knot:`<path d="M12 4.4c-4.1 0-6.8 3.3-4.7 6.3 1.7 2.4 5.8 2.3 7.4 4.9 1.8 3-.9 5.9-4.3 5.7"/><path d="M12 4.4c4.1 0 6.8 3.3 4.7 6.3-1.7 2.4-5.8 2.3-7.4 4.9-1.8 3 .9 5.9 4.3 5.7"/>`,
+  eye:`<path d="M2.6 12q9.4-9.6 18.8 0-9.4 9.6-18.8 0Z"/><circle cx="12" cy="12" r="3.3" ${solid}/>`,
   // Goal, and the fallback for a hint that names no icon.
   bell:`<path d="M12 3.4a5.6 5.6 0 0 0-5.6 5.6c0 4.7-1.9 6.6-1.9 6.6h15s-1.9-1.9-1.9-6.6A5.6 5.6 0 0 0 12 3.4Z"/><path d="M10 18.2a2.1 2.1 0 0 0 4 0"/>`,
   spark:`<path d="M12 3.2 14.1 9.9 20.8 12 14.1 14.1 12 20.8 9.9 14.1 3.2 12 9.9 9.9Z"/>`

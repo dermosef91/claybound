@@ -1,6 +1,7 @@
 import {initializeSpore,moveSpore} from './spore-rules.js';
 import {initializeDrifter,moveDrifter} from './drifter-rules.js';
 import {initializeSpitter,moveSpitter} from './spitter-rules.js';
+import {DREAM_KINDS,initializeDreamEnemy,moveDreamEnemy} from './dream-enemy-rules.js';
 // Flight and collisions belong to the simulation; wing tips are decorative.
 export const BAT={scale:1.18,modelOffsetY:.53,bottom:.04,top:.91,bodyRadius:.46,stompRadius:.78,bob:.55,period:4.6,
   patrolSpeed:1.25,triggerRange:4.2,retreatTime:.5,chargeTime:.65,diveSpeed:14.5,cooldown:2.2};
@@ -24,6 +25,7 @@ export function batPatrolBounds(e,platforms=[]){
 }
 export function initializeEnemy(e,id,platforms=[]){
   Object.assign(e,{id,alive:true,dir:-1,baseY:e.y,prevX:e.x,prevY:e.y,vx:0,vy:0});
+  if(DREAM_KINDS.includes(e.kind)){initializeDreamEnemy(e);return;}
   if(e.kind==='spitter'){initializeSpitter(e);return;}
   if(e.kind==='spore'){initializeSpore(e,platforms);return;}
   if(e.kind==='drifter'){initializeDrifter(e);return;}
@@ -134,6 +136,7 @@ export function moveEnemy(e,dt,time,context={}){
   else if(e.kind==='spitter')moveSpitter(e,dt,time,context);
   else if(e.kind==='spore')moveSpore(e,dt,time,context);
   else if(e.kind==='drifter')moveDrifter(e,dt,time,context);
+  else if(DREAM_KINDS.includes(e.kind))moveDreamEnemy(e,dt,time,context);
   else{
     e.x+=e.dir*e.speed*dt;
     if(e.x<e.min){e.x=e.min;e.dir=1;}if(e.x>e.max){e.x=e.max;e.dir=-1;}
