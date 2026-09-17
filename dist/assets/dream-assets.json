@@ -1,0 +1,110 @@
+{
+  "dream-planet-mint.glb": {
+    "source": "colorful+clay+planet+3d+model.glb",
+    "sourceSha256": "2bd75631f24bf0603a186ba292f857ca131ac053b28dbf4813b6ff2796513847",
+    "shippedSha256": "33f1052ca62ac8eb8420c47a543c6571b65bb027a491d45eabaf47c6fc8b5636",
+    "sourceBytes": 1681736,
+    "shippedBytes": 894380,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 10652,
+    "geometryBufferSha256": [
+      "8350a90f4b97631fd22443690c90d5a293363bd82a62a759741bc32a3e973836",
+      "b95647be3aeea600810a62e6a088ee7bfd0b01dabb770b4a554fa2d78b2808d3",
+      "75f2092b109710591457e9d2a7d712d5c3b39e8798b7cd76d44ef2d5010f105e",
+      "20db4c76d85ac2d3a13bc9f351f8e14069c03e237f3ea65b19d51f117832c30f"
+    ],
+    "geometryUnchanged": true
+  },
+  "dream-planet-raspberry.glb": {
+    "source": "colorful+planet+3d+model.glb",
+    "sourceSha256": "0c0241a1869c77af15bbd38b41bf14bc7e2cc60941774d6685e32b87b17051ae",
+    "shippedSha256": "82e35ea87f88fba3c8b933fe87f1f38044e6be9ae8f9732a11ba2cfe3d1807ee",
+    "sourceBytes": 1060620,
+    "shippedBytes": 564472,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 10475,
+    "geometryBufferSha256": [
+      "39849f2c2c444767f8bc68f26b026a55313e316228bb54ba353fab708516837b",
+      "64a9195731ab1fd6fcb5cfaa94555ac947543a40212801796e2cdeef5cd034f0",
+      "e01ff7969c69e7ce82a59e3cd1dad2f0ee81b4632e1e578de9064e36fb13c203",
+      "e480ffde9d563612223a7d677527a4d27cea85e8f2c138a9d2b203f57b85c7ef"
+    ],
+    "geometryUnchanged": true
+  },
+  "dream-saucer-mint.glb": {
+    "source": "colorful+clay+platform+1.glb",
+    "sourceSha256": "8f0ecdd42999ab5ddbd601bb4b03f66e20e9816c1a8410db13eac12f558b4aeb",
+    "shippedSha256": "05ec146dcc2421b673248fb12958795d6d27dd1fb49001274a393f2547728da6",
+    "sourceBytes": 858052,
+    "shippedBytes": 469376,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 10832,
+    "geometryBufferSha256": [
+      "afced8cd2180b53b3b26dd12d61b0d58bffbe51d629330bf5e4b8dbd8240cc18",
+      "17dbf9217e9a0a02d01ccd79f0df4c477f9f7d30c14f11da1ac6bfba4d3a75e7",
+      "07ea9af4743ec1cecb34019f0cf7c88c533f03b3b69c2e17e5d741b5a1a11a42",
+      "f1deb811806ffa052ba304d0d86f8af7853a9652a1ffcc7d05aba685a7ae990b"
+    ],
+    "geometryUnchanged": true
+  },
+  "dream-saucer-raspberry.glb": {
+    "source": "colorful+clay+platform+2.glb",
+    "sourceSha256": "83eb4cd8f672694547e7b58e5901bf783e8351fd2769f38dbfb449bf3c76739f",
+    "shippedSha256": "767ef5d2b344f8cf5344784d5a1a41bff7aa238b8f48b5c29e18e0dd75c9937b",
+    "sourceBytes": 639448,
+    "shippedBytes": 308208,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 5254,
+    "geometryBufferSha256": [
+      "423c1e4f3b97cce3b7127b7e8eea3a9a1f30cdba7726d23d75a9ac3ebdf8f64c",
+      "04dda3cf0933da35a3483a724f230c13f4642b6597f27ca8251989636784147b",
+      "4ec21fa5fa9cf44f638df18c1a34511a256189e72564a17ee9ce02a4aa795f4a",
+      "d2c20cedd42f7a1a2e4a7abf80aa78d666102b53c3f5b37cbc354de71d9ae861"
+    ],
+    "geometryUnchanged": true
+  },
+  "dream-hat.glb": {
+    "source": "hat.glb",
+    "sourceSha256": "fc1444acfc58a6ffad662b0d68d1f4d01b45eed9b59fd1976e92b5f65059e198",
+    "shippedSha256": "8928d5d23b52d641889e2d92ee2cb3a29ef8202e19f0d83fdb06a873a8aa5b47",
+    "sourceBytes": 14378772,
+    "shippedBytes": 602528,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 8104,
+    "geometryBufferSha256": [
+      "2b98777585c208faf4147f0de347572592e473fce7d2f3011bf641bd8ed86845",
+      "b492f80996923e4b149cf4bdbd91a0997dc9b144425f1329d7e6d707922b7f26"
+    ],
+    "geometryUnchanged": false,
+    "adaptation": "glTF Transform 4.4.1 weld + simplify ratio=.025 error=.01; metallic-roughness map dropped"
+  }
+}

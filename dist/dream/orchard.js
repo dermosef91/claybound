@@ -1,23 +1,26 @@
 import * as THREE from '../lib/three.module.js';
 import {createDreamView} from '../dream-views.js';
 import {createCrumble} from '../crumble.js';
+import {dreamPlanet,dreamSaucer} from '../dream-assets.js';
 import {deck,slot,rand} from './support.js';
 // Section 3 — The Upside-Down Orchard (visual module).
 // ONE idea: the orchard grows down. A raspberry canopy hangs across the top of
 // the world with lemon apples under it; saucers hang from it on lemon ropes;
-// the ground is a pair of mint spheres in a lavender pool; and the great tree
+// the ground is a pair of clay planets in a lavender pool; and the great tree
 // grows the wrong way — roots waving in the sky, trunk hanging, crown at the
 // bottom. Four colours: mint (main), raspberry (secondary), lavender
 // (backdrop), lemon (accent). Big simple shapes, restraint over detail.
 //
 // Hooks: dress() turns the stone decks into floating mint islands with a
-// raspberry frosting; deck() dresses the domes (a lemon equator around the
-// dream-views sphere), hangs the saucers (lifts and the hanging ledges), makes
-// the crumbling decks into apples that drop off their stalks, and builds the
-// great inverted tree on the trunk wall; props() lays the canopy, its apples
-// and the pools; backdrop() puts the pink bullseye behind the tree and a few
-// hanging trees in the lavender distance; animate() waves the roots and keeps
-// the swinging saucer's rope pointing at the canopy.
+// raspberry frosting; deck() dresses the domes (the supplied clay planets over
+// the dream-views sphere, or a lemon equator round it where they are not
+// loaded), hangs the saucers (lifts and the hanging ledges, as the supplied
+// frosted bowls or a sculpted one), makes the crumbling decks into apples that
+// drop off their stalks, and builds the great inverted tree on the trunk wall;
+// props() lays the canopy, its apples and the pools; backdrop() puts the pink
+// bullseye behind the tree and a few hanging trees in the lavender distance;
+// animate() waves the roots and keeps the swinging saucer's rope pointing at
+// the canopy.
 
 // The canopy's underside, in world y over local x: low over the domes so the
 // first drip hangs from it in frame, higher over the saucers, highest where
@@ -65,8 +68,15 @@ function hangFrom(w,s,g,view,section,{r=.075,mat='accent',knot=true}={}){
 }
 
 // --- saucers ----------------------------------------------------------------------
-// A saucer hung from the canopy: a mint lathe bowl with a raspberry lip and a
-// lemon cushion flush with the walk plane.
+// A saucer hung from the canopy: one of the two supplied frosted bowls — mint
+// or raspberry under a lemon frosting — scaled to the deck with its flat top
+// on the walk plane, or, where the models are not loaded, a mint lathe bowl
+// with a raspberry lip and a lemon cushion flush with the walk plane.
+//
+// Which bowl a saucer gets is drawn from its section-local x, so the choice
+// is the same in a solo section build and in the full chapter and does not
+// wander with a swinging lift: the two lifts at 26 and 31 come out different.
+const saucerKey=(s,section)=>rand(((s.baseX??s.x)-section.x)*.37)<.5?'saucerMint':'saucerRaspberry';
 const bowls=new Map();
 function bowlGeometry(width){
   const key=width.toFixed(2);
@@ -79,10 +89,16 @@ function bowlGeometry(width){
 }
 function saucer(w,s,g,section){
   g.name='Orchard saucer · '+s.id;
-  const W=s.w,mid=W/2;
-  w.mesh(bowlGeometry(W),slot(w,'terrain'),g,mid,0,0).name='Saucer bowl';
-  const lip=w.mesh(new THREE.TorusGeometry(W/2+.1,.13,8,40),slot(w,'top'),g,mid,-.1,0);lip.rotation.x=Math.PI/2;lip.name='Saucer lip';
-  w.box(W-.4,.36,1.9,slot(w,'accent'),g,mid,-.18,0,.16).name='Saucer cushion';
+  const W=s.w,mid=W/2,key=saucerKey(s,section);
+  if(w.dreamAssets?.[key]){
+    // The bowl is a touch wider than the deck, as the sculpted one was, so
+    // its flat top — a little inside the rim — still spans the whole walk.
+    dreamSaucer(w,key,g,W+.24).position.set(mid,0,0);
+  }else{
+    w.mesh(bowlGeometry(W),slot(w,'terrain'),g,mid,0,0).name='Saucer bowl';
+    const lip=w.mesh(new THREE.TorusGeometry(W/2+.1,.13,8,40),slot(w,'top'),g,mid,-.1,0);lip.rotation.x=Math.PI/2;lip.name='Saucer lip';
+    w.box(W-.4,.36,1.9,slot(w,'accent'),g,mid,-.18,0,.16).name='Saucer cushion';
+  }
   return hangFrom(w,s,g,{root:g,ropes:[],bounce:0},section);
 }
 
@@ -130,11 +146,37 @@ function greatTree(w,s,g,view){
 }
 
 // --- the domes -----------------------------------------------------------------------
-// The dream-views sphere, mint, with a lemon equator so the spin reads even
-// from a distance. Dressed around createDreamView, never instead of it.
+// Each dome is one of the supplied clay planets: the first the player meets
+// stays mint, the second is raspberry. Dressed around createDreamView, never
+// instead of it — the planet takes the place of the sphere's own ball, dots
+// and band under the group the spin turns, so the rider still rolls it and
+// the fruit goes round with them. Its fitted core orb sits on that group's
+// origin at the collider's radius, so the orb IS the arc the player runs on
+// and the sprouts and fruit reaching past it are scenery, never footing.
+// Where the planets are not loaded (a bare rig) the sphere keeps its mint
+// ball and gains a lemon equator so the spin reads even from a distance.
+const PLANETS={'orchard-dome-1':'mint','orchard-dome-2':'raspberry'};
+// The planet's roll about z before anyone has ridden it. The sphere rolls
+// WITH the rider (whatever is under the feet at landing stays there), so the
+// leaf sprout has to start clear of both the crown and the flank the route
+// lands on, or a rider stands in its leaves for the whole crossing. A quarter
+// turn clockwise tilts it like a planet's axis — top sprout up and to the
+// right, the other down into the pool — 45° from the crown and near 90° from
+// the left flank the route arrives by. 0 would leave it upright as modelled.
+const PLANET_REST=-Math.PI/4;
 function dome(w,s,g){
   const view=createDreamView(w,s,g);if(!view?.dream?.sphere)return view;
-  const r=s.w/2,tilt=group(view.dream.sphere,'Dome equator tilt');tilt.rotation.z=.32;
+  const r=s.w/2,sphere=view.dream.sphere,key=PLANETS[s.id];
+  if(key&&w.dreamAssets?.[key]){
+    for(const m of sphere.children.filter(c=>/^Dome (ball|dot|band)$/.test(c.name))){
+      sphere.remove(m);
+      // Only the band's torus is this level's own; the ball and dots share the world's sculpted sphere.
+      if(!w.assetGeometry?.has(m.geometry)&&!w.baseGeometry?.has(m.geometry))m.geometry.dispose();
+    }
+    dreamPlanet(w,key,sphere,r).rotation.z=PLANET_REST;
+    return view;
+  }
+  const tilt=group(sphere,'Dome equator tilt');tilt.rotation.z=.32;
   const eq=w.mesh(new THREE.TorusGeometry(r*.99,r*.07,8,44),slot(w,'accent'),tilt,0,0,0);eq.rotation.x=Math.PI/2;eq.name='Dome equator';
   return view;
 }
