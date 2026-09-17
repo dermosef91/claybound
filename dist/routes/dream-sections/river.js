@@ -30,8 +30,9 @@ export default {
     p('river-pool-bank',60.5,2.5,0,'stone',{checkpoint:61.5}),
     p('river-raft',63.8,2.6,0,'sink',{rate:1,drop:2.2}),
     // The clot: a block standing in the riverbed, pressed flat to the level of
-    // the sunk raft. Full pressure latches the geyser.
-    part('river-clot',{x:66.6,w:1.2,y:-1.2,h:3.6},{x:66,w:2,y:-2.2,h:2.16},{station:'river-clot',clayRole:'block'}),
+    // the sunk raft. Full pressure latches the geyser. Drawn as a bridge, the
+    // one clay view that follows a pose (`block` is built once at its first size).
+    part('river-clot',{x:66.6,w:1.2,y:-1.2,h:3.6},{x:66,w:2,y:-2.2,h:2.16},{station:'river-clot',clayRole:'bridge'}),
     p('river-far-bank',FAR_X,2.5,FAR_Y),
     p('river-blue-4',FAR_X+2.5,2.5,FAR_Y-.4,'sink',{rate:1,drop:FAR_Y-1}),
     p('river-exit',FAR_X+5,80-FAR_X-5,0)

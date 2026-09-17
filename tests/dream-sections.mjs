@@ -27,6 +27,7 @@ import {createHero,attachHero} from '../dist/hero.js';
 import {createCaveLights} from '../dist/cave-lighting.js';
 import {solveFormStation} from '../dist/clay-rules.js';
 import {formVolume} from '../dist/clay-form.js';
+import {createClayView,updateClayView} from '../dist/shaping-views.js';
 import {readPlayer} from './load-player.mjs';
 import {attachClay} from './load-clay.mjs';
 import {attachDream} from './load-dream.mjs';
@@ -159,6 +160,20 @@ for(const module of modules){
           const live=g.level.shaping.find(s=>s.id===station.id);live.amount=live.target=amount;live.announced=true;g.tick(dt,{});
           const now=volume(g.level.platforms.find(p=>p.id===piece.id),piece.clayRole);
           assert(Math.abs(now-before)/before<=.1,`${piece.id} holds ${now.toFixed(2)} units of clay at ${amount} worked, not ${before.toFixed(2)}`);
+        }
+        // What is drawn has to be what is walked on. The view is built at the
+        // from-pose, as it is when the camera first arrives, then the station is
+        // worked through: a view that is baked once (the `block`) would still
+        // show the unworked lump over the spread collider.
+        {
+          const g=new Game();g.start(INDEX,L);
+          const live=g.level.shaping.find(s=>s.id===station.id),s=g.level.platforms.find(p=>p.id===piece.id);
+          const view=createClayView(w,s,new THREE.Group());
+          live.amount=live.target=1;live.announced=true;g.tick(dt,{});updateClayView(view,s);
+          const box=new THREE.Box3();
+          for(const {mesh}of view.clay.pieces)box.union(new THREE.Box3().setFromBufferAttribute(mesh.geometry.attributes.position));
+          const drawn={w:box.max.x-box.min.x,h:box.max.y-box.min.y},want={w:s.w,h:s.h+Math.abs(s.slope||0)};
+          assert(Math.abs(drawn.w-want.w)<.5&&Math.abs(drawn.h-want.h)<.5,`${piece.id} is drawn ${drawn.w.toFixed(2)} × ${drawn.h.toFixed(2)} but collides as ${want.w.toFixed(2)} × ${want.h.toFixed(2)} at full work (a posed piece is a bridge, not a block)`);
         }
       }
       if(station.auto){console.log(`PASS ${station.id} (self-working on ${station.auto}) keeps the clay rules`);continue;}

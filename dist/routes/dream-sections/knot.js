@@ -37,9 +37,11 @@ export default {
     // A parade hat circling: bottom 48.5 @5.2 (board), left 46.1 @7.6, top 48.5 @10.0.
     p('knot-mobile',48.5,2.6,7.6,'orbit',{moveX:2.4,moveY:2.4,period:7}),
     // Strand B: pressed from the stand it squashes into a block 1.8 up, running to ledge-c.
+    // A bridge on screen like the other strands: the `block` view is built once
+    // at its first size and never follows a pose.
     p('knot-stand-b',53.5,2.6,10.2,'stone',{checkpoint:54.5}),
     p('knot-post-b',56.1,2.4,9.6,'wall',{h:3}),
-    part('knot-strand-b',{x:56.1,w:2.4,y:15.6,h:6},{x:56.1,w:6,y:12.0,h:2.4},{station:'knot-strand-b',clayRole:'block'}),
+    part('knot-strand-b',{x:56.1,w:2.4,y:15.6,h:6},{x:56.1,w:6,y:12.0,h:2.4},{station:'knot-strand-b',clayRole:'bridge'}),
     p('knot-ledge-c',62.1,4,11.8,'stone'),
     // Strand C: land on the stub, stand on it and spread it until it meets the crown.
     p('knot-pier-c',69.1,2.6,8.6,'wall',{h:4}),
