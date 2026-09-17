@@ -82,5 +82,29 @@
       "d2c20cedd42f7a1a2e4a7abf80aa78d666102b53c3f5b37cbc354de71d9ae861"
     ],
     "geometryUnchanged": true
+  },
+  "dream-hat.glb": {
+    "source": "hat.glb",
+    "sourceSha256": "fc1444acfc58a6ffad662b0d68d1f4d01b45eed9b59fd1976e92b5f65059e198",
+    "shippedSha256": "8928d5d23b52d641889e2d92ee2cb3a29ef8202e19f0d83fdb06a873a8aa5b47",
+    "sourceBytes": 14378772,
+    "shippedBytes": 602528,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 8104,
+    "geometryBufferSha256": [
+      "2b98777585c208faf4147f0de347572592e473fce7d2f3011bf641bd8ed86845",
+      "b492f80996923e4b149cf4bdbd91a0997dc9b144425f1329d7e6d707922b7f26"
+    ],
+    "geometryUnchanged": false,
+    "adaptation": "glTF Transform 4.4.1 weld + simplify ratio=.025 error=.01; metallic-roughness map dropped"
   }
 }

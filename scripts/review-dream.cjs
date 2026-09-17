@@ -40,6 +40,13 @@ const SPOTS={
  'orchard':{x:176,y:0,ground:'orchard-entry',ticks:120},
  'corridor':{x:251,y:0,ground:'corridor-entry',ticks:120},
  'parade':{x:306,y:0,ground:'parade-entry',ticks:120},
+ // On the giraffe's head beside the hat-worm: the coil on its plinth, the
+ // camera raised to the stack of supplied hats on the coil's top (the play
+ // camera leaves the stack above the frame), and the pulled bridge resting on
+ // the plinth with the hats landed along its back.
+ 'parade-worm':{x:332,y:8.2,ground:'parade-head',ticks:120},
+ 'parade-stack':{x:332,y:8.2,ground:'parade-head',cameraX:334.3,cameraY:13.5,ticks:120},
+ 'parade-pulled':{x:332,y:8.2,ground:'parade-head',ticks:120,shaped:['parade-worm']},
  'river':{x:381,y:0,ground:'river-entry',ticks:120},
  'room':{x:461,y:0,ground:'room-entry',ticks:120},
  'knot':{x:581,y:0,ground:'knot-entry',ticks:120},
