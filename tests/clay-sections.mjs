@@ -126,9 +126,14 @@ const SECTIONS=[
   // The tower is the one piece meant to be stood on while it is still tall.
   {level:2,station:'kiln-tower',bypass:{from:'kiln-ledge',to:'kiln-tunnel',mode:'jump'},rideable:true},
   {level:2,station:'kiln-plug',bypass:{from:'kiln-tunnel',to:'kiln-run',mode:'jump'}},
-  // The Soft Dream: one purple beat per section, and three strands in the knot.
+  // The Soft Dream: one purple beat per section — three in the Folding Path,
+  // whose two free masses are walked onto flat — and three strands in the knot.
   {level:4,station:'garden-roll',bypass:{from:'garden-slab-2',to:'garden-mound',mode:'jump'}},
   {level:4,station:'folding-tongue',bypass:{from:'folding-entry',to:'folding-wall-bridge',mode:'jump'}},
+  // The slab is a floor under a hanging sheet until a trench is cast through it;
+  // the wall's bed is bare nails until the wall is laid down over them.
+  {level:4,station:'folding-cast',bypass:{from:'folding-land',to:'folding-cast-bridge',mode:'jump'},rideable:true,form:true},
+  {level:4,station:'folding-wall',bypass:{from:'folding-far',to:'folding-wall-land',mode:'jump'},rideable:true,form:true},
   // The blob is walked onto flat before it is pulled up into a stair.
   {level:4,station:'orchard-blob',bypass:{from:'orchard-mid',to:'orchard-under',mode:'jump'},rideable:true,form:true},
   {level:4,station:'corridor-plug',bypass:{from:'corridor-floor-1',to:'corridor-floor-2',mode:'jump'}},

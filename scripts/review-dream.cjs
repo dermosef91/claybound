@@ -37,14 +37,14 @@ const SPOTS={
  'garden-start':{x:1.5,y:0,ground:'start',ticks:120},
  'garden-arch':{x:26,y:2.4,ground:'garden-arch',ticks:120},
  'folding':{x:66,y:0,ground:'folding-entry',ticks:120},
- 'orchard':{x:136,y:0,ground:'orchard-entry',ticks:120},
- 'corridor':{x:211,y:0,ground:'corridor-entry',ticks:120},
- 'parade':{x:266,y:0,ground:'parade-entry',ticks:120},
- 'river':{x:341,y:0,ground:'river-entry',ticks:120},
- 'room':{x:416,y:0,ground:'room-entry',ticks:120},
- 'knot':{x:536,y:0,ground:'knot-entry',ticks:120},
- 'knot-climb':{x:571,y:5.6,ground:'knot-d',ticks:120},
- 'knot-wake':{x:597,y:0,ground:'knot-wake',ticks:120}
+ 'orchard':{x:176,y:0,ground:'orchard-entry',ticks:120},
+ 'corridor':{x:251,y:0,ground:'corridor-entry',ticks:120},
+ 'parade':{x:306,y:0,ground:'parade-entry',ticks:120},
+ 'river':{x:381,y:0,ground:'river-entry',ticks:120},
+ 'room':{x:461,y:0,ground:'room-entry',ticks:120},
+ 'knot':{x:581,y:0,ground:'knot-entry',ticks:120},
+ 'knot-climb':{x:617,y:4,ground:'knot-ledge-b',ticks:120},
+ 'knot-wake':{x:673,y:0,ground:'knot-wake',ticks:120}
 };
 const section=process.env.SPOTS?'':(process.env.SECTION||'');
 const raw=process.env.SPOTS||'garden-start,knot-wake';

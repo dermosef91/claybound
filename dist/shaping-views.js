@@ -30,6 +30,10 @@ function magicMaterials(w){
   magicSkin(m,'position + vec3(magicSeed, 0.0)','position.y','attribute vec2 magicSeed;');
   w.mat.magicClay=m;
 }
+// The violet for a piece a section draws itself (the Folding Path's twisted
+// tongue). Its geometry has to carry the `magicSeed` attribute the skin reads,
+// set the way createClayView sets it below.
+export function magicClayMaterial(w){magicMaterials(w);return w.mat.magicClay;}
 
 // One lump of clay, and nothing stuck on it. An earlier pass gave every piece a
 // separate slab on top and a cream grip ring with dents around it; on screen
