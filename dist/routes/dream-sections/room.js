@@ -12,11 +12,15 @@ import {p,path} from '../../route-authoring.js';
 // One formable mass: the floorboards under the doll doorway. Knots are
 // [fraction across the piece, height over the piece's top] (clay-form.js adds
 // the thickness h itself), so a flat floor is a clump of zeros.
-// Its top rests .2 below the doll table: the spoil a press throws up lifts both
-// ends by about that much, so the worked floor meets the table and the shaft
-// foot level and the walk on and off it is a step, not a wall. Base at 1.0,
-// nails at .4 beneath.
-const MASS={x:79.5,w:10,y:3.8,h:2.8};
+// A thin floor, 1.6 thick: the station has to move more than a sixth of the
+// clay before it reads as shaped (tests/clay-sections.mjs), and the spoil of a
+// trench that big has to fit on the boards either side of it, so the boards
+// are thin and rest .4 below the doll table — the spoil lifts both ends by
+// about that much, so the worked floor meets the table and the shaft foot
+// level (≈4.02) and the walk on and off it is a step, not a wall. Base at
+// 2.0, nails at 1.15 beneath (kill line 1.85; the clay never thins past .35,
+// so the floor of any trench stays above 2.35).
+const MASS={x:79.5,w:10,y:3.6,h:1.6};
 const K=(x,h)=>[(x-MASS.x)/MASS.w,h];
 
 // The pass-1 colours: lavender wall, cream cloth, ultramarine furniture. Used
@@ -60,7 +64,9 @@ export default {
     p('room-teacup-2',72,2,4.4,'pulse',{period:3.2,duty:.6,phase:.5}),
     p('room-doll-table',75.5,4,4.0,'stone',{checkpoint:77.5}),
     p('room-floor-mass',MASS.x,MASS.w,MASS.y,'clay',{h:MASS.h,shape:{from:{...MASS},to:{...MASS}},station:'room-floor-mass',clayRole:'mass'}),
-    p('room-doll-wall',84,1.2,20,'wall',{h:14.8}),
+    // Underside at 4.9: 1.3 over the unworked boards, so even boots sunk the
+    // full .3 into the clay leave the head .1 inside the wall.
+    p('room-doll-wall',84,1.2,20,'wall',{h:15.1}),
     p('room-shaft-foot',89.5,5,4.0,'stone',{checkpoint:92}),
 
     // Pass 4 — the shaft. Ink below; a zig-zag ladder of pulses and crumbles up
@@ -106,7 +112,7 @@ export default {
     {x:8,w:17,y:-1.5},      // spilled drink under pass 1
     {x:34,w:22,y:-1.2},     // spilled tea under pass 2
     {x:60,w:15.5,y:-1},     // the gingham floor
-    {x:79.5,w:10,y:.4},     // nails under the floorboards (bare base 1.0 kills)
+    {x:79.5,w:10,y:1.15},   // nails under the floorboards (base 2.0; the kill line 1.85 is under the thinnest clay)
     {x:94.5,w:17.5,y:-1}    // ink at the foot of the shaft
   ],
   hints:[
@@ -118,11 +124,13 @@ export default {
     {id:'room-floor-mass',rule:'form',free:true,relax:false,clayRole:'mass',name:'Press the floor',verb:'Press the floor',gesture:'down',icon:'drop',
      parts:['room-floor-mass'],x:75,end:92,spawn:{x:77.5,y:4,groundId:'room-doll-table'},cueX:84,rideable:true,
      clump:[K(79.5,0),K(89.5,0)],
-     // A trench 1.4 deep under the doorway (floor ≈2.6, clearance ≈2.0 under
-     // the wall's 5.2 across the player's width), then the spoil beyond it
-     // flattened so the hump stays walkable. `shaped` .06 of the volume is
-     // about what a 1.1-deep press moves — the least trench that lets you through.
-     solution:[{x:84.6,lift:0,dx:0,dy:-1.4,t:1.6},{x:87.5,lift:0,dx:.8,dy:-.3,t:.8}],shaped:.06,
+     // Three presses side by side dig a trench under the doorway about 4 wide
+     // at the boards' level and 1.25 deep (floor 2.35, flat over 84.25–85.5;
+     // ≥2.28 clear under the wall's 4.9 across the player's width); its spoil
+     // rises as a hump either side (≤4.5, faces ≤1.7) that runs down to the
+     // table and the shaft foot. Moves ≈3.7 u² of the 16.4; `shaped` .17
+     // (over twice the lab's .08) so a dab never counts as the work.
+     solution:[{x:83.6,lift:0,dx:0,dy:-1,t:1.4},{x:84.6,lift:0,dx:0,dy:-1,t:1.4},{x:85.6,lift:0,dx:0,dy:-1,t:1.4}],shaped:.17,
      hint:'The room has shrunk and you have not. Press the violet floor down under the tiny doorway — drag it, or hold E — and crawl through. The clay keeps its volume; bare boards beneath it are nails.'}
   ],
   palettes:[
