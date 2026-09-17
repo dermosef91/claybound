@@ -68,7 +68,11 @@ function makePart(w,parent,anchor,z,variant){
     if(!o.isMesh)return;
     meshes.push(o);
     o.castShadow=true;o.receiveShadow=true;
+    // The dream's palette is written into the shared theme materials as the
+    // player walks, so its side scenery keeps them: a cloned copy would stay
+    // the colour the chapter opened in through every flip after the arch.
     const adapt=base=>{
+      if(w.biome==='dream')return base;
       if(!materials.has(base)){
         const m=base.clone();m.onBeforeCompile=base.onBeforeCompile;m.customProgramCacheKey=base.customProgramCacheKey;
         m.color.multiplyScalar(.91);
@@ -87,6 +91,9 @@ export function syncDepthScenery(w,L,near,add){
   w.depthViews??=new Map();
   L.platforms.forEach((s,index)=>{
     if(s.kind!=='stone'&&!(s.kind==='ledge'&&s.w>=6&&(s.checkpoint||s.rest||s.goal)))return;
+    // The dream ends on a plain deck in the ordinary world's colours; nothing
+    // of the dream stands in front of it.
+    if(w.biome==='dream'&&s.goal)return;
     if(!near(s.x,s.w,7))return;
     const key='depth:'+s.id;
     add(key,()=>{

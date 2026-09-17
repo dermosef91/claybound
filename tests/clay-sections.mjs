@@ -125,7 +125,21 @@ const SECTIONS=[
   {level:1,station:'weave-mound',bypass:{from:'weave-spring',to:'canopy-nest',mode:'jump'}},
   // The tower is the one piece meant to be stood on while it is still tall.
   {level:2,station:'kiln-tower',bypass:{from:'kiln-ledge',to:'kiln-tunnel',mode:'jump'},rideable:true},
-  {level:2,station:'kiln-plug',bypass:{from:'kiln-tunnel',to:'kiln-run',mode:'jump'}}
+  {level:2,station:'kiln-plug',bypass:{from:'kiln-tunnel',to:'kiln-run',mode:'jump'}},
+  // The Soft Dream: one purple beat per section, and three strands in the knot.
+  {level:4,station:'garden-roll',bypass:{from:'garden-slab-2',to:'garden-mound',mode:'jump'}},
+  {level:4,station:'folding-tongue',bypass:{from:'folding-entry',to:'folding-wall-bridge',mode:'jump'}},
+  // The blob is walked onto flat before it is pulled up into a stair.
+  {level:4,station:'orchard-blob',bypass:{from:'orchard-mid',to:'orchard-under',mode:'jump'},rideable:true,form:true},
+  {level:4,station:'corridor-plug',bypass:{from:'corridor-floor-1',to:'corridor-floor-2',mode:'jump'}},
+  {level:4,station:'parade-worm',bypass:{from:'parade-head',to:'parade-caterpillar',mode:'jump'}},
+  // The clot is a stepping stone in the riverbed before it is pressed flat.
+  {level:4,station:'river-clot',bypass:{from:'river-raft',to:'river-far-bank',mode:'jump'},rideable:true},
+  {level:4,station:'room-floor-mass',bypass:{from:'room-doll-table',to:'room-shaft-foot',mode:'jump'},rideable:true,form:true},
+  {level:4,station:'knot-strand-a',bypass:{from:'knot-pier-a',to:'knot-ledge-b',mode:'jump'}},
+  {level:4,station:'knot-strand-b',bypass:{from:'knot-stand-b',to:'knot-ledge-c',mode:'jump'}},
+  // Strand C is landed on unworked and spread while standing on it.
+  {level:4,station:'knot-strand-c',bypass:{from:'knot-ledge-c',to:'knot-crown',mode:'jump'},rideable:true}
 ];
 
 for(const {level,station,bypass,rideable,form} of SECTIONS){
