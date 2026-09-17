@@ -1,6 +1,6 @@
 import * as THREE from './lib/three.module.js';
 import {assetURL,loadModel,clayMaterials,retainModel} from './model-assets.js';
-import {clayModel} from './clay.js';
+import {clayModel,clayMaterial} from './clay.js';
 
 export const CAVERN_FILES={grotto:'cave-grotto',crystalcap:'cave-crystalcap'};
 export function prepareCavernAsset(w,key,gltf,glow){
@@ -9,7 +9,14 @@ export function prepareCavernAsset(w,key,gltf,glow){
   if(!(size.x>0&&size.y>0&&size.z>0))throw new Error('Invalid grotto model.');
   glow.colorSpace=THREE.SRGBColorSpace;glow.flipY=false;
   clayMaterials(gltf.scene,{background:true});clayModel(w,gltf.scene,{background:true});
-  gltf.scene.traverse(o=>{if(o.isMesh){o.material.emissive.setHex(0xffffff);o.material.emissiveMap=glow;o.material.emissiveIntensity=.7;o.material.needsUpdate=true;}});
+  // The models' albedo is a mauve-brown with ochre drips, which read as a
+  // stranger's rock inside a navy-grey cave. A cool grey-blue multiplier pulls
+  // them into the built clay's family (greyer than the old cobalt: half fogged
+  // they stood as saturated blue peaks where the target fades to grey haze)
+  // while the glow map keeps its cyan and orange; the glow itself is eased so
+  // a half-fogged chamber's crystals no longer float as bright shards over
+  // rock the haze has already taken.
+  gltf.scene.traverse(o=>{if(o.isMesh){o.material.color.setHex(0x73869f);o.material.emissive.setHex(0xffffff);o.material.emissiveMap=glow;o.material.emissiveIntensity=.55;o.material.needsUpdate=true;}});
   const fixtures=key==='crystalcap'?[['mushroom',.115,.47],['crystal',.2,.55],['mushroom',.78,.82],['crystal',.87,.86]]:[['mushroom',.265,.66],['crystal',.845,.48]];
   const lamps=fixtures.map(([kind,x,y])=>({kind,x:box.min.x+size.x*x,y:box.min.y+size.y*y,color:kind==='mushroom'?0xff962f:0x46bbff}));
   for(const lamp of lamps){const hit=new THREE.Raycaster(new THREE.Vector3(lamp.x,lamp.y,box.max.z+1),new THREE.Vector3(0,0,-1)).intersectObject(gltf.scene,true)[0];lamp.z=hit?.point.z??box.max.z;}
@@ -27,9 +34,24 @@ export async function loadCavernAssets(w,onProgress){
   }
   await w.cavernLoading;onProgress?.(1);
 }
-export function cavernModel(w,key,parent,x,y,z,width,turn=0,{lights=true,power=1}={}){
+// `tint` scales the shared albedo for one tier: half fogged, the models stood
+// as pale blue peaks at the right of the Heart where the target's middle
+// distance is dark rock, and a darker copy lets the fog finish them as soft
+// dark columns.
+export function cavernModel(w,key,parent,x,y,z,width,turn=0,{lights=true,power=1,glow=1,tint=1}={}){
   const a=w.cavernAssets?.[key];if(!a)throw new Error('Load the cavern models before building the cave.');
   const root=new THREE.Group(),model=a.scene.clone(true);root.name=key==='grotto'?'Supplied glowing grotto':'Supplied crystalcap cavern';root.position.set(x,y,z);root.rotation.y=turn;root.scale.setScalar(width/a.size.x);
+  // A dimmer glow is one shared material clone per source material, kept on
+  // the asset so every far placement draws with the same program and maps.
+  // The clone loses the clay relief hook with its cache key, so it is re-hooked.
+  if(glow!==1||tint!==1){
+    const variants=a.variants??=new Map();
+    model.traverse(o=>{
+      if(!o.isMesh)return;const key=o.material.uuid+'@'+glow+'@'+tint;
+      if(!variants.has(key)){const m=o.material.clone();m.emissiveIntensity*=glow;m.color.multiplyScalar(tint);delete m.userData.clay;clayMaterial(w,m,.035);variants.set(key,m);}
+      o.material=variants.get(key);
+    });
+  }
   // Instances of the supplied models share one copy of their geometry and
   // maps. Backdrop merging must leave them intact rather than duplicating
   // every vertex per placement.

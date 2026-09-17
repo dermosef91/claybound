@@ -69,7 +69,8 @@ const BUILDERS={
   waterfall(w,g,size){forestModel(w,'waterfall',g,0,0,0,size);},
   crystals(w,g,size){caveCrystals(w,g,0,0,0,size/1.48,{glow:false});},
   'cave-mushrooms'(w,g,size){caveMushrooms(w,g,0,0,0,size/1.94,{glow:false});},
-  moss(w,g,size){caveMoss(w,g,0,0,0,size/.76,size/.76,0);},
+  // A clump's natural silhouette is .98 across since the pads doubled up.
+  moss(w,g,size){caveMoss(w,g,0,0,0,size/.98,size/.98,0);},
   grotto(w,g,size){cavernModel(w,'grotto',g,0,0,0,size,0,{lights:false});},
   crystalcap(w,g,size){cavernModel(w,'crystalcap',g,0,0,0,size,0,{lights:false});},
   cottage(w,g,size){cottageModel(w,g,0,0,0,size);},

@@ -2,13 +2,14 @@
 // screenshot the actual WebGL frame, so the arena's art is judged from the real
 // render rather than from a headless scene graph.
 const fs=require('fs'),path=require('path');
-const {chromium}=require('/Users/moritzgrassy/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {playwright,chromePath}=require('./support/review.cjs');
+const {chromium}=playwright();
 const root=path.resolve(__dirname,'..');
 const out=path.resolve(root,process.env.OUT||'docs/forest/arena/frame.png');
 const offset=+(process.env.PLAYER_OFFSET||12),settle=+(process.env.SETTLE||600);
 (async()=>{
  fs.mkdirSync(path.dirname(out),{recursive:true});
- const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--no-sandbox']});
+ const browser=await chromium.launch({headless:true,executablePath:chromePath(),args:['--no-sandbox']});
  try{
   const page=await browser.newPage({viewport:{width:+(process.env.W||2048),height:+(process.env.H||1160)},deviceScaleFactor:1}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
