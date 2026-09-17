@@ -6,12 +6,13 @@ import {fixedMaterial,lid,slot} from './dream/support.js';
 // The Soft Dream's supplied models: the Crooked Garden's watching flower, the
 // Upside-Down Orchard's two clay planets, which stand in for the dome islands'
 // spheres, its two frosted saucer bowls, which hang from the canopy on the
-// orchard's ropes, and the Melted Parade's clay hat, stacked five high on the
-// hat-worm's plinth. Loaded once per World, kept across level rebuilds, cloned
-// per placement — the same shape as the forest's and the canyon's sets. The
+// orchard's ropes, the abstract sculpture whose hung pieces ARE that canopy,
+// and the Melted Parade's clay hat, stacked five high on the hat-worm's
+// plinth. Loaded once per World, kept across level rebuilds, cloned per
+// placement — the same shape as the forest's and the canyon's sets. The
 // collision never comes from here: a dome is still the arc in simulation.js, a
-// saucer is still its deck's flat top, the hats and the flowers are scenery;
-// these only replace what is seen.
+// saucer is still its deck's flat top, and the canopy, the hats and the
+// flowers are scenery; these only replace what is seen.
 //
 // The flower (dist/assets/dream-flower.glb, repacked with the others by
 // scripts/prepare-dream-assets.py) is a clay flower with an eyeball for a
@@ -20,7 +21,7 @@ import {fixedMaterial,lid,slot} from './dream/support.js';
 // head can turn on its own pivot, and the eyeball is found on the head's face
 // so a pupil can be set on it and slid toward the player. Every flower in the
 // chapter is a clone of those two parts under its own pivots.
-export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb'};
+export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb'};
 
 // Each planet's core orb in model space — the sphere the fruit and the leaf
 // sprouts are stuck onto — fitted over every vertex by a modal-radius
@@ -141,6 +142,16 @@ export function dreamSaucer(w,key,parent,width){
   const a=asset(w,key),root=new THREE.Group(),model=a.scene.clone(true);
   root.name='Dream saucer '+key;model.name='Supplied clay saucer';
   root.scale.setScalar(width/a.size.x);model.position.set(-a.center.x,-a.box.max.y,-a.center.z);
+  root.add(model);parent.add(root);
+  return root;
+}
+// A sculpture under `parent`, `width` across, its bounding box centred on the
+// parent's origin so the caller can turn or tilt it about its middle and seat
+// it by an edge: root.userData.size is the placed box, in the parent's units.
+export function dreamSculpture(w,key,parent,width){
+  const a=asset(w,key),root=new THREE.Group(),model=a.scene.clone(true),k=width/a.size.x;
+  root.name='Dream sculpture '+key;model.name='Supplied clay sculpture';
+  root.scale.setScalar(k);model.position.copy(a.center).negate();root.userData.size=a.size.clone().multiplyScalar(k);
   root.add(model);parent.add(root);
   return root;
 }

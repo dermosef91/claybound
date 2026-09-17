@@ -56,19 +56,19 @@ function porthole(w,parent,x,y,z,r){
 // --- the rolled tongue -----------------------------------------------------------
 // The shared clay view draws a station's piece as one rounded box remapped to
 // its collider. The tongue is drawn here instead, as a carpet: one ribbon of
-// violet clay 1.161 thick and 12.4 long at every moment, rolled up on the
-// brink at rest and rolling out to the right as it is pressed. The flat run
-// lies at deck level and is the walking surface; the roll stands on the run's
-// own underside at its far end, wound the way a rug is — the carpet passes
-// under it, climbs the far side, comes back over the top and winds in — and
-// pays out from underneath as it travels, so what stood tall on the brink lies
-// long across the gap. Run and roll together span exactly the collider's
+// violet clay 1.161 thick and 12.4 long at every moment, hanging rolled up
+// beside the cliff at rest and rolling out to the right as it is pressed. The
+// flat run lies at deck level and is the walking surface; the roll stands on
+// the run's own underside at its far end, wound the way a rug is — the carpet
+// passes under it, climbs the far side, comes back over the top and winds in
+// — and pays out from underneath as it travels, so what hung fat at the cliff
+// lies long across the gap. Run and roll together span exactly the collider's
 // width and the roll's box is the rest pose; between the two poses the roll
 // stands higher than the collider's top and the run lies a little under it,
 // the box being one box. Wound, the clay lies tight and thin and puffs back to
 // its thickness as it comes out, so the roll shows two or three layers. One
 // fixed grid of rings, rewritten from the platform's pose (poseTongue).
-const SEGS=120,RADIAL=16,TONGUE={thick:1.161,wound:.64,length:12.4,depth:2.4};
+const SEGS=120,RADIAL=16,TONGUE={thick:1.161,wound:.64,depth:2.4};
 const V=THREE.Vector3;
 
 function ribbonGeometry(seedX,seedY){
@@ -151,27 +151,27 @@ function rolledTongue(w,s,g){
 }
 
 // Local coordinates: the group sits at (s.x, s.y), so the collider spans
-// x 0..s.w and y −s.h..0. Its underside is the carpet's underside: on the lip
-// at rest, the carpet's depth below it at full, sinking between, so the run
-// (top at τ−s.h) settles from a step above the deck onto level with it as it
-// pays out. The carpet keeps its thickness τ and its length L; the flat run ℓ
-// and the roll's side S obey S² = τ·(L−ℓ) (the roll holds the wound length)
-// and ℓ+S = s.w (the two span the collider), which fixes ℓ for any pose.
+// x 0..s.w and y −s.h..0. Its underside is the carpet's underside in every
+// pose (world −1.161), so the run's top is deck level, and its left edge
+// slides from the roll's resting place beside the cliff back onto the lip as
+// the carpet comes out. The carpet is anchored at the lip (the full pose's
+// left edge) and keeps its thickness τ and length L; the roll at the box's
+// far end holds whatever is still wound, S² = τ·L·(1−u) for the press's share
+// u, so it fills the box at rest and is gone at full.
 function poseTongue(view,s){
-  const key=`${s.w}:${s.h}`;if(view.tongue.key===key)return;view.tongue.key=key;
-  const {thick:tau,wound,length:L,depth}=TONGUE,W=s.w,floor=-s.h;
-  let lo=0,hi=L;
-  for(let i=0;i<40;i++){const mid=(lo+hi)/2;if(mid+Math.sqrt(tau*Math.max(0,L-mid))<W)lo=mid;else hi=mid;}
-  const run=Math.min(L,(lo+hi)/2),S=Math.max(0,W-run);
-  // The spine: from inside the post along the underside to the middle of the
-  // roll's foot, then a squircle spiral winding up the far side, back over
-  // the top, down the near side and in. The outer layer hugs the roll's box
-  // for its first three quarters, so the roll stands square on the run and
-  // fills the collider at rest; from there each turn draws in by the wound
+  const key=`${s.x}:${s.w}:${s.h}`;if(view.tongue.key===key)return;view.tongue.key=key;
+  const {thick:tau,wound,depth}=TONGUE,{from,to}=s.shape,L=to.w,floor=-s.h;
+  const u=Math.max(0,Math.min(1,(s.w-from.w)/((to.w-from.w)||1)));
+  const anchor=to.x-s.x,right=s.w,S=Math.min(right-anchor,Math.sqrt(tau*L*(1-u)));
+  // The spine: from inside the cliff along the underside to the middle of
+  // the roll's foot, then a squircle spiral winding up the far side, back
+  // over the top, down the near side and in. The outer layer hugs the roll's
+  // box for its first three quarters, so the roll stands square and fills
+  // the collider at rest; from there each turn draws in by the wound
   // thickness. The run enters at full thickness and thins into the wind over
   // the first quarter turn.
-  const spine=[new V(-.35,floor+tau/2,0)],thick=[tau];
-  const cx=run+S/2,cy=floor+S/2;
+  const spine=[new V(anchor-.35,floor+tau/2,0)],thick=[tau];
+  const cx=right-S/2,cy=floor+S/2;
   if(S>tau*.6){
     // A small roll winds thinner than the carpet, so the last curl shrinks
     // away rather than vanishing all at once; the run thins to meet it.
@@ -186,7 +186,7 @@ function poseTongue(view,s){
       const q=squircle(phi,p)*r;
       spine.push(new V(cx+Math.cos(phi)*q,cy+Math.sin(phi)*q,0));thick.push(t);
     }
-  } else {spine.push(new V(Math.max(.4,W-tau*.2),floor+tau/2,0));thick.push(tau);}
+  } else {spine.push(new V(Math.max(anchor+.4,right-tau*.2),floor+tau/2,0));thick.push(tau);}
   writeRibbon(view.tongue.mesh,spine,thick,{depth});
 }
 

@@ -40,7 +40,8 @@ assets={
  'dream-planet-raspberry.glb':'colorful+planet+3d+model.glb',
  'dream-saucer-mint.glb':'colorful+clay+platform+1.glb',
  'dream-saucer-raspberry.glb':'colorful+clay+platform+2.glb',
- 'dream-hat.glb':'hat.glb'
+ 'dream-hat.glb':'hat.glb',
+ 'dream-sculpture.glb':'colorful+abstract+sculpture+3d+model.glb'
 }
 # Models shipped from a decimated copy rather than the upload's own geometry.
 decimated={'dream-hat.glb':Path(sys.argv[2]) if len(sys.argv)>2 else None}
