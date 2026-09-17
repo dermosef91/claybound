@@ -1,9 +1,9 @@
 import * as THREE from './lib/three.module.js';
 import {canyonModel} from './canyon-assets.js';
 import {cloudModel} from './clouds.js';
-import {clayMaterial,clayBox,cachedClayShape,retainClayShape,clayShape,positionGroups} from './clay.js';
+import {clayMaterial,clayBox,cachedClayShape,retainClayShape,positionGroups} from './clay.js';
 import {archLiftCeiling} from './great-arch.js';
-import {makeMovingPlatform} from './moving-platform.js';
+import {makeMovingPlatform,braid,movingPlatformMaterials} from './moving-platform.js';
 
 const random=n=>{const f=Math.sin(n*127.1+47.7)*43758.5453;return f-Math.floor(f);};
 const group=parent=>{const g=new THREE.Group();parent.add(g);return g;};
@@ -173,24 +173,19 @@ export function makeCanyonLift(w,s,g){
 // hangs off a span group that is counter-translated back, the way the ferry
 // keeps its rail still while its deck slides (cavern-machine-views.js).
 //
-// `w.rope` would draw this cable, but its twist is fixed at 24 turns a unit and
-// its tube capped at 400 segments: over sixty units that is 1500 turns sampled
-// twice each, which aliases into noise. A cable is a rope seen from far enough
-// away that the lay of it is the whole read, so the pitch is a parameter here
-// and the sampling follows it.
-function cable(w,parent,from,to,radius=.075){
+// The cable is the rope lift's own rope, laid along the span instead of hung
+// from a ceiling: `braid` from moving-platform.js, two twisted honey strands,
+// and nothing else off that assembly — no eyes, knots, studs or medallions,
+// which belong to a deck that hangs rather than a cable that carries. A
+// ropeway's rope is a heavier lay than a lift's, so it is built at half again
+// the scale; that is the only difference between this rope and that one.
+function cable(w,parent,from,to,k=1.5){
   const a=new THREE.Vector3(...from),b=new THREE.Vector3(...to),dir=b.clone().sub(a),length=dir.length();
-  const g=new THREE.Group();g.position.copy(a);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());parent.add(g);
-  const pitch=1.1,samples=Math.min(900,Math.max(24,Math.ceil(length/pitch*12)));
-  const geo=clayShape(w,`canyon-cable:${length.toFixed(2)}:${radius.toFixed(3)}`,()=>{
-    const points=[];
-    for(let i=0;i<=samples;i++){
-      const t=i/samples*length,angle=t/pitch*Math.PI*2;
-      points.push(new THREE.Vector3(Math.cos(angle)*radius*.42,t,Math.sin(angle)*radius*.42));
-    }
-    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),samples,radius,6,false);
-  });
-  const mesh=w.mesh(geo,'bark',g);mesh.name='Spun cable';mesh.castShadow=false;
+  const g=new THREE.Group();g.name='Ropeway cable';g.position.copy(a);
+  g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());parent.add(g);
+  const rope=braid(w,g,0,0,length,0,k,movingPlatformMaterials(w));
+  // A hair-thin caster sixty units long is all cost and artefact.
+  rope.traverse(o=>{if(o.isMesh)o.castShadow=false;});
   return g;
 }
 
