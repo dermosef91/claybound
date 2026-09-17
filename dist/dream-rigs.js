@@ -86,29 +86,46 @@ export const GIRAFFE_BONES={
   hips:['tripo0_Left_Limb_0','tripo1_Right_Limb_0','tripo0_Right_Limb_0','tripo1_Left_Limb_0'],
   knees:['tripo0_Left_Limb_1','tripo1_Right_Limb_1','tripo0_Right_Limb_1','tripo1_Left_Limb_1']
 };
-// How the parade's giraffe stands, fitted so its decks (the back deck, the
-// collar on the neck, the head) land where the level puts them. The upload is
-// a compact, short-necked thing a unit long; the parade's giraffe is long in
-// the body and longer in the neck, so the spine's and the neck's bone offsets
-// are lengthened — the skin between stations stretches with them, as soft clay
-// would — and the neck is tipped forward toward the head deck. backTop is the
-// model-space height of the back's surface, which dreamGiraffe scales to the
-// back deck's top; the rest were settled with scripts/fit-dream-creatures.mjs.
-export const GIRAFFE_POSE={backTop:.46,bodyStretch:1.35,neckLean:-.55,neckStretch:1.6,lift:{bone:'tripo1_Left_Limb_0',pitch:-.25}};
+// How the parade's giraffe stands, fitted so the player climbs the animal
+// itself: the level's ledges are its body. The back deck lies along its back,
+// the collar deck rests in the crook of its neck and the head deck is the top
+// of its head — so the neck rises straight from the withers, bends forward at
+// the crook and runs level to the head, which is turned back upright. The
+// upload is a compact, short-necked thing a unit long; the spine's and each
+// neck bone's offset from its parent is lengthened (the skin between stations
+// stretches with them, as soft clay would) and each neck bone turned about the
+// world's side axis — negative tips the neck toward +x, its facing. `neck` is
+// one entry per tripoHead_0..3: tripoHead_2 carries the head, so its turn is
+// the head's own. backTop is the model-space height of the back's surface,
+// which dreamGiraffe scales to the back deck's top; the rest were settled with
+// scripts/fit-dream-creatures.mjs against the parade's decks.
+// At rest the neck leaves the withers at 45° forward, then 16°, 9° and level
+// segment by segment; `base` turns the withers bone (tripoSpine_3, whose only
+// children are the neck) to stand the first segment up, and the leans below
+// are measured from there: the second segment a little forward, the third
+// level, the head turned back to face ahead with a slight droop.
+export const GIRAFFE_POSE={backTop:.46,bodyStretch:2,base:.785,
+  neck:[{stretch:1.93,lean:-.77},{stretch:1.93,lean:-1.43},{stretch:1.65,lean:1.18},{stretch:1,lean:0}],
+  lift:{bone:'tripo1_Left_Limb_0',pitch:-.25}};
 const Z=new THREE.Vector3(0,0,1),Y=new THREE.Vector3(0,1,0);
 // Pose the cloned giraffe once: yaw it so its spine runs along +x (the upload
-// stands some thirty degrees across its own box), stretch the body and the
-// neck, tip the neck forward and lift one hind leg. Returns the yaw applied.
+// stands some thirty degrees across its own box), stretch the body, then
+// stretch and turn the neck bone by bone, and lift one hind leg. Returns the
+// yaw applied.
 export function poseGiraffe(model,pose=GIRAFFE_POSE){
   const bone=name=>{const b=model.getObjectByName(name);if(!b)throw new Error('The giraffe rig has no bone '+name);return b;};
   model.updateMatrixWorld(true);
   const a=bone(GIRAFFE_BONES.spine[0]).getWorldPosition(new THREE.Vector3()),b=bone(GIRAFFE_BONES.spine[3]).getWorldPosition(new THREE.Vector3());
   const yaw=Math.atan2(b.z-a.z,b.x-a.x);model.rotation.y=yaw;
   for(const name of GIRAFFE_BONES.spine.slice(1))bone(name).position.multiplyScalar(pose.bodyStretch);
-  const neck=GIRAFFE_BONES.neck.map(bone);
-  for(const n of neck.slice(1))n.position.multiplyScalar(pose.neckStretch);
+  const neck=GIRAFFE_BONES.neck.map(bone),withers=bone(GIRAFFE_BONES.withers);
+  neck.forEach((n,i)=>n.position.multiplyScalar(pose.neck[i].stretch));
   model.updateMatrixWorld(true);
-  for(const n of neck)rotateAbout(n,parentAxis(n,Z,model),pose.neckLean/neck.length);
+  // Turns about one shared axis leave that axis fixed in every child's frame,
+  // so each bone's axis can be read once from the unturned rest.
+  const axes=neck.map(n=>parentAxis(n,Z,model));
+  if(pose.base)rotateAbout(withers,parentAxis(withers,Z,model),pose.base);
+  neck.forEach((n,i)=>{if(pose.neck[i].lean)rotateAbout(n,axes[i],pose.neck[i].lean);});
   if(pose.lift){const hip=bone(pose.lift.bone);rotateAbout(hip,parentAxis(hip,Z,model),pose.lift.pitch);}
   model.updateMatrixWorld(true);
   return yaw;

@@ -51,8 +51,12 @@ const SPOTS={
  'parade-back':{x:324.5,y:4,ground:'parade-back',ticks:120,creatures:true},
  'parade-neck':{x:329.8,y:6.2,ground:'parade-neck',ticks:120},
  'parade-giraffe':{x:319.8,y:2,ground:'parade-knee',cameraX:326.5,cameraY:4.6,ticks:120},
- // 181 ticks lands the march (GIRAFFE_MARCH.rate 2.6) on a peak of the swing.
- 'parade-awake':{x:329.8,y:6.2,ground:'parade-neck',cameraX:326.5,cameraY:4.6,ticks:181,shaped:['parade-worm']},
+ // The gait runs on frame time: .6 s of live frames lands its swing near a
+ // peak (GIRAFFE_MARCH.rate 2.6). Leaving: the player across on the bridge,
+ // the camera held on the giraffe as it turns (2.6 s) and walks off left.
+ 'parade-awake':{x:329.8,y:6.2,ground:'parade-neck',cameraX:326.5,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:.6},
+ 'parade-leaving':{x:340,y:7.8,ground:'parade-worm',cameraX:324,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:3.2,creatures:true},
+ 'parade-gone':{x:340,y:7.8,ground:'parade-worm',cameraX:324,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:7,creatures:true},
  'parade-worm':{x:332,y:8.2,ground:'parade-head',ticks:120},
  'parade-stack':{x:332,y:8.2,ground:'parade-head',cameraX:334.3,cameraY:13.5,ticks:120},
  'parade-pulled':{x:332,y:8.2,ground:'parade-head',ticks:120,shaped:['parade-worm']},
@@ -146,6 +150,9 @@ async function serve(){
     // Settle streamed geometry, the palette cross-fade and light handoffs
     // without moving the camera.
     for(let i=0;i<90;i++)playtest.draw(0);
+    // A spot may ask for live time (`settle` seconds of 60 Hz frames) for the
+    // scenery whose motion runs on frame time — the giraffe's gait and exit.
+    for(let i=0;i<Math.round((spot.settle||0)*60);i++){playtest.draw(1/60);if(spot.cameraX!==undefined)w.cameraX=spot.cameraX;if(spot.cameraY!==undefined)w.cameraY=spot.cameraY;}
     const frames=[];
     for(let i=0;i<60;i++){const t0=performance.now();w.render(g,0);frames.push(performance.now()-t0);}
     frames.sort((a,b)=>a-b);

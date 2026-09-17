@@ -87,12 +87,18 @@ boxLine(regionBox(model,GIRAFFE_BONES.spine.concat(['tripoRoot']),w.scene),'body
 boxLine(regionBox(model,GIRAFFE_BONES.neck.slice(0,2).concat(['tripoSpine_4']),w.scene),'neck');
 boxLine(regionBox(model,GIRAFFE_BONES.neck.slice(2),w.scene),'head');
 for(const name of ['tripoSpine_3','tripoHead_0','tripoHead_2','tripoHead_3'])console.log('  ',name.padEnd(12),fv(model.getObjectByName(name).getWorldPosition(new THREE.Vector3())));
-// Anything rising through the back deck's top, inside its span less a hand at the end?
-{
-  let worst=-1e9,where=0;const v=new THREE.Vector3();
-  model.traverse(o=>{if(!o.isSkinnedMesh)return;for(let i=0;i<o.geometry.attributes.position.count;i++){o.getVertexPosition(i,v).applyMatrix4(o.matrixWorld);if(v.x>back.x&&v.x<back.x+back.w-.4&&v.y>worst){worst=v.y;where=v.x;}}});
-  console.log(`  highest point under the back deck's span: y ${f(worst)} at x ${f(where)} (deck top ${back.y})`);
+// The body's top surface along each deck the player stands on: where the
+// model is under the deck's top (a gap the player floats over) or through it.
+function profile(model,s,step=.5){
+  const v=new THREE.Vector3(),tops=[];
+  for(let x=s.x+.25;x<s.x+s.w;x+=step){
+    let top=-1e9;
+    model.traverse(o=>{if(!o.isSkinnedMesh)return;for(let i=0;i<o.geometry.attributes.position.count;i++){o.getVertexPosition(i,v).applyMatrix4(o.matrixWorld);if(Math.abs(v.x-x)<step/2&&Math.abs(v.z)<.9&&v.y>top)top=v.y;}});
+    tops.push(`${f(x)}:${top<-1e8?'—':(top-s.y>=0?'+':'')+f(top-s.y)}`);
+  }
+  return tops.join('  ');
 }
+for(const s of [back,neck,headDeck])console.log(`  ${s.id} top ${s.y} — body surface relative to it, by x:  ${profile(model,s)}`);
 // The lean: player far left, far right.
 for(const px of [L.platforms[0].x,back.x+60]){
   g.player.x=px;for(let i=0;i<120;i++)animateDream(w,g,1/60);w.scene.updateMatrixWorld(true);
@@ -108,6 +114,14 @@ for(const px of [L.platforms[0].x,back.x+60]){
   console.log(`  marching: front-left foot sweeps x ${f(box.min.x)}…${f(box.max.x)}, y ${f(box.min.y)}…${f(box.max.y)}; hip turned ${f(hip.quaternion.angleTo(restHip)*180/Math.PI)}° from rest at the last frame`);
   station.amount=0;for(let i=0;i<90;i++)animateDream(w,g,1/60);
   console.log(`  asleep again: hip ${f(hip.quaternion.angleTo(restHip)*180/Math.PI)}° from rest`);
+  // Leaving: pulled, the player far right; then the player back left.
+  station.amount=1;g.player.x=back.x+20;const pivot=w.platforms.get('parade-back').pivot;
+  const marks=[];
+  for(let i=0;i<60*16;i++){g.time+=1/60;animateDream(w,g,1/60);if(i%120===119){w.scene.updateMatrixWorld(true);marks.push(`${(i/60+1/60).toFixed(0)}s: x ${f(pivot.position.x)} facing ${f(pivot.rotation.y*180/Math.PI)}° ${pivot.visible?'shown':'hidden'}`);}}
+  console.log('  leaving:\n    '+marks.join('\n    '));
+  g.player.x=back.x-10;for(let i=0;i<10;i++){g.time+=1/60;animateDream(w,g,1/60);}
+  console.log(`  player back left: x ${f(pivot.position.x)} facing ${f(pivot.rotation.y*180/Math.PI)}° ${pivot.visible?'shown':'hidden'}`);
+  station.amount=0;
 }
 // The hatworm on the giraffe's back.
 const worm=g.level.enemies.find(e=>e.kind==='hatworm'&&e.y===back.y);

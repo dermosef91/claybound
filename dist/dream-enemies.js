@@ -34,13 +34,17 @@ export function createDreamEnemyView(w,e){
 // turns to face the way it walks; the root stays upright so the press is
 // straight down whichever way it was going.
 //
-// With the models loaded, the body is the supplied caterpillar — 1.3 long, a
-// little past the collider's .72 (ASSET_REQUESTS asks for about 1.4) — and the
-// hats are the supplied hat, three of them nested on a group hung from the
-// head bone so they ride every nod. Widths are in world units; the stack
-// stays under ~1.1 so a stomping player's feet do not pass through the top hat
-// (the collider's perch is .85, and the sculpted stack topped out near .95).
-export const HATWORM_MODEL={length:1.3,hatWidths:[.46,.4,.34],nest:.55,headOffset:[0,.21,0]};
+// With the models loaded, the body is the supplied caterpillar — 1.95 long,
+// well past the collider's .72 (the user asked for it half again the size
+// ASSET_REQUESTS had) — and the hats are the supplied hat, three of them
+// nested on a group hung from the head bone so they ride every nod. Widths
+// are in world units. headOffset seats the first hat's foot on the dome of the
+// head in the model's own units: the head bone is at (.40,.20), the dome —
+// the crest along the centre line — is at x .44….48, y .44, and the foot sits
+// .04 into it so the brim reads as pressed onto the clay rather than resting
+// above it (the ridge behind the dome is a whole .08 lower, which is where an
+// earlier fit left the hats hovering).
+export const HATWORM_MODEL={length:1.95,hatWidths:[.6,.52,.45],nest:.55,headOffset:[.03,.17,0]};
 function buildHatworm(w,view){
   if(w.dreamAssets?.caterpillar&&w.dreamAssets?.hat){buildHatwormModel(w,view);return;}
   const body=new THREE.Group();body.name='Hatworm body';view.root.add(body);
@@ -99,8 +103,8 @@ function animateHatwormModel(view,wave){
     const s=Math.sin(t*10-(i-1)*1.2);
     r.bone.position.y+=Math.max(0,s)*.035*wave;r.bone.scale.y=1+s*.08*wave;
   });
-  rig.head.rotation.z=Math.sin(t*10+.6)*.06*wave;
-  hats.forEach((hat,i)=>{hat.rotation.z=Math.sin(t*6+i*.9)*(.05+i*.03)*wave;hat.position.x=Math.sin(t*6+i*.9)*.012*i;hat.position.y=stack[i];});
+  rig.head.rotation.z=Math.sin(t*10+.6)*.025*wave;
+  hats.forEach((hat,i)=>{hat.rotation.z=Math.sin(t*6+i*.9)*(.015+i*.01)*wave;hat.position.x=Math.sin(t*6+i*.9)*.006*i;hat.position.y=stack[i];});
 }
 
 // --- the blinker --------------------------------------------------------------

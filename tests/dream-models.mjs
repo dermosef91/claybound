@@ -26,7 +26,7 @@ import {createHero,attachHero} from '../dist/hero.js';
 import {createCaveLights} from '../dist/cave-lighting.js';
 import {animateDreamViews} from '../dist/dream-views.js';
 import {animateDream} from '../dist/dream.js';
-import {HAT_WIDTHS,HAT_NEST,GIRAFFE_WITHERS} from '../dist/dream/parade.js';
+import {HAT_WIDTHS,HAT_NEST,GIRAFFE_WITHERS,GIRAFFE_LEAVE} from '../dist/dream/parade.js';
 import {DREAM_FILES,PLANET_ORBS,dreamPlanet,dreamSaucer,dreamHat,dreamHatHeight,dreamCaterpillar,dreamGiraffe,skinnedBox} from '../dist/dream-assets.js';
 import {CATERPILLAR_RIG,CATERPILLAR_HEAD,GIRAFFE_BONES,GIRAFFE_POSE} from '../dist/dream-rigs.js';
 import {HATWORM_MODEL} from '../dist/dream-enemies.js';
@@ -367,64 +367,88 @@ console.log('PASS the dome spin turns the supplied planet');
 }
 
 // --- 10. the parade's giraffe and the hatworm on its back -------------------------------------
-// The supplied giraffe dresses the back deck: its back meets the deck's top
-// and nothing of it rises through the walk, the neck rises past the deck's
-// end through the collar, the head sits under the head deck. The neck turns
-// toward the player and holds at rest under reduced motion; pulling the worm
-// wakes the march and letting go stills it. The hatworm on the back is the
-// supplied caterpillar in three supplied hats, walks on the bones, dies flat.
+// The supplied giraffe is what the player climbs: the back deck lies along
+// its back, the collar deck rests in the crook of its neck, the head deck is
+// the top of its head, and nothing is built around them but the plaza step
+// under the knee deck. Asleep it ignores the player; pulling the worm stirs it
+// — the head lifts and turns to the player, the legs march on the spot — and
+// with the player across, it turns and walks off left until hidden, home again
+// the moment the player is back on the left. Reduced motion holds it still.
+// The hatworm on the back is the supplied caterpillar in three supplied
+// hats, walks on the bones, dies flat, and rides along (hidden) when it leaves.
 {
   const parade=MODULES.find(m=>m.key==='parade'),L=soloSection(parade),g=new Game();g.start(INDEX,L);
   const platform=id=>{const s=g.level.platforms.find(p=>p.id===id);assert(s,id+' is in the solo parade');return s;};
-  const back=platform('parade-back'),neck=platform('parade-neck'),headDeck=platform('parade-head');
+  const knee=platform('parade-knee'),back=platform('parade-back'),neck=platform('parade-neck'),headDeck=platform('parade-head');
   const station=g.level.shaping.find(st=>st.id==='parade-worm');
   w.reducedMotion=false;w.build(g.level,INDEX,back.x+3);w.syncVisible(g.level,back.x+3,true);g.player.x=back.x+3;animateDream(w,g,0);w.scene.updateMatrixWorld(true);
-  const view=w.platforms.get('parade-back');assert(view?.giraffe,'the back deck view carries the giraffe rig');
+  const view=w.platforms.get('parade-back');assert(view?.giraffe&&view.pivot,'the back deck view carries the giraffe rig on its pivot');
   const model=view.root.getObjectByName('Supplied clay giraffe');assert(model,'the supplied giraffe stands on the parade');
-  for(const name of ['Torso','Leg','Spot'])assert(!view.root.getObjectByName(name),name+' has left the back deck');
-  assert(view.root.getObjectByName('Saddle')&&view.root.getObjectByName('Saddle fringe'),'the deck top is a saddle with its one bubblegum detail');
-  assert(!w.platforms.get('parade-neck').root.getObjectByName('Neck')&&w.platforms.get('parade-neck').root.getObjectByName('Collar'),'the collar deck keeps its pad and drops the sculpted neck');
-  assert(w.platforms.get('parade-head').root.getObjectByName('Bonnet')&&!w.platforms.get('parade-head').root.getObjectByName('Petal'),'the head deck is a bonnet, the flower gone');
+  const meshesUnder=root=>{let n=0;root.traverse(o=>{if(o.isMesh)n++;});return n;};
+  for(const name of ['Torso','Leg','Spot','Saddle','Saddle cushion','Collar','Bonnet','Neck','Petal','Knee','Thigh'])assert(!w.levelRoot.getObjectByName(name),name+' is not built around the supplied giraffe');
+  assert.equal(meshesUnder(w.platforms.get('parade-neck').root),0,'the collar deck is the crook of the neck, nothing built');
+  assert.equal(meshesUnder(w.platforms.get('parade-head').root),0,'the head deck is the head, nothing built');
+  assert(w.platforms.get('parade-knee').root.getObjectByName('Podium cap'),'the knee deck is a step of the plaza');
   assert(!(w.dreamLeaners||[]).some(e=>e.group.name==='Giraffe face'),'no leaner: the neck itself leans');
   const box=skinnedBox(model,w.scene),v=new THREE.Vector3();
   assert(box.min.y>-.05&&box.min.y<.05,`feet on the plaza (${box.min.y.toFixed(3)})`);
-  assert(box.min.x>back.x-.3&&box.min.x<back.x+.6,`the tail reaches the back deck's left end (${box.min.x.toFixed(2)} for ${back.x})`);
-  let highest=-1e9;
-  model.traverse(o=>{if(!o.isSkinnedMesh)return;for(let i=0;i<o.geometry.attributes.position.count;i++){o.getVertexPosition(i,v).applyMatrix4(o.matrixWorld);if(v.x>back.x&&v.x<back.x+back.w-.4)highest=Math.max(highest,v.y);}});
-  assert(highest>back.y-.15&&highest<back.y+.05,`the back meets the deck's top and nothing rises through it (${highest.toFixed(3)} for ${back.y})`);
+  assert(box.min.x>knee.x-.6&&box.min.x<back.x,`the tail hangs over the plaza step (${box.min.x.toFixed(2)})`);
+  // The body's surface under each deck the player stands on, in a band along its span.
+  const surface=(s,from,to,step=.5)=>{const out=[];for(let x=s.x+from;x<s.x+to;x+=step){let top=-1e9;model.traverse(o=>{if(!o.isSkinnedMesh)return;for(let i=0;i<o.geometry.attributes.position.count;i++){o.getVertexPosition(i,v).applyMatrix4(o.matrixWorld);if(Math.abs(v.x-x)<step/2&&Math.abs(v.z)<.9&&v.y>top)top=v.y;}});out.push(top-s.y);}return out;};
+  const backSurface=surface(back,.25,back.w);
+  assert(backSurface.every(d=>d>-.35&&d<.1),`the back lies along the back deck, within a hand of its top (${backSurface.map(d=>d.toFixed(2)).join(' ')})`);
+  const crook=surface(neck,.25,neck.w);
+  assert(crook.every(d=>d>-.45&&d<.3)&&crook.some(d=>Math.abs(d)<.15),`the collar deck rests in the crook of the neck (${crook.map(d=>d.toFixed(2)).join(' ')})`);
+  // (the deck's ends hang a little past the head: the jaw at the back, the slope of the nose at the front)
+  const crown=surface(headDeck,.75,headDeck.w-.4);
+  assert(crown.every(d=>d>-.3&&d<.05)&&crown.some(d=>d>-.1),`the head deck is the top of the head (${crown.map(d=>d.toFixed(2)).join(' ')})`);
+  assert(box.max.y>headDeck.y-.3&&box.max.y<headDeck.y+.05,`nothing rises through the head deck (${box.max.y.toFixed(2)} for ${headDeck.y})`);
   const withers=view.giraffe.bones.withers.getWorldPosition(new THREE.Vector3());
   assert(near(withers.x,back.x+back.w+GIRAFFE_WITHERS,1e-6),'the withers stand past the deck\'s end where GIRAFFE_WITHERS says');
-  const head=view.giraffe.bones.head.getWorldPosition(new THREE.Vector3()),tip=model.getObjectByName(GIRAFFE_BONES.neck[3]).getWorldPosition(new THREE.Vector3());
+  const tip=model.getObjectByName(GIRAFFE_BONES.neck[3]).getWorldPosition(new THREE.Vector3());
   assert(tip.x>headDeck.x&&tip.x<headDeck.x+headDeck.w,`the head is under the head deck (${tip.x.toFixed(2)} in ${headDeck.x}…${headDeck.x+headDeck.w})`);
-  assert(box.max.y>headDeck.y-.7&&box.max.y<headDeck.y+.05,`the head's top sits just under its deck (${box.max.y.toFixed(2)} for ${headDeck.y})`);
-  assert(head.y>neck.y-1.5&&head.x>neck.x,'the neck passes up through the collar deck\'s reach on its way to the head');
-  console.log(`PASS the parade's giraffe: back at ${highest.toFixed(2)} under the ${back.y} deck, tail at ${box.min.x.toFixed(2)}, head ${tip.x.toFixed(2)} under the head deck topping at ${box.max.y.toFixed(2)}`);
+  console.log(`PASS the parade's giraffe is the climb: back ${backSurface.map(d=>d.toFixed(2)).join('/')} of its deck, crook ${crook.map(d=>d.toFixed(2)).join('/')}, crown ${crown.map(d=>d.toFixed(2)).join('/')}, tail over the plaza step at ${box.min.x.toFixed(2)}`);
 
-  // The lean, both ways, and reduced motion holding the posed rest.
-  const restTip=tip.clone();
+  // Asleep it ignores the player; stirred it turns to them; reduced motion holds it.
   const settle=(px,frames=150)=>{g.player.x=px;for(let i=0;i<frames;i++){g.time+=1/60;animateDream(w,g,1/60);}w.scene.updateMatrixWorld(true);return model.getObjectByName(GIRAFFE_BONES.neck[3]).getWorldPosition(new THREE.Vector3());};
-  const left=settle(L.platforms[0].x),right=settle(back.x+60);
-  assert(left.x<restTip.x-.15&&right.x>restTip.x+.15,`the head turns toward the player (${left.x.toFixed(2)} left, ${right.x.toFixed(2)} right, ${restTip.x.toFixed(2)} at rest)`);
-  for(const t of [left,right])assert(t.x>headDeck.x-.5&&t.x<headDeck.x+headDeck.w+.5,'and stays about its deck at both extremes');
+  const asleepLeft=settle(L.platforms[0].x),asleepRight=settle(back.x+60);
+  // (a little apart at most: the sleeping breath bobs the head, sampled at two moments)
+  assert(Math.abs(asleepLeft.x-asleepRight.x)<.12,`asleep, the head does not follow the player (${asleepLeft.x.toFixed(2)} vs ${asleepRight.x.toFixed(2)})`);
   const hip=view.giraffe.bones.hips[0],hipRest=view.giraffe.rest.find(r=>r.bone===hip).quaternion;
-  w.reducedMotion=true;const held=settle(back.x+60,10);
-  assert(held.distanceTo(restTip)<1e-6,`reduced motion holds the neck at its posed rest (${held.distanceTo(restTip)})`);
-  station.amount=1;settle(back.x+3,120);
-  assert(hip.quaternion.angleTo(hipRest)<1e-9,'and holds the legs still though the parade is awake');
-  w.reducedMotion=false;
+  assert(hip.quaternion.angleTo(hipRest)<1e-9,'and its legs are still');
+  station.amount=1;
+  const left=settle(L.platforms[0].x),right=settle(back.x+back.w+GIRAFFE_LEAVE.past-.5);
+  assert(left.x<right.x-.2,`stirred, the head turns toward the player (${left.x.toFixed(2)} with the player left, ${right.x.toFixed(2)} right)`);
+  for(const t of [left,right])assert(t.x>headDeck.x-.5&&t.x<headDeck.x+headDeck.w+.5,'and stays about its deck at both extremes');
   let swung=0;for(let i=0;i<120;i++){g.time+=1/60;animateDream(w,g,1/60);swung=Math.max(swung,hip.quaternion.angleTo(hipRest));}
   assert(swung>.15,`pulled all the way, the giraffe marches on the spot (hip swings ${(swung*180/Math.PI).toFixed(1)}°)`);
-  const walk=skinnedBox(model,w.scene);
-  let top=-1e9;model.traverse(o=>{if(!o.isSkinnedMesh)return;for(let i=0;i<o.geometry.attributes.position.count;i++){o.getVertexPosition(i,v).applyMatrix4(o.matrixWorld);if(v.x>back.x&&v.x<back.x+back.w-.4)top=Math.max(top,v.y);}});
-  assert(near(top,highest,1e-6),'the back the player stands on does not move with the march');
-  assert(walk.min.y>-.05,'and no marching foot sinks into the plaza');
-  station.amount=0;for(let i=0;i<120;i++){g.time+=1/60;animateDream(w,g,1/60);}
+  w.scene.updateMatrixWorld(true);
+  const marching=surface(back,.25,back.w),shift=Math.max(...marching.map((d,i)=>Math.abs(d-backSurface[i])));
+  assert(shift<.03,`the back the player stands on does not move with the march (${shift.toFixed(4)} at most, where the flank blends into a swinging hip)`);
+  assert(skinnedBox(model,w.scene).min.y>-.05,'and no marching foot sinks into the plaza');
+  assert(near(view.pivot.position.x,back.w/2+1,1e-9)&&view.pivot.visible,'with the player on its back it stays home');
+  w.reducedMotion=true;const heldA=settle(back.x+8,10),heldB=settle(L.platforms[0].x,10);
+  assert(heldA.distanceTo(heldB)<1e-6&&hip.quaternion.angleTo(hipRest)<1e-9,'reduced motion holds the head and the legs still');
+  w.reducedMotion=false;station.amount=0;settle(back.x+3,120);
   assert(hip.quaternion.angleTo(hipRest)<1e-9,'let go, the parade sleeps again and the legs return exactly to rest');
-  console.log('PASS the neck turns toward the player and holds under reduced motion; the pulled worm wakes the march on the spot and letting go stills it');
+  console.log('PASS asleep it ignores the player; the pulled worm stirs it to turn to the player and march on the spot; reduced motion holds it');
 
-  // The hatworm on the back: supplied body and hats, names kept, walking on the bones, dying flat.
+  // Leaving: pulled and the player across, it turns and walks off left until hidden; home the moment the player is back left.
   const worm=g.level.enemies.find(e=>e.kind==='hatworm'&&e.y===back.y);assert(worm,'a hatworm patrols the giraffe\'s back');
   const ev=w.enemyViews.get(worm.id);assert(ev?.model&&ev.parts.rig,'its view carries the supplied caterpillar');
+  station.amount=1;g.player.x=back.x+back.w+GIRAFFE_LEAVE.past+2;
+  const home=view.pivot.position.x;let turned=false,walked=false;
+  for(let i=0;i<60*20;i++){g.time+=1/60;animateDream(w,g,1/60);if(Math.abs(view.pivot.rotation.y-Math.PI)<.01)turned=true;if(view.pivot.position.x<home-1)walked=true;}
+  assert(turned&&walked,'it turned to face left and walked');
+  assert(!view.pivot.visible,'and is hidden once out of the frame');
+  assert(ev.parts.body.visible===false,'the hatworm on its back went with it');
+  g.player.x=back.x-10;g.time+=1/60;animateDream(w,g,1/60);
+  assert(view.pivot.visible&&near(view.pivot.position.x,home,1e-9)&&Math.abs(view.pivot.rotation.y)<1e-9,'the player back on the left, it is home again, facing right');
+  assert(ev.parts.body.visible===true,'with its hatworm');
+  station.amount=0;settle(back.x+3,10);
+  console.log(`PASS with the parade awake and the player across, the giraffe turns and walks off left ${GIRAFFE_LEAVE.distance} until hidden, and is home once the player is back left`);
+
+  // The hatworm on the back: supplied body and hats, names kept, walking on the bones, dying flat.
   for(const name of ['Hatworm body','Hatworm head','Hatworm hat 1','Hatworm hat 2','Hatworm hat 3','Supplied clay caterpillar','Dream hat'])assert(ev.root.getObjectByName(name),`the hatworm has ${name}`);
   assert(!ev.root.getObjectByName('Hatworm segment')&&!ev.root.getObjectByName('Hat brim'),'the sculpted beads and hats are gone');
   assert.equal(ev.parts.hats.length,3,'three hats');
@@ -432,8 +456,12 @@ console.log('PASS the dome spin turns the supplied planet');
   for(let i=0;i<60;i++)animateEnemy(ev,worm,1/60,'playing');w.scene.updateMatrixWorld(true);
   const wb=skinnedBox(ev.model,w.scene),hb=new THREE.Box3().setFromObject(ev.root.getObjectByName('Hatworm head'),true);
   assert(near(wb.min.y,worm.y,.03),`feet on the deck (${(wb.min.y-worm.y).toFixed(3)})`);
-  assert(wb.max.x-wb.min.x>HATWORM_MODEL.length-.05&&wb.max.x-wb.min.x<1.5,`about ${HATWORM_MODEL.length} long (${(wb.max.x-wb.min.x).toFixed(2)})`);
-  assert(hb.max.y-worm.y<1.15&&hb.max.y-worm.y>HATWORM.perch,`the stack tops out between the perch and 1.15 (${(hb.max.y-worm.y).toFixed(2)})`);
+  assert(wb.max.x-wb.min.x>HATWORM_MODEL.length-.05&&wb.max.x-wb.min.x<HATWORM_MODEL.length+.3,`about ${HATWORM_MODEL.length} long, hats overhanging a little (${(wb.max.x-wb.min.x).toFixed(2)})`);
+  assert(hb.max.y-worm.y<1.6&&hb.max.y-worm.y>HATWORM.perch,`the stack tops out between the perch and 1.6 (${(hb.max.y-worm.y).toFixed(2)})`);
+  // The first hat sits on the head: its foot is inside the head's dome, not above it.
+  const crownTop=(()=>{let top=-1e9;const p=new THREE.Vector3(),hat1=ev.parts.hats[0].getWorldPosition(new THREE.Vector3());ev.model.traverse(o=>{if(!o.isSkinnedMesh)return;for(let i=0;i<o.geometry.attributes.position.count;i++){o.getVertexPosition(i,p).applyMatrix4(o.matrixWorld);if(Math.abs(p.x-hat1.x)<.12&&Math.abs(p.z-hat1.z)<.12)top=Math.max(top,p.y);}});return top;})();
+  const foot=ev.parts.hats[0].getWorldPosition(new THREE.Vector3()).y;
+  assert(foot<crownTop&&foot>crownTop-.2,`the first hat's foot is set into the crown of the head (foot ${foot.toFixed(3)}, crown ${crownTop.toFixed(3)})`);
   const bones=ev.parts.rig.rest.filter(r=>r.bone!==ev.parts.rig.head).slice(1);
   assert(bones.some(r=>r.bone.position.y>r.position.y+1e-4)&&bones.every(r=>r.bone.position.y>=r.position.y-1e-9),'the hump lifts stations and never pushes one below the deck');
   worm.alive=false;animateEnemy(ev,worm,1/60,'playing');
