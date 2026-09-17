@@ -1,40 +1,45 @@
 import * as THREE from '../lib/three.module.js';
 import {deck,slot,rand} from './support.js';
 import {createDreamView} from '../dream-views.js';
-// Section 6 — The Colour River. ONE idea: three glossy streams of clay, each
+import {sculptClay} from '../clay.js';
+import {riverClay,flowTube,tickRiverClay} from './river-clay.js';
+// Section 6 — The Colour River. ONE idea: three streams of wet clay, each
 // with a verb. Yellow carries (the conveyor ledges ARE the yellow river, with
 // its source welling out of the bank and its plunge into the undertow), pink
 // throws (the springs are the crests of a pink column rising through the
 // yellow), blue sinks (the pads and the raft are blue, the blue lane slides
 // under them and arches over the backwards trench). Banks are the chapter's
 // rolled slabs in the section palette — mint bodies, lavender tops — so the
-// only colours on screen beyond the palette are the two licensed glossy
-// materials, yellow and blue (pink is the accent slot). The one moving thing
-// per screen besides the creatures: the river stripes scroll, and the geyser
-// spout rises out of the pool once the clot is pressed.
+// only colours on screen beyond the palette are the three stream materials.
+// The streams move: the yellow river's stripes scroll, every stream's surface
+// bulges and streaks along its flow (river-clay.js), and the geyser spout
+// rises out of the pool once the clot is pressed.
 
-const YELLOW=0xf2e94e,BLUE=0x2d47d4;
-// The two glossy stream materials, made once per world and kept in w.mat so
-// the streaming disposer and the level rebuild treat them as shared. They
-// carry a `clay` tag without the relief hook: the relief shader clamps
-// roughness to .52, and a stream is meant to shine.
-function glossy(w,name,hex){
-  if(!w.mat[name]){
-    const m=new THREE.MeshStandardMaterial({color:hex,roughness:.25,metalness:0});
-    m.userData.clay={type:'gloss',requestedDepth:0,depth:0};m.name=name;
-    w.mat[name]=m;
-  }
-  return name;
-}
-const yellow=w=>glossy(w,'riverYellow',YELLOW),blue=w=>glossy(w,'riverBlue',BLUE);
+// The stream materials: the formable clay's material recoloured, glossier and
+// flowing (river-clay.js), made once per world and kept in w.mat. Pink is the
+// section accent as its own stream rather than the palette slot, so it flows
+// like the other two.
+const YELLOW=0xf2e94e,BLUE=0x2d47d4,PINK=0xff62b0;
+const yellow=w=>riverClay(w,'riverYellow',YELLOW),blue=w=>riverClay(w,'riverBlue',BLUE),pink=w=>riverClay(w,'riverPink',PINK);
+// How fast each stream's surface travels, in units per second. Yellow keeps
+// pace with its conveyor ledges (5 and -4.5 in the route) so the pour and the
+// stripes agree; blue slides heavily; pink is thrown. A plunge or a fall is
+// handed a higher speed where it is built.
+const SPEED={riverYellow:4.5,riverBlue:1.8,riverPink:2.6};
 const group=(parent,name,x=0,y=0,z=0)=>{const g=new THREE.Group();g.name=name;g.position.set(x,y,z);parent.add(g);return g;};
 const attached=(o,scene)=>{for(let p=o;p;p=p.parent)if(p===scene)return true;return false;};
 
-// A stream: one tube along a smoothed curve through `points` ([x,y,z]).
-function tube(w,parent,points,r,mat,name){
-  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],p[1],p[2]??0)),false,'catmullrom',.5);
-  const n=Math.min(200,Math.max(10,Math.round(curve.getLength()*5)));
-  const m=w.mesh(new THREE.TubeGeometry(curve,n,r,8,false),mat,parent);
+// A stream: one tube along a smoothed curve through `points` ([x,y,z]),
+// authored source to destination so the flow runs the way the points do.
+// Twelve sides and six rings a unit, because a gloss highlight facets on
+// fewer; sculpted at a third of the usual amplitude, since a pour is smooth
+// where kneaded clay is lumpy (w.mesh sees the sculpt and skips its own).
+function tube(w,parent,points,r,mat,name,speed=SPEED[mat]??3){
+  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],p[1],p[2]??0)),false,'catmullrom',.5),len=curve.getLength();
+  const n=Math.min(240,Math.max(12,Math.round(len*6)));
+  const base=new THREE.TubeGeometry(curve,n,r,12,false),g=sculptClay(w,base,{amplitude:.02});
+  if(g!==base)base.dispose();
+  const m=w.mesh(flowTube(g,len,speed),mat,parent);
   m.name=name;return m;
 }
 // Bubbles: small glossy balls that bob on the spot. Registered for animate();
@@ -74,12 +79,12 @@ function blueDeck(w,s,g){
   saucer.scale.z=.62;saucer.name='Blue saucer';
   return view;
 }
-// A pink spring: the crest of the pink column — a fat glossy-looking bulb on
-// a short pink stem with a cream ring. The world's spring animator squashes
-// the whole root on a bounce, which suits a blob better than a pad.
+// A pink spring: the crest of the pink column — a fat glossy bulb on a short
+// pink stem with a cream ring. The world's spring animator squashes the whole
+// root on a bounce, which suits a blob better than a pad.
 function pinkSpring(w,s,g){
   g.position.set(s.x,s.y,0);g.name='Pink crest · '+s.id;
-  const A=slot(w,'accent','gold'),cx=s.w/2;
+  const A=pink(w),cx=s.w/2;
   w.cylinder(.46,1.6,A,g,cx,-1,-.05).name='Pink stem';
   w.ball(s.w*.56,.3,.86,A,g,cx,-.16,0).name='Pink crest pad';
   w.ball(.34,.3,.34,A,g,cx-.55,-.5,.32).name='Pink bead';
@@ -115,16 +120,16 @@ export default {
     //    river; at the river's end it plunges, and the pink column rises
     //    through the plunge to its crest — the first spring.
     prop('stream-a',E.x+5,S1.x+2.2,(w,parent)=>{
-      const P=local(parent),Y=yellow(w),A=slot(w,'accent','gold');
+      const P=local(parent),Y=yellow(w),A=pink(w);
       const g=group(parent,'Yellow source and plunge');
       tube(w,g,[P(E.x+5.2,-1.1,-1.45),P(E.x+6.3,.05,-1.35),P(E.x+7.6,.3,-1.25),P(Y1.x+1.4,.14,-1.15),P(Y1.x+2.6,.1,-1.12)],.5,Y,'Yellow source');
       const end=Y1.x+Y1.w;
       // The plunge crosses the pink column just above the deep's surface,
-      // so the pierce is seen, then dives.
-      tube(w,g,[P(end-1.2,.1,-1.12),P(end+.4,-.04,-1.1),P(S1.x+.9,-.5,-1.1),P(S1.x+1.55,-.98,-1.1),P(S1.x+1.75,-1.7,-1.1),P(S1.x+1.6,-3.6,-1.1)],.5,Y,'Yellow plunge');
-      const pink=group(parent,'Pink column');
-      tube(w,pink,[P(S1.x+.9,-4,-1.05),P(S1.x+.82,-2.3,-1.05),P(S1.x+.98,-.9,-1.05),P(S1.x+.9,.5,-1.02)],.56,A,'Pink column');
-      bubble(w,g,...P(Y1.x+3.4,.55,-1.3),.2,Y,1);bubble(w,g,...P(end+1.5,-1.2,-.7),.17,Y,2);bubble(w,pink,...P(S1.x+1.6,-1.8,-.7),.21,A,3);
+      // so the pierce is seen, then dives — faster, as a fall does.
+      tube(w,g,[P(end-1.2,.1,-1.12),P(end+.4,-.04,-1.1),P(S1.x+.9,-.5,-1.1),P(S1.x+1.55,-.98,-1.1),P(S1.x+1.75,-1.7,-1.1),P(S1.x+1.6,-3.6,-1.1)],.5,Y,'Yellow plunge',6);
+      const column=group(parent,'Pink column');
+      tube(w,column,[P(S1.x+.9,-4,-1.05),P(S1.x+.82,-2.3,-1.05),P(S1.x+.98,-.9,-1.05),P(S1.x+.9,.5,-1.02)],.56,A,'Pink column');
+      bubble(w,g,...P(Y1.x+3.4,.55,-1.3),.2,Y,1);bubble(w,g,...P(end+1.5,-1.2,-.7),.17,Y,2);bubble(w,column,...P(S1.x+1.6,-1.8,-.7),.21,A,3);
     });
 
     // 2. The blue lane slides heavily under the three pads, then arches over
@@ -152,7 +157,7 @@ export default {
       const mouth=w.cylinder(.78,.7,top,cliff,...P(SL.x+.35,Y2.y+.95,-1.3));mouth.rotation.z=Math.PI/2;mouth.name='Pipe mouth';
       const pour=group(parent,'Yellow pour');
       tube(w,pour,[P(SL.x+.5,Y2.y+.92,-1.3),P(SL.x-.5,Y2.y+.7,-1.25),P(Y2.x+Y2.w-1.3,Y2.y+.3,-1.15),P(Y2.x+Y2.w-2.6,Y2.y+.14,-1.12)],.5,Y,'Yellow pour');
-      tube(w,pour,[P(Y2.x+1.1,Y2.y+.12,-1.12),P(Y2.x-.1,Y2.y-.05,-1.12),P(Y2.x-.85,Y2.y-.9,-1.12),P(Y2.x-1,Y2.y-2.2,-1.12),P(Y2.x-.9,Y2.y-3.3,-1.12)],.46,Y,'Yellow fall');
+      tube(w,pour,[P(Y2.x+1.1,Y2.y+.12,-1.12),P(Y2.x-.1,Y2.y-.05,-1.12),P(Y2.x-.85,Y2.y-.9,-1.12),P(Y2.x-1,Y2.y-2.2,-1.12),P(Y2.x-.9,Y2.y-3.3,-1.12)],.46,Y,'Yellow fall',6);
       const ribbon=group(parent,'Yellow ribbon');
       const rx=S2.x+S2.w/2;
       tube(w,ribbon,[P(rx,S2.y-6.4,-1.35),P(rx-.15,S2.y-3,-1.35),P(rx+.2,S2.y+1,-1.35),P(rx-.1,S2.y+5,-1.35),P(rx+.1,S2.y+8.8,-1.35)],.46,Y,'Yellow ribbon');
@@ -163,7 +168,7 @@ export default {
     // 4. The pool: a blue surface over the bed, the pink spout that bursts up
     //    once the clot is pressed (a bud until then), and the crest riding it.
     prop('pool',PB.x+PB.w-.5,FB.x+.5,(w,parent)=>{
-      const P=local(parent),B=blue(w),A=slot(w,'accent','gold');
+      const P=local(parent),B=blue(w),A=pink(w);
       const left=PB.x+PB.w,right=FB.x,surface=PB.y-4;
       const pool=group(parent,'Blue pool');
       w.box(right-left+.3,1.6,3,B,pool,...P((left+right)/2,surface-.8,0),.3);
@@ -185,7 +190,7 @@ export default {
       const P=local(parent),B=blue(w);
       const g=group(parent,'Blue fall');
       const bx=B4.x+B4.w/2;
-      tube(w,g,[P(bx-.2,B4.y-.4,-1.35),P(bx+.1,B4.y-2.2,-1.35),P(bx-.15,EX.y-.1,-1.35),P(bx+1,EX.y-.95,-1.35),P(EX.x+1.8,EX.y-1.1,-1.35)],.5,B,'Blue fall');
+      tube(w,g,[P(bx-.2,B4.y-.4,-1.35),P(bx+.1,B4.y-2.2,-1.35),P(bx-.15,EX.y-.1,-1.35),P(bx+1,EX.y-.95,-1.35),P(EX.x+1.8,EX.y-1.1,-1.35)],.5,B,'Blue fall',5);
       bubble(w,g,...P(bx+.6,B4.y-1.6,-.75),.18,B,10);bubble(w,g,...P(bx-.55,EX.y+.9,-.75),.15,B,11);
     });
 
@@ -220,11 +225,13 @@ export default {
     for(const [dx,rx] of [[26,9],[58,7]]){const g=layers.place(far,section.x+dx,-6,-58);g.name='River mesa';w.ball(rx,3.6,4,'back',g,0,0,0);}
   },
 
-  // Per frame: the geyser rises while its channel is open and settles back to
-  // a bud when it is not (only in the lab does a channel ever close again);
-  // bubbles bob on the streams. Transform-only.
+  // Per frame: the streams' clock advances (their flow lives in the shader);
+  // the geyser rises while its channel is open and settles back to a bud when
+  // it is not (only in the lab does a channel ever close again); bubbles bob
+  // on the streams. Everything else is transform-only.
   animate(w,game,dt,section,ctx){
     const t=ctx.time,still=ctx.reducedMotion;
+    tickRiverClay(t,still);
     const gz=w.riverGeyser;
     if(gz&&attached(gz.spout,w.scene)){
       const on=!!game.latched['river-geyser']||game.channels['river-geyser']>0;

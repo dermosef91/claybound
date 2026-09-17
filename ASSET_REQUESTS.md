@@ -22,4 +22,4 @@ Every creature, statue and piece of furniture in the dream ships as a sculpted c
 | Floating eye | The Breathing Corridor walls and the `blinker` creature | Cream eyeball with an iris and a lid; iris and lid as separate parts for tracking and blinking | Creature radius .5, origin at the centre. |
 | The dream flower | The Dream Knot's ending | One ordinary clay flower: a stem, two leaves, six petals and a heart, petals as separate parts so they can fold into a lump | About 1 tall, origin at the stem's foot. |
 
-The chapter's only new materials are three glossy stream colours (roughness about .25) and one torus-knot geometry; both are built in code and need no asset.
+The chapter's only new materials are the three stream clays of the Colour River (the formable clay's material recoloured yellow, pink and blue, glossy, with a travelling wave and flowing streaks in the shader — `dist/dream/river-clay.js`) and one torus-knot geometry; both are built in code and need no asset.
