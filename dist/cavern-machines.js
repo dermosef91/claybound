@@ -6,6 +6,12 @@ const approach=(a,b,d)=>a<b?Math.min(b,a+d):Math.max(b,a-d);
 // simulation and the audit all agree on what an unfilled field means.
 export const SINK=Object.freeze({rate:1.2,drop:2});
 export const FOLD=Object.freeze({duration:1.5,thickness:.9});
+// A trolley hanging from a braided cable, strung between two masts. Weight
+// alone sends it, like the ferry and the raft: `travel` and `drop` are where
+// the far mast stands relative to the near one, and `duration` is how long the
+// run takes. `recall` is the pause before an empty trolley is hauled back up,
+// and `haul` how much faster than the ride that return is.
+export const ZIP=Object.freeze({travel:24,drop:8,duration:4,recall:1.4,haul:1.6});
 export function updateCavernMachine(s,p,time,dt,channels){
   if(s.kind==='gate'){
     const unlocked=channels[s.channel]>0;
@@ -33,6 +39,23 @@ export function updateCavernMachine(s,p,time,dt,channels){
     s.velocity=approach(s.velocity||0,s.drive*(s.speed||3.2),dt*9);
     s.x=Math.max(s.baseX,Math.min(s.baseX+(s.travel||24),s.x+s.velocity*dt));
     if(s.x===s.baseX&&s.velocity<0||s.x===s.baseX+(s.travel||24)&&s.velocity>0)s.velocity=0;
+  }
+  if(s.kind==='zip'){
+    // It leaves the mast the tick after someone stands on it and runs one way
+    // to the far deck, eased at both ends so a rider is neither snatched off
+    // the dock nor stopped dead at the landing. Empty, it is hauled back up
+    // the way an abandoned ferry returns to its dock, so a missed landing or a
+    // checkpoint restart can never strand anyone at the bottom of a one-way
+    // ride. The ease peaks at 1.5x the mean, and the landing filter lets a
+    // deck fall .14 a tick, so `1.5*drop/duration` is what has to stay under
+    // that — a rule the audit checks rather than the ride clamping itself.
+    const occupied=p.groundId===s.id,duration=s.duration??ZIP.duration;
+    s.emptyTime=occupied?0:(s.emptyTime||0)+dt;
+    if(occupied)s.run=Math.min(duration,(s.run||0)+dt);
+    else if(s.emptyTime>ZIP.recall)s.run=Math.max(0,(s.run||0)-dt*ZIP.haul);
+    const t=duration>0?Math.min(1,(s.run||0)/duration):1,ease=t*t*(3-2*t);
+    s.x=s.baseX+(s.travel??ZIP.travel)*ease;
+    s.y=s.baseY-(s.drop??ZIP.drop)*ease;
   }
   if(s.kind==='sink'){
     // Weight alone moves it: it settles at `rate` while stood on, as far as
