@@ -81,7 +81,7 @@ function assemble(parts,table,{spawn,name,short,label,intro}){
     platforms,route,
     detours:collect('detours'),recoveries:collect('recoveries'),
     coins:collect('coins'),stamps:collect('stamps'),enemies:collect('enemies'),hazards:collect('hazards'),
-    hints:collect('hints'),winds:collect('winds'),triggers:collect('triggers'),shaping:collect('shaping'),
+    hints:collect('hints'),winds:collect('winds'),triggers:collect('triggers'),crushers:collect('crushers'),shaping:collect('shaping'),
     palettes,camera,guides:collect('guides'),
     dreamSections:table,
     ...(finale?{finale}:{})
