@@ -88,6 +88,9 @@ async function serve(){
    body+='\nwindow.playtest={manual:false,get game(){return game},get world(){return world},get input(){return input},begin,home,draw(dt=0){world.render(game,dt);healthHUD.draw(game,dt);updateHUD(performance.now());},tick(n){for(let i=0;i<n;i++)game.tick(FIXED_DT,input);}};';
    await route.fulfill({contentType:'text/javascript',body});
   });
+  // The dream is offered only once ß has been typed on the chapter list; a
+  // review is that player, so the unlock is saved before the app reads it.
+  await page.addInitScript(()=>{try{const key='claybound-v1',s=JSON.parse(localStorage.getItem(key)||'{}');s.labUnlocked=true;localStorage.setItem(key,JSON.stringify(s));}catch{}});
   await page.goto(`http://127.0.0.1:${port}/`);
   await page.waitForFunction(()=>window.playtest&&document.body.classList.contains('title-scene-ready'),null,{timeout:120000});
   await page.evaluate(()=>{playtest.manual=true;});
@@ -106,6 +109,16 @@ async function serve(){
     // Deterministic machinery: the same number of fixed steps from a fresh
     // chapter start puts every mover in the same place every run.
     g.time=0;g.level.platforms.forEach(p=>{if(p.kind==='orbit'||p.kind==='ferry'||p.kind==='lift'){p.x=p.baseX??p.x;p.y=p.baseY??p.y;}});
+    // A spot may ask for stations already worked (`shaped:[ids]`): a posed
+    // piece is set to its full pose, a free mass to its authored solution, and
+    // the channel each opens is latched, so the frame shows the beat's end.
+    for(const entry of spot.shaped||[]){
+      const {id,amount=1}=typeof entry==='string'?{id:entry}:entry;
+      const station=g.level.shaping.find(s=>s.id===id);if(!station)continue;
+      if(station.rule==='form'){const {solveFormStation}=await import('./clay-rules.js');const s=g.level.platforms.find(p=>p.id===station.parts[0]);solveFormStation(station,s);station.done=true;}
+      else{station.target=station.amount=amount;station.announced=amount>=1;}
+      if(station.channel&&amount>=1){g.channels[station.channel]=100;g.latched[station.channel]=true;}
+    }
     playtest.tick(spot.ticks||120);
     Object.assign(g.player,{x:spot.x,y:spot.y,vx:0,vy:0,facing:1,groundId:spot.ground||null});
     w.syncVisible(g.level,spot.x,true);
