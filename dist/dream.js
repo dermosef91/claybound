@@ -167,6 +167,17 @@ function dreamProps(w,L){
   }
   w.dreamPropsFor=L;w.dreamProps=list;return list;
 }
+// A section may draw its own hazards: the engine's cream spike rows suit a
+// canyon, not a corridor of soft cones or a pool of ink. The hook receives a
+// group already standing at the band's corner and returns true to keep it;
+// anything else falls back to the shared spikes.
+export function dreamHazardView(w,L,h){
+  const section=dreamSectionAt(L,h.x),visual=section&&dreamVisual(section.key);
+  if(!visual?.hazard)return null;
+  const g=new THREE.Group();g.name='Dream hazard';g.position.set(h.x,h.y,0);w.levelRoot.add(g);
+  if(visual.hazard(w,h,g,section))return g;
+  g.removeFromParent();return null;
+}
 export function syncDreamScenery(w,L,near,addScenery){
   for(const prop of dreamProps(w,L)){
     const width=prop.w??2;

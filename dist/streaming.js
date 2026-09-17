@@ -12,7 +12,7 @@ import {clayCacheOverBudget,trimClayShapes,clayShape,sculptClay} from './clay.js
 import {createMotherPuff} from './mother-puff.js';
 import {caveWallDressing} from './cavern.js';
 import {settleSquash,squashPending} from './clay-shatter.js';
-import {syncDreamScenery} from './dream.js';
+import {syncDreamScenery,dreamHazardView} from './dream.js';
 
 const attached=(o,root)=>{for(let p=o;p;p=p.parent)if(p===root)return true;return false;};
 export function disposeBranch(w,root){
@@ -103,7 +103,7 @@ export function syncStream(w,L,center,force=false){
   // lobes, lip and hanging moss the cave dresses it with are scenery of their
   // own, rebuilt with the platform whenever the editor moves it.
   if(w.biome==='cave')for(const s of L.platforms)if(s.kind==='wall'&&near(s.x,s.w))addScenery('walldress:'+s.id,()=>caveWallDressing(w,s),()=>{},s.x);
-  L.hazards.forEach((h,i)=>{if(near(h.x,h.w))add('h:'+i,()=>hazard(w,h),()=>{},h.x);});
+  L.hazards.forEach((h,i)=>{if(near(h.x,h.w))add('h:'+i,()=>(w.biome==='dream'&&dreamHazardView(w,L,h))||hazard(w,h),()=>{},h.x);});
   // A defeated creature stays streamed in until its pressed disc has broken.
   // A view dropped before then all the same — one the camera has left far
   // behind — breaks on the spot, so nothing just vanishes.
