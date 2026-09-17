@@ -1,7 +1,7 @@
 import * as THREE from './lib/three.module.js';
 import {canyonModel} from './canyon-assets.js';
 import {cloudModel} from './clouds.js';
-import {clayMaterial,clayBox,cachedClayShape,retainClayShape,positionGroups} from './clay.js';
+import {clayMaterial,clayBox,cachedClayShape,retainClayShape,clayShape,positionGroups} from './clay.js';
 import {archLiftCeiling} from './great-arch.js';
 import {makeMovingPlatform} from './moving-platform.js';
 
@@ -54,6 +54,27 @@ function fence(w,parent,x,y,count=3){
   w.box((count-1)*.85+.08,.17,.15,'barkLight',parent,x+(count-1)*.425,y+.49,-.93,.06);
 }
 
+// Planks across the deck, a head beam along its front edge, posts down to the
+// rock and a diagonal brace under each one. Everything hangs below the deck
+// top, which stays the collision plane.
+function timberDeck(w,s,g){
+  const boards=Math.max(2,Math.round(s.w/1.15)),boardW=s.w/boards;
+  for(let i=0;i<boards;i++){
+    const seed=i*7+Math.floor(s.x);
+    const board=w.box(boardW-.07,.3,3.5,i%2?'bark':'barkLight',g,(i+.5)*boardW,-.16,0,.07);
+    board.rotation.z=(random(seed)-.5)*.012;board.name='Deck board';
+  }
+  w.box(s.w+.12,.26,.42,'bark',g,s.w/2,-.42,1.74,.08).name='Deck head beam';
+  const posts=Math.max(2,Math.round(s.w/4.5));
+  for(let i=0;i<posts;i++){
+    const x=.85+i*(s.w-1.7)/Math.max(1,posts-1);
+    w.box(.34,3.3,.36,'bark',g,x,-1.95,1.5,.09).name='Deck post';
+    const brace=w.box(.24,2.1,.28,'barkLight',g,x+.62,-1.3,1.42,.07);brace.rotation.z=.62;brace.name='Deck brace';
+    for(const at of [-.42,.42])w.rope([x+at,-.36,1.72],[x+at*.4,-.78,1.34],g,.045).name='Deck lashing';
+  }
+  cactus(w,g,s.w-1.5,.02,1.5,-1.1,(random(s.x)-.5)*.3);
+}
+
 export function buildCanyonTerrain(w,s,g){
   g.name='Canyon cliff '+s.id;
   if(s.id==='arch-bridge-left'||s.id==='arch-bridge-right'){
@@ -68,6 +89,16 @@ export function buildCanyonTerrain(w,s,g){
     for(let row=0;row<rows.length;row++){
       const h=rows[row];block(w,g,cw+.15,h+.2,3.35+(row%2)*.12,(i+.5)*cw,top-h/2,-.05,(i+row)%4===1?'terrain2':'terrain',seed+row*5);top-=h;
     }
+  }
+  // A timber deck is laid over the sandstone instead of a torn stone cap: a
+  // boarded platform on posts, the way the caravan finishes a landing it means
+  // to stand on. The collision plane is still the deck top, so the boards sit
+  // in the same place the cap would have.
+  if(s.timber){
+    timberDeck(w,s,g);
+    if(s.checkpoint)w.flag(s.checkpoint-s.x,.035,g,.83,s.id);
+    if(s.goal)w.makeBell(g,s.bellX??s.w-3.5,.1);
+    return;
   }
   // Flat tops still agree with collision; separate cap pieces expose soft,
   // torn edges and irregular rock chips along the front of the cliff.
@@ -133,4 +164,82 @@ export function buildCanyonBackdrop(w){
 
 export function makeCanyonLift(w,s,g){
   return makeMovingPlatform(w,s,g,{ceiling:archLiftCeiling(w,s)});
+}
+
+// --- the summit ropeway --------------------------------------------------------
+// A trolley on a braided cable strung between two raked timber masts. The deck
+// group the streamer hands us is moved to the trolley every frame, so anything
+// that must stand still in the world — both masts and the cable between them —
+// hangs off a span group that is counter-translated back, the way the ferry
+// keeps its rail still while its deck slides (cavern-machine-views.js).
+//
+// `w.rope` would draw this cable, but its twist is fixed at 24 turns a unit and
+// its tube capped at 400 segments: over sixty units that is 1500 turns sampled
+// twice each, which aliases into noise. A cable is a rope seen from far enough
+// away that the lay of it is the whole read, so the pitch is a parameter here
+// and the sampling follows it.
+function cable(w,parent,from,to,radius=.075){
+  const a=new THREE.Vector3(...from),b=new THREE.Vector3(...to),dir=b.clone().sub(a),length=dir.length();
+  const g=new THREE.Group();g.position.copy(a);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());parent.add(g);
+  const pitch=1.1,samples=Math.min(900,Math.max(24,Math.ceil(length/pitch*12)));
+  const geo=clayShape(w,`canyon-cable:${length.toFixed(2)}:${radius.toFixed(3)}`,()=>{
+    const points=[];
+    for(let i=0;i<=samples;i++){
+      const t=i/samples*length,angle=t/pitch*Math.PI*2;
+      points.push(new THREE.Vector3(Math.cos(angle)*radius*.42,t,Math.sin(angle)*radius*.42));
+    }
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),samples,radius,6,false);
+  });
+  const mesh=w.mesh(geo,'bark',g);mesh.name='Spun cable';mesh.castShadow=false;
+  return g;
+}
+
+// One mast: two raked legs under a lashed head, with the sheave the cable runs
+// over. `turn` faces it down the cable or back up it.
+function mast(w,parent,x,y,z,turn){
+  const g=new THREE.Group();g.name='Ropeway mast';g.position.set(x,y,z);g.rotation.y=turn;parent.add(g);
+  for(const lean of [-.26,.2]){
+    const leg=w.box(.3,3.4,.3,'bark',g,Math.sin(lean)*1.5,-1.7,Math.cos(lean)*.12-.12,.09);
+    leg.rotation.z=lean;leg.name='Raked mast leg';
+  }
+  const brace=w.box(2.2,.22,.26,'barkLight',g,0,-1.15,0,.08);brace.rotation.z=.07;brace.name='Mast cross brace';
+  w.box(1.5,.3,.42,'bark',g,0,.05,0,.1).name='Lashed mast head';
+  for(const at of [-.5,.5])w.rope([at,.22,.24],[at,-.12,-.24],g,.05).name='Mast head lashing';
+  // The wheel faces the camera, as a wheel in a side-view does; turned on its
+  // axis it reads as a stick.
+  w.mesh(new THREE.TorusGeometry(.3,.1,9,20),'accent',g,.62,.02,.1).name='Ropeway sheave';
+  w.ball(.1,.1,.11,'gold',g,.62,.02,.2).name='Sheave hub';
+  return g;
+}
+
+export function makeCanyonZip(w,s,g){
+  g.name='Summit ropeway';
+  const view={root:g},travel=s.travel??24,drop=s.drop??8;
+  // Local coordinates: the deck group sits at the trolley, and the span group
+  // is pushed back to the near mast every frame by animateCanyonZip.
+  const span=new THREE.Group();span.name='Ropeway span';g.add(span);
+  const head=2.15;                                   // how far the cable rides above the deck line
+  mast(w,span,0,head,-.3,0);
+  mast(w,span,travel,head-drop,-.3,Math.PI);
+  cable(w,span,[.62,head+.02,-.2],[travel-.62,head-drop+.02,-.2]);
+  // The trolley itself rides with the deck, so it stays at the group origin.
+  const trolley=new THREE.Group();trolley.name='Ropeway trolley';g.add(trolley);
+  const deck=w.box(s.w,.34,1.5,'bark',trolley,s.w/2,-.17,0,.1);deck.name='Trolley deck';
+  w.box(s.w-.5,.1,1.15,'barkLight',trolley,s.w/2,-.02,0,.05).name='Trolley deck boards';
+  for(const at of [.45,s.w-.45])w.rope([at,-.02,.1],[s.w/2,head-.56,-.16],trolley,.055).name='Trolley hanger';
+  const yoke=w.box(.26,.46,.3,'barkLight',trolley,s.w/2,head-.74,-.16,.08);yoke.name='Trolley yoke';
+  // The groove sits on the cable, so the wheel hangs a radius below it.
+  const sheave=w.mesh(new THREE.TorusGeometry(.34,.11,10,22),'accent',trolley,s.w/2,head-.3,-.2);
+  sheave.name='Trolley sheave';
+  w.ball(.11,.11,.12,'gold',trolley,s.w/2,head-.3,-.09).name='Trolley sheave hub';
+  view.span=span;view.sheave=sheave;view.sheaveRadius=.34;
+  return view;
+}
+
+// The masts and their cable belong to the world, not to the deck that carries
+// them, and the sheave turns with the distance run.
+export function animateCanyonZip(w,s,view){
+  if(!view?.span)return;
+  view.span.position.set(s.baseX-s.x,s.baseY-s.y,0);
+  view.sheave.rotation.z=-(s.x-s.baseX)/view.sheaveRadius;
 }

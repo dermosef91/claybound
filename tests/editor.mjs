@@ -10,8 +10,8 @@ const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
 // The incognito export is the source of truth, including deliberate deletions.
 {
  const canonical=validateDraft(LEVELS[0],LEVELS[0]);
- assert.equal(LEVELS[0].layoutVersion,9);assert(!LEVELS[0].custom);
- assert.equal(canonical.layoutVersion,'editor-9-yzarhn','canonical canyon matches the approved editor export');
+ assert.equal(LEVELS[0].layoutVersion,10);assert(!LEVELS[0].custom);
+ assert.equal(canonical.layoutVersion,'editor-10-1gws4fw','canonical canyon matches the approved editor export');
  // The pocket's formable mass survives the round trip as data: its rule, its
  // clump and its solution, bounded, and no other rule is ever let in.
  const pocket=canonical.shaping.find(s=>s.id==='canyon-pocket'),authored=LEVELS[0].shaping.find(s=>s.id==='canyon-pocket');
@@ -48,14 +48,17 @@ for(let index=0;index<LEVELS.length;index++){
  assert.deepEqual(normalized.circuits,LEVELS[index].circuits);
  const roundtrip=library.read(library.export(index,normalized),index);assert.deepEqual(roundtrip,normalized);
  const s=new DraftSession(library,index);s.selection={list:'platforms',index:0};
- s.startChange();s.move(2,1,true);s.commit();assert.equal(s.level.spawn.x,LEVELS[index].spawn.x+2);assert.equal(s.level.spawn.y,1);
+ // A chapter may start on a plateau rather than at ground level, so every
+ // height here is read against the deck the draft actually opens on.
+ const base=LEVELS[index].platforms[0].y,lifted=base+1;
+ s.startChange();s.move(2,1,true);s.commit();assert.equal(s.level.spawn.x,LEVELS[index].spawn.x+2);assert.equal(s.level.spawn.y,lifted);
  assert.equal(s.level.platforms[0].x,LEVELS[index].platforms[0].x+2);assert(s.level.custom);
- const revised=s.level.layoutVersion;s.undo();assert.equal(s.level.spawn.y,0);s.redo();assert.equal(s.level.layoutVersion,revised);
- const reopened=new DraftLibrary(LEVELS,storage);assert.equal(reopened.get(index).spawn.y,1);
- const game=new Game();game.start(index,reopened.get(index));assert.equal(game.player.groundId,'start');assert.equal(game.player.y,1);
- game.tick(FIXED_DT,{jumpPressed:true,jumpHeld:true});assert(game.player.vy>0);assert(game.player.y>1);assert.equal(reopened.get(index).platforms[0].y,1,'runtime never mutates saved draft');
+ const revised=s.level.layoutVersion;s.undo();assert.equal(s.level.spawn.y,base);s.redo();assert.equal(s.level.layoutVersion,revised);
+ const reopened=new DraftLibrary(LEVELS,storage);assert.equal(reopened.get(index).spawn.y,lifted);
+ const game=new Game();game.start(index,reopened.get(index));assert.equal(game.player.groundId,'start');assert.equal(game.player.y,lifted);
+ game.tick(FIXED_DT,{jumpPressed:true,jumpHeld:true});assert(game.player.vy>0);assert(game.player.y>lifted);assert.equal(reopened.get(index).platforms[0].y,lifted,'runtime never mutates saved draft');
 }
-console.log('PASS all five drafts: normalization, connections, persistence, carry contents, undo/redo, and real runtime loading');
+console.log('PASS a draft of every chapter: normalization, connections, persistence, carry contents, undo/redo, and real runtime loading');
 {
  const s=new DraftSession(library,0),index=s.level.platforms.findIndex(p=>p.goal),oldEnd=s.level.end;s.selection={list:'platforms',index};s.startChange();s.move(3,2);s.commit();assert.equal(s.level.end,oldEnd+3);
  assert.throws(()=>s.remove(),/finish/);s.set('w',8);assert(s.level.end<s.level.platforms[index].x+8);s.undo();

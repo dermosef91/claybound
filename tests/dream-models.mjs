@@ -1,19 +1,22 @@
-// The Soft Dream's supplied models: the Upside-Down Orchard's two clay planets
-// and two frosted saucer bowls, and the Melted Parade's clay hat. Checks the
-// shipped files against their manifest (the hat is the one decimated from its
-// upload, and the one that must stay light), re-fits each planet's core orb
-// from the shipped vertices against the constants the placement relies on,
-// and builds the orchard on a CPU World to prove the orb lands exactly on the
-// dome's collider, every rope-hung saucer's flat top lies on its walk plane,
-// the bare-rig fallback still builds, and the rider's spin still turns the
-// planet. Then the parade: five hats stacked foot on crown on the hat-worm's
-// plinth, tumbling to the pulled bridge's back exactly as the sculpted ones
-// did, and the sculpted ones back on a rig without the model. Then the two
-// creatures: the caterpillar's load-time rig and the giraffe's parade pose,
-// the giraffe fitted under its four decks with its neck turning to the player
-// and its legs marching once the worm is pulled, and the hatworm on its back
-// as the caterpillar in three hats — walking on its bones, dying flat,
-// streaming and falling back to the sculpted worm without the models.
+// The Soft Dream's supplied models: the Upside-Down Orchard's two clay planets,
+// two frosted saucer bowls and the abstract sculpture its canopy is made of,
+// the Melted Parade's clay hat, and its two creatures. Checks the shipped
+// files against their manifest (the hat is the one decimated from its upload,
+// and the one that must stay light), re-fits each planet's core orb from the
+// shipped vertices against the constants the placement relies on, and builds
+// the orchard on a CPU World to prove the orb lands exactly on the dome's
+// collider, every rope-hung saucer's flat top lies on its walk plane, the
+// canopy's sculptures hang over the ropes as modelled with variety, the
+// bare-rig fallback still builds, and the rider's spin still turns the planet.
+// Then the parade: five hats stacked foot on crown on the hat-worm's plinth,
+// tumbling to the pulled bridge's back exactly as the sculpted ones did, and
+// the sculpted ones back on a rig without the model. Then the two creatures:
+// the caterpillar's load-time rig and the giraffe's parade pose, the giraffe
+// as the climb itself — its decks lying on its back, in the crook of its neck
+// and on its head — asleep, stirred by the pull and walking off once the
+// player is across, and the hatworm on its back as the caterpillar in three
+// hats — walking on its bones, dying flat, streaming and falling back to the
+// sculpted worm without the models.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
@@ -27,7 +30,7 @@ import {createCaveLights} from '../dist/cave-lighting.js';
 import {animateDreamViews} from '../dist/dream-views.js';
 import {animateDream} from '../dist/dream.js';
 import {HAT_WIDTHS,HAT_NEST,GIRAFFE_WITHERS,GIRAFFE_LEAVE} from '../dist/dream/parade.js';
-import {DREAM_FILES,PLANET_ORBS,dreamPlanet,dreamSaucer,dreamHat,dreamHatHeight,dreamCaterpillar,dreamGiraffe,skinnedBox} from '../dist/dream-assets.js';
+import {DREAM_FILES,PLANET_ORBS,dreamPlanet,dreamSaucer,dreamSculpture,dreamHat,dreamHatHeight,dreamCaterpillar,dreamGiraffe,skinnedBox} from '../dist/dream-assets.js';
 import {CATERPILLAR_RIG,CATERPILLAR_HEAD,GIRAFFE_BONES,GIRAFFE_POSE} from '../dist/dream-rigs.js';
 import {HATWORM_MODEL} from '../dist/dream-enemies.js';
 import {HATWORM} from '../dist/dream-enemy-rules.js';
@@ -103,7 +106,7 @@ assert.equal(manifest['dream-giraffe.glb'].joints,40,'the giraffe ships its fort
 assert(!manifest['dream-hat.glb'].geometryUnchanged&&/simplify/.test(manifest['dream-hat.glb'].adaptation),'the hat ships decimated');
 assert(manifest['dream-hat.glb'].triangles<=12000,`the hat stays light (${manifest['dream-hat.glb'].triangles} triangles)`);
 assert.equal(manifest['dream-hat.glb'].textures.length,2,'the hat ships its colour and normal maps only');
-console.log('PASS the seven dream models match their manifest: fingerprints, sizes, 1024 textures, triangle counts, retained resources; the hat is the decimated, matte copy; the two creatures are skinned');
+console.log('PASS the eight dream models match their manifest: fingerprints, sizes, 1024 textures, triangle counts, retained resources; the hat is the decimated, matte copy; the two creatures are skinned');
 
 // --- 2. each planet's core orb is where the constants say ---------------------------------
 for(const [key,orb]of Object.entries(PLANET_ORBS)){
@@ -117,7 +120,7 @@ for(const [key,orb]of Object.entries(PLANET_ORBS)){
 }
 console.log('PASS both planets\' core orbs re-fit from the shipped vertices to within 1% of PLANET_ORBS');
 
-// --- 3. placements: clones share resources, the orb sits on the origin, the bowl top on the plane
+// --- 3. placements: clones share resources, the orb sits on the origin, the bowl top on the plane, the sculpture's box on the origin
 {
   const a=new THREE.Group(),b=new THREE.Group();
   const p1=dreamPlanet(bare,'mint',a,3),p2=dreamPlanet(bare,'mint',b,2);
@@ -134,6 +137,17 @@ console.log('PASS both planets\' core orbs re-fit from the shipped vertices to w
     assert(near(box.max.y,0,1e-6),'its top face is the parent plane');assert(box.min.y<-width*.45,'and the bowl hangs below');
     assert(near(box.min.x+box.max.x,0,1e-6)&&near(box.min.z+box.max.z,0,1e-6),'centred on the origin');
   }
+  // The sculpture: `width` across with its box centred on the origin, so a canopy piece turns about its middle.
+  const c1=dreamSculpture(bare,'sculpture',a,8),c2=dreamSculpture(bare,'sculpture',b,6);
+  assert.equal(firstMesh(c1).geometry,firstMesh(c2).geometry);assert.equal(firstMesh(c1).material,firstMesh(c2).material);
+  a.updateMatrixWorld(true);b.updateMatrixWorld(true);
+  for(const [piece,width]of [[c1,8],[c2,6]]){
+    const box=new THREE.Box3().setFromObject(piece,true),size=box.getSize(new THREE.Vector3());
+    assert(near(size.x,width,1e-6),'a sculpture is the asked width');
+    assert(near(box.min.x+box.max.x,0,1e-6)&&near(box.min.y+box.max.y,0,1e-6)&&near(box.min.z+box.max.z,0,1e-6),'its box is centred on the origin, to turn about');
+    assert(piece.userData.size.distanceTo(size)<1e-6,'and it reports the placed box for seating');
+    assert(size.y>width*.4&&size.y<width*.5&&size.z>width*.45&&size.z<width*.55,'the loaf keeps its proportions under the uniform fit');
+  }
   // The hat: brim `width` across, foot on the origin, standing as tall as dreamHatHeight says.
   const h1=dreamHat(bare,a,1.56),h2=dreamHat(bare,b,1.16);
   assert.equal(firstMesh(h1).geometry,firstMesh(h2).geometry);assert.equal(firstMesh(h1).material,firstMesh(h2).material);
@@ -148,7 +162,7 @@ console.log('PASS both planets\' core orbs re-fit from the shipped vertices to w
     assert(near(box.min.x+box.max.x,0,1e-6)&&near(box.min.z+box.max.z,0,1e-6),'centred on the origin');
   }
 }
-console.log('PASS planet, saucer and hat placements: shared geometry and material, orb on the origin at the asked radius, bowl top on the plane, hat foot on the plane at the asked width');
+console.log('PASS planet, saucer, sculpture and hat placements: shared geometry and material, orb on the origin at the asked radius, bowl top on the plane, sculpture box centred, hat foot on the plane at the asked width');
 
 // --- 4. the orchard built on a CPU World ----------------------------------------------------
 // The rig tests/dream-sections.mjs uses, with the dream's models attached.
@@ -211,6 +225,42 @@ for(const id of SAUCERS){
 assert.equal(bowls.size,2,'both bowls appear across the orchard\'s five saucers: '+[...bowls].join(', '));
 console.log('PASS all five rope-hung saucers are the supplied bowls, top on the walk plane and spanning the deck, rope kept, both bowls used');
 
+// The canopy: every streamed canopy prop hangs two sculptures as modelled, the
+// balls gone, the apples kept; the twelve differ in size and turn; and each
+// rope's top ends inside a piece's box — the foot and the overhanging sides
+// that face the player hide it.
+const canopyGroups=()=>[...Array(6).keys()].map(i=>w.levelRoot.getObjectByName('dream:orchard:canopy-'+i)).filter(Boolean);
+{
+  const groups=canopyGroups(),pieces=[],boxes=[];
+  assert(groups.length>=2,'canopy props are streamed in around x 40 ('+groups.length+')');
+  for(const prop of groups){
+    const here=prop.getObjectByName('Orchard canopy').children.filter(c=>/^Dream sculpture /.test(c.name));
+    assert.equal(here.length,2,prop.name+' hangs two sculptures');
+    assert(!prop.getObjectByName('Canopy ball'),'the balls have left '+prop.name);
+    assert(prop.getObjectByName('Lemon apple'),'the apples still hang under '+prop.name);
+    pieces.push(...here);
+  }
+  for(const piece of pieces){
+    assert(Math.abs(piece.rotation.x)<=.08&&Math.abs(piece.rotation.z)<=.08&&Math.abs(piece.rotation.y)<=.22,'a piece hangs as modelled, turned and tilted only subtly');
+    const box=new THREE.Box3().setFromObject(piece,true);boxes.push(box);
+    assert(near(box.max.x-box.min.x,piece.userData.size.x,piece.userData.size.x*.03),'its width survives the turn to within 3%');
+    piece.traverse(o=>{if(o.isMesh)assert(o.material.userData.clay,'the canopy wears the clay surface');});
+  }
+  assert(new Set(pieces.map(p=>p.userData.size.x.toFixed(3))).size>1,'the pieces are not all one width');
+  assert(new Set(pieces.map(p=>p.rotation.y.toFixed(3))).size>1,'nor all one turn');
+  let ropes=0;
+  for(const id of SAUCERS){
+    const view=w.platforms.get(id),anchor=view.rope.userData.ceiling;if(!anchor)continue;
+    const at=view.rope.getWorldPosition(new THREE.Vector3());
+    const over=boxes.filter(b=>b.min.x<=at.x&&at.x<=b.max.x&&b.min.z<=at.z&&at.z<=b.max.z);
+    if(!over.length)continue;ropes++;
+    const under=Math.min(...over.map(b=>b.min.y)),above=Math.max(...over.map(b=>b.max.y));
+    assert(under<anchor.y&&anchor.y<above,`${id}: the rope top ${anchor.y.toFixed(2)} ends inside the canopy (${under.toFixed(2)}..${above.toFixed(2)})`);
+  }
+  assert(ropes>=2,'at least two streamed ropes rise under a streamed piece ('+ropes+')');
+  console.log(`PASS the canopy is the supplied sculpture, hung as modelled with subtle variety, balls gone, apples kept: ${groups.length} props, ${pieces.length} pieces, ${ropes} rope tops inside it`);
+}
+
 // Streaming out and back in keeps the shared resources and brings the models back.
 w.syncVisible(g.level,900,true);assert(!w.platforms.get('orchard-dome-1'),'the domes stream out far away');
 w.syncVisible(g.level,14,true);
@@ -224,12 +274,15 @@ assert.equal(sharedDisposals,0,'no shared geometry or material was disposed by s
   assert(sphere.getObjectByName('Dome ball')&&sphere.getObjectByName('Dome equator'),'without the planets the dome is the mint ball with its equator');
   assert(!sphere.getObjectByName('Dream planet mint'));
   assert(w.platforms.get('orchard-saucer-1').root.getObjectByName('Saucer bowl'),'and a saucer is the sculpted bowl');
+  const fallen=canopyGroups();assert(fallen.length>0,'a canopy prop is streamed in around x 14');
+  for(const prop of fallen)assert(prop.getObjectByName('Canopy ball')&&!prop.getObjectByName('Supplied clay sculpture'),'and the canopy is the raspberry balls again under '+prop.name);
   w.dreamAssets=saved;w.refreshEditor(g.level,14);
   assert(w.platforms.get('orchard-dome-1').dream.sphere.getObjectByName('Dream planet mint'),'restored, the planet returns');
   assert(w.platforms.get('orchard-saucer-1').root.children.some(c=>/^Dream saucer /.test(c.name)));
+  for(const prop of canopyGroups())assert(prop.getObjectByName('Supplied clay sculpture')&&!prop.getObjectByName('Canopy ball'),'and so does the canopy sculpture under '+prop.name);
   assert.equal(sharedDisposals,0,'rebuilding disposes nothing shared');
 }
-console.log('PASS a rig without the dream models falls back to the sculpted dome and saucer, and rebuilding keeps shared resources');
+console.log('PASS a rig without the dream models falls back to the sculpted dome, saucer and canopy balls, and rebuilding keeps shared resources');
 
 // --- 6. the rider's spin still turns the planet -------------------------------------------
 {

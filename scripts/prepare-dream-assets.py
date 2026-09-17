@@ -45,6 +45,7 @@ assets={
  'dream-saucer-mint.glb':'colorful+clay+platform+1.glb',
  'dream-saucer-raspberry.glb':'colorful+clay+platform+2.glb',
  'dream-hat.glb':'hat.glb',
+ 'dream-sculpture.glb':'colorful+abstract+sculpture+3d+model.glb',
  'dream-caterpillar.glb':'caterpillar.glb',
  'dream-giraffe.glb':'giraffe.glb'
 }

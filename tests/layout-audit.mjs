@@ -4,7 +4,7 @@
 // inside a hazard. Run it while authoring: node tests/layout-audit.mjs [index]
 import {LEVELS} from '../dist/levels.js';
 import {instantiateLevel} from '../dist/levels.js';
-import {RULES,FINALE,finaleFlower} from '../dist/simulation.js';
+import {RULES,FINALE,FIXED_DT,finaleFlower} from '../dist/simulation.js';
 import {solveFormStation} from '../dist/clay-rules.js';
 import {formHeight} from '../dist/clay-form.js';
 import {foldWall} from '../dist/cavern-machines.js';
@@ -21,7 +21,7 @@ const foldBlocker=s=>{const b=foldWall(s);return {...s,kind:'wall',x:b.x,w:b.w,y
 const standable=s=>!['switch','wall'].includes(s.kind);
 // Decks whose height changes with the player on or near them; a link to or
 // from one is judged by the pilot's ride, not by the reach table.
-const machine=s=>['spring','lift','counter','ferry','orbit','sink','fold'].includes(s.kind);
+const machine=s=>['spring','lift','counter','ferry','orbit','sink','fold','zip'].includes(s.kind);
 
 export function auditLevel(L,index){
   const notes=[];
@@ -33,6 +33,13 @@ export function auditLevel(L,index){
   const shaped=level.platforms.map(s=>{
     if(!s.shape)return s;
     return {...s,...s.shape.to,shapedFrom:s.shape.from};
+  });
+  // A zip trolley stands over every point of its cable, so the checks below
+  // see the ride sampled rather than only the pose it parks in: a spike band
+  // or a cliff halfway down is met by the player, not by the mast.
+  const ride=s=>s.kind!=='zip'?[s]:Array.from({length:25},(_,i)=>{
+    const t=i/24,ease=t*t*(3-2*t);
+    return {...s,x:s.x+(s.travel??0)*ease,y:s.y-(s.drop??0)*ease};
   });
   const at=id=>shaped.find(s=>s.id===id);
   const right=s=>s.x+s.w;
@@ -64,6 +71,37 @@ export function auditLevel(L,index){
   for(const [name,list]of [['bead',level.coins],['flower',level.stamps]])for(const c of list)
     for(const h of level.hazards)if(c.x>h.x-.3&&c.x<h.x+h.w+.3&&c.y>h.y-.5&&c.y<h.y+1.1)
       notes.push(`${name} at (${c.x}, ${c.y}) sits in the hazard band at x ${h.x}`);
+
+  // A ropeway is authored as two numbers and a duration, and all three of its
+  // ways of going wrong are invisible in the route file.
+  for(const z of shaped.filter(s=>s.kind==='zip')){
+    const drop=z.drop??0,duration=z.duration??0,peak=duration>0?1.5*drop/duration:Infinity;
+    // The landing filter carries a deck that falls no more than .14 in a tick;
+    // faster than that and the trolley slides out from under its rider.
+    if(peak>=.14/FIXED_DT)
+      notes.push(`${z.id} descends at up to ${peak.toFixed(1)} units a second, past the ${(.14/FIXED_DT).toFixed(1)} a rider can be carried at`);
+    for(const pose of ride(z)){
+      for(const h of level.hazards){
+        if(pose.x+pose.w<h.x||pose.x>h.x+h.w)continue;
+        if(pose.y<h.y+.7&&pose.y+HEIGHT>h.y-.4){
+          notes.push(`the ride of ${z.id} passes through the hazard band at x ${h.x} (cable y ${pose.y.toFixed(1)}, hazard y ${h.y})`);break;
+        }
+      }
+      // A deck level with the cable takes the rider off it: the landing filter
+      // keeps whichever surface is highest, and a passing deck ties.
+      for(const d of shaped){
+        if(d===z||!standable(d)||d.kind==='zip')continue;
+        if(pose.x+pose.w<d.x||pose.x>right(d))continue;
+        if(Math.abs(surface(d)-pose.y)<.4){
+          notes.push(`${d.id} stands level with the ride of ${z.id} at x ${pose.x.toFixed(1)} and would take its rider off the cable`);break;
+        }
+      }
+    }
+    // The pilot, and a player, step off at the far end onto a real deck.
+    const end={x:z.x+(z.travel??0),y:z.y-drop,w:z.w};
+    const landing=shaped.find(d=>d!==z&&standable(d)&&d.kind!=='zip'&&end.x+end.w>d.x-5.2&&end.x<right(d)+5.2&&end.y-surface(d)>-2.65&&end.y-surface(d)<5);
+    if(!landing)notes.push(`${z.id} ends at (${end.x.toFixed(1)}, ${end.y.toFixed(1)}) with no deck within reach to step off onto`);
+  }
 
   const windAt=(x,y)=>(level.winds||[]).some(w=>x>w.x-1&&x<w.x+w.w+1&&y>w.y-1&&y<w.y+w.h);
   for(const link of [...level.routeLinks,...level.detours.flat(),...level.recoveries.flat()]){

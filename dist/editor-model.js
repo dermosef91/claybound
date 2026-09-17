@@ -1,10 +1,10 @@
 import {BAT} from './enemy-rules.js';
 import {DRIFTER} from './drifter-rules.js';
 import {BLINKER,DRIP,HATWORM} from './dream-enemy-rules.js';
-import {SINK,FOLD} from './cavern-machines.js';
+import {SINK,FOLD,ZIP} from './cavern-machines.js';
 import {DECOR_KINDS,DECOR_BOUNDS,DECOR_LIMIT} from './decor-kinds.js';
 export const DRAFT_KEY='claybound-editor-v1';
-export const KINDS={stone:'Solid cliff',wall:'Wall block',ledge:'Thin ledge',bridge:'Rope bridge',lift:'Rope lift',spring:'Spring / mushroom',crumble:'Crumbling ledge',break:'Breakable seal',switch:'Switch',timed:'Switched bridge',pulse:'Pulse ledge',balance:'Counterweight',counter:'Counter lift',gate:'Relay grate',ferry:'Weight ferry',orbit:'Orbit cradle',clay:'Kneadable clay',sink:'Sinking raft',fold:'Folding deck',dome:'Dome island'};
+export const KINDS={stone:'Solid cliff',wall:'Wall block',ledge:'Thin ledge',bridge:'Rope bridge',lift:'Rope lift',spring:'Spring / mushroom',crumble:'Crumbling ledge',break:'Breakable seal',switch:'Switch',timed:'Switched bridge',pulse:'Pulse ledge',balance:'Counterweight',counter:'Counter lift',gate:'Relay grate',ferry:'Weight ferry',orbit:'Orbit cradle',clay:'Kneadable clay',sink:'Sinking raft',fold:'Folding deck',dome:'Dome island',zip:'Zip line'};
 // Trigger zones are the one list added since the first backups were written,
 // so a draft without one imports as a draft with none, and the list joins the
 // content hash only when a chapter carries some — an old chapter's layout
@@ -64,7 +64,7 @@ export function validateDraft(source,base){
   // An older imported forest has no boss clearing. Do not silently gate its
   // earlier finish bell on a boss that is outside that draft's playable path.
   if(source.boss?.kind!=='mother-puff')delete out.boss;
-  const nums={x:[-100,2000],y:[-40,160],w:[.6,80],h:[.6,80],moveX:[-30,30],moveY:[-30,30],period:[.5,60],phase:[-20,20],bob:[0,4],rise:[0,30],travel:[1,30],floorY:[-40,160],delay:[.15,3.5],duty:[.1,.95],duration:[.3,60],fx:[-30,30],fy:[-15,25],speed:[.1,8],min:[-100,2000],max:[-100,2000],range:[.2,25],bellX:[.1,80],checkpoint:[-100,2080],rate:[.1,12],drop:[.1,40],conveyor:[-12,12],reach:[.2,10]};
+  const nums={x:[-100,2000],y:[-40,160],w:[.6,80],h:[.6,80],moveX:[-30,30],moveY:[-30,30],period:[.5,60],phase:[-20,20],bob:[0,4],rise:[0,30],travel:[1,80],floorY:[-40,160],delay:[.15,3.5],duty:[.1,.95],duration:[.3,60],fx:[-30,30],fy:[-15,25],speed:[.1,8],min:[-100,2000],max:[-100,2000],range:[.2,25],bellX:[.1,80],checkpoint:[-100,2080],rate:[.1,12],drop:[.1,40],conveyor:[-12,12],reach:[.2,10]};
   const oneOf=(value,choices,label)=>{if(!choices.includes(value))throw new Error(`${label} must be one of ${choices.join(', ')}.`);return value;};
   for(const list of LISTS){
     const items=source[list]??(OPTIONAL_LISTS.has(list)?[]:undefined);
@@ -85,7 +85,7 @@ export function validateDraft(source,base){
         for(const key of ['station','clayRole'])if(item[key]!==undefined){if(!idOK(item[key]))throw new Error(`Invalid ${key}.`);clean[key]=item[key];}
       }
       for(const key of ['id','channel','releases','holdChannel','landmark','waitFor'])if(item[key]!==undefined){if(!idOK(item[key]))throw new Error(`Invalid ${key}. Use letters, numbers and hyphens.`);clean[key]=item[key];}
-      for(const key of ['goal','latch','gust','spores','arch','house','entrance','optional','recovery','rest','motherArena'])if(item[key]!==undefined)clean[key]=!!item[key];
+      for(const key of ['goal','latch','gust','spores','arch','house','entrance','optional','recovery','rest','timber','motherArena'])if(item[key]!==undefined)clean[key]=!!item[key];
       if(list==='platforms'){
         if(!idOK(item.id)||!KINDS[item.kind])throw new Error('Every platform needs a unique ID and a supported type.');
         clean.kind=item.kind;finite(clean.w,.6,80,'Platform width');
@@ -97,6 +97,7 @@ export function validateDraft(source,base){
         if(clean.kind==='counter')clean.rise??=3;
         if(clean.kind==='pulse'){clean.period??=4.8;clean.duty??=.76;}
         if(clean.kind==='sink'){clean.rate??=SINK.rate;clean.drop??=SINK.drop;}
+        if(clean.kind==='zip'){clean.travel??=ZIP.travel;clean.drop??=ZIP.drop;clean.duration??=ZIP.duration;}
         if(clean.kind==='fold'){
           if(!clean.channel)throw new Error('A folding deck needs the channel that turns it.');
           clean.duration??=FOLD.duration;clean.pivot=oneOf(item.pivot??'left',['left','right'],'A fold pivot');
@@ -299,6 +300,7 @@ export class DraftSession{
         if(this.selection.list==='enemies'&&value==='blinker'){obj.bob??=BLINKER.bob;obj.period??=BLINKER.period;}
         if(this.selection.list==='enemies'&&value==='drip'){obj.reach??=DRIP.reach;obj.period??=DRIP.period;}
         if(value==='sink'){obj.rate??=SINK.rate;obj.drop??=SINK.drop;}
+        if(value==='zip'){obj.travel??=ZIP.travel;obj.drop??=ZIP.drop;obj.duration??=ZIP.duration;}
         if(value==='fold'){obj.channel??='new-circuit';obj.duration??=FOLD.duration;obj.pivot??='left';obj.from??='deck';obj.to??='wall';}
         if(value==='lift'){obj.period??=5;obj.moveY??=1.2;}
         if(value==='counter')obj.rise??=3;
@@ -320,7 +322,7 @@ export class DraftSession{
         if(!spec)throw new Error('Choose a decoration from the palette.');
         list=DECOR;obj={kind,x,y,z:spec.z,size:spec.size,turn:0};
       }
-      else if(KINDS[type]){list='platforms';obj={id:id('clay'),x:x-2,y,w:4,kind:type};if(type==='wall')Object.assign(obj,{y:y+2,h:4});if(type==='gate')Object.assign(obj,{h:10,channel:'new-circuit'});if(type==='ferry')Object.assign(obj,{travel:24,speed:3.2});if(type==='orbit')Object.assign(obj,{moveX:4,moveY:4,period:12});if(type==='lift')Object.assign(obj,{period:5,moveY:1.2});if(type==='pulse')Object.assign(obj,{period:4.8,duty:.76});if(type==='switch')Object.assign(obj,{w:1.8,channel:'new-circuit',duration:10});if(type==='timed'||type==='counter')Object.assign(obj,{channel:'new-circuit',...(type==='counter'?{rise:3}:{})});if(type==='sink')Object.assign(obj,{rate:SINK.rate,drop:SINK.drop});if(type==='fold')Object.assign(obj,{channel:'new-circuit',duration:FOLD.duration,pivot:'left',from:'deck',to:'wall'});
+      else if(KINDS[type]){list='platforms';obj={id:id('clay'),x:x-2,y,w:4,kind:type};if(type==='wall')Object.assign(obj,{y:y+2,h:4});if(type==='gate')Object.assign(obj,{h:10,channel:'new-circuit'});if(type==='ferry')Object.assign(obj,{travel:24,speed:3.2});if(type==='orbit')Object.assign(obj,{moveX:4,moveY:4,period:12});if(type==='lift')Object.assign(obj,{period:5,moveY:1.2});if(type==='pulse')Object.assign(obj,{period:4.8,duty:.76});if(type==='switch')Object.assign(obj,{w:1.8,channel:'new-circuit',duration:10});if(type==='timed'||type==='counter')Object.assign(obj,{channel:'new-circuit',...(type==='counter'?{rise:3}:{})});if(type==='sink')Object.assign(obj,{rate:SINK.rate,drop:SINK.drop});if(type==='zip')Object.assign(obj,{travel:ZIP.travel,drop:ZIP.drop,duration:ZIP.duration});if(type==='fold')Object.assign(obj,{channel:'new-circuit',duration:FOLD.duration,pivot:'left',from:'deck',to:'wall'});
         if(type==='clay'){
           // Clay is placed as a plug that presses down into a bridge, and it
           // arrives with the station that lets the player knead it.
