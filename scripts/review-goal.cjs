@@ -1,21 +1,12 @@
 // Deterministic, actual WebGL captures using the shipped game and an isolated save.
-const fs=require('fs'),path=require('path'),assert=require('assert/strict');
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'/Users/moritzgrassy/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const project=path.resolve(__dirname,'..'),root=process.env.REVIEW_SOURCE_ROOT||project,out=project+'/docs/goal-design';
-(async()=>{
-  fs.mkdirSync(out,{recursive:true});
-  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--no-sandbox']});
-  try{
-    const page=await browser.newPage({viewport:{width:1672,height:941}}),errors=[],requests=[];
-    page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE ERROR',e.message);});page.on('console',m=>{if(m.type()==='error'){errors.push(m.text());console.error('CONSOLE ERROR',m.text());}});
-    page.on('response',r=>{if(r.status()>=400)requests.push({url:r.url(),status:r.status()});});
-    await page.route('**/app.js',async route=>{
-      let body=fs.readFileSync(root+'/dist/app.js','utf8');
-      body=body.replace('function frame(now){','function frame(now){if(window.playtest?.manual){requestAnimationFrame(frame);return;}');
-      body+='\nwindow.playtest={manual:false,get game(){return game},get world(){return world},get editor(){return editor},begin,draw(){world.render(game,0);healthHUD.draw(game,0);updateHUD(performance.now());}};';
-      await route.fulfill({contentType:'text/javascript',body});
-    });
-    await page.goto(process.env.REVIEW_URL||'http://127.0.0.1:5173');
+const fs=require('fs'),assert=require('assert/strict');
+const {review,patchApp,PROJECT}=require('./support/review.cjs');
+const root=process.env.REVIEW_SOURCE_ROOT||PROJECT,out=PROJECT+'/docs/goal-design';
+review(async({page,url,errors,requests})=>{
+  {
+    fs.mkdirSync(out,{recursive:true});
+    await patchApp(page,{root,expose:'window.playtest={manual:false,get game(){return game},get world(){return world},get editor(){return editor},begin,draw(){world.render(game,0);healthHUD.draw(game,0);updateHUD(performance.now());}};'});
+    await page.goto(process.env.REVIEW_URL||url);
     await page.waitForFunction(()=>document.body.classList.contains('title-scene-ready'),null,{timeout:120000});
     await page.evaluate(async()=>{playtest.manual=true;await playtest.begin(0,true,'original');});
     await page.evaluate(()=>{
@@ -63,5 +54,5 @@ const project=path.resolve(__dirname,'..'),root=process.env.REVIEW_SOURCE_ROOT||
     }
     fs.writeFileSync(out+'/'+label+'-results.json',JSON.stringify({errors,requests,stats},null,2)+'\n');
     assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);console.log('PASS goal WebGL capture',stats);
-  }finally{await browser.close();}
-})().catch(e=>{console.error(e);process.exit(1);});
+  }
+},{root}).catch(e=>{console.error(e);process.exit(1);});

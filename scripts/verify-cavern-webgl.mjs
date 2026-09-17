@@ -1,7 +1,9 @@
 // Run with a local server serving dist, and a Playwright installation.
 // PLAYWRIGHT_MODULE can point to an externally installed module's index.mjs.
 import {writeFile} from 'node:fs/promises';
-const {chromium}=await import(process.env.PLAYWRIGHT_MODULE||'playwright');
+import {createRequire} from 'node:module';
+const {playwright}=createRequire(import.meta.url)('./support/review.cjs');
+const {chromium}=playwright();
 const browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{}),args:['--no-sandbox']});
 try {
  const page=await browser.newPage({viewport:{width:1500,height:850}}),errors=[];page.on('pageerror',e=>errors.push(e.message));

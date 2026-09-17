@@ -1,10 +1,11 @@
 // Isolated browser profile and fixed simulation states for press visual review.
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');
-const {chromium}=require('/Users/moritzgrassy/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {playwright,chromePath}=require('./support/review.cjs');
+const {chromium}=playwright();
 const root=path.resolve(__dirname,'..'),out=path.join(root,'docs/press-design');
 (async()=>{
   fs.mkdirSync(out,{recursive:true});
-  const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--no-sandbox']});
+  const browser=await chromium.launch({headless:true,executablePath:chromePath(),args:['--no-sandbox']});
   try{
     const page=await browser.newPage({viewport:{width:941,height:1672}}),errors=[];
     page.on('pageerror',e=>errors.push(e.message));

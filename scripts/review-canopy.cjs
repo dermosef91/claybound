@@ -1,14 +1,15 @@
 // Park the live game at authored spots in the Wildwood and screenshot the
 // actual WebGL frame, so backdrop composition is judged from the real render.
 const fs=require('fs'),path=require('path');
-const {chromium}=require('/Users/moritzgrassy/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {playwright,chromePath}=require('./support/review.cjs');
+const {chromium}=playwright();
 const root=path.resolve(__dirname,'..');
 const out=path.resolve(root,process.env.OUT||'docs/forest/canopy');
 // Platform ids to stand on, one screenshot each.
 const spots=(process.env.SPOTS||'canopy-entry,canopy-rest,canopy-nest').split(',');
 (async()=>{
  fs.mkdirSync(out,{recursive:true});
- const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--no-sandbox']});
+ const browser=await chromium.launch({headless:true,executablePath:chromePath(),args:['--no-sandbox']});
  try{
   const page=await browser.newPage({viewport:{width:1024,height:576},deviceScaleFactor:1}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});

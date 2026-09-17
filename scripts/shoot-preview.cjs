@@ -1,12 +1,13 @@
 // Screenshot the asset preview page for a supplied model.
 const fs=require('fs'),path=require('path');
-const {chromium}=require('/Users/moritzgrassy/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const {playwright,chromePath}=require('./support/review.cjs');
+const {chromium}=playwright();
 const root=path.resolve(__dirname,'..');
 const query=process.env.QUERY||'file=forest-waterfall.glb';
 const out=path.resolve(root,process.env.OUT||'docs/asset-preview.png');
 (async()=>{
  fs.mkdirSync(path.dirname(out),{recursive:true});
- const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--no-sandbox']});
+ const browser=await chromium.launch({headless:true,executablePath:chromePath(),args:['--no-sandbox']});
  try{
   const page=await browser.newPage({viewport:{width:1024,height:576},deviceScaleFactor:1}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});

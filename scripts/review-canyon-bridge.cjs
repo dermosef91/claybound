@@ -1,21 +1,12 @@
 // Review the actual WebGL scene in an isolated profile; never touch saved drafts.
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');
-const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'/Users/moritzgrassy/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const root=path.resolve(__dirname,'..'),out=path.resolve(root,process.env.REVIEW_OUT||'docs/canyon-bridge');
-(async()=>{
+const {review,patchApp,PROJECT}=require('./support/review.cjs');
+const root=PROJECT,out=path.resolve(root,process.env.REVIEW_OUT||'docs/canyon-bridge');
+review(async({page,url,errors,requests})=>{
   fs.mkdirSync(out,{recursive:true});
-  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--no-sandbox']});
-  try{
-    const page=await browser.newPage({viewport:{width:1672,height:941}}),errors=[],requests=[];
-    page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-    page.on('response',r=>{if(r.status()>=400)requests.push({url:r.url(),status:r.status()});});
-    await page.route('**/app.js',async route=>{
-      let body=fs.readFileSync(root+'/dist/app.js','utf8');
-      body=body.replace('function frame(now){','function frame(now){if(window.playtest?.manual){requestAnimationFrame(frame);return;}');
-      body+='\nwindow.playtest={manual:false,get game(){return game},get world(){return world},get editor(){return editor},get input(){return input},begin,draw(){world.render(game,0);healthHUD.draw(game,0);updateHUD(performance.now());},step(n){for(let i=0;i<n;i++){game.tick(FIXED_DT,input);input.jumpPressed=false;input.stompPressed=false;}this.draw();}};';
-      await route.fulfill({contentType:'text/javascript',body});
-    });
-    await page.goto(process.env.REVIEW_URL||'http://127.0.0.1:5173');
+  {
+    await patchApp(page,{root,expose:'window.playtest={manual:false,get game(){return game},get world(){return world},get editor(){return editor},get input(){return input},begin,draw(){world.render(game,0);healthHUD.draw(game,0);updateHUD(performance.now());},step(n){for(let i=0;i<n;i++){game.tick(FIXED_DT,input);input.jumpPressed=false;input.stompPressed=false;}this.draw();}};'});
+    await page.goto(process.env.REVIEW_URL||url);
     await page.waitForFunction(()=>document.body.classList.contains('title-scene-ready'),null,{timeout:120000});
     await page.evaluate(async()=>{playtest.manual=true;await playtest.begin(0,true,'original');});
     const prefix=process.env.BRIDGE_BASELINE?'before':'after';
@@ -76,5 +67,5 @@ const root=path.resolve(__dirname,'..'),out=path.resolve(root,process.env.REVIEW
     }
     assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);
     console.log('PASS canyon bridge WebGL review:',prefix);
-  }finally{await browser.close();}
-})().catch(e=>{console.error(e);process.exit(1);});
+  }
+},{root}).catch(e=>{console.error(e);process.exit(1);});

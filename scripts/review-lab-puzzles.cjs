@@ -4,20 +4,14 @@
 //   node scripts/review-lab-puzzles.cjs
 // Writes docs/clay-lab-puzzles/*.png and fails on any page error.
 const fs=require('fs'),path=require('path'),assert=require('assert/strict');
-const {chromium}=require('/Users/moritzgrassy/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const root=path.resolve(__dirname,'..'),out=root+'/docs/clay-lab-puzzles';
+const {review,patchApp,PROJECT}=require('./support/review.cjs');
+const root=PROJECT,out=root+'/docs/clay-lab-puzzles';
 fs.mkdirSync(out,{recursive:true});
-(async()=>{
- const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--no-sandbox']});
- const page=await browser.newPage({viewport:{width:1500,height:850}}),errors=[],badRequests=[];
- page.on('pageerror',e=>{errors.push(e.message);console.error('PAGEERROR',e.message);});page.on('console',m=>{if(m.type()==='error'){errors.push(m.text());console.error('CONSOLE',m.text().slice(0,300));}});page.on('response',r=>{if(r.status()>=400)badRequests.push(r.url());});
- await page.route(/\/app\.js(\?.*)?$/,async route=>{
-  let body=fs.readFileSync(root+'/dist/app.js','utf8');
-  body=body.replace('function frame(now){','function frame(now){ if(window.playtest?.manual){shapingControls.update();requestAnimationFrame(frame);return;}');
-  body+='\nwindow.playtest={manual:false,get game(){return game},get world(){return world},get input(){return input},begin,home,stationPicker,draw(){for(let i=0;i<20;i++)world.render(game,.05);healthHUD.draw(game,0);updateHUD(performance.now());shapingControls.update();},step(n,extra={}){for(let i=0;i<n;i++){game.tick(FIXED_DT,{...input,...extra});input.jumpPressed=false;input.stompPressed=false;}this.draw();}};';
-  await route.fulfill({contentType:'text/javascript',body});
- });
- await page.goto('http://127.0.0.1:5174');await page.waitForFunction(()=>document.body.classList.contains('title-scene-ready'),null,{timeout:120000});
+review(async({page,url,errors,requests:badRequests})=>{
+ // The benches are worked with the pointer, so their controls have to keep
+ // updating even on a frame the review is holding.
+ await patchApp(page,{root,during:'shapingControls.update();',expose:'window.playtest={manual:false,get game(){return game},get world(){return world},get input(){return input},begin,home,stationPicker,draw(){for(let i=0;i<20;i++)world.render(game,.05);healthHUD.draw(game,0);updateHUD(performance.now());shapingControls.update();},step(n,extra={}){for(let i=0;i<n;i++){game.tick(FIXED_DT,{...input,...extra});input.jumpPressed=false;input.stompPressed=false;}this.draw();}};'});
+ await page.goto(process.env.REVIEW_URL||url);await page.waitForFunction(()=>document.body.classList.contains('title-scene-ready'),null,{timeout:120000});
  await page.locator('#chapters').click();await page.evaluate(()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'ß'})));await page.locator('[data-action="playground"]').click();
  try{await page.waitForFunction(()=>window.playtest?.game.level.playground&&document.getElementById('loading').classList.contains('hidden'),null,{timeout:60000});}
  catch(e){await page.screenshot({path:out+'/debug-load.png'});console.error('LOADSTATE',await page.evaluate(()=>({playground:window.playtest?.game?.level?.playground,status:window.playtest?.game?.status,loading:document.getElementById('loading').className,text:document.body.innerText.slice(0,300)})));throw e;}
@@ -70,8 +64,7 @@ fs.mkdirSync(out,{recursive:true});
  await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='marble');st.ball.x=18;st.ball.vx=0;pt.step(400);});
  await goTo('marble',null);await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='marble');st.ball.x=18;st.ball.vx=0;pt.step(400);const lift=g.level.platforms.find(q=>q.id==='marble-lift');Object.assign(g.player,{x:344.5,y:lift.y+.02,vx:0,vy:0,groundId:null});pt.step(20);});
  await shot('10-marble-home');
- await browser.close();
  assert.deepEqual(badRequests,[],'no failed requests');
  assert.deepEqual(errors,[],'no page errors');
  console.log('PASS wrote',fs.readdirSync(out).length,'screenshots to',out);
-})().catch(e=>{console.error(e);process.exit(1);});
+},{root,viewport:{width:1500,height:850}}).catch(e=>{console.error(e);process.exit(1);});
