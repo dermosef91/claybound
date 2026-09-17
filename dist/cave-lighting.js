@@ -43,7 +43,11 @@ export function animateCaveLights(w,dt=0){
     else tr.flame.getWorldPosition(tr.position);
     tr.position.z+=1.1;
   }
-  const live=new Set(w.torches),score=tr=>(tr.position.x-w.cameraX)**2+(tr.position.y-w.cameraY)**2;
+  // Screen distance alone would let a backdrop cluster twenty units behind the
+  // play plane take an accent slot from the ledge beside the hero. Depth
+  // scales the score: fixtures on and just behind the route win at similar
+  // screen offsets, a far one only when nothing nearer is in view.
+  const live=new Set(w.torches),score=tr=>((tr.position.x-w.cameraX)**2+(tr.position.y-w.cameraY)**2)*(1+Math.max(0,-tr.position.z-1.5));
   const near=w.torches.filter(tr=>Math.abs(tr.position.x-w.cameraX)<(w.viewW||18)*.7+5&&Math.abs(tr.position.y-w.cameraY)<(w.viewH||10)*.8+5).sort((a,b)=>score(a)-score(b));
   const nearest=kind=>near.find(tr=>(tr.kind||'torch')===kind)||null;
   let state=w.caveLightState;

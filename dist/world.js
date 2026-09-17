@@ -31,7 +31,7 @@ import {makeRopeBridge} from './rope-bridge.js';
 import {bridgeOffset} from './bridge-surface.js';
 import {animateCircuit} from './mechanism-views.js';
 import {forestBranch,forestSeal,forestMushroom,animateForest} from './forest-details.js';
-import {caveLedgeDetails} from './cavern.js';
+import {caveLedgeDetails,caveLedgeBody} from './cavern.js';
 import {animateDepthScenery} from './depth-scenery.js';
 import {createSpringPad,animateSpringPad} from './spring-pad.js';
 import {createCrumble,animateCrumble,clayFragments} from './crumble.js';
@@ -281,6 +281,8 @@ export class World {
       forestBranch(this,s,g);
     } else if(s.kind==='break'&&this.biome==='forest'){
       forestSeal(this,s,g);
+    } else if(s.kind==='ledge'&&this.biome==='cave'){
+      caveLedgeBody(this,s,g);
     } else {
       const mat=s.kind==='break'?'cream':(s.kind==='timed'?'top':this.biome==='forest'?'barkLight':'top');
       this.box(s.w,.32,1.8,mat,g,s.w/2,-.16,0,.12);

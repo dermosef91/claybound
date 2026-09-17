@@ -4,7 +4,7 @@ import {clayMaterial} from './clay.js';
 import {buildCanyonBackdrop,buildCanyonTerrain} from './canyon.js';
 import {buildForestBackdrop} from './forest.js';
 import {forestCover,forestMushroom} from './forest-details.js';
-import {buildCaveBackdrop,caveMushrooms,caveCrystals,caveLedgeDetails,CAVE_HAZE} from './cavern.js';
+import {buildCaveBackdrop,caveMushrooms,caveCrystals,caveLedgeDetails,caveCap,CAVE_HAZE} from './cavern.js';
 import {animateCaveLights} from './cave-lighting.js';
 import {CLAY_PALETTE} from './palette.js';
 const rand=n=>{const v=Math.sin(n*127.1+87.3)*43758.5453;return v-Math.floor(v);};
@@ -13,7 +13,15 @@ export const THEMES={
   citadel:{terrain:0x315e96,terrain2:0x2d588c,top:CLAY_PALETTE.orange,bark:0x244973,barkLight:CLAY_PALETTE.orangeLight,foliage:0x4775a2,leafLight:0x638eb8,vine:0x3e6491,back:0x587fa8,back2:0x416e9d,accent:CLAY_PALETTE.orange,water:0x507d9f,rope:0xdfbc86,dust:0xe8cca0,skyLight:0xd3e3f0,groundLight:0x23466b,sun:0xffe3bd,sunPower:3.25,ambient:2.1,fill:0xb8d1e9,fillPower:.5},
   desert:{terrain:CLAY_PALETTE.orange,terrain2:CLAY_PALETTE.orangeDark,top:CLAY_PALETTE.orangeLight,bark:0x8e4e27,barkLight:0xbe793d,foliage:0x408559,leafLight:0x5b9b62,vine:0x487c47,back:CLAY_PALETTE.orangeLight,back2:CLAY_PALETTE.orange,accent:0xffd568,water:0x7daaae,rope:0xe3b56f,dust:0xf1c798,skyLight:0xd3e5fa,groundLight:0xa35b35,sun:0xffdfb6,sunPower:3.3,ambient:2.1,fill:0xc7def7,fillPower:.7,cameraElevation:1.6},
   forest:{terrain:0xaa7950,terrain2:0x906344,top:0x67a650,bark:0x795135,barkLight:0xb68a52,foliage:0x628448,leafLight:0x87a958,vine:0x58804b,back:0x93aa91,back2:0xa58b68,accent:0xf4d592,water:0x86b7b3,rope:0x829656,dust:0xaec387,skyLight:0xe5f0d7,groundLight:0x606646,sun:0xffe5b7,sunPower:3.2,ambient:2.1,fill:0xc4e1dc,fillPower:.7,cameraElevation:1.65},
-  cave:{terrain:0x474751,terrain2:0x363c48,top:0x777e8a,bark:0x654731,barkLight:0x9b7043,foliage:0x378e94,leafLight:0x7bbdc0,vine:0x4b7c78,back:0x1e2c39,back2:0x334756,accent:0x8acedd,water:0x244b59,rope:0x9d7d54,dust:0xa1acb1,skyLight:0xa7c2e2,groundLight:0x263347,sun:0xb8cce8,sunPower:2.35,ambient:1.55,fill:0x8fc2ea,fillPower:1.1,cameraElevation:1.8}
+  // Cave clay is a colourless dark slate and the lights are neutral greys:
+  // sampled from the target, its ceiling, ledges and left tower are charcoal
+  // with almost no chroma, and it is the fog, the void and the glow pools
+  // that carry the blue. A blue sky light on blue-grey clay rendered every
+  // near rock as the same cobalt as the distance, so depth had no colour cue.
+  // The ambient is cool and dim: the pools of crystal and mushroom light are
+  // the picture's bright notes, and the stone between them stays a moody
+  // charcoal for them to sit in.
+  cave:{terrain:0x3a3f4b,terrain2:0x272b34,top:0x72767e,bark:0x654731,barkLight:0x9b7043,foliage:0x378e94,leafLight:0x7bbdc0,vine:0x4b7c78,back:0x1e2c39,back2:0x334756,accent:0x8acedd,water:0x244b59,rope:0x9d7d54,dust:0xa1acb1,skyLight:0xb6bcc8,groundLight:0x252932,sun:0xdcdee4,sunPower:2.15,ambient:1.4,fill:0x9ea8ba,fillPower:.9,cameraElevation:1.8}
 };
 
 export function applyEnvironment(w,L){
@@ -21,7 +29,11 @@ export function applyEnvironment(w,L){
   for(const name of ['terrain','terrain2','top','bark','barkLight','foliage','leafLight','vine','back','back2','accent','water','dust']){
     if(!w.mat[name])w.mat[name]=new THREE.MeshStandardMaterial({roughness:.98,metalness:0,bumpMap:w.bump,bumpScale:['terrain','terrain2','top'].includes(name)?.12:.065});
     w.mat[name].color.setHex(theme[name]);
-    w.mat[name].bumpScale={terrain:.075,terrain2:.075,top:.055,back:.03,back2:.035}[name]||.045;
+    // The cave's walked plates and deck courses carry deeper fingerprints:
+    // they are the frame's nearest surfaces, and the target's caps read as
+    // thumb-pressed clay, not smooth plaster.
+    const cave=L.biome==='cave';
+    w.mat[name].bumpScale={terrain:cave?.09:.075,terrain2:cave?.09:.075,top:cave?.1:.055,back:.03,back2:.035}[name]||.045;
     clayMaterial(w,w.mat[name],w.mat[name].bumpScale);
     if(name==='back'||name==='back2'){w.mat[name].emissive.copy(w.mat[name].color);w.mat[name].emissiveIntensity=L.biome==='citadel'?.12:0;}
   }
@@ -75,9 +87,18 @@ export function buildTerrain(w,s,g){
     // Overlapping hand-pressed masses retain the source sculpture's proportions.
     // Their shallow, staggered joins remain under the continuous walkable cap.
     const rows=3,rowH=10.4/rows;
-    for(let row=0;row<rows;row++)w.box(cw+.15,rowH+.20,depth+(row%2)*.06,(i+row)%3===1?'terrain2':'terrain',g,(i+.5)*cw,-.18-(row+.5)*rowH,-.03,.33);
+    // The cave's decks are the frame's nearest dark masses, so every course
+    // is the darker clay there: lit grey rows read as pale masonry against them.
+    for(let row=0;row<rows;row++)w.box(cw+.15,rowH+.20,depth+(row%2)*.06,w.biome==='cave'||(i+row)%3===1?'terrain2':'terrain',g,(i+.5)*cw,-.18-(row+.5)*rowH,-.03,.33);
   }
-  w.box(width+.14,.49,3.6,'top',g,width/2,-.18,0,.22);
+  // The cave's plate is hand-pressed, thumb hollows and a rolled rim, with
+  // its top at the same height as the plain box it replaces elsewhere.
+  if(w.biome==='cave')caveCap(w,g,width+.14,.49,3.6,width/2,-.18,0,s.x);
+  else w.box(width+.14,.49,3.6,'top',g,width/2,-.18,0,.22);
+  // The cave's decks carry a darker course right under the lip, standing a
+  // hand proud of the face: the target's landings are layered clay, a pale
+  // walked plate over a shadowed rim, not one block.
+  if(w.biome==='cave')w.box(width+.36,.36,3.7,'terrain2',g,width/2,-.6,0,.16);
   for(let i=0;i<Math.ceil(width/.93);i++){
     const x=.25+i*.93;
     if(x>width-.15)continue;
@@ -98,7 +119,7 @@ export function buildTerrain(w,s,g){
     const survey=['vault-entry','sluice-floor'].includes(s.id);
     if(!foundry&&!survey)caveCrystals(w,g,width-1.2,.07,-1.38,s.id==='gallery-entry'?.5:.64);
     if(s.id==='start'||s.checkpoint||s.goal)clayTorch(w,g,s.id==='start'?8.1:s.goal?Math.max(.7,(s.bellX??width-3.5)-2.75):width*.4,.05);
-    if(width>8&&!survey)caveMushrooms(w,g,foundry?width-2.2:2,.03,-1.4,foundry?.86:.6);
+    if(width>8&&!survey)caveMushrooms(w,g,foundry?width-2.2:2,.03,-1.4,foundry?.9:.7);
     for(let i=0;i<3;i++)w.ball(.47,.35,.15,'terrain',g,.8+rand(i+s.x)*Math.max(1,width-1.6),-1.3-i*2.1,1.64);
     if(s.goal){const chest=group(g,Math.min(width-.85,(s.bellX??width-3.5)+4.2),.18,-.72);w.box(1.28,.67,.77,'bark',chest,0,.33,0,.17);w.box(1.3,.39,.82,'barkLight',chest,0,.74,0,.18);for(const x of [-.42,.42])w.box(.14,.96,.85,'gold',chest,x,.49,0,.04);w.box(.24,.27,.1,'gold',chest,0,.51,.47,.04);}
   }
