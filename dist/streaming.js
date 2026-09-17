@@ -18,6 +18,9 @@ const attached=(o,root)=>{for(let p=o;p;p=p.parent)if(p===root)return true;retur
 export function disposeBranch(w,root){
   const geometry=new Set(),materials=new Set(),shared=new Set([...Object.values(w.mat),...(w.assetMaterials||[])]);
   root.traverse(o=>{if(o.geometry&&!w.assetGeometry?.has(o.geometry)&&!w.baseGeometry?.has(o.geometry))geometry.add(o.geometry);for(const m of o.material?(Array.isArray(o.material)?o.material:[o.material]):[])if(!shared.has(m))materials.add(m);});
+  // A skinned clone's skeleton is its own (SkeletonUtils.clone); its bone
+  // texture goes with the branch. Shared geometry and materials stay.
+  root.traverse(o=>{if(o.isSkinnedMesh)o.skeleton?.dispose();});
   root.removeFromParent();geometry.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
 }
 

@@ -3,16 +3,35 @@ import {applyFlatten} from './clay-feel.js';
 import {BLINKER,DRIP} from './dream-enemy-rules.js';
 
 // The Soft Dream's creatures, sculpted in code from the world's clay
-// primitives in the theme's own slots — no model to load, so a section's
-// palette recolours them with everything else. Each view names its parts so
-// a scene check can find them, and each dies the way every other creature
-// does: pressed flat about its root by clay-feel.js, then broken into clumps
-// by clay-shatter.js from world.render. The simulation owns every position;
-// this file only dresses e.x/e.y and the state fields the rules leave behind.
+// primitives — no model to load. The blinker and the drip take the theme's
+// own slots, so a section's palette recolours them with everything else; the
+// hatworm wears the parade board's own colours (below) in every section. Each
+// view names its parts so a scene check can find them, and each dies the way
+// every other creature does: pressed flat about its root by clay-feel.js, then
+// broken into clumps by clay-shatter.js from world.render. The simulation owns
+// every position; this file only dresses e.x/e.y and the state fields the
+// rules leave behind.
 
 // A theme slot where the world has one, else a colour every world carries.
 const slot=(w,name,fallback='cream')=>w.mat?.[name]?name:fallback;
 const NAMES={hatworm:'Hatworm',blinker:'Blinker',drip:'Drip'};
+
+// The hatworm's colours, after the caterpillar on the Melted Parade's concept
+// board: beads in lime, orange, bubblegum and violet, a lemon head, plum hats
+// with lemon bands like the supplied hat on the plinth. Fixed rather than in
+// palette slots so the creature reads the same in every section it patrols.
+// Built once per World and retained like a supplied model's material, so a
+// view streaming out does not dispose what the next one draws with.
+export const HATWORM_COLOURS={beads:[0xa8dc5a,0xff9645,0xff6fb8,0x9b6be0],head:0xffcc4d,eye:0xfff6e6,pupil:0x2a1b3d,brim:0x3a2160,crown:0x4b2a7a,band:0xf2ee74};
+function hatwormMaterial(w,key,index=0){
+  const colour=Array.isArray(HATWORM_COLOURS[key])?HATWORM_COLOURS[key][index%HATWORM_COLOURS[key].length]:HATWORM_COLOURS[key];
+  const cache=w.hatwormMaterials??={},name=key+(Array.isArray(HATWORM_COLOURS[key])?index:'');
+  if(!cache[name]){
+    const m=new THREE.MeshStandardMaterial({color:colour,roughness:.94,metalness:0});m.name='Hatworm '+name;
+    (w.assetMaterials??=new Set()).add(m);cache[name]=m;
+  }
+  return cache[name];
+}
 
 export function createDreamEnemyView(w,e){
   const root=new THREE.Group();root.name=`${NAMES[e.kind]||'Dream creature'} ${e.id}`;root.position.set(e.x,e.y,.35);w.levelRoot.add(root);
@@ -25,24 +44,25 @@ export function createDreamEnemyView(w,e){
 }
 
 // --- the hatworm --------------------------------------------------------------
-// Four beads of body and a head, wearing three hats at once. The body group
-// turns to face the way it walks; the root stays upright so the press is
-// straight down whichever way it was going.
+// Four beads of body and a head, wearing three hats at once, in the board's
+// colours (HATWORM_COLOURS). The body group turns to face the way it walks;
+// the root stays upright so the press is straight down whichever way it was
+// going.
 function buildHatworm(w,view){
   const body=new THREE.Group();body.name='Hatworm body';view.root.add(body);
   const segments=[];
-  for(let i=0;i<4;i++){const m=w.ball(.19,.19,.19,i%2?slot(w,'top'):'cream',body,-.27+i*.18,.2,0);m.name='Hatworm segment';segments.push(m);}
-  const head=w.ball(.24,.22,.22,slot(w,'top'),body,.3,.28,0);head.name='Hatworm head';
+  for(let i=0;i<4;i++){const m=w.ball(.19,.19,.19,hatwormMaterial(w,'beads',i),body,-.27+i*.18,.2,0);m.name='Hatworm segment';segments.push(m);}
+  const head=w.ball(.24,.22,.22,hatwormMaterial(w,'head'),body,.3,.28,0);head.name='Hatworm head';
   for(const z of [-.09,.09]){
-    w.ball(.06,.06,.04,'cream',body,.5,.34,z).name='Hatworm eye';
-    w.ball(.03,.03,.02,'dark',body,.545,.34,z).name='Hatworm pupil';
+    w.ball(.06,.06,.04,hatwormMaterial(w,'eye'),body,.5,.34,z).name='Hatworm eye';
+    w.ball(.03,.03,.02,hatwormMaterial(w,'pupil'),body,.545,.34,z).name='Hatworm pupil';
   }
   const hats=[];
   for(let i=0;i<3;i++){
     const hat=new THREE.Group();hat.name=`Hatworm hat ${i+1}`;hat.position.set(.3,.46+i*.14,0);body.add(hat);
-    w.cylinder(.26-i*.03,.05,'dark',hat,0,0,0).name='Hat brim';
-    w.cylinder(.16-i*.02,.13,i%2?slot(w,'accent','gold'):'dark',hat,0,.08,0).name='Hat crown';
-    w.cylinder(.17-i*.02,.035,'gold',hat,0,.04,0).name='Hat band';
+    w.cylinder(.26-i*.03,.05,hatwormMaterial(w,'brim'),hat,0,0,0).name='Hat brim';
+    w.cylinder(.16-i*.02,.13,hatwormMaterial(w,'crown'),hat,0,.08,0).name='Hat crown';
+    w.cylinder(.17-i*.02,.035,hatwormMaterial(w,'band'),hat,0,.04,0).name='Hat band';
     hats.push(hat);
   }
   view.parts={body,segments,head,hats};

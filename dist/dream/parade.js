@@ -1,6 +1,7 @@
 import * as THREE from '../lib/three.module.js';
 import {createDreamView} from '../dream-views.js';
-import {dreamHat,dreamHatHeight} from '../dream-assets.js';
+import {dreamHat,dreamHatHeight,dreamGiraffe,dreamCaterpillar} from '../dream-assets.js';
+import {restoreRest,rotateAbout,parentAxis,caterpillarWalk,SIDE_AXIS} from '../dream-rigs.js';
 import {sectionDecks,deck,lean,slot,rand} from './support.js';
 // Section 5 — The Melted Parade. One idea: a parade frozen mid-step, cream
 // statues on an ultramarine parade ground, each with exactly one bubblegum
@@ -95,14 +96,108 @@ function boots(w,parent,x){
 // the torso on five straight legs, a collar on the neck, and a six-petal flower
 // for a head. Cream throughout; the flower's bubblegum face is its one detail
 // and it tilts toward the player (a leaner pivoting at the flower's centre).
+//
+// With the dream's models loaded the animal itself is what the player climbs:
+// the back deck lies along the supplied giraffe's back, the collar deck rests
+// in the crook of its neck and the head deck is the top of its head, with
+// nothing built around them — the ledges are invisible and the model, posed
+// under them by dream-rigs.js, is what is seen. Only the knee deck, which no
+// part of the animal can reach, stays built, as a step of the parade ground.
+// The giraffe sleeps on its feet until the hat-worm above is pulled, then
+// stirs, and once the player has crossed beyond it turns and walks off to the
+// left until it is out of the frame.
 function knee(w,s,g){
-  g.name='Giraffe knee · '+s.id;const cream=slot(w,'top');
+  g.name='Giraffe knee · '+s.id;
+  if(w.dreamAssets?.giraffe){
+    // A step of the plaza — its cap over its body, rolled at the ends — with
+    // the giraffe's tail resting over it. Even a hind leg kicked straight
+    // back stops a hand short of this ledge, so it is ground, not animal.
+    const cap=slot(w,'terrain','blue'),body=slot(w,'terrain2','blueDark');
+    w.box(s.w+.12,.6,2.6,cap,g,s.w/2,-.3,0,.24).name='Podium cap';
+    w.box(s.w,s.y-.6,2.2,body,g,s.w/2,-(s.y+.6)/2,-.1,.5).name='Podium';
+    for(const x of [.3,s.w-.3])w.ball(.42,.32,1.2,cap,g,x,-.08,.1).name='Podium roll';
+    return {root:g,ropes:[],bounce:0};
+  }
+  const cream=slot(w,'top');
   w.ball(.92,.46,.82,cream,g,.8,-.46,0).name='Knee';
   bar(w,g,[.6,-.5,-.2],[.35,-2,-.2],.34,cream).name='Shin';
   bar(w,g,[1.1,-.55,-.2],[2.9,.2,-.3],.34,cream).name='Thigh';
   return {root:g,ropes:[],bounce:0};
 }
+// Where the supplied giraffe's withers stand past the back deck's right end,
+// how far its head turns toward the player, and its marching cadence.
+export const GIRAFFE_WITHERS=1.4,GIRAFFE_LEAN=.12,GIRAFFE_MARCH={rate:2.6,hip:.3,knee:.4,from:.7};
+// Once the parade is awake and the player has crossed this far past the back
+// deck's end (onto the far half of the worm bridge), the giraffe turns at
+// `turn` rad/s and walks off to the left at `speed`, this `distance` before
+// it is hidden. Hidden and no longer wanted away — the player back to the
+// left, after a fall — it is home again in one step, out of any frame.
+export const GIRAFFE_LEAVE={past:9,distance:40,speed:3.4,turn:1.2,depth:-3};
+function giraffe(w,s,g){
+  g.name='Giraffe body · '+s.id;
+  // The animal turns about its own middle when it leaves, so it hangs from a
+  // pivot there rather than from the deck's corner.
+  const centre=s.w/2+1,pivot=group(g,'Giraffe pivot',centre,-s.y,0);
+  const rig=dreamGiraffe(w,pivot,{backTop:s.y,withersX:s.w+GIRAFFE_WITHERS-centre});
+  // The world's side axis in each driven bone's parent frame, read off the
+  // posed rest once: every overlay below is a turn about it.
+  const axes=new Map();
+  for(const b of [...rig.bones.neck,...rig.bones.hips,...rig.bones.knees])axes.set(b,parentAxis(b,SIDE_AXIS,rig.model));
+  const at=new THREE.Vector3();let lean=0,away=0,facing=0,gait=0;
+  // The hatworm patrolling the back rides along: it is hidden while the
+  // giraffe is away (its lane is still where the level put it, out of reach).
+  const passengers=()=>[...(w.enemyViews?.values()||[])].filter(v=>v.kind==='hatworm'&&v.parts?.body&&v.enemy&&Math.abs(v.enemy.y-s.y)<1e-6&&v.enemy.x>=s.x&&v.enemy.x<=s.x+s.w);
+  register(w,g,(game,dt,ctx)=>{
+    restoreRest(rig.rest);
+    const amount=(game.level.shaping||[]).find(st=>st.id==='parade-worm')?.amount??0,pulled=amount>=1;
+    // How far the pull has woken it, over the pull's last stretch — a pure
+    // function of the station, like the hats' tumble, so a paused frame, a
+    // restore or a replay show the same stance.
+    const stir=ctx.reducedMotion?0:smooth((amount-GIRAFFE_MARCH.from)/(1-GIRAFFE_MARCH.from));
+    // Asleep on its feet: a slow breath at the neck's base and the head
+    // drooped a little, dipping with the breath. Stirring, the breath quickens
+    // and the head lifts and turns to the player as the flower head did —
+    // atan2(dx, 6), eased at the same rate, split along the neck's bones.
+    const breath=ctx.reducedMotion?0:Math.sin(ctx.time*.9)*(1-stir)*.015+Math.sin(ctx.time*1.6)*stir*.012;
+    rig.bones.neck[0].position.multiplyScalar(1+breath);
+    rotateAbout(rig.bones.head,axes.get(rig.bones.head),-(1-stir)*(.06+(ctx.reducedMotion?0:Math.sin(ctx.time*.9))*.03));
+    const target=ctx.reducedMotion?0:Math.atan2(ctx.playerX-rig.bones.head.getWorldPosition(at).x,6)*GIRAFFE_LEAN*stir;
+    lean=ctx.reducedMotion?target:lean+(target-lean)*(1-Math.exp(-dt*3));
+    for(const b of rig.bones.neck)rotateAbout(b,axes.get(b),-lean/rig.bones.neck.length);
+    // Leaving and coming home. It turns as it steps back into the background,
+    // so it walks behind the plaza step and the boots rather than through
+    // them. Reduced motion skips the walk: it is simply there or not.
+    const wanted=pulled&&ctx.playerX>s.x+s.w+GIRAFFE_LEAVE.past?GIRAFFE_LEAVE.distance:0;
+    let walking=false;
+    if(ctx.reducedMotion){away=wanted;facing=0;pivot.position.z=0;}
+    else if(away!==wanted){
+      const face=wanted>away?Math.PI:0;
+      facing+=clamp(face-facing,-GIRAFFE_LEAVE.turn*dt,GIRAFFE_LEAVE.turn*dt);
+      pivot.position.z+=clamp((wanted?GIRAFFE_LEAVE.depth:0)-pivot.position.z,-1.5*dt,1.5*dt);
+      if(Math.abs(face-facing)<.3){away=clamp(away+Math.sign(wanted-away)*GIRAFFE_LEAVE.speed*dt,0,GIRAFFE_LEAVE.distance);walking=true;}
+    }
+    pivot.rotation.y=facing;pivot.position.x=centre-away;
+    pivot.visible=away<GIRAFFE_LEAVE.distance-1e-6;
+    if(!pivot.visible&&!wanted){away=0;facing=0;pivot.rotation.y=0;pivot.position.set(centre,-s.y,0);pivot.visible=true;}
+    for(const v of passengers())v.parts.body.visible=away<.5;
+    // The legs: woken, it marches on the spot — diagonal pairs swing together,
+    // the knee bending on the forward swing — and walking, the same gait
+    // carries it. The body never moves while it is home: the deck the player
+    // stands on is honest terrain.
+    const march=walking?1:stir;
+    if(march>0&&!ctx.reducedMotion){
+      gait+=dt*(walking?GIRAFFE_LEAVE.speed*1.6:GIRAFFE_MARCH.rate);
+      rig.bones.hips.forEach((hip,i)=>{
+        const swing=Math.sin(gait+(i<2?0:Math.PI))*march;
+        rotateAbout(hip,axes.get(hip),swing*GIRAFFE_MARCH.hip);
+        rotateAbout(rig.bones.knees[i],axes.get(rig.bones.knees[i]),-Math.max(0,swing)*GIRAFFE_MARCH.knee);
+      });
+    }
+  });
+  return {root:g,ropes:[],bounce:0,giraffe:rig,pivot};
+}
 function torso(w,s,g){
+  if(w.dreamAssets?.giraffe)return giraffe(w,s,g);
   g.name='Giraffe body · '+s.id;const cream=slot(w,'top');
   w.box(s.w+.3,1.7,2.5,cream,g,s.w/2,-.85,0,.8).name='Torso';
   // Spots in the ground's own ultramarine, pressed flat on the flank.
@@ -116,12 +211,16 @@ function torso(w,s,g){
 }
 function collar(w,s,g){
   g.name='Giraffe neck · '+s.id;const cream=slot(w,'top');
+  // The supplied giraffe's neck rises through this deck, its crook the ledge.
+  if(w.dreamAssets?.giraffe)return {root:g,ropes:[],bounce:0};
   bar(w,g,[-1.6,-2.5,-.3],[2.7,.6,-.3],.5,cream).name='Neck';
   w.ball(.92,.48,.8,cream,g,.8,-.48,0).name='Collar';
   return {root:g,ropes:[],bounce:0};
 }
 function flowerHead(w,s,g){
   g.name='Giraffe head · '+s.id;const cream=slot(w,'top');
+  // The supplied giraffe's head is under this deck; the player stands on it.
+  if(w.dreamAssets?.giraffe)return {root:g,ropes:[],bounce:0};
   const face=lean(w,group(g,'Giraffe face',1.2,-1.3,0),{x:s.x+1.2,y:s.y,strength:.22});
   for(let i=0;i<6;i++){
     const a=i/6*Math.PI*2,p=w.ball(.68,.4,.3,cream,face,Math.cos(a)*1.05,Math.sin(a)*1.05,0);p.rotation.z=a;p.name='Petal';
@@ -186,9 +285,28 @@ function hats(w,parent,worm){
 
 // --- the caterpillar ----------------------------------------------------------------
 // The lift itself: five cream beads and a head with a bubblegum nose, on five
-// stubby legs that only pump while the lift is moving.
+// stubby legs that only pump while the lift is moving. With the dream's models
+// loaded it is the supplied caterpillar instead — its back at the deck's top,
+// the walk plane, its raised head the float's figurehead at the front, facing
+// the hand it shuttles toward — walking on its bones only while the lift moves.
+// `back` is the model-space height of the body's top, put on the deck; `extra`
+// how far the body runs past the deck's ends; `nod` pitches the head down a
+// little so it rises less above the ride.
+export const CATERPILLAR_LIFT={back:.25,extra:.4,nod:-.3};
 function caterpillar(w,s,g){
   g.name='Caterpillar · '+s.id;const cream=slot(w,'top');
+  if(w.dreamAssets?.caterpillar){
+    const rig=dreamCaterpillar(w,g,s.w+CATERPILLAR_LIFT.extra);
+    rig.root.position.set(s.w/2,-CATERPILLAR_LIFT.back*rig.scale,0);
+    let swing=0;
+    register(w,g,(game,dt,ctx)=>{
+      const live=game.level.platforms.find(q=>q.id===s.id),moving=!!live&&Math.abs(live.x-(live.prevX??live.x))>1e-5;
+      swing=ctx.reducedMotion?0:clamp(swing+(moving?dt*3:-dt*2),0,1);
+      caterpillarWalk(rig,ctx.time,ctx.reducedMotion?0:.3+.7*swing);
+      rig.head.rotation.z+=CATERPILLAR_LIFT.nod;
+    });
+    return {root:g,ropes:[],bounce:0,caterpillar:rig};
+  }
   for(let i=0;i<5;i++)w.ball(.46,.42,.46,cream,g,.55+i*.8,-.42,0).name='Caterpillar bead';
   const head=group(g,'Caterpillar head',4.1,-.42,0);
   w.ball(.56,.4,.5,cream,head,0,0,0).name='Head';

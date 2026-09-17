@@ -15,7 +15,8 @@
 //
 // Env: LEVEL (chapter index, default 4) · SECTION (a dream section key) ·
 // SPOTS (comma list of names from the table below, or a JSON array of
-// {name,x,y,ground?,cameraX?,cameraY?,ticks?})
+// {name,x,y,ground?,cameraX?,cameraY?,ticks?,shaped?}; `shaped` lists clay
+// stations, by id or {id,amount}, to capture already worked)
 // · OUT (default /Users/moritzgrassy/.claude/jobs/b6712500/tmp/shots) · PORT
 // (default 5197) · ROOT (checkout holding dist/, default this script's
 // checkout) · WIDTH/HEIGHT · CHROME_PATH (Chrome binary, default the
@@ -48,6 +49,22 @@ const SPOTS={
  // camera raised to the stack of supplied hats on the coil's top (the play
  // camera leaves the stack above the frame), and the pulled bridge resting on
  // the plinth with the hats landed along its back.
+ // Beside the ground hatworm under the boots, then up the supplied giraffe:
+ // on its back with the second hatworm, on the collar at its neck, and a
+ // pulled-back look at the whole animal from its knee. (The parade begins at
+ // chapter x 337.)
+ 'parade-boots':{x:349.5,y:0,ground:'parade-ground-1',ticks:120,creatures:true},
+ 'parade-back':{x:359.5,y:4,ground:'parade-back',ticks:120,creatures:true},
+ 'parade-neck':{x:364.8,y:6.2,ground:'parade-neck',ticks:120},
+ 'parade-giraffe':{x:354.8,y:2,ground:'parade-knee',cameraX:361.5,cameraY:4.6,ticks:120},
+ // The gait runs on frame time: .6 s of live frames lands its swing near a
+ // peak (GIRAFFE_MARCH.rate 2.6). Leaving: the player across on the bridge,
+ // the camera held on the giraffe as it turns (2.6 s) and walks off left.
+ 'parade-awake':{x:364.8,y:6.2,ground:'parade-neck',cameraX:361.5,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:.6},
+ 'parade-leaving':{x:375,y:7.8,ground:'parade-worm',cameraX:359,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:3.2,creatures:true},
+ 'parade-gone':{x:375,y:7.8,ground:'parade-worm',cameraX:359,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:7,creatures:true},
+ // Aboard the caterpillar float at its rest, before the parade wakes.
+ 'parade-ride':{x:379.7,y:3.6,ground:'parade-caterpillar',cameraX:380,cameraY:5,ticks:1,settle:.5},
  'parade-worm':{x:367,y:8.2,ground:'parade-head',ticks:120},
  'parade-stack':{x:367,y:8.2,ground:'parade-head',cameraX:369.3,cameraY:13.5,ticks:120},
  'parade-pulled':{x:367,y:8.2,ground:'parade-head',ticks:120,shaped:['parade-worm']},
@@ -116,8 +133,11 @@ async function serve(){
    const info=await page.evaluate(async spot=>{
     const g=playtest.game,w=playtest.world;
     const {cameraTarget}=await import('./camera.js');
-    g.level.enemies.forEach(e=>{if(Math.abs(e.x-spot.x)<30){e.alive=false;}});
-    Object.assign(g.player,{x:spot.x,y:spot.y,vx:0,vy:0,facing:1,groundId:spot.ground||null,invuln:0});
+    // Creatures near the spot are cleared so the parked player is not hurt;
+    // a spot judging a creature keeps them (`creatures:true`) and parks the
+    // player invulnerable instead.
+    if(!spot.creatures)g.level.enemies.forEach(e=>{if(Math.abs(e.x-spot.x)<30){e.alive=false;}});
+    Object.assign(g.player,{x:spot.x,y:spot.y,vx:0,vy:0,facing:1,groundId:spot.ground||null,invuln:spot.creatures?1e9:0});
     g.sectionId=Math.max(0,g.level.sections.findLastIndex(s=>spot.x>=s.x));
     // Deterministic machinery: the same number of fixed steps from a fresh
     // chapter start puts every mover in the same place every run.
@@ -133,13 +153,16 @@ async function serve(){
       if(station.channel&&amount>=1){g.channels[station.channel]=100;g.latched[station.channel]=true;}
     }
     playtest.tick(spot.ticks||120);
-    Object.assign(g.player,{x:spot.x,y:spot.y,vx:0,vy:0,facing:1,groundId:spot.ground||null});
+    Object.assign(g.player,{x:spot.x,y:spot.y,vx:0,vy:0,facing:1,groundId:spot.ground||null,invuln:spot.creatures?1e9:0});
     w.syncVisible(g.level,spot.x,true);
     const target=cameraTarget(g.player,w.viewW,w.viewH,w.landscape);
     w.cameraAnchorY=g.player.y;w.cameraX=spot.cameraX??target.x;w.cameraY=spot.cameraY??target.y;w.lastPlayerX=spot.x;w.cameraLook=0;w.cameraFace=1;w.trauma=0;w.shake=0;
     // Settle streamed geometry, the palette cross-fade and light handoffs
     // without moving the camera.
     for(let i=0;i<90;i++)playtest.draw(0);
+    // A spot may ask for live time (`settle` seconds of 60 Hz frames) for the
+    // scenery whose motion runs on frame time — the giraffe's gait and exit.
+    for(let i=0;i<Math.round((spot.settle||0)*60);i++){playtest.draw(1/60);if(spot.cameraX!==undefined)w.cameraX=spot.cameraX;if(spot.cameraY!==undefined)w.cameraY=spot.cameraY;}
     const frames=[];
     for(let i=0;i<60;i++){const t0=performance.now();w.render(g,0);frames.push(performance.now()-t0);}
     frames.sort((a,b)=>a-b);
@@ -148,7 +171,8 @@ async function serve(){
     let lights=0,transparent=0,meshes=0;
     w.scene.traverse(o=>{if(o.isLight&&o.visible&&o.intensity>0)lights++;if(o.isMesh&&o.visible&&o.material?.transparent)transparent++;if(o.isMesh)meshes++;});
     const palette=w.dreamPalette?Object.fromEntries(Object.entries(w.dreamPalette).map(([k,c])=>[k,'#'+c.getHexString()])):null;
-    return {spot:spot.name,x:spot.x,cameraX:w.cameraX,cameraY:w.cameraY,viewW:w.viewW,viewH:w.viewH,roll:w.dreamRoll||0,palette,calls,triangles,geometries:info.memory.geometries,textures:info.memory.textures,programs:info.programs.length,frameMs:frames[30],frameMsP90:frames[54],lights,transparentMeshes:transparent,sceneMeshes:meshes};
+    const creatures=spot.creatures?g.level.enemies.filter(e=>Math.abs(e.x-spot.x)<30).map(e=>`${e.kind}@${e.x.toFixed(1)},${e.y}${e.alive?'':' dead'}${w.enemyViews?.get(e.id)?.model?' model':''}`):undefined;
+    return {spot:spot.name,x:spot.x,cameraX:w.cameraX,cameraY:w.cameraY,viewW:w.viewW,viewH:w.viewH,roll:w.dreamRoll||0,palette,calls,triangles,geometries:info.memory.geometries,textures:info.memory.textures,programs:info.programs.length,frameMs:frames[30],frameMsP90:frames[54],lights,transparentMeshes:transparent,sceneMeshes:meshes,creatures};
    },spot);
    await page.screenshot({path:path.join(out,spot.name+'.png')});
    results.push(info);

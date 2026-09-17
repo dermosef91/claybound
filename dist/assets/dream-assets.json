@@ -148,5 +148,51 @@
       "a864f557336943ad4dd37d3c8e6cf689045d7de2070d15d3e6b6a8b51b957d0f"
     ],
     "geometryUnchanged": true
+  },
+  "dream-caterpillar.glb": {
+    "source": "caterpillar.glb",
+    "sourceSha256": "fb5faf418f617a026932fb1457377c410d7f328e68dd1bbe40eae1ffb10f1578",
+    "shippedSha256": "c22dee74cc983bf831a2af4754db79a8dc72adab3832d643ab6cf0c9ab945b7d",
+    "sourceBytes": 2018332,
+    "shippedBytes": 1286024,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 22582,
+    "geometryBufferSha256": [
+      "7e7c3550ac6065dd2571ab2c37849134a8ea5492a9a5555eca7f57a0a7df28a5",
+      "1960c5d9ca428c9eed527c4531bd4cbe9a4cfeab9d9bfc7d4b97a4203db53589",
+      "bcd1affa0f727dd69f20a4171336cdc9a3e62d396286911ecad0c6ccd9da1db7",
+      "4bb932e39c18f8177c85d6a97191f74225521ff59eda4e3a6471fb534b88f8c5"
+    ],
+    "geometryUnchanged": true
+  },
+  "dream-giraffe.glb": {
+    "source": "giraffe.glb",
+    "sourceSha256": "ff36eab78b76e867a01ddaa7723a4c499f2c40b1ee72d1c374a6a88e9213bdc4",
+    "shippedSha256": "e72183f47bfd8ec100744e6c72e2d66b24691738ae5c97bab30fb4d4c9777091",
+    "sourceBytes": 3082792,
+    "shippedBytes": 2386328,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 34838,
+    "geometryBufferSha256": [
+      "4c16ab4eaa9237e7af1c195ed4291fe3bcc7e68e2fa917d63d4103ff891dd777",
+      "23ee9326eaffa872a93d059dccccf348c390c114a4ef75abaaa69018371ec871",
+      "df4813629bca2a7974cd76f84f7f94f74cf3a155480ff1a4f5bf70db189afb6f",
+      "fd36bdd4e41a3c6351e81e47682a0d854ccbe9a381ad4c546c53b1b73f93b63a",
+      "8e7c8f6c9f79f98d9791c564a8f32c79628997347a97f939cf15eec51f34678f",
+      "ab686db1ad5d4857ea1b6883f92692ea297ec5450657ff780d4c3d8a2e235497",
+      "b755045037bf9cb3cec0e4fdff24500296aa057fce2e70ce2637559a3a2f7b9b"
+    ],
+    "geometryUnchanged": true,
+    "joints": 40
   }
 }

@@ -286,13 +286,16 @@ export default {
   // The hazard bands: a plum bed at the kill line over a dark trench floor,
   // filled with soft cones — a front row of pink, red and magenta standing
   // on the bed, a taller paler row behind. Under the plug the cones stay
-  // short so the worked plug hides them.
+  // short so the worked plug hides them, and the bed rises to the spread
+  // slab's underside, so the cones stand out of the bed straight into the
+  // clay and no ring of their feet shows between the two.
   hazard(w,h,g){
     const L=w.currentLevel,plug=L&&deck(L,'corridor-plug'),pit=!!plug&&plug.x>=h.x&&plug.x<h.x+h.w,k=pit?.42:1;
+    const bed=pit&&plug.shape?plug.shape.to.y-plug.shape.to.h-h.y+.05:.06;
     const A=mat(w,'accent'),B=mat(w,'bark'),P=pink(w),R=red(w),M=mat(w,'top');
     g.name='Cone bed';
     const seam=x=>-.5+.08*Math.sin(x*1.4+h.x),floor=x=>-1.4+.1*Math.sin(x*1.1+h.x*2);
-    ribbon(w,g,{x0:-.25,x1:h.w+.25,top:()=>.06,bottom:seam,depth:2.9,z:-.35,lip:.22,material:A,name:'Cone bed band'});
+    ribbon(w,g,{x0:-.25,x1:h.w+.25,top:()=>bed,bottom:seam,depth:2.9,z:-.35,lip:.22,material:A,name:'Cone bed band'});
     ribbon(w,g,{x0:-.15,x1:h.w+.15,top:seam,bottom:floor,depth:2.6,z:-.5,lip:.22,material:B,name:'Trench floor'});
     ribbon(w,g,{x0:-.05,x1:h.w+.05,top:floor,bottom:x=>-2.4+.1*Math.sin(x*.9+h.x),depth:2.4,z:-.6,lip:.22,material:A,name:'Trench floor'});
     const n=Math.max(2,Math.round(h.w/.85));
