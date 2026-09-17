@@ -237,6 +237,10 @@ export function createMotherEnvironment(w,root,b){
   // Each thing carries its own affliction by where it stands, so no whole
   // background tree greys because the boss is somewhere to its right.
   const harden=x=>Math.max(0,Math.min(1,(x-(center-5))/11));
+  // Nothing floats: the camera looks down a little, so a thing further back
+  // sits higher on screen by about an eighth of its depth, and each base is
+  // set that much below the deck's top to read as standing on it.
+  const footing=z=>b.y-.12*-z+.3;
   if(w.forestAssets){
     // Healthy crowns stand back along the left approach; the nearer they come
     // to the middle the more they have hardened.
@@ -246,8 +250,8 @@ export function createMotherEnvironment(w,root,b){
     }
     // Tall caps close the left edge of the frame; the middle ground between
     // player and boss is left open.
-    for(const [dx,width,dy]of [[-16,6.4,1.5],[-11,4.4,0]]){
-      const x=center+dx,mushroom=forestModel(w,'heroMushroom',scenery,x,b.y+dy,-7,width,dx*.025,true);
+    for(const [dx,width]of [[-16,6.4],[-11,4.4]]){
+      const x=center+dx,mushroom=forestModel(w,'heroMushroom',scenery,x,footing(-7),-7,width,dx*.025,true);
       record(mushroom,x,harden(x),'mushroom');
     }
     // Leaf clusters only on the healthy approach and up on the shoulders'
@@ -270,10 +274,6 @@ export function createMotherEnvironment(w,root,b){
       blighted.push({stone:arch,green,stoneScale:arch.scale.x,greenScale:green.scale.x});
     }
     // Near enough that the fog does not pale them: the blight has to stay charcoal.
-    // Nothing floats: the camera looks down a little, so a thing further back
-    // sits higher on screen by about an eighth of its depth, and each base is
-    // set that much below the deck's top to read as standing on it.
-    const footing=z=>b.y-.12*-z+.3;
     for(const [dx,z,width]of [[22,-12,15],[19,-14,11],[6.5,-12,10]]){
       const x=center+dx;
       pair(x,1,'tree',blightedModel(w,'corrupt-tree',scenery,x,footing(z),z,width),

@@ -94,36 +94,56 @@ const L=makeRoom({
 
 // --- The Weaver's Gap (192 – 232) --------------------------------------------
 // The canopy has torn open and the far side is forty units away, with nothing
-// under it but the forest floor. Two pieces of clay, each worked on its own,
-// and neither gains or loses any clay: what gets longer gets thinner. A bough
-// stub on the brink is pulled out into the first half of the crossing. The
-// second half is a mushroom bounce onto a mound that is far too tall to land
-// on — so it has to be squashed flat from across the gap before you jump.
+// under it but the forest floor. Two masses of freely formable clay, each on a
+// beam of bark laid across its half of the tear, and each sown with thorns just
+// under the clay's base: clay is ground, and bare bark is not. The first rests
+// as a bough stub on the brink, too tall to climb and a wall to walk into, to
+// be leaned out into the bridge across — or built into anything else that
+// carries you. The second rests as a mound on the far side, too tall for the
+// mushroom bounce to land on, to be slumped from across the gap into the plate
+// you bounce onto before the drop to the nest. Both are pose-less: they keep
+// whatever they are made into (relax:false) and R softens them from off the
+// clay. The clump knots are tops over each mass's audit height, so a bare
+// stretch of beam reads as its base.
+const K=(x0,w)=>(x,top)=>[(x-x0)/w,top];
+const KB=K(196.5,14.5),KM=K(219,13);
 L.platforms.push(
   p('gap-brink',192,4.5,21.6,'ledge',{checkpoint:194,landmark:'birdhouse'}),
-  p('bough-stump',196.5,2.2,21.6,'wall',{h:4}),
-  part('weave-bough',{x:196.5,w:2.2,y:27.6,h:6},{x:196.5,w:13,y:22.6,h:1.015},{station:'weave-bough',clayRole:'bridge'}),
-  p('weave-perch',211,7,23.4,'ledge',{checkpoint:215,landmark:'sporepod',rest:true}),
-  p('weave-spring',216.2,1.8,23.84,'spring'),
-  p('mound-stump',222.7,.6,23.5,'wall',{h:4}),
-  part('weave-mound',{x:222.4045,w:1.191,y:32.3,h:8.8},{x:219,w:8,y:24.81,h:1.31},{station:'weave-mound',clayRole:'bridge'})
+  p('bough-beam',196.5,14.5,20.6,'wall',{h:1.2}),
+  part('weave-bough',{x:196.5,w:14.5,y:21.6,h:1},{x:196.5,w:14.5,y:21.6,h:1},{station:'weave-bough',clayRole:'mass'}),
+  // The perch runs up to the mound's bark and the mushroom sits at its very
+  // end, so a keyboard player at the mushroom's edge has the block within E's
+  // reach: held there, the key alone slumps it into the plate.
+  p('weave-perch',211,8,23.4,'ledge',{checkpoint:215,landmark:'sporepod',rest:true}),
+  p('weave-spring',217.2,1.8,23.84,'spring'),
+  p('mound-beam',219,13,24.3,'wall',{h:1.2}),
+  part('weave-mound',{x:219,w:13,y:25.3,h:1},{x:219,w:13,y:25.3,h:1},{station:'weave-mound',clayRole:'mass'})
 );
 L.sections.splice(4,0,{x:TEAR,name:"The Weaver's Gap",landmark:'birdhouse'});
+L.hazards.push({x:196.5,w:14.5,y:20.1},{x:219,w:13,y:23.8});
 L.shaping.push(
-  {id:'weave-bough',icon:'bridge',name:'Draw out the bough',verb:'Pull right',gesture:'right',parts:['weave-bough'],x:192,end:210.5,
-   spawn:{x:194,y:21.6,groundId:'gap-brink'},
-   hint:'Pull the violet bough to the right until it reaches across. Drag it, or hold E / KNEAD.'},
+  {id:'weave-bough',rule:'form',free:true,relax:false,shaped:.24,icon:'knead',name:'Shape the bough',verb:'Grab it and drag',gesture:'up',cueX:197.6,
+   parts:['weave-bough'],x:192,end:210.5,spawn:{x:194,y:21.6,groundId:'gap-brink'},
+   clump:[KB(196.5,6.2),KB(198.8,6.2),KB(200,-1),KB(211,-1)],
+   solution:[{x:197.9,lift:0,dx:6.5,dy:-4,t:1.8},{x:203,lift:0,dx:7.5,dy:-1,t:1.6},{x:200,lift:0,dx:-3,dy:-.3,t:.8}],
+   hint:'Grab the violet bough and drag it: lean it out across the tear into a bridge, or build your own way over. Clay is ground; the bare bark under it is not. Or face it and hold E to work it into steps. Step off and press R to soften it.'},
   // Worked from the perch, across the gap: the one piece of clay in the game
   // you have to finish before you can reach it.
-  {id:'weave-mound',icon:'landing',name:'Squash the far mound',verb:'Press down',gesture:'down',parts:['weave-mound'],x:210.5,end:231,
-   spawn:{x:212,y:23.4,groundId:'weave-perch'},
-   hint:'Press the far mound flat before you bounce. Drag it down, or hold E / KNEAD, from the perch.'}
+  {id:'weave-mound',rule:'form',free:true,relax:false,shaped:.24,icon:'knead',name:'Slump the mound',verb:'Grab it and drag',gesture:'up',cueX:220.4,
+   parts:['weave-mound'],x:210.5,end:231,spawn:{x:212,y:23.4,groundId:'weave-perch'},
+   // A block at the near end of its bark, cresting at the clay's ceiling: the
+   // mushroom bounce reaches about eight and a third above the spring, and
+   // the crest has to clear that. Its near face is the beam's own end, so
+   // there is no rounded foot on this side to land on.
+   clump:[KM(219,8.4),KM(221.6,8.4),KM(223.8,-1),KM(232,-1)],
+   solution:[{x:220.2,lift:0,dx:6,dy:-6,t:2.4},{x:224,lift:0,dx:7,dy:-2.6,t:2},{x:229,lift:0,dx:2.6,dy:-.6,t:.9}],
+   hint:'Grab the tall mound past the mushroom and drag it down: slump it into a plate the bounce can land on. Clay is ground; the bare bark under it is not. Or hold E at the mushroom\'s edge. Press R from the perch to soften it.'},
 );
 L.hints.push(
-  {x:192,end:210.5,icon:'bridge',title:'Draw out the bough',text:'Drag the violet bough right, or hold E, until it spans the tear.',touchText:'Drag the violet bough right until it spans the tear.'},
-  {x:210.5,end:231,icon:'landing',title:'Land where you shaped',text:'Press the far mound flat first, then bounce onto it.',touchText:'Press the far mound flat first, then bounce onto it.'}
+  {x:192,end:210.5,icon:'knead',title:'Shape the bough',text:'Grab the violet bough and drag it out across the tear, or hold E facing it to work it into steps. Bare bark under it is deadly; clay is ground.',touchText:'Grab the violet bough and drag it out across the tear. Bare bark under it is deadly; clay is ground.'},
+  {x:210.5,end:231,icon:'knead',title:'Slump the mound',text:'Grab the tall mound and drag it down into a plate, or hold E at the mushroom\'s edge, then bounce onto it. Bare bark under it is deadly; clay is ground.',touchText:'Grab the tall mound and drag it down into a plate, then bounce onto it. Bare bark under it is deadly; clay is ground.'}
 );
 // The tear goes all the way down to the forest floor.
 L.hazards.push({x:196.5,w:35,y:12});
-L.coins.push({x:194.25,y:23},{x:200,y:24},{x:204.5,y:24},{x:209,y:24},{x:217.75,y:28.6},{x:221,y:29.8},{x:223.5,y:26.4});
+L.coins.push({x:194.25,y:23},{x:200,y:24},{x:204.5,y:24},{x:209,y:24},{x:217.75,y:28.6},{x:221,y:30.6},{x:225.5,y:28.4});
 export default chapter(L);

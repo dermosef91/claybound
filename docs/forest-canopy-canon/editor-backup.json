@@ -4,7 +4,7 @@
   "chapter": 1,
   "baseVersion": 10,
   "level": {
-    "layoutVersion": "editor-10-e56ntm",
+    "layoutVersion": "editor-10-bhx0lf",
     "winds": [
       {
         "x": 60,
@@ -679,33 +679,33 @@
       },
       {
         "x": 196.5,
-        "y": 21.6,
-        "w": 2.2,
-        "h": 4,
-        "id": "bough-stump",
+        "y": 20.6,
+        "w": 14.5,
+        "h": 1.2,
+        "id": "bough-beam",
         "kind": "wall",
         "section": 4
       },
       {
         "x": 196.5,
-        "y": 27.6,
-        "w": 2.2,
+        "y": 21.6,
+        "w": 14.5,
         "shape": {
           "from": {
             "x": 196.5,
-            "y": 27.6,
-            "w": 2.2,
-            "h": 6
+            "y": 21.6,
+            "w": 14.5,
+            "h": 1
           },
           "to": {
             "x": 196.5,
-            "y": 22.6,
-            "w": 13,
-            "h": 1.015
+            "y": 21.6,
+            "w": 14.5,
+            "h": 1
           }
         },
         "station": "weave-bough",
-        "clayRole": "bridge",
+        "clayRole": "mass",
         "id": "weave-bough",
         "kind": "clay",
         "section": 4
@@ -713,7 +713,7 @@
       {
         "x": 211,
         "y": 23.4,
-        "w": 7,
+        "w": 8,
         "checkpoint": 215,
         "id": "weave-perch",
         "landmark": "sporepod",
@@ -722,7 +722,7 @@
         "section": 4
       },
       {
-        "x": 216.2,
+        "x": 217.2,
         "y": 23.84,
         "w": 1.8,
         "id": "weave-spring",
@@ -730,34 +730,34 @@
         "section": 4
       },
       {
-        "x": 222.7,
-        "y": 23.5,
-        "w": 0.6,
-        "h": 4,
-        "id": "mound-stump",
+        "x": 219,
+        "y": 24.3,
+        "w": 13,
+        "h": 1.2,
+        "id": "mound-beam",
         "kind": "wall",
         "section": 4
       },
       {
-        "x": 222.4045,
-        "y": 32.3,
-        "w": 1.191,
+        "x": 219,
+        "y": 25.3,
+        "w": 13,
         "shape": {
           "from": {
-            "x": 222.4045,
-            "y": 32.3,
-            "w": 1.191,
-            "h": 8.8
+            "x": 219,
+            "y": 25.3,
+            "w": 13,
+            "h": 1
           },
           "to": {
             "x": 219,
-            "y": 24.81,
-            "w": 8,
-            "h": 1.31
+            "y": 25.3,
+            "w": 13,
+            "h": 1
           }
         },
         "station": "weave-mound",
-        "clayRole": "bridge",
+        "clayRole": "mass",
         "id": "weave-mound",
         "kind": "clay",
         "section": 4
@@ -942,11 +942,11 @@
       },
       {
         "x": 221,
-        "y": 29.8
+        "y": 30.6
       },
       {
-        "x": 223.5,
-        "y": 26.4
+        "x": 225.5,
+        "y": 28.4
       }
     ],
     "stamps": [
@@ -1021,8 +1021,146 @@
       },
       {
         "x": 196.5,
+        "y": 20.1,
+        "w": 14.5
+      },
+      {
+        "x": 219,
+        "y": 23.8,
+        "w": 13
+      },
+      {
+        "x": 196.5,
         "y": 12,
         "w": 35
+      }
+    ],
+    "shaping": [
+      {
+        "id": "weave-bough",
+        "name": "Shape the bough",
+        "verb": "Grab it and drag",
+        "gesture": "up",
+        "parts": [
+          "weave-bough"
+        ],
+        "x": 192,
+        "end": 210.5,
+        "spawn": {
+          "x": 194,
+          "y": 21.6,
+          "groundId": "gap-brink"
+        },
+        "hint": "Grab the violet bough and drag it: lean it out across the tear into a bridge, or build your own way over. Clay is ground; the bare bark under it is not. Or face it and hold E to work it into steps. Step off and press R to soften it.",
+        "rule": "form",
+        "free": true,
+        "clump": [
+          [
+            0,
+            6.2
+          ],
+          [
+            0.1586206896551732,
+            6.2
+          ],
+          [
+            0.2413793103448276,
+            -1
+          ],
+          [
+            1,
+            -1
+          ]
+        ],
+        "solution": [
+          {
+            "x": 197.9,
+            "lift": 0,
+            "dx": 6.5,
+            "dy": -4,
+            "t": 1.8
+          },
+          {
+            "x": 203,
+            "lift": 0,
+            "dx": 7.5,
+            "dy": -1,
+            "t": 1.6
+          },
+          {
+            "x": 200,
+            "lift": 0,
+            "dx": -3,
+            "dy": -0.3,
+            "t": 0.8
+          }
+        ],
+        "relax": false,
+        "shaped": 0.24,
+        "cueX": 197.6
+      },
+      {
+        "id": "weave-mound",
+        "name": "Slump the mound",
+        "verb": "Grab it and drag",
+        "gesture": "up",
+        "parts": [
+          "weave-mound"
+        ],
+        "x": 210.5,
+        "end": 231,
+        "spawn": {
+          "x": 212,
+          "y": 23.4,
+          "groundId": "weave-perch"
+        },
+        "hint": "Grab the tall mound past the mushroom and drag it down: slump it into a plate the bounce can land on. Clay is ground; the bare bark under it is not. Or hold E at the mushroom's edge. Press R from the perch to soften it.",
+        "rule": "form",
+        "free": true,
+        "clump": [
+          [
+            0,
+            8.4
+          ],
+          [
+            0.19999999999999957,
+            8.4
+          ],
+          [
+            0.3692307692307701,
+            -1
+          ],
+          [
+            1,
+            -1
+          ]
+        ],
+        "solution": [
+          {
+            "x": 220.2,
+            "lift": 0,
+            "dx": 6,
+            "dy": -6,
+            "t": 2.4
+          },
+          {
+            "x": 224,
+            "lift": 0,
+            "dx": 7,
+            "dy": -2.6,
+            "t": 2
+          },
+          {
+            "x": 229,
+            "lift": 0,
+            "dx": 2.6,
+            "dy": -0.6,
+            "t": 0.9
+          }
+        ],
+        "relax": false,
+        "shaped": 0.24,
+        "cueX": 220.4
       }
     ],
     "hints": [
@@ -1044,18 +1182,18 @@
       {
         "x": 192,
         "end": 210.5,
-        "icon": "bridge",
-        "title": "Draw out the bough",
-        "text": "Drag the violet bough right, or hold E, until it spans the tear.",
-        "touchText": "Drag the violet bough right until it spans the tear."
+        "icon": "knead",
+        "title": "Shape the bough",
+        "text": "Grab the violet bough and drag it out across the tear, or hold E facing it to work it into steps. Bare bark under it is deadly; clay is ground.",
+        "touchText": "Grab the violet bough and drag it out across the tear. Bare bark under it is deadly; clay is ground."
       },
       {
         "x": 210.5,
         "end": 231,
-        "icon": "landing",
-        "title": "Land where you shaped",
-        "text": "Press the far mound flat first, then bounce onto it.",
-        "touchText": "Press the far mound flat first, then bounce onto it."
+        "icon": "knead",
+        "title": "Slump the mound",
+        "text": "Grab the tall mound and drag it down into a plate, or hold E at the mushroom's edge, then bounce onto it. Bare bark under it is deadly; clay is ground.",
+        "touchText": "Grab the tall mound and drag it down into a plate, then bounce onto it. Bare bark under it is deadly; clay is ground."
       }
     ],
     "routeLinks": [
@@ -1312,42 +1450,6 @@
     ],
     "originalDistance": 100,
     "custom": true,
-    "shaping": [
-      {
-        "id": "weave-bough",
-        "name": "Draw out the bough",
-        "verb": "Pull right",
-        "gesture": "right",
-        "parts": [
-          "weave-bough"
-        ],
-        "x": 192,
-        "end": 210.5,
-        "spawn": {
-          "x": 194,
-          "y": 21.6,
-          "groundId": "gap-brink"
-        },
-        "hint": "Pull the violet bough to the right until it reaches across. Drag it, or hold E / KNEAD."
-      },
-      {
-        "id": "weave-mound",
-        "name": "Squash the far mound",
-        "verb": "Press down",
-        "gesture": "down",
-        "parts": [
-          "weave-mound"
-        ],
-        "x": 210.5,
-        "end": 231,
-        "spawn": {
-          "x": 212,
-          "y": 23.4,
-          "groundId": "weave-perch"
-        },
-        "hint": "Press the far mound flat before you bounce. Drag it down, or hold E / KNEAD, from the perch."
-      }
-    ],
     "decor": []
   }
 }

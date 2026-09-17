@@ -326,7 +326,11 @@ function formHand(game,station,dt,input){
     if(ahead>-FORM.stepRadius&&ahead<s.w+FORM.stepRadius){
       // Past the end of the clay there is nothing ahead to step onto, so E
       // there lifts the ground the player stands on instead, a step at a time.
-      const at=Math.max(0,Math.min(s.w,ahead)),under=ahead!==at,want=p.y-base+FORM.step*FORM.stepRise,have=formHeight(f,under?Math.max(0,Math.min(s.w,p.x-s.x)):at);
+      // Bare footing ahead — a free mass's beam with no clay on it yet — is
+      // drawn a first skim of clay whatever height the player stands at, so a
+      // beam laid above them can still be opened by the key.
+      const at=Math.max(0,Math.min(s.w,ahead)),under=ahead!==at,have=formHeight(f,under?Math.max(0,Math.min(s.w,p.x-s.x)):at);
+      const want=have<FORM.minThick?Math.max(p.y-base+FORM.step*FORM.stepRise,FORM.minThick+.15):p.y-base+FORM.step*FORM.stepRise;
       const move=have<want-.03?Math.min(FORM.knead*dt,want-have):have>want+.03?-Math.min(FORM.knead*dt,have-want):0;
       // The clay the step is drawn from is never the clay under the player.
       if(move&&pullForm(f,at,0,move,FORM.stepRadius,{x:p.x-s.x,radius:FORM.foot+.2}))station.worked=true;
