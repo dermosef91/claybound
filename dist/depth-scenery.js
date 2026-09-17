@@ -3,6 +3,8 @@ import {canyonModel} from './canyon-assets.js';
 import {forestModel} from './forest.js';
 import {forestUnderstory} from './forest-details.js';
 import {caveCrystals} from './cavern.js';
+import {dreamSectionAt} from './dream/support.js';
+import {dreamVisual} from './dream/index.js';
 
 const group=parent=>{const g=new THREE.Group();parent.add(g);return g;};
 // Guards already include a safety margin. Ignore grazing padded bounds so a
@@ -37,7 +39,7 @@ function mushrooms(w,g,x=0,size=1){
 function crystals(w,g,x=0,size=1){
   caveCrystals(w,g,x,0,.1,size*1.15,{light:false});
 }
-function nearScenery(w,g,variant){
+function nearScenery(w,g,variant,s){
   if(w.biome==='citadel'){
     terrace(w,g,3.7,'terrain');
   }else if(w.biome==='desert'){
@@ -48,9 +50,12 @@ function nearScenery(w,g,variant){
     forestUnderstory(w,g);
     forestModel(w,'hills',g,-2.0,-1.7,-.4,2.2,0);
   }else if(w.biome==='dream'){
-    // Placeholder: a rolled pastel mound with two beads, nothing that names a
-    // section. The dream's visual modules decide what really stands here.
-    w.ball(2.1,1.35,1.6,'terrain2',g,0,-.9,0);w.ball(.7,.5,.6,'accent',g,-.9,.35,.4);w.ball(.45,.32,.4,'top',g,1.1,.28,.5);
+    // The deck's section may build its own (foreground(), dream/index.js);
+    // else a rolled pastel mound with two beads, nothing that names a section.
+    const section=s&&dreamSectionAt(w.currentLevel,s.x),visual=section&&dreamVisual(section.key);
+    if(visual?.foreground?.(w,g,variant,s,section)!==true){
+      w.ball(2.1,1.35,1.6,'terrain2',g,0,-.9,0);w.ball(.7,.5,.6,'accent',g,-.9,.35,.4);w.ball(.45,.32,.4,'top',g,1.1,.28,.5);
+    }
   }else{
     terrace(w,g,3.8,'terrain2');boulder(w,g,-.82,0,-.2,1.4);boulder(w,g,.65,0,.4,.57);
     crystals(w,g,.7,1.1);crystals(w,g,-1.52,.53);
@@ -58,10 +63,10 @@ function nearScenery(w,g,variant){
   g.rotation.y=variant%2?.12:-.1;
 }
 
-function makePart(w,parent,anchor,z,variant){
+function makePart(w,parent,anchor,z,variant,s){
   const band='foreground';
   const root=group(parent);root.name=`${w.biome} ${band} scenery`;
-  nearScenery(w,root,variant);
+  nearScenery(w,root,variant,s);
   root.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(root,true),materials=new Map(),meshes=[];
   root.traverse(o=>{
@@ -101,7 +106,7 @@ export function syncDepthScenery(w,L,near,add){
       const x=s.id==='start'?L.spawn.x+2.8:s.x+s.w*.36;
       // Keep the low citadel terraces beneath the playable rooftop edge.
       const drop=w.biome==='citadel'?2.6:w.biome==='forest'?2.15:2.1;
-      parts.push(makePart(w,root,{x,y:s.y-drop},3.7+(index%3)*.55,index));
+      parts.push(makePart(w,root,{x,y:s.y-drop},3.7+(index%3)*.55,index,s));
       w.depthViews.set(s.id,{root,parts});return root;
     },()=>w.depthViews.delete(s.id));
   });

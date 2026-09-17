@@ -38,7 +38,7 @@ const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
 // All of them clay with the relief hook (tests/scene.mjs holds every surface
 // near a spawn to it); the slime and the falls ask for the shiniest the relief
 // shader allows, a soft sheen rather than gloss.
-const slime=w=>fixedMaterial(w,'gardenSlime',0xef4f9c,{roughness:.4,depth:.03});
+const slime=w=>fixedMaterial(w,'gardenSlime',0xf05aa6,{roughness:.4,depth:.03});
 const slimeLight=w=>fixedMaterial(w,'gardenSlimeLight',0xf78ac0,{roughness:.4,depth:.03});
 const cloud=w=>fixedMaterial(w,'gardenCloud',0xf2a9c6,{depth:.05});
 const peach=w=>fixedMaterial(w,'gardenPeach',0xf6b48f,{depth:.05});
@@ -111,29 +111,40 @@ class Helix extends THREE.Curve{
   getPoint(t,o=new THREE.Vector3()){const a=t*this.turns*Math.PI*2,r=this.r*(1-t*.55);return o.set(Math.cos(a)*r,t*this.height,Math.sin(a)*r);}
 }
 const spiralDisc=w=>clayShape(w,'garden-spiral-disc',()=>sculptClay(w,new THREE.TubeGeometry(new Spiral(.12,1,2.6),72,.13,7,false),{amplitude:.02}));
+// The scroll at a deck's end: a fat snail curl of frosting, about half a unit across.
+const scroll=w=>clayShape(w,'garden-scroll',()=>sculptClay(w,new THREE.TubeGeometry(new Spiral(.08,.5,2.15),64,.12,8,false),{amplitude:.02}));
 const tendril=w=>clayShape(w,'garden-tendril',()=>sculptClay(w,new THREE.TubeGeometry(new Helix(.42,1.6,2.2),40,.09,6,false),{amplitude:.02}));
 const streak=w=>clayShape(w,'garden-streak',()=>sculptClay(w,new THREE.TubeGeometry(new Sine(14,1.1,1.25),48,.6,7,false),{amplitude:.03}));
 const coil=w=>clayShape(w,'garden-coil',()=>sculptClay(w,new THREE.TubeGeometry(new Spiral(.6,4.2,1.75),96,.62,8,false),{amplitude:.03}));
 
 // --- terrain -------------------------------------------------------------------------
 // The body every other chapter's decks are made of (environments.js's plain
-// terrain, copied rather than imported so this module makes no cycle): columns
-// of three pressed courses under a frosting cap with beads along its lip — and
-// here the frosting has run over the edge in drips. After the arch the same
-// body is dressed strange: longer drips, marbling streaks, a spiral pressed
-// into the face, pores, a tendril, and an eye in the face of the two big decks.
+// terrain, copied rather than imported so this module makes no cycle), after
+// the boards: columns of three pressed courses — wide soft panels — under a
+// thick frosting cap whose lip overhangs the face, hung with pointed leaves,
+// a snail curl of frosting at each end, and pink and lilac pebbles pressed
+// into the face. After the arch the same body is dressed strange: longer
+// leaves, marbling streaks, a spiral pressed into the face, pores, a tendril,
+// and an eye in the face of the two big decks.
 function body(w,s,g,{weird=false}={}){
-  const width=s.w,columns=Math.max(2,Math.ceil(width/3.1)),rows=3,rowH=10.4/rows;
+  const width=s.w,columns=Math.max(2,Math.ceil(width/2.7)),rows=3,rowH=10.4/rows;
   for(let i=0;i<columns;i++){
     const cw=width/columns,depth=3.25+rand(i+s.x)*.15;
-    for(let row=0;row<rows;row++)w.box(cw+.15,rowH+.2,depth+(row%2)*.06,(i+row)%3===1?'terrain2':'terrain',g,(i+.5)*cw,-.18-(row+.5)*rowH,-.03,.33).name='Clay course';
+    for(let row=0;row<rows;row++)w.box(cw+.15,rowH+.2,depth+(row%2)*.06,(i+row)%3===1?'terrain2':'terrain',g,(i+.5)*cw,-.18-(row+.5)*rowH,-.03,.4).name='Clay course';
   }
-  w.box(width+.14,.49,3.6,'top',g,width/2,-.18,0,.22).name='Frosting cap';
-  for(let i=0;i<Math.ceil(width/.93);i++){const x=.25+i*.93;if(x>width-.15)continue;w.ball(.51,.17+rand(i+s.x)*.09,.15,'top',g,x,-.32,1.68).name='Cap bead';}
-  const drips=Math.max(2,Math.round(width/(weird?1.3:2.4)));
-  for(let i=0;i<drips;i++){
-    const x=.5+rand(i*3+s.x)*(width-1),h=(weird?.9:.45)+rand(i*7+s.x)*(weird?1.3:.55),r=.2+rand(i*5+s.x)*.14;
-    drip(w,g,x,-.4,1.66,r,h,'top',i);
+  w.box(width+.24,.62,3.72,'top',g,width/2,-.24,.05,.28).name='Frosting cap';
+  const leaves=Math.max(2,Math.round(width/(weird?1.2:1.6)));
+  for(let i=0;i<leaves;i++){
+    const x=.6+rand(i*3+s.x)*(width-1.2),h=(weird?1.2:.6)+rand(i*7+s.x)*(weird?.8:.5),r=.2+rand(i*5+s.x)*.08;
+    leaf(w,g,x,-.42,1.74,r,h,'top',i);
+  }
+  for(const [x,side] of [[-.08,-1],[width+.08,1]]){
+    const curl=w.mesh(scroll(w),'top',g,x+side*.32,-.6,1.5);curl.rotation.y=side*.35;curl.rotation.z=side>0?.4:Math.PI-.4;curl.name='Frosting scroll';
+    w.ball(.26,.22,.2,'top',g,x+side*.1,-.42,1.6).name='Scroll root';
+  }
+  for(let i=0;i<Math.max(2,Math.round(width/3));i++){
+    const r=.24+rand(i*17+s.x)*.1;
+    w.ball(r,r*.85,.12,i%2?'accent':lilac(w),g,.9+rand(i*19+s.x)*(width-1.8),-1.4-rand(i*23+s.x)*5.5,1.66).name='Pressed pebble';
   }
   if(!weird)return;
   // Marbling: two soft streaks of the accent colour pressed across the face.
@@ -406,6 +417,23 @@ export default {
     return true;
   },
 
+  // In front of every stone deck: the boards' purple — violet and lilac
+  // mounds with moss caps and pink beads, and a pink mound beside them —
+  // flipped left/right by deck. All fixed colours, so the palette flip
+  // leaves them purple; nothing rises above y 1.6 (dream/index.js).
+  foreground(w,g,variant){
+    const flip=variant%2?-1:1;
+    w.ball(1.5,.95,1.15,violet(w),g,0,-.85,0).name='Mound';
+    w.ball(1.05,.7,.85,lilac(w),g,flip*1.35,-1,.25).name='Mound';
+    w.ball(.8,.58,.65,lilac(w),g,-flip*1.2,-1.1,.15).name='Mound';
+    if(variant%3===0)w.ball(.75,.58,.62,capPink(w),g,-flip*2.1,-1.15,.4).name='Pink mound';
+    w.ball(.6,.34,.5,moss(w),g,flip*.2,0,.4).name='Mound moss';
+    w.ball(.4,.26,.34,moss(w),g,-flip*1.05,-.55,.55).name='Mound moss';
+    w.ball(.2,.2,.18,bead(w),g,flip*1.15,-.38,.75).name='Mound bead';
+    w.ball(.14,.14,.12,bead(w),g,-flip*.45,-.05,.85).name='Mound bead';
+    return true;
+  },
+
   // The pads, eyes, snapping heads, spring, keystone and trough are the
   // garden's own; the clay and the goal keep the engine's view.
   deck(w,s,g){
@@ -460,10 +488,11 @@ export default {
       return true;
     }
     const weird=!familiar(w,h.x+h.w/2);
-    w.box(h.w+.6,2.6,3.2,slime(w),g,h.w/2,-.85,-.4,.5).name='Slime pool';
+    w.box(h.w+.6,2.6,3.2,slime(w),g,h.w/2,-.85,-.4,.7).name='Slime pool';
+    for(let i=0;i<2;i++)w.ball(.34,.06,.28,'cream',g,h.w*(.3+i*.45)+rand(i+h.x)*.8,.44,.6).name='Slime plate';
     const cones=Math.min(14,Math.max(3,Math.round(h.w/1.9)));
     for(let i=0;i<cones;i++){
-      const x=(i+.5)/cones*h.w+(rand(i+h.x)-.5)*.6,z=-.3+rand(i*5+h.x)*.9,r=.28+rand(i*3+h.x)*.16,hh=.8+rand(i*7+h.x)*.9;
+      const x=(i+.5)/cones*h.w+(rand(i+h.x)-.5)*.6,z=-.3+rand(i*5+h.x)*.9,r=.28+rand(i*3+h.x)*.16,hh=.95+rand(i*7+h.x)*1;
       if(weird){w.ball(r*1.7,.34,r*1.5,'terrain',g,x,.42,z).name='Slime mound';cone(w,g,x,.66,z,r,hh,'cream',i);}
       else cone(w,g,x,.42,z,r,hh,'cream',i);
     }
