@@ -29,6 +29,7 @@ import {solveFormStation} from '../dist/clay-rules.js';
 import {formVolume} from '../dist/clay-form.js';
 import {readPlayer} from './load-player.mjs';
 import {attachClay} from './load-clay.mjs';
+import {attachDream} from './load-dream.mjs';
 import {crossing} from './routes.mjs';
 import {auditLevel} from './layout-audit.mjs';
 import {searchRoute} from './playthroughs.mjs';
@@ -49,7 +50,8 @@ const volume=(q,role)=>q.w*((q.h??0)+(role==='ramp'?(q.slope||0)/2:0));
 const standable=s=>!['wall','switch'].includes(s.kind);
 
 // A World with the renderer stubbed, the way tests/scene.mjs builds one. The
-// dream loads no models, so the hero and the clay surface are all it needs.
+// dream's only models are the orchard's planets and saucer bowls, so the hero,
+// the clay surface and those are all it needs.
 async function cpuWorld(){
   const w=Object.create(World.prototype);
   w.scene=new THREE.Scene();w.scene.background=new THREE.Color();w.scene.fog=new THREE.Fog(0,32,90);w.bump=new THREE.Texture();w.mat={};
@@ -61,6 +63,7 @@ async function cpuWorld(){
   const data=async name=>JSON.parse(await readFile(new URL('../dist/assets/'+name,import.meta.url)));
   attachHero(w,await readPlayer(),await data('player-motion.json'),await data('player-idle.json'));
   await attachClay(w);
+  await attachDream(w);
   return w;
 }
 // What the frame at x would submit: meshes under levelRoot and backRoot whose

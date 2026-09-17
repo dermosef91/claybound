@@ -22,6 +22,7 @@ import {createShapeHands,animateShapeHands,disposeShapeHands} from './shape-hand
 import {loadCanyonAssets} from './canyon-assets.js';
 import {loadWindmills} from './windmill.js';
 import {loadForestAssets} from './forest.js';
+import {loadDreamAssets} from './dream-assets.js';
 import {loadSpitterAssets} from './spitter-asset.js';
 import {loadCavernAssets} from './cavern-asset.js';
 import {createCaveLights} from './cave-lighting.js';
@@ -231,6 +232,7 @@ export class World {
     if(L.biome==='desert'||L.enemies.some(e=>e.kind==='drifter'))await loadDrifters(this,onProgress);
     if(L.biome==='forest'||L.enemies.some(e=>e.kind==='spore'))await loadSpores(this,onProgress);
     if(L.biome==='forest')await loadForestAssets(this,onProgress);
+    if(L.biome==='dream')await loadDreamAssets(this,onProgress);
     if(L.boss?.kind==='mother-puff')await loadMotherPuff(this,onProgress);
     if(L.biome==='cave')await loadCavernAssets(this,onProgress);
     if(L.biome==='cave'||L.enemies.some(e=>e.kind==='spitter'))await loadSpitterAssets(this,onProgress);

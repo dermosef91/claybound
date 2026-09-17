@@ -18,6 +18,7 @@ import {attachClay} from './load-clay.mjs';
 import {attachCanyon} from './load-canyon.mjs';
 import {attachWindmills} from './load-windmills.mjs';
 import {attachForest} from './load-forest.mjs';
+import {attachDream} from './load-dream.mjs';
 import {attachSpitter} from './load-spitter.mjs';
 import {attachGrotto} from './load-grotto.mjs';
 import {createCaveLights} from '../dist/cave-lighting.js';
@@ -39,7 +40,7 @@ prepareCastleAsset(w,await readGLB(new URL('../dist/assets/castle.glb',import.me
 prepareCottageAsset(w,await readGLB(new URL('../dist/assets/cottage.glb',import.meta.url)));
 prepareCloudAsset(w,await readGLB(new URL('../dist/assets/cloud.glb',import.meta.url)));
 prepareCityLaundry(w,await readGLB(new URL('../dist/assets/city-laundry.glb',import.meta.url)));
-await attachCanyon(w);await attachWindmills(w);await attachForest(w);await attachGrotto(w);await attachDrifter(w);
+await attachCanyon(w);await attachWindmills(w);await attachForest(w);await attachDream(w);await attachGrotto(w);await attachDrifter(w);
 prepareSporeAsset(w,await readGLB(new URL('../dist/assets/spore-puff.glb',import.meta.url)));
 for(const pose of ['idle','cast','friendly'])prepareMotherPuff(w,pose,await readGLB(new URL(`../dist/assets/mother-puff-${pose}.glb`,import.meta.url)));
 await attachClay(w);await attachSpitter(w);

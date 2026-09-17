@@ -26,6 +26,7 @@ export function prepareClay(w,profile,detail){
   for(const [key,asset]of Object.entries(w.canyonAssets||{}))clayModel(w,asset.scene,{background:key==='arch'||key==='summit'});
   for(const asset of Object.values(w.windmillAssets||{}))clayModel(w,asset.scene);
   for(const asset of Object.values(w.forestAssets||{}))clayModel(w,asset.scene);
+  for(const asset of Object.values(w.dreamAssets||{}))clayModel(w,asset.scene);
 }
 
 // Stable rest-space coordinates follow skinned characters, moving platforms and

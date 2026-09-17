@@ -11,7 +11,7 @@ The current blockout art is in `dist/setpieces.js`. These models replace visible
 
 ## The Soft Dream (chapter five)
 
-Every creature, statue and piece of furniture in the dream ships as a sculpted clay stand-in built in `dist/dream/*.js`; the collision is always the platform data, so a supplied model only replaces what is seen. All of these are nice-to-have. Colours live in the chapter's palette slots, so supply neutral (cream) albedo where a colour is not named and let the material do the rest; matte clay surfaces, rounded edges.
+Every creature, statue and piece of furniture in the dream ships as a sculpted clay stand-in built in `dist/dream/*.js`; the collision is always the platform data, so a supplied model only replaces what is seen. The Upside-Down Orchard's two dome islands and its five rope-hung saucers are the first to use supplied models — the clay planets and frosted bowls in `dist/assets/dream-*.glb`, prepared by `scripts/prepare-dream-assets.py` and placed by `dist/dream-assets.js` so each planet's core orb is the dome's collider. All of the rest are nice-to-have. Colours live in the chapter's palette slots, so supply neutral (cream) albedo where a colour is not named and let the material do the rest; matte clay surfaces, rounded edges.
 
 | Asset | Used in | Shape and animation | Runtime fit |
 |---|---|---|---|
