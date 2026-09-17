@@ -59,10 +59,12 @@ export default {
     // A free mass with no pose. The authored solution (one way of many) grabs
     // the flat top at 50 and pulls a mound out of it, drags that mound six
     // units right — the clay it trails behind lays out as a walkable ramp —
-    // then pulls the crest up at the mass's right end into a pillar at ≈8.8.
-    // Solved, the surface climbs from ≈1.0 at the left end up a ramp to ≈5.7
-    // at 54, one hop onto the pillar (7.9–9.0 over 55–57), and one hop onto
-    // the saucer hanging at 10.8. (The volume solver draws every pull's clay
+    // then pulls the crest up at the mass's right end into a pillar at ≈8.7,
+    // and finally lifts the thinned left end a little so no footing is ever
+    // less than .6 of clay over the nails. Solved, the surface climbs from
+    // ≈1.3 at the left end up a ramp to ≈5.6 at 54, one hop onto the pillar
+    // (7.5–8.7 over 55–57), and one hop onto the saucer hanging at 10.8.
+    // (The volume solver draws every pull's clay
     // from a ring round the hand, so two separate steps cannot both stand;
     // a ramp and one pillar is the stair this clay will hold.) The route
     // walks onto the flat mass, so the station is rideable; its bypass (mid →
@@ -72,7 +74,7 @@ export default {
     {id:'orchard-blob',rule:'form',free:true,relax:false,shaped:.24,name:'Pull the orchard up',verb:'Grab it and drag',gesture:'up',icon:'knead',cueX:53,
      parts:['orchard-blob'],x:37,end:60,spawn:{x:41,y:3,groundId:'orchard-mid'},rideable:true,
      clump:[K(44,0),K(57,0)],
-     solution:[{x:50,lift:0,dx:0,dy:7,t:3},{x:50,lift:0,dx:6,dy:-1,t:3.5},{x:56.5,lift:0,dx:0,dy:2.5,t:1.6}],
+     solution:[{x:50,lift:0,dx:0,dy:7,t:3},{x:50,lift:0,dx:6,dy:-1,t:3.5},{x:56.5,lift:0,dx:0,dy:2.5,t:1.6},{x:45.5,lift:0,dx:0,dy:.6,t:.8}],
      hint:STATION_HINT}
   ],
   // Colour-negative orchard: mint earth and domes, raspberry foliage crowns and
