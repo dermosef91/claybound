@@ -114,16 +114,13 @@ function attempt(original,link,{offset,wait,hold}){
  return null;
 }
 
-const traces=[];
-for(const [i,L]of LEVELS.entries()){
- if(process.env.LEVEL!==undefined&&i!==+process.env.LEVEL)continue;
- const played=await fromRecording(i,L);
- if(played){
-  traces.push(played);
-  console.log('REPLAY',L.short,played.seconds.toFixed(1)+'s',played.coins,'beads;',played.flowers,'flowers; recorded input, replayed from a clean start');
-  continue;
- }
- let g=new Game();g.start(i);let attempts=0,furthest=0;
+// The search itself, for one level: `L` is the chapter (or a synthetic level
+// such as a solo section from dist/routes/dream.js, passed again as `source`
+// so the game starts from it). Returns {g,controls} for a completed run, or
+// {blocked,furthest,attempts} when the budget ran out. Exported so
+// tests/dream-sections.mjs pilots one section with the same search.
+export function searchRoute(i,L,{source,flowers=FLOWERS}={}){
+ let g=new Game();g.start(i,source);let attempts=0,furthest=0;
  const links=structuredClone(L.routeLinks);
  // A board or a ride can only be taken when the machine comes round, and some
  // of those boardings launch from a crumbling ledge that gives way in a sixth
@@ -144,7 +141,7 @@ for(const [i,L]of LEVELS.entries()){
    return waits;
  };
  const budget=Math.max(6000,links.length*220);
- if(FLOWERS)for(const detour of L.detours){
+ if(flowers)for(const detour of L.detours){
    const start=links.findIndex(l=>l.from===detour[0].from),end=detour.at(-1).to;
    const count=end===detour[0].from?0:links.findIndex((l,k)=>k>=start&&l.to===end)-start+1;
    assert(start>=0&&count>=0);links.splice(start,count,...detour);
@@ -180,9 +177,27 @@ for(const [i,L]of LEVELS.entries()){
   }return null;
  }
  const run=journey(g,0);
- if(!run){console.log('BLOCKED',i,'after',furthest,'crossings;',attempts,'input candidates');process.exitCode=1;continue;}
+ if(!run)return {blocked:true,furthest,attempts};
  g=run.g;const controls=run.parts.flat();
  for(let f=0;f<480&&g.status==='playing';f++){const input={right:true,jumpHeld:false};controls.push(input);g.tick(dt,input);}
+ return {g,controls,attempts};
+}
+
+// Run as a script: every chapter, recorded routes replayed, searched routes
+// recorded. Imported, this file only lends its search.
+if(process.argv[1]?.endsWith('playthroughs.mjs')){
+const traces=[];
+for(const [i,L]of LEVELS.entries()){
+ if(process.env.LEVEL!==undefined&&i!==+process.env.LEVEL)continue;
+ const played=await fromRecording(i,L);
+ if(played){
+  traces.push(played);
+  console.log('REPLAY',L.short,played.seconds.toFixed(1)+'s',played.coins,'beads;',played.flowers,'flowers; recorded input, replayed from a clean start');
+  continue;
+ }
+ const run=searchRoute(i,L);
+ if(run.blocked){console.log('BLOCKED',i,'after',run.furthest,'crossings;',run.attempts,'input candidates');process.exitCode=1;continue;}
+ const g=run.g,controls=run.controls;
  assert.equal(g.status,'complete');assert.equal(g.deaths,0);
  if(FLOWERS)assert.equal(g.stamps,L.stamps.length,'all optional flower routes collect their rewards');
  // Replay the recorded input stream from a clean start to prove determinism.
@@ -194,3 +209,4 @@ for(const [i,L]of LEVELS.entries()){
  console.log('COMPLETE',L.short,g.elapsed.toFixed(1)+'s',g.coins,'beads;',g.stamps,'flowers; no resets or state edits');
 }
 if(!process.exitCode)await writeFile(new URL(process.env.RESULTS_PATH||(FLOWERS?'./flower-playthrough-results.json':'./playthrough-results.json'),import.meta.url),JSON.stringify(traces,null,2)+'\n');
+}

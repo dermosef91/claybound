@@ -114,12 +114,16 @@ export function auditLevel(L,index){
   return [...notes,...flowers];
 }
 
-const only=process.argv[2]===undefined?null:Number(process.argv[2]);
-let total=0;
-for(const [i,L]of LEVELS.entries()){
-  if(only!==null&&i!==only)continue;
-  const notes=auditLevel(L,i);total+=notes.length;
-  console.log(`\n${L.short}: ${notes.length?notes.length+' notes':'clean'}`);
-  for(const n of notes)console.log('  ·',n);
+// Run as a script it audits the chapters; imported (tests/dream-sections.mjs
+// audits a solo section level) it only lends auditLevel.
+if(process.argv[1]?.endsWith('layout-audit.mjs')){
+  const only=process.argv[2]===undefined?null:Number(process.argv[2]);
+  let total=0;
+  for(const [i,L]of LEVELS.entries()){
+    if(only!==null&&i!==only)continue;
+    const notes=auditLevel(L,i);total+=notes.length;
+    console.log(`\n${L.short}: ${notes.length?notes.length+' notes':'clean'}`);
+    for(const n of notes)console.log('  ·',n);
+  }
+  if(only===null)console.log(`\n${total} authoring notes across ${LEVELS.length} chapters`);
 }
-if(only===null)console.log(`\n${total} authoring notes across ${LEVELS.length} chapters`);

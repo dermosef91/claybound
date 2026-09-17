@@ -11,19 +11,21 @@ export function steer(g,aim){return Math.max(-1,Math.min(1,((aim-g.player.x)*7-(
 // solution strokes make, solved once per station through the real hand and
 // copied onto every game a sweep starts. Exported so clay-sections can hold the
 // pilot's real-input replay to the same surface.
+// `source` is a level standing in for the registered chapter (a solo section
+// build); its surfaces are cached apart from the chapter's under its name.
 const solved=new Map();
-export function solvedForm(index,id){
-  const key=`${index}:${id}`;
+export function solvedForm(index,id,source){
+  const key=`${source?source.name+'/':''}${index}:${id}`;
   if(!solved.has(key)){
-    const g=new Game();g.start(index);
+    const g=new Game();g.start(index,source);
     const station=g.level.shaping.find(s=>s.id===id),mass=g.level.platforms.find(s=>s.id===station.parts[0]);
     solved.set(key,Float64Array.from(solveFormStation(station,mass,{dt}).h));
   }
   return solved.get(key);
 }
-export function applySolvedForm(g,station){
+export function applySolvedForm(g,station,source){
   const f=g.level.platforms.find(s=>s.id===station.parts[0]).form;
-  f.h.set(solvedForm(g.index,station.id));f.prev.set(f.h);f.settled=false;f.version++;
+  f.h.set(solvedForm(g.index,station.id,source));f.prev.set(f.h);f.settled=false;f.version++;
   station.amount=station.target=formShare(f,station.shaped);station.announced=true;
 }
 // `shaped` is what separates "can this be crossed" from "is the clay carrying
@@ -45,7 +47,7 @@ export function crossing(index,link,{shaped=true,source}={}){
     // Trigger zones are channel sources too; a sweep measures reach with
     // everything they wake already awake.
     for(const t of g.level.triggers||[]){g.channels[t.channel]=100;g.latched[t.channel]=true;}
-    for(const station of g.level.shaping||[]){station.announced=true;if(worked(station)){if(station.rule==='form')applySolvedForm(g,station);else{station.target=1;station.amount=1;}}}
+    for(const station of g.level.shaping||[]){station.announced=true;if(worked(station)){if(station.rule==='form')applySolvedForm(g,station,source);else{station.target=1;station.amount=1;}}}
     g.time=phase;g.tick(dt,{});
     const dir=Math.sign(b.x+b.w/2-a.x-a.w/2)||1,overlap=a.x<b.x+b.w&&a.x+a.w>b.x,fall=link.mode==='fall',drop=link.mode==='drop',walk=link.mode==='walk';
     let x=dir>0?a.x+a.w-offset:a.x+offset;
