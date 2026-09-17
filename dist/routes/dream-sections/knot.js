@@ -88,7 +88,9 @@ export default {
     // The wake deck is the ordinary world: the shipped canyon look, a hard cut behind the teleport.
     {x:90,main:'#e64e1e',secondary:'#f0603a',backdrop:'#f2b28f',accent:'#ffd568',sky:'#87a9cc',fog:'#d7b39b'}
   ],
-  camera:[{x:0,roll:0},{x:15,roll:.14},{x:32,roll:.28},{x:48,roll:.40,viewH:12.4},{x:60,roll:.5},{x:90,roll:0,viewH:11.6}],
+  // An entry without viewH means "the ordinary height", so the wider view asked
+  // for at 48 is repeated at 60 to hold until the wake deck resets it.
+  camera:[{x:0,roll:0},{x:15,roll:.14},{x:32,roll:.28},{x:48,roll:.40,viewH:12.4},{x:60,roll:.5,viewH:12.4},{x:90,roll:0,viewH:11.6}],
   guides:[],
   finale:{flower:{x:77.5,y:13.0},requires:['knot-strand-a','knot-strand-b','knot-strand-c'],wake:{x:95,y:0,groundId:'knot-wake'},duration:6}
 };
