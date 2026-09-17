@@ -121,8 +121,8 @@ function highestFrom(level,id){
 const SECTIONS=[
   // One formable mass spans the whole pocket, so its bypass is dock to landing.
   {level:0,station:'canyon-pocket',bypass:{from:'pocket-dock',to:'pocket-landing',mode:'jump'},form:true},
-  {level:1,station:'weave-bough',bypass:{from:'gap-brink',to:'weave-perch',mode:'jump'}},
-  {level:1,station:'weave-mound',bypass:{from:'weave-spring',to:'canopy-nest',mode:'jump'}},
+  {level:1,station:'weave-bough',bypass:{from:'gap-brink',to:'weave-perch',mode:'jump'},form:true},
+  {level:1,station:'weave-mound',bypass:{from:'weave-spring',to:'canopy-nest',mode:'jump'},form:true},
   // The tower is the one piece meant to be stood on while it is still tall.
   {level:2,station:'kiln-tower',bypass:{from:'kiln-ledge',to:'kiln-tunnel',mode:'jump'},rideable:true},
   {level:2,station:'kiln-plug',bypass:{from:'kiln-tunnel',to:'kiln-run',mode:'jump'}},
@@ -426,10 +426,65 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
   console.log('PASS the pocket: shut while unworked; crossed by the authored lean-and-slump, by squash-and-slump, by a pillar and a stomp-launch, and by E-steps; every bead taken; deaths keep the clay, R works only from off it, and a save resumes it solved');
 }
 
-// Every gesture the game can ask for is taught before the chapter that leans on
-// it, which was the point of putting clay in the first three chapters at all.
-// The canyon now teaches the free hand ('up', the formable mass), the forest
-// right and down, the caverns down and out.
+// The Weaver's Gap by keyboard alone. The canyon's rule carries the brink to
+// the perch over the bough — E presses the stub where it towers, draws a skim
+// onto the bare bark ahead, and at the clay's end lifts the ground underfoot.
+// The mound is the one piece a hand cannot reach from where it is opened, so
+// the perch runs up to its bark with the mushroom at the very end: standing
+// at the mushroom's edge the block is within E's reach, and the key held
+// there slumps it until the bounce can land on it; from there the far side
+// is walked and stepped off onto the nest.
+{
+  const g=new Game();g.start(1);g.level.enemies=[];
+  const P=id=>g.level.platforms.find(q=>q.id===id),p=g.player,bough=P('weave-bough'),mound=P('weave-mound'),perch=P('weave-perch'),spring=P('weave-spring');
+  const boughStation=g.level.shaping.find(q=>q.id==='weave-bough'),moundStation=g.level.shaping.find(q=>q.id==='weave-mound');
+  assert(spring.x+spring.w>=mound.x-1e-9&&perch.x+perch.w>=spring.x+spring.w-1e-9,'the mushroom sits at the perch\'s end, against the mound\'s bark');
+  assert(spring.x-RULES.radius+FORM.stepReach>mound.x-FORM.stepRadius+.2,'and a player at its edge has the block within E\'s reach');
+  Object.assign(p,{x:194,y:21.6,vx:0,vy:0,groundId:'gap-brink',facing:1});
+  let t=0,heldE=0,hopTimer=0;
+  for(let i=0;i<150/dt&&p.groundId!=='weave-perch'&&!g.deaths;i++){
+    const aheadX=Math.max(bough.x,Math.min(bough.x+bough.w,p.x+FORM.stepReach)),rise=surfaceAt(bough,aheadX)-p.y,atWall=p.x>perch.x-.6;
+    let input;
+    if(atWall&&perch.y-p.y<2.4){input={moveAxis:1,jumpPressed:hopTimer<=0&&!!p.groundId,jumpHeld:true};if(input.jumpPressed)hopTimer=60;}
+    else if(atWall||(p.x+FORM.stepReach>=bough.x-.3&&(rise>FORM.step||rise<-.05))){input={moveAxis:0,shapeHeld:true};p.facing=1;heldE++;}
+    else input={moveAxis:1};
+    hopTimer--;g.tick(dt,input);t+=dt;
+  }
+  assert.equal(p.groundId,'weave-perch',`a keyboard alone crosses the bough (ended at ${p.x.toFixed(1)}, ${p.y.toFixed(2)} after ${t.toFixed(0)}s)`);
+  assert.equal(g.deaths,0,'without dying');assert(t<90,`in ${t.toFixed(0)}s`);assert(heldE>frames(5),'by holding E');
+  assert.equal(boughStation.amount,1,'and the key alone moves enough of the bough to read as shaped');
+  // Across the mound: hold E at the mushroom's edge while the block still
+  // stands above what the bounce reaches, then bounce and steer onto the
+  // clay; on it, press what towers while pressing still lowers it, hop when
+  // it does not, and walk down whatever falls away.
+  const tA=t;heldE=0;let sprung=false;const hist=[];g.onEvent=e=>{if(e.type==='spring')sprung=true;};
+  const peak=()=>{let m=0;for(let i=0;i<mound.form.n;i++)m=Math.max(m,mound.form.h[i]);return mound.y-mound.h+m;};
+  const across=()=>p.groundId===mound.id&&p.x>mound.x+mound.w-.4||(p.groundId&&p.groundId!==mound.id&&p.x>mound.x+mound.w);
+  for(let i=0;i<120/dt&&!across()&&!g.deaths;i++){
+    const onMass=p.groundId===mound.id;
+    const aheadX=Math.max(mound.x,Math.min(mound.x+mound.w,p.x+FORM.stepReach)),ahead=surfaceAt(mound,aheadX),rise=ahead-p.y;
+    hist.push(ahead);if(hist.length>60)hist.shift();const progressing=hist.length<60||hist[0]-ahead>.01;
+    let input;
+    if(onMass&&rise>FORM.step&&progressing){input={moveAxis:0,shapeHeld:true};p.facing=1;heldE++;}
+    else if(onMass)input={moveAxis:1,jumpPressed:!progressing&&rise>FORM.step&&hopTimer<=0,jumpHeld:true};
+    else if(!p.groundId)input={moveAxis:sprung?1:0,jumpHeld:true};
+    else if(p.groundId==='weave-perch'&&p.x+FORM.stepReach>mound.x-FORM.stepRadius+.05&&peak()>spring.y+7&&progressing){input={moveAxis:0,shapeHeld:true};p.facing=1;heldE++;}
+    else {input={moveAxis:1,jumpHeld:true};hist.length=0;}
+    if(input.jumpPressed)hopTimer=60;hopTimer--;
+    g.tick(dt,input);t+=dt;
+  }
+  assert(across(),`a keyboard alone crosses the mound (ended at ${p.x.toFixed(1)}, ${p.y.toFixed(2)} on ${p.groundId} after ${(t-tA).toFixed(0)}s)`);
+  assert.equal(g.deaths,0,'without dying');assert(t-tA<60,`in ${(t-tA).toFixed(0)}s`);assert(sprung,'by way of the mushroom');assert(heldE>frames(5),'after holding E at its edge');
+  assert.equal(moundStation.amount,1,'and the key alone moves enough of the mound to read as shaped');
+  console.log(`PASS the Weaver's Gap by keyboard alone: E over the bough in ${tA.toFixed(0)}s, E at the mushroom's edge, the bounce and a walk over the mound in ${(t-tA).toFixed(0)}s`);
+}
+
+// Every gesture the game can ask for is either taught before the chapter that
+// leans on it or arrives with its own words. The canyon and the forest now
+// teach the free hand ('up', three formable masses), the caverns down and out;
+// the pull to the right is first asked for in the Hanging Quarter, whose two
+// pulls each say so in their hint.
 const taught=new Set(LEVELS.slice(0,3).flatMap(L=>(L.shaping||[]).map(s=>s.gesture)));
-assert.deepEqual([...taught].sort(),['down','out','right','up']);
-console.log('PASS all four gestures are taught before the final chapter');
+assert.deepEqual([...taught].sort(),['down','out','up']);
+for(const s of LEVELS[3].shaping)if(!taught.has(s.gesture))assert(/right/i.test(s.hint||''),`${s.id} asks for an untaught gesture (${s.gesture}) and does not say so`);
+console.log('PASS the gestures the final chapter leans on are taught before it, or say themselves what they want');
