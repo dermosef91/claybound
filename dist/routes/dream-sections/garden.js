@@ -56,7 +56,7 @@ export default {
   hazards:[{x:42.5,w:19,y:-1.6}],
   hints:[
     {x:0,end:12,icon:'walk',title:"Look who's looking",text:'The flowers watch you. Walk on — the garden leans your way.'},
-    {x:42,end:44,icon:'mushroom',title:'Up top',text:'A mushroom below the arch deck bounces you to the crown.'}
+    {x:42,end:45.2,icon:'mushroom',title:'Up top',text:'A mushroom below the arch deck bounces you to the crown.'}
   ],
   winds:[],triggers:[],crushers:[],
   shaping:[
