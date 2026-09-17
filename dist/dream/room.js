@@ -296,7 +296,7 @@ export default {
       w.ball(.36,.36,.24,knob,shaft,cx+(row%2?1.6:-1.6),y-.2,.7).name='Drawer knob';
     }
     // Pass 1 again: the last door has the first door's window beside it.
-    window(X(117.6),1.0,1,false);
+    window(X(118.4),1.0,1,false);
   },
 
   // --- streamed props: doors, puddles, the cup, the ceiling, doll things, the mobile hub
