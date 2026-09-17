@@ -5,9 +5,17 @@
 //
 //   LEVEL=4 SPOTS=garden-start,knot-wake OUT=<dir> node scripts/review-dream.cjs
 //   SPOTS='[{"name":"arch","x":22,"y":2.4,"ground":"garden-arch","ticks":120}]' node scripts/review-dream.cjs
+//   SECTION=garden OUT=<dir> node scripts/review-dream.cjs
 //
-// Env: LEVEL (chapter index, default 4) · SPOTS (comma list of names from the
-// table below, or a JSON array of {name,x,y,ground?,cameraX?,cameraY?,ticks?})
+// SECTION=<key> captures three spots across that section of the live chapter
+// — entry, middle and exit (4 units in from each end and the section's
+// midpoint), the player parked on the nearest standable deck by x, read from
+// the level's own dreamSections table — as <key>-entry.png, <key>-middle.png,
+// <key>-exit.png. SPOTS, when given, wins over SECTION.
+//
+// Env: LEVEL (chapter index, default 4) · SECTION (a dream section key) ·
+// SPOTS (comma list of names from the table below, or a JSON array of
+// {name,x,y,ground?,cameraX?,cameraY?,ticks?})
 // · OUT (default /Users/moritzgrassy/.claude/jobs/b6712500/tmp/shots) · PORT
 // (default 5197) · ROOT (checkout holding dist/, default this script's
 // checkout) · WIDTH/HEIGHT · CHROME_PATH (Chrome binary, default the
@@ -38,8 +46,23 @@ const SPOTS={
  'knot-climb':{x:571,y:5.6,ground:'knot-d',ticks:120},
  'knot-wake':{x:597,y:0,ground:'knot-wake',ticks:120}
 };
+const section=process.env.SPOTS?'':(process.env.SECTION||'');
 const raw=process.env.SPOTS||'garden-start,knot-wake';
-const spots=raw.trim().startsWith('[')?JSON.parse(raw).map((s,i)=>({name:s.name||'spot-'+i,...s})):raw.split(',').filter(Boolean).map(name=>{const spot=SPOTS[name];if(!spot)throw new Error('unknown spot '+name+' (known: '+Object.keys(SPOTS).join(', ')+')');return {name,...spot};});
+let spots=section?null:raw.trim().startsWith('[')?JSON.parse(raw).map((s,i)=>({name:s.name||'spot-'+i,...s})):raw.split(',').filter(Boolean).map(name=>{const spot=SPOTS[name];if(!spot)throw new Error('unknown spot '+name+' (known: '+Object.keys(SPOTS).join(', ')+')');return {name,...spot};});
+// Entry, middle and exit of one section, from the live level: the player is
+// parked on the standable deck under that x, or the nearest one by centre.
+function sectionSpots(key){
+  const L=playtest.game.level,table=L.dreamSections||[],sec=table.find(s=>s.key===key);
+  if(!sec)throw new Error('unknown section '+key+' (known: '+table.map(s=>s.key).join(', ')+')');
+  const decks=L.platforms.filter(p=>!['wall','switch'].includes(p.kind));
+  const spot=(name,x)=>{
+    const under=decks.filter(p=>x>=p.x&&x<=p.x+p.w).sort((a,b)=>a.y-b.y)[0];
+    const deck=under||decks.reduce((best,p)=>Math.abs(p.x+p.w/2-x)<Math.abs(best.x+best.w/2-x)?p:best);
+    const px=Math.max(deck.x+.5,Math.min(deck.x+deck.w-.5,x));
+    return {name:key+'-'+name,x:px,y:deck.y,ground:deck.id,ticks:120};
+  };
+  return [spot('entry',sec.x+4),spot('middle',sec.x+sec.length/2),spot('exit',sec.x+sec.length-4)];
+}
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function serve(){
  const server=spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1','--directory',path.join(root,'dist')],{stdio:'ignore'});
@@ -72,6 +95,7 @@ async function serve(){
   await page.waitForFunction(()=>playtest.game?.status==='playing'&&document.getElementById('loading').classList.contains('hidden'),null,{timeout:120000});
   // Overlays that belong to a live session, not to a judged frame.
   await page.addStyleTag({content:'#chapter-intro,#hint,#touch-controls,#desktop-controls,#fade,#timer,#dialog{display:none!important}'});
+  if(section){spots=await page.evaluate(`(${sectionSpots.toString()})(${JSON.stringify(section)})`);console.log('SECTION',section,JSON.stringify(spots));}
   for(const spot of spots){
    const info=await page.evaluate(async spot=>{
     const g=playtest.game,w=playtest.world;
