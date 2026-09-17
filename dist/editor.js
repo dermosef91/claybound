@@ -32,7 +32,7 @@ export function jumpGuide(level,index,platform,direction){
 
 export class LevelEditor{
   constructor({world,game,levels,library,onEnter,onTest,onExit,onFullscreen=()=>{},chapterShown=()=>true}){
-    this.chapterShown=chapterShown;
+    this.chapterShown=chapterShown;this.levels=levels;
     Object.assign(this,{world,game,levels,library,onEnter,onTest,onExit,onFullscreen});
     this.active=false;this.testing=false;this.mode='select';this.decorating=false;this.snap=.25;this.carry=true;this.guides=true;this.pointers=new Map();this.camera={x:5,y:2,viewH:24};this.collapsed=false;this.request=0;this.trace=[];
     const root=document.createElement('section');root.id='level-editor';root.className='level-editor hidden';root.setAttribute('aria-label','Level editor');
@@ -71,6 +71,10 @@ export class LevelEditor{
     if(!same){this.session=new DraftSession(this.library,index);this.camera={x:focus?.x??this.session.level.spawn.x+3,y:(focus?.y??this.session.level.spawn.y)+2,viewH:innerWidth>innerHeight?17:30};this.collapsed=false;}
     this.active=true;this.testing=false;this.onEnter();this.root.classList.remove('hidden');document.body.classList.add('is-editing');document.body.classList.remove('is-editor-test');document.body.dataset.biome=this.session.level.biome;
     this.game.start(index,this.session.level);this.game.status='editing';this.world.setEditorCamera(this.camera);this.world.setEditorScenery?.(this.decorating);this.world.build(this.game.level,index,this.camera.x);this.preview(true);
+    // The chapter list is drawn afresh on every open: a chapter unlocked with ß
+    // during this session has to be offered without a reload, and a chapter the
+    // session is editing has to be the one the select names.
+    $('editor-level').innerHTML=this.levels.map((L,i)=>this.chapterShown(i)?option(i,`${String(i+1).padStart(2,'0')} · ${L.short}`,index):'').join('');
     $('editor-level').value=index;$('editor-passage').innerHTML=this.session.level.sections.map(s=>option(s.id,s.name,0)).join('');this.renderInspector();this.syncTools();this.mapDirty=true;this.closePopover();this.canvas.focus();
     this.notice(this.library.error||'Tap a platform to shape it. Drag empty space to pan. Pinch to zoom.',!!this.library.error);
   }

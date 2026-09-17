@@ -76,7 +76,9 @@ function assemble(parts,table,{spawn,name,short,label,intro}){
   return chapter({
     layoutVersion:1,
     // Still being built: the chapter list keeps it behind ß, like the Clay Lab,
-    // and the Hanging Quarter stays the last chapter anyone is led to.
+    // and the Hanging Quarter stays the last chapter anyone is led to. Hidden
+    // chapters have to be the last entries of LEVELS: the app walks back from
+    // the end to find the last chapter it may show.
     hidden:true,
     name,short,label,biome:'dream',intro,
     sky:palettes[0].sky,fog:palettes[0].fog,spawn,end,previousDistance:(end-spawn.x)/.3,cameraY:3,

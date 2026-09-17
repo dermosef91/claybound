@@ -71,6 +71,7 @@ const firstBegin=app.begin(0),secondBegin=app.begin(0);releaseFirstWorld();await
 assert.equal(worldCount,1,'Overlapping play requests share the in-flight title load');
 assert.equal(editor.world.prepared,1,'Only the latest play request prepares a chapter');
 app.home();assert(editor.world.titleView.active,'Title scene runs while menus remain available');
+await click('#open-editor');await settle();assert.equal(document.querySelectorAll('#editor-level option').length,5,'the workshop lists the dream once it is unlocked in this session');await click('[data-edit="exit"]');await settle();
 console.log('PASS title menu: slow/shared loading, overlapping play requests, immediate navigation, four chapters shown and a fifth behind ß, saved collectibles, sound preference and dialog focus boundaries');
 await click('#play');assert.equal(app.game.status,'playing');assert(editor.world);assert($('loading').classList.contains('hidden'));
 assert(!editor.world.titleView.active,'Gameplay releases the title hero and stops its render');
