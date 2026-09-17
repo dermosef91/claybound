@@ -15,6 +15,9 @@ import {MOTHER_PUFF,motherCinematic,motherIntroTarget,updateMotherPuff,contactMo
 export const FIXED_DT=1/120;
 export const FLOWER_CELEBRATION_DURATION=.5;
 export const RULES={speed:6.7,jump:11.8,gravity:27,radius:.32,height:1.7,maxHealth:3};
+// How long a zip's rider keeps the long-fall exemption after the trolley lets
+// them go: time enough to land and walk to the flag on the far deck.
+const ZIP_GRACE=1.5;
 const approach=(v,t,d)=>v<t?Math.min(t,v+d):Math.max(t,v-d);
 // The ending of the Soft Dream: how long the world takes to fold up around a
 // player holding the flower, and how close they must come to pick it.
@@ -114,7 +117,7 @@ export class Game {
       // finished turning. A waiting lift or cradle simply starts its clock.
       if(s.kind==='fold'&&this.latched[s.channel]){s.foldRun=s.duration||FOLD.duration;updateFold(s,true,0);}
     }
-    Object.assign(this.player,{...this.checkpoint,groundId:checkpoint.id,health:RULES.maxHealth,invuln:1.4,stunTime:0,sporeGrace:0,stunJumpQueued:false});
+    Object.assign(this.player,{...this.checkpoint,groundId:checkpoint.id,health:RULES.maxHealth,invuln:1.4,stunTime:0,sporeGrace:0,zipGrace:0,stunJumpQueued:false});
     if(this.finale){
       const F=this.level.finale,ripe=this.finaleStations().every(s=>!s||s.amount>.995);
       this.finale.strands=this.finaleStations().filter(s=>s?.amount>.995).map(s=>s.id);this.finale.time=0;
@@ -138,12 +141,15 @@ export class Game {
   }
   respawn() {
     this.flowerCelebration=null;
-    const p=this.player;Object.assign(p,{...this.checkpoint,vx:0,vy:0,health:p.health<=0?RULES.maxHealth:Math.min(RULES.maxHealth,p.health),invuln:1.4,groundId:null,coyote:.135,jumpBuffer:0,stomping:false,springing:false,skidding:false,stride:0,stompWindup:0,dropTimer:0,dropThrough:null,stunTime:0,sporeGrace:0,stunJumpQueued:false});
+    const p=this.player;Object.assign(p,{...this.checkpoint,vx:0,vy:0,health:p.health<=0?RULES.maxHealth:Math.min(RULES.maxHealth,p.health),invuln:1.4,groundId:null,coyote:.135,jumpBuffer:0,stomping:false,springing:false,skidding:false,stride:0,stompWindup:0,dropTimer:0,dropThrough:null,stunTime:0,sporeGrace:0,zipGrace:0,stunJumpQueued:false});
     resetMotherPuff(this,this.level.boss?.state==='defeated');
     // A failed timed crossing always resets its route so the switch can be used again.
     this.level.platforms.forEach(s=>{if(s.kind==='crumble'){s.active=true;s.timer=0;}});
     this.shots=[];this.level.enemies.forEach(e=>{resetBat(e,this.time);resetDrifter(e,this.time);resetSpore(e);resetSpitter(e);resetDreamEnemy(e);});
     for(const s of this.level.platforms)if(s.kind==='ferry'){s.x=s.prevX=s.baseX;s.velocity=0;s.emptyTime=0;s.drive=0;}
+    // A zip trolley goes back to its mast too: dying halfway down a cable must
+    // not leave the only way across hanging at the far end.
+    for(const s of this.level.platforms)if(s.kind==='zip'){s.x=s.prevX=s.baseX;s.y=s.prevY=s.baseY;s.run=0;s.emptyTime=0;}
     this.event('respawn');
   }
   // --- the ending ---------------------------------------------------------------
@@ -446,7 +452,15 @@ export class Game {
     }
     for(const h of L.hazards)if(p.x+.2>h.x&&p.x-.2<h.x+h.w&&p.y<h.y+.7&&p.y+RULES.height>h.y-.4)this.damage(true);
     for(const c of L.crushers||[])if(pressTouches(c,p,RULES,prevY))this.damage(true);
-    if(p.y<-7||p.y<this.checkpoint.y-13)this.damage(true);
+    // Falling too far is a fall; being carried too far is a ride. A zip's
+    // rider is deliberately taken far below the flag they set off from, so
+    // while the trolley holds them only the absolute floor applies. The grace
+    // outlasts the ride by a moment, because the landing is the point: a rider
+    // set down on the far deck is still below the flag they left, and has to
+    // be able to walk to the next one instead of dying on arrival.
+    const carried=p.groundId&&L.platforms.find(s=>s.id===p.groundId)?.kind==='zip';
+    p.zipGrace=carried?ZIP_GRACE:Math.max(0,(p.zipGrace||0)-dt);
+    if(p.y<-7||(!p.zipGrace&&p.y<this.checkpoint.y-13))this.damage(true);
     // Completion stays where the bell is; a chapter with an ending only rings
     // it awake, though the wake deck is meant to be unreachable before then.
     if(p.x>L.end&&p.y>=L.platforms.find(s=>s.goal).y-.1&&(!L.boss||L.boss.state==='defeated')&&(!this.finale||this.finale.state==='awake')){

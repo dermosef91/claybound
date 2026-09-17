@@ -4,13 +4,15 @@ import {clayModel} from './clay.js';
 
 // The Soft Dream's supplied models: the Upside-Down Orchard's two clay
 // planets, which stand in for the dome islands' spheres, its two frosted
-// saucer bowls, which hang from the canopy on the orchard's ropes, and the
+// saucer bowls, which hang from the canopy on the orchard's ropes, the
+// abstract sculpture whose hung pieces ARE that canopy, and the
 // Melted Parade's clay hat, stacked five high on the hat-worm's plinth. Loaded
 // once per World, kept across level rebuilds, cloned per placement — the same
 // shape as the forest's and the canyon's sets. The collision never comes from
 // here: a dome is still the arc in simulation.js, a saucer is still its deck's
-// flat top and the hats are scenery; these only replace what is seen.
-export const DREAM_FILES={mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb'};
+// flat top and the canopy and the hats are scenery; these only replace what
+// is seen.
+export const DREAM_FILES={mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb'};
 
 // Each planet's core orb in model space — the sphere the fruit and the leaf
 // sprouts are stuck onto — fitted over every vertex by a modal-radius
@@ -61,6 +63,16 @@ export function dreamSaucer(w,key,parent,width){
   const a=asset(w,key),root=new THREE.Group(),model=a.scene.clone(true);
   root.name='Dream saucer '+key;model.name='Supplied clay saucer';
   root.scale.setScalar(width/a.size.x);model.position.set(-a.center.x,-a.box.max.y,-a.center.z);
+  root.add(model);parent.add(root);
+  return root;
+}
+// A sculpture under `parent`, `width` across, its bounding box centred on the
+// parent's origin so the caller can turn or tilt it about its middle and seat
+// it by an edge: root.userData.size is the placed box, in the parent's units.
+export function dreamSculpture(w,key,parent,width){
+  const a=asset(w,key),root=new THREE.Group(),model=a.scene.clone(true),k=width/a.size.x;
+  root.name='Dream sculpture '+key;model.name='Supplied clay sculpture';
+  root.scale.setScalar(k);model.position.copy(a.center).negate();root.userData.size=a.size.clone().multiplyScalar(k);
   root.add(model);parent.add(root);
   return root;
 }
