@@ -286,9 +286,12 @@ const sample=i=>windBytes.readInt16LE(44+i*2);
 const step=(from,to)=>{let most=0;for(let i=from;i<to;i++)most=Math.max(most,Math.abs(sample((i+1)%windFrames)-sample(i%windFrames)));return most;};
 assert(step(windFrames-120,windFrames+119)<=step(0,windFrames-1),'the loop seam is smoother than the recording itself');
 
-const well=canyon.winds.find(w=>w.id==='well-a'),tail=canyon.winds.find(w=>w.id==='tailwind');
+const well=canyon.winds.find(w=>w.id==='well-a');
 assert.equal(windExposure(canyon,{x:well.x+1,y:well.y+1}),1,'standing in a well is full exposure');
-assert.equal(windExposure(canyon,{x:tail.x+tail.w/2,y:tail.y+tail.h/2}),1);
+// A draught with no valve on it is heard wherever it blows. The canyon no
+// longer authors one, so the case is put rather than borrowed.
+const loose={id:'loose-draught',x:well.x+60,w:11,y:well.y,h:7,fx:8,fy:0};
+assert.equal(windExposure({...canyon,winds:[loose]},{x:loose.x+loose.w/2,y:loose.y+loose.h/2}),1);
 const approach=windExposure(canyon,{x:well.x-4,y:well.y});
 assert(approach>.5&&approach<1,`the well is heard on approach: ${approach}`);
 assert.equal(windExposure(canyon,{x:well.x-30,y:well.y}),0,'the canyon is otherwise still');
