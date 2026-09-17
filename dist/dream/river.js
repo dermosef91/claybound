@@ -25,19 +25,20 @@ const yellow=w=>riverClay(w,'riverYellow',YELLOW),blue=w=>riverClay(w,'riverBlue
 // pace with its conveyor ledges (5 and -4.5 in the route) so the pour and the
 // stripes agree; blue slides heavily; pink is thrown. A plunge or a fall is
 // handed a higher speed where it is built.
-const SPEED={riverYellow:4.5,riverBlue:1.8,riverPink:2.6};
+const SPEED={riverYellow:4.5,riverBlue:2.4,riverPink:3};
 const group=(parent,name,x=0,y=0,z=0)=>{const g=new THREE.Group();g.name=name;g.position.set(x,y,z);parent.add(g);return g;};
 const attached=(o,scene)=>{for(let p=o;p;p=p.parent)if(p===scene)return true;return false;};
 
 // A stream: one tube along a smoothed curve through `points` ([x,y,z]),
 // authored source to destination so the flow runs the way the points do.
-// Twelve sides and six rings a unit, because a gloss highlight facets on
-// fewer; sculpted at a third of the usual amplitude, since a pour is smooth
-// where kneaded clay is lumpy (w.mesh sees the sculpt and skips its own).
+// Sixteen sides and eight rings a unit, because a gloss highlight facets on
+// fewer and the wave bends the rope by a fifth of its radius; sculpted at a
+// third of the usual amplitude, since a pour is smooth where kneaded clay is
+// lumpy (w.mesh sees the sculpt and skips its own).
 function tube(w,parent,points,r,mat,name,speed=SPEED[mat]??3){
   const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],p[1],p[2]??0)),false,'catmullrom',.5),len=curve.getLength();
-  const n=Math.min(240,Math.max(12,Math.round(len*6)));
-  const base=new THREE.TubeGeometry(curve,n,r,12,false),g=sculptClay(w,base,{amplitude:.02});
+  const n=Math.min(320,Math.max(16,Math.round(len*8)));
+  const base=new THREE.TubeGeometry(curve,n,r,16,false),g=sculptClay(w,base,{amplitude:.02});
   if(g!==base)base.dispose();
   const m=w.mesh(flowTube(g,len,speed),mat,parent);
   m.name=name;return m;

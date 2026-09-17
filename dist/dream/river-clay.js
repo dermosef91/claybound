@@ -26,14 +26,20 @@ const WHITE=new THREE.Color(1,1,1);
 
 // Both stages evaluate the same wave: the vertex stage moves the surface by
 // it, the fragment stage reads it back as a height so the lighting follows
-// the bulge (vNormal is fixed before the displacement runs). One long swell
-// and two helical harmonics, so a rope twists a little as it pours; the
-// across coordinate only enters through its angle, keeping the seam ring
-// watertight. Still meshes (speed 0) get no wave at all.
+// the bulge (vNormal is fixed before the displacement runs). `f` is riverFlow
+// and `n` the surface normal in the stream's own space. Several motions at
+// once, as a thick pour has: a slow swell; beads — bulges brief and fat with
+// a long neck between, so a blob is seen to travel; a spiralling sway (a
+// first harmonic round the tube shifts the whole cross-section, so the rope
+// sways as well as bulges); a quick ripple; and drops that hang under the
+// rope and slide along it. The across coordinate only enters through its
+// angle, keeping the seam ring watertight. Still meshes (speed 0) get none.
 const RIVER_WAVE=`
-float riverWave(vec3 f, float t) {
+float riverWave(vec3 f, float t, vec3 n) {
   float u = f.x - t * f.z, a = f.y * PI2;
-  return step(0.001, f.z) * 0.06 * (0.55 * sin(u * 1.9) + 0.30 * sin(u * 3.7 + a) + 0.15 * sin(u * 6.1 - 2.0 * a + 1.3));
+  float bead = pow(0.5 + 0.5 * sin(u * 1.35 + 0.4 * sin(u * 0.37)), 3.0);
+  float drop = pow(0.5 + 0.5 * sin(u * 1.1 + 2.0 + 0.3 * sin(u * 0.53)), 2.0) * max(0.0, -n.y);
+  return step(0.001, f.z) * (0.035 * sin(u * 0.9) + 0.09 * bead - 0.03 + 0.045 * sin(u * 2.6 + a) + 0.02 * sin(u * 5.3 - 2.0 * a + 1.3) + 0.06 * drop);
 }`;
 // Fragment helpers, pure functions only: they land ahead of the clay relief's
 // own declarations at <common>.
@@ -88,7 +94,7 @@ function riverSkin(m,hex){
     let v=shader.vertexShader;
     v=swap(v,'#include <common>','#include <common>\nattribute vec3 riverFlow;\nuniform float riverTime;\nvarying vec3 vRiverFlow;'+RIVER_WAVE);
     v=swap(v,'#include <project_vertex>',`vRiverFlow = riverFlow;
-transformed += objectNormal * riverWave(riverFlow, riverTime);
+transformed += objectNormal * riverWave(riverFlow, riverTime, objectNormal);
 #include <project_vertex>`);
     shader.vertexShader=v;
     let f=shader.fragmentShader;
@@ -103,12 +109,14 @@ vec3 riverP = mix(vClayPosition * 1.3 + vec3(riverTime * 0.12, 0.0, 0.0),
                   vec3((vRiverFlow.x - riverTime * vRiverFlow.z) * 0.35, cos(riverA) * 0.9, sin(riverA) * 0.9), riverFlowing);
 vec3 riverN = mix(normalize(vClayNormal), vec3(0.0, cos(riverA), sin(riverA)), riverFlowing);
 float riverStreak = riverStreaks(riverP), riverWet = smoothstep(0.42, 0.7, riverStreak);
-diffuseColor.rgb *= mix(riverDeep, vec3(1.06), 0.5 + 0.5 * riverStreak);
+diffuseColor.rgb *= mix(riverDeep, vec3(1.06), 0.4 + 0.6 * riverStreak);
 // The height the lighting sees: the wave itself, the streaks as ridges along
-// a stream (they break the highlight into glints that run with the flow), and
-// on a still surface a small standing ripple.
-float riverRipple = riverWave(vRiverFlow, riverTime) + riverFlowing * 0.025 * (riverStreak - 0.5)
-  + (1.0 - riverFlowing) * 0.006 * sin(dot(vClayPosition.xz, vec2(9.0, 7.0)) + riverTime * 1.6) * sin(dot(vClayPosition.xz, vec2(-5.0, 11.0)) - riverTime * 1.1);`);
+// a stream (they break the highlight into glints that run with the flow), a
+// fine ripple hurrying along with the flow, and on a still surface a
+// standing ripple.
+float riverU = vRiverFlow.x - riverTime * vRiverFlow.z;
+float riverRipple = riverWave(vRiverFlow, riverTime, normalize(vClayNormal)) + riverFlowing * (0.04 * (riverStreak - 0.5) + 0.008 * sin(riverU * 14.0 + riverStreak * 6.0 + 0.7 * riverA))
+  + (1.0 - riverFlowing) * 0.012 * sin(dot(vClayPosition.xz, vec2(9.0, 7.0)) + riverTime * 1.9) * sin(dot(vClayPosition.xz, vec2(-5.0, 11.0)) - riverTime * 1.3);`);
     // The relief clamps roughness to .52 so clay never shines; a stream is
     // meant to. Glossier than the old plain gloss everywhere, glossier still
     // where a wet streak runs.
@@ -121,7 +129,7 @@ float riverRipple = riverWave(vRiverFlow, riverTime) + riverFlowing * 0.025 * (r
 vec3 riverUp = transformNormalByInverseViewMatrix(geometryNormal, viewMatrix);
 reflectedLight.indirectDiffuse *= mix(riverDeep, vec3(1.0), smoothstep(-0.8, 0.6, riverUp.y));
 float riverRim = pow(1.0 - saturate(dot(geometryNormal, geometryViewDir)), 3.0);
-totalEmissiveRadiance += riverSheen * (riverRim * 0.22 + smoothstep(0.35, 1.0, riverUp.y) * 0.05 * (0.6 + 0.4 * riverWet));
+totalEmissiveRadiance += riverSheen * (riverRim * 0.3 + smoothstep(0.35, 1.0, riverUp.y) * 0.06 * (0.6 + 0.4 * riverWet));
 // The magic clay's glitter, thinner, riding the flow.
 float riverPixel = max(length(dFdx(riverP)), length(dFdy(riverP)));
 float riverSparkle = magicSpots(riverP.xy + vec2(32.7, 20.9), 0.35, 0.59);
