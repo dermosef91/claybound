@@ -6,7 +6,11 @@ import {createBatView,animateBat} from './bats.js';
 import {createSporeView,animateSpore} from './spore-puff.js';
 import {createDrifterView,animateDrifter} from './drifter.js';
 import {createSpitterView,animateSpitter} from './spitter.js';
+import {createDreamEnemyView,animateDreamEnemy} from './dream-enemies.js';
+import {DREAM_KINDS} from './dream-enemy-rules.js';
 import {applyFlatten} from './clay-feel.js';
+// Every creature whose view is its own rather than the clayling rig.
+const OWN_VIEW=['bat','drifter','spore','spitter',...DREAM_KINDS];
 
 export async function loadEnemies(w,onProgress){
   const [gltf,motion]=await Promise.all([loadModel('enemy.glb',onProgress),loadData('enemy-motion.json')]);
@@ -20,7 +24,7 @@ export function prepareEnemyAsset(w,gltf,motion){
   track.values.set(motion.values);clip.name='Clayling walk';
   clayMaterials(gltf.scene,{orangeSource:.816});clayModel(w,gltf.scene);retainModel(w,gltf.scene);
   w.enemyAsset={scene:gltf.scene,clip,motion};
-  for(const view of w.enemyViews?.values()||[])if(!['bat','drifter','spore','spitter'].includes(view.kind))attachEnemyView(w,view);
+  for(const view of w.enemyViews?.values()||[])if(!OWN_VIEW.includes(view.kind))attachEnemyView(w,view);
 }
 // Every view keeps its creature, so a view the level has already let go of —
 // a boss minion the fight has cleared — can still finish its squash.
@@ -32,6 +36,7 @@ function buildEnemyView(w,e){
   if(e.kind==='spore')return createSporeView(w,e);
   if(e.kind==='bat')return createBatView(w,e);
   if(e.kind==='drifter')return createDrifterView(w,e);
+  if(DREAM_KINDS.includes(e.kind))return createDreamEnemyView(w,e);
   const root=new THREE.Group();root.name='Clayling '+e.id;root.position.set(e.x,e.y+.065,.35);w.levelRoot.add(root);
   const view={root,id:e.id,turn:e.dir>0?0:Math.PI,deathTime:0,loaded:false,reducedMotion:!!w.reducedMotion};
   root.rotation.y=view.turn;
@@ -51,6 +56,7 @@ export function animateEnemy(view,e,dt,status){
   if(view.kind==='spore'){animateSpore(view,e,dt,status);return;}
   if(view.kind==='bat'){animateBat(view,e,dt,status);return;}
   if(view.kind==='drifter'){animateDrifter(view,e,dt,status);return;}
+  if(DREAM_KINDS.includes(view.kind)){animateDreamEnemy(view,e,dt,status);return;}
   const step=status==='paused'||status==='complete'?0:Math.min(dt,.05);
   view.root.position.set(e.x,e.y+.065,.35);
   if(!view.loaded)return;

@@ -59,7 +59,13 @@ export function updateShaping(game,dt,input){
     // first so the rule can tell a hand is on it; clay with no rule takes them
     // below, exactly as it always has.
     if(station.rule){handRule(game,station,dt,input,{live:live&&!input.shapeReset});applyRule(game,station,dt,{near:station===near});}
-    if(live){
+    // Terrain that works itself: once the channel it waits on is open, the
+    // station's full pose is its target and the clay advances at the pace a
+    // hand would set it, with no hand on it. Hands, taps, stomps and R do
+    // nothing to such a station, so what it does is always the level's doing.
+    // It is heard once, as it starts to move, not for as long as it moves.
+    if(station.auto&&(game.latched[station.auto]||game.channels[station.auto]>0)&&station.target<1){station.target=1;station.kneadPending=true;}
+    if(live&&!station.auto){
       // R softens the clay back. Not under the player's own feet in a chapter,
       // though: a formable mass springing back to its clump would set them
       // inside a regrown tower or drop them onto the sand it had covered, so
@@ -105,6 +111,11 @@ export function updateShaping(game,dt,input){
       if(lift)lift.y=lerp(station.liftFrom,station.liftTo,whole);
     }
     if(station.amount>.995&&!station.announced){station.announced=true;game.event('shape',{id:station.id,x:p.x,y:p.y});}
+    // A worked station can open a channel — wake a lift, a gate, a fold — the
+    // first time it reaches its full pose. Ruled clay in the lab does this
+    // from its own rule. Not on a restore's silent pass (dt 0): the save
+    // carries the latch itself, so nothing is announced twice.
+    if(station.channel&&!station.rule&&dt>0&&station.amount>.995&&!game.latched[station.channel])game.activate(station.channel,station.cueX??station.x,station.spawn.y);
     // Kneading is heard. `worked` is raised by whatever moved the clay this
     // tick and cleared here, heard or not, so work that stops is not heard on
     // after it stops; `kneadPending` is a stomp or a tap that landed between
@@ -122,7 +133,7 @@ export function updateShaping(game,dt,input){
 // station just reads as the clay being broken.
 export function stompClay(game,s){
   const station=(game.level.shaping||[]).find(t=>t.parts.includes(s.id));
-  if(!station)return;
+  if(!station||station.auto)return;
   if(station.rule){stompRule(station,station.parts.indexOf(s.id));return;}
   if(station.target<1)station.kneadPending=true;
   station.target=clampShape(station.target+.5);
@@ -132,6 +143,7 @@ export function stompClay(game,s){
 // like clay that is not interactive at all.
 export function nudgeClay(game,id,part,point){
   const station=(game.level.shaping||[]).find(s=>s.id===id);
+  if(station?.auto)return false;
   // Ruled clay takes a tap only where its rule takes a hand, and then on the
   // piece that was tapped — or, on clay with no pieces, where it was tapped.
   if(station?.rule)return nudgeRule(station,part,point);
@@ -139,16 +151,18 @@ export function nudgeClay(game,id,part,point){
   station.target=clampShape(station.target+.3);station.kneadPending=true;return true;
 }
 
-// Softening a station back, whatever kind it is. A station that opened a
-// channel when it was done closes it again, so the door it opened is shut and
-// the experiment can be run afresh.
+// Softening a station back, whatever kind it is. In the lab a station that
+// opened a channel when it was done closes it again, so the door it opened is
+// shut and the experiment can be run afresh. In a chapter a channel, once
+// opened, stays open like every other latch: the lift it woke keeps running
+// and the fold it turned has already turned, whatever the clay does next.
 export function resetStation(station,game=null){
   station.target=0;station.amount=0;station.announced=false;
   station.charge=0;station.launched=0;
   if(perPart(station)){station.targets.fill(0);station.amounts.fill(0);}
   if(station.give){resetGive(station.give);station.pressed=false;station.press=0;station.fall=0;station.punch=0;}
   if(station.rule==='form')resetFormStation(station);
-  if(station.channel&&game){game.latched[station.channel]=false;game.channels[station.channel]=0;}
+  if(station.channel&&game?.level.playground){game.latched[station.channel]=false;game.channels[station.channel]=0;}
 }
 
 // --- walking on clay that has walls ------------------------------------------

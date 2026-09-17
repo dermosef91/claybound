@@ -3,8 +3,9 @@ import {BAT,moveEnemy,batAttacking,recoverBat,resetBat} from './enemy-rules.js';
 import {contactSpore,resetSpore,sporeAttacking} from './spore-rules.js';
 import {contactDrifter,resetDrifter} from './drifter-rules.js';
 import {updatePress,pressTouches} from './presses.js';
-import {updateCavernMachine,solidWall,solidDepth} from './cavern-machines.js';
+import {updateCavernMachine,solidWall,solidDepth,wallBox,updateFold,FOLD} from './cavern-machines.js';
 import {resetSpitter,contactSpitter,updateShots} from './spitter-rules.js';
+import {DREAM_KINDS,contactDreamEnemy,resetDreamEnemy} from './dream-enemy-rules.js';
 
 import {claySurface,clayWallBounds,updateShaping,stompClay,formWallAhead,formStaysGrounded,formSteepAt,resolveFormBody} from './shaping.js';
 import {solveFormStation} from './clay-rules.js';
@@ -15,7 +16,40 @@ export const FIXED_DT=1/120;
 export const FLOWER_CELEBRATION_DURATION=.5;
 export const RULES={speed:6.7,jump:11.8,gravity:27,radius:.32,height:1.7,maxHealth:3};
 const approach=(v,t,d)=>v<t?Math.min(t,v+d):Math.max(t,v-d);
-export const surfaceAt=(s,x,previous=false)=>s.shape?claySurface(s,x,previous):(previous?s.prevY:s.y)+(s.kind==='bridge'?bridgeOffset(s,x-(previous?s.prevX:s.x)):s.kind==='balance'?Math.sin(previous?s.prevAngle:s.angle)*(x-(previous?s.prevX:s.x)-s.w/2):0);
+// The ending of the Soft Dream: how long the world takes to fold up around a
+// player holding the flower, and how close they must come to pick it.
+export const FINALE=Object.freeze({duration:4,radius:.9});
+// Where the ending's flower stands: an authored point (`flower:{x,y}` or bare
+// `x,y`), or a unit above the middle of the deck `flowerId` names. Picked up
+// like a hidden flower is: within FINALE.radius of the player's chest.
+export function finaleFlower(L){
+  const F=L.finale;if(!F)return null;
+  if(Number.isFinite(F.flower?.x))return {x:F.flower.x,y:F.flower.y};
+  if(Number.isFinite(F.x))return {x:F.x,y:F.y};
+  const deck=L.platforms.find(s=>s.id===F.flowerId);
+  return deck?{x:deck.x+deck.w/2,y:deck.y+1}:{x:NaN,y:NaN};
+}
+// --- a dome island ------------------------------------------------------------
+// A hemisphere the player runs over: the walkable top is a circular arc of
+// radius w/2 whose apex is at y, so the centre sits at y-w/2 and the arc meets
+// the ground plane y-w/2 at both ends. Ordinary jump physics apply; the sphere
+// only spins under the feet in the picture. Outside its span the arc is at its
+// rim height, which is what lets the landing filter's half-width overlap
+// resolve without a cliff.
+export function domeSurface(s,x,previous=false){
+  const r=s.w/2,left=previous?s.prevX:s.x,y=previous?s.prevY:s.y,d=x-left-r;
+  return y-r+Math.sqrt(Math.max(0,r*r-d*d));
+}
+// The same rule the formable mass keeps: a face that climbs past 1.7 rise per
+// run under both feet, the same way, is too steep to stand on. Nobody lands
+// on the dome's flanks and a walker who reaches them slides off.
+export const DOME_WALK=1.7;
+export function domeSteepAt(s,x,radius){
+  if(s.kind!=='dome')return false;
+  const left=domeSurface(s,x)-domeSurface(s,x-radius),right=domeSurface(s,x+radius)-domeSurface(s,x);
+  return Math.sign(left)===Math.sign(right)&&Math.min(Math.abs(left),Math.abs(right))/radius>DOME_WALK;
+}
+export const surfaceAt=(s,x,previous=false)=>s.shape?claySurface(s,x,previous):s.kind==='dome'?domeSurface(s,x,previous):(previous?s.prevY:s.y)+(s.kind==='bridge'?bridgeOffset(s,x-(previous?s.prevX:s.x)):s.kind==='balance'?Math.sin(previous?s.prevAngle:s.angle)*(x-(previous?s.prevX:s.x)-s.w/2):0);
 
 export class Game {
   constructor(onEvent=()=>{}) {this.onEvent=onEvent;this.status='menu';this.load(0);this.status='menu';}
@@ -25,6 +59,13 @@ export class Game {
     this.shots=[];this.shotSerial=0;this.flowerCelebration=null;
     this.deaths=0;this.channels={a:0,b:0};this.latched={};this.channelDurations={};this.activeChannel=null;this.sectionId=0;this.checkpoint={...this.level.spawn};this.checkpointId='start';this.activatedCheckpoints=new Set();
     for(const s of this.level.platforms)if(s.channel){this.channels[s.channel]=0;if(s.kind==='switch')this.channelDurations[s.channel]=s.duration||10;}
+    for(const s of this.level.platforms)if(s.waitFor)this.channels[s.waitFor]??=0;
+    for(const t of this.level.triggers||[])this.channels[t.channel]??=0;
+    // The ending, where a chapter has one: waiting for its strands, ripe once
+    // they are all worked, the pickup cinematic, then awake on the wake deck.
+    // `strands` remembers which required stations have already been heard
+    // finishing, so a restore does not announce them all over again.
+    this.finale=this.level.finale?{state:'waiting',time:0,strands:[]}:null;
     const ground=this.level.platforms.find(p=>this.level.spawn.x>=p.x&&this.level.spawn.x<=p.x+p.w&&Math.abs(p.y-this.level.spawn.y)<.2);
     this.respawnTimer=0;this.player={...this.level.spawn,vx:0,vy:0,facing:1,health:RULES.maxHealth,invuln:0,coyote:ground?.135:0,jumpBuffer:0,groundId:ground?.id??null,stomping:false,springing:false,squash:0,skidding:false,stride:0,stompWindup:0,stunTime:0,sporeGrace:0};
     this.status='playing';this.event('level',{index});
@@ -36,7 +77,7 @@ export class Game {
     if(this.latched[channel])return;
     this.latched[channel]=true;this.channels[channel]=1;this.event('activate',{channel,x,y});
   }
-  snapshot(){return {bossDefeated:this.level.boss?.state==='defeated',version:this.level.layoutVersion,index:this.index,checkpointId:this.checkpointId,activatedCheckpoints:[...this.activatedCheckpoints],elapsed:this.elapsed,deaths:this.deaths,latched:Object.keys(this.latched).filter(c=>this.latched[c]),broken:this.level.platforms.filter(s=>s.broken).map(s=>s.id),shaped:(this.level.shaping||[]).filter(s=>s.amount>.995).map(s=>s.id),coins:this.level.coins.filter(c=>c.taken).map(c=>c.id),stamps:this.level.stamps.filter(c=>c.taken).map(c=>c.id)};}
+  snapshot(){return {bossDefeated:this.level.boss?.state==='defeated',version:this.level.layoutVersion,index:this.index,checkpointId:this.checkpointId,activatedCheckpoints:[...this.activatedCheckpoints],elapsed:this.elapsed,deaths:this.deaths,latched:Object.keys(this.latched).filter(c=>this.latched[c]),broken:this.level.platforms.filter(s=>s.broken).map(s=>s.id),shaped:(this.level.shaping||[]).filter(s=>s.amount>.995).map(s=>s.id),coins:this.level.coins.filter(c=>c.taken).map(c=>c.id),stamps:this.level.stamps.filter(c=>c.taken).map(c=>c.id),finale:this.finale?.state??null};}
   restore(save){
     if(!save||save.version!==this.level.layoutVersion||save.index!==this.index)return false;
     const checkpoint=this.level.platforms.find(s=>s.id===save.checkpointId&&s.checkpoint);if(!checkpoint)return false;
@@ -59,21 +100,36 @@ export class Game {
       else {station.target=1;station.amount=1;station.announced=true;}
     }
     updateShaping(this,0,{});
-    const allowed=new Set(this.level.platforms.flatMap(s=>s.releases?[s.releases]:(s.latch||s.kind==='balance')&&s.channel?[s.channel]:[]));
+    // Only channels something in the level can latch for good are taken from
+    // a save: seals, latching switches, weighed beams, the dream's trigger
+    // zones and the stations that open a channel once they are worked.
+    const allowed=new Set([...this.level.platforms.flatMap(s=>s.releases?[s.releases]:(s.latch||s.kind==='balance')&&s.channel?[s.channel]:[]),
+      ...(this.level.triggers||[]).map(t=>t.channel),...(this.level.shaping||[]).flatMap(s=>s.channel?[s.channel]:[])]);
     for(const c of Array.isArray(save.latched)?save.latched:[])if(allowed.has(c)){this.latched[c]=true;this.channels[c]=1;}
     for(const s of this.level.platforms){
       if(s.kind==='break'&&Array.isArray(save.broken)&&save.broken.includes(s.id)){s.broken=true;s.active=false;}
       if(s.kind==='counter'&&this.latched[s.channel])s.y=s.prevY=s.baseY+s.rise;
       if(s.kind==='gate'&&this.latched[s.channel]){s.open=1;s.active=false;}
+      // A fold's progress is the latch itself: a saved latch means it has
+      // finished turning. A waiting lift or cradle simply starts its clock.
+      if(s.kind==='fold'&&this.latched[s.channel]){s.foldRun=s.duration||FOLD.duration;updateFold(s,true,0);}
     }
     Object.assign(this.player,{...this.checkpoint,groundId:checkpoint.id,health:RULES.maxHealth,invuln:1.4,stunTime:0,sporeGrace:0,stunJumpQueued:false});
-    this.shots=[];this.level.enemies.forEach(e=>{resetBat(e,this.time);resetDrifter(e,this.time);resetSpore(e);resetSpitter(e);});
+    if(this.finale){
+      const F=this.level.finale,ripe=this.finaleStations().every(s=>!s||s.amount>.995);
+      this.finale.strands=this.finaleStations().filter(s=>s?.amount>.995).map(s=>s.id);this.finale.time=0;
+      // Woken already, the player resumes on the wake deck; the flower is gone.
+      // Saved in the middle of the pickup, they resume beside the ripe flower.
+      if(save.finale==='awake'){this.finale.state='awake';this.checkpoint={x:F.wake.x,y:F.wake.y};Object.assign(this.player,{x:F.wake.x,y:F.wake.y,groundId:F.wake.groundId});}
+      else this.finale.state=ripe?'ripe':'waiting';
+    }
+    this.shots=[];this.level.enemies.forEach(e=>{resetBat(e,this.time);resetDrifter(e,this.time);resetSpore(e);resetSpitter(e);resetDreamEnemy(e);});
     resetMotherPuff(this,save.bossDefeated===true);
     this.sectionId=this.level.sections.findLast(s=>this.player.x>=s.x)?.id||0;return true;
   }
   damage(fall=false) {
     const p=this.player;
-    if((p.invuln>0&&!fall)||this.respawnTimer>0||this.flowerCelebration||motherCinematic(this.level.boss)||this.status!=='playing') return;
+    if((p.invuln>0&&!fall)||this.respawnTimer>0||this.flowerCelebration||motherCinematic(this.level.boss)||this.finale?.state==='pickup'||this.status!=='playing') return;
     p.stunTime=0;p.stunJumpQueued=false;p.sporeGrace=Math.max(p.sporeGrace||0,2);p.health--;this.event('hurt',{x:p.x,y:p.y});
     if(fall||p.health<=0) {
       this.deaths++;this.respawnTimer=.48;
@@ -86,9 +142,34 @@ export class Game {
     resetMotherPuff(this,this.level.boss?.state==='defeated');
     // A failed timed crossing always resets its route so the switch can be used again.
     this.level.platforms.forEach(s=>{if(s.kind==='crumble'){s.active=true;s.timer=0;}});
-    this.shots=[];this.level.enemies.forEach(e=>{resetBat(e,this.time);resetDrifter(e,this.time);resetSpore(e);resetSpitter(e);});
+    this.shots=[];this.level.enemies.forEach(e=>{resetBat(e,this.time);resetDrifter(e,this.time);resetSpore(e);resetSpitter(e);resetDreamEnemy(e);});
     for(const s of this.level.platforms)if(s.kind==='ferry'){s.x=s.prevX=s.baseX;s.velocity=0;s.emptyTime=0;s.drive=0;}
     this.event('respawn');
+  }
+  // --- the ending ---------------------------------------------------------------
+  finaleStations(){return (this.level.finale?.requires||[]).map(id=>(this.level.shaping||[]).find(s=>s.id===id));}
+  // Every tick the ending is not yet over: hear each strand finish, ripen the
+  // flower once all of them have, and start the pickup when the player reaches
+  // it. A required station the chapter does not carry counts as done, so a
+  // slip in authoring can never seal the chapter; the audit reports it.
+  updateFinale(){
+    const F=this.level.finale,f=this.finale,p=this.player;
+    if(f.state==='awake'||f.state==='pickup')return;
+    const stations=this.finaleStations(),{x:fx,y:fy}=finaleFlower(this.level);
+    for(const s of stations)if(s&&s.amount>.995&&!f.strands.includes(s.id)){f.strands.push(s.id);this.event('finale-strand',{id:s.id,count:f.strands.length,total:F.requires.length,x:p.x,y:p.y});}
+    const ripe=stations.every(s=>!s||s.amount>.995),state=ripe?'ripe':'waiting';
+    if(state!==f.state){f.state=state;if(ripe)this.event('finale-ripe',{x:fx,y:fy});}
+    if(ripe&&Math.hypot(p.x-fx,p.y+.8-fy)<FINALE.radius){f.state='pickup';f.time=0;p.vx=0;this.event('finale-pickup',{x:fx,y:fy});}
+  }
+  // The world has folded up; the player wakes on the plain deck that holds
+  // the bell. The wake deck is where they now return to after a fall, and it
+  // is the saved checkpoint too where it carries a flag.
+  wake(){
+    const w=this.level.finale.wake,deck=this.level.platforms.find(s=>s.id===w.groundId);
+    Object.assign(this.player,{x:w.x,y:w.y,vx:0,vy:0,groundId:w.groundId,coyote:.135,jumpBuffer:0,stomping:false,springing:false,stompWindup:0,dropTimer:0,dropThrough:null});
+    this.checkpoint={x:w.x,y:w.y};
+    if(deck?.checkpoint!==undefined){this.checkpointId=deck.id;this.activatedCheckpoints.add(deck.id);}
+    this.finale.state='awake';this.event('finale-awake',{x:w.x,y:w.y});
   }
   tick(dt,input={}) {
     if(this.status!=='playing')return;
@@ -111,6 +192,14 @@ export class Game {
     }
     const motherPushed=(p.motherPush||0)>0;
     if(motherPushed){p.motherPush=Math.max(0,p.motherPush-dt);input={};p.jumpBuffer=0;p.stomping=false;p.stompWindup=0;}
+    if(this.finale?.state==='pickup'){
+      // The pickup is a story beat: the world folds up around a player who
+      // stands still, so the hands are off the controls until they wake.
+      // Gravity and landing stay live, as they do for the mother's scene.
+      input={};p.jumpBuffer=0;p.stomping=false;p.stompWindup=0;p.vx=0;
+      this.finale.time+=dt;
+      if(this.finale.time>=(L.finale.duration??FINALE.duration))this.wake();
+    }
     for(const c of Object.keys(this.channels))if(!this.latched[c])this.channels[c]=Math.max(0,this.channels[c]-dt);
     for(const wind of L.winds||[])wind.active=!wind.channel||this.channels[wind.channel]>0;
     for(const s of L.platforms) {
@@ -126,10 +215,27 @@ export class Game {
           s.run=on?(s.run||0)+dt:0;
           const target=s.baseY+(1-Math.cos(s.run*Math.PI*2/(s.period||5)))/2*(s.moveY||0);
           s.x=s.baseX;s.y=on?target:approach(s.y,s.baseY,dt*1.8);
+        } else if(s.waitFor){
+          // Told to wait, a lift hangs at its rest pose until its channel
+          // opens, then swings on its own clock from that moment — smoothly
+          // from where it hung, since the clock starts at zero — and holds
+          // where it is should a timed channel shut again.
+          if(!!this.latched[s.waitFor]||this.channels[s.waitFor]>0)s.run=(s.run||0)+dt;
+          const a=(s.run||0)*Math.PI*2/(s.period||5)+(s.phase||0);
+          s.x=s.baseX+Math.sin(a)*(s.moveX||0);s.y=s.baseY+Math.sin(a)*(s.moveY||0);
         } else {
           const a=this.time*Math.PI*2/s.period+(s.phase||0);
           s.x=s.baseX+Math.sin(a)*(s.moveX||0);s.y=s.baseY+Math.sin(a)*(s.moveY||0);
         }
+      }
+      if(s.kind==='wall'&&s.breathe){
+        // A breathing wall: its height, and where it stands, swing about the
+        // authored pose. Collision reads x, y and h live, so the body it
+        // presents is the body drawn, and the wall passes below push aside a
+        // standing player it grows onto — a lowering ceiling or a closing
+        // side moves them to the nearer edge, never hurts them.
+        const b=s.breathe,k=Math.sin(this.time*Math.PI*2/(b.period||4)+(b.phase||0));
+        s.baseH??=s.h??4;s.h=s.baseH+k*(b.dh||0);s.x=s.baseX+k*(b.dx||0);s.y=s.baseY+k*(b.dy||0);
       }
       if(s.kind==='counter')s.y=approach(s.y,s.baseY+(this.latched[s.channel]?s.rise:0),dt*1.8);
       if(s.kind==='timed')s.active=this.channels[s.channel]>0;
@@ -154,7 +260,7 @@ export class Game {
     p.stunTime=Math.max(0,(p.stunTime||0)-dt);p.sporeGrace=Math.max(0,(p.sporeGrace||0)-dt);
     let canStart=!L.enemies.some(e=>batAttacking(e)||sporeAttacking(e));
     for(const e of L.enemies){
-      moveEnemy(e,dt,this.time,{player:this.respawnTimer>0?null:p,platforms:L.platforms,winds:L.winds,canStart,shots:this.shots,nextShotId:()=>this.shotSerial++,onEvent:(type,data)=>this.event(type,data)});
+      moveEnemy(e,dt,this.time,{player:this.respawnTimer>0?null:p,platforms:L.platforms,winds:L.winds,canStart,shots:this.shots,nextShotId:()=>this.shotSerial++,onEvent:(type,data)=>this.event(type,data),surfaceAt});
       if(batAttacking(e)||sporeAttacking(e))canStart=false;
     }
     if(this.respawnTimer>0){this.respawnTimer-=dt;if(this.respawnTimer<=0)this.respawn();return;}
@@ -166,6 +272,9 @@ export class Game {
       const previousFoot=surfaceAt(oldGround,p.x,true);
       if(oldGround.shape){const u=(p.x-oldGround.prevX)/(oldGround.prevW||oldGround.w);p.x=oldGround.x+u*oldGround.w;p.y+=surfaceAt(oldGround,p.x)-previousFoot;}
       else {p.x+=oldGround.x-oldGround.prevX;p.y+=surfaceAt(oldGround,p.x)-surfaceAt(oldGround,p.x,true);}
+      // A yellow river: the deck itself stands still, but whatever stands on
+      // it is carried along at `conveyor` units a second, walking or not.
+      if(oldGround.conveyor)p.x+=oldGround.conveyor*dt;
       p.coyote=.135;
     }
     else {p.groundId=null;p.coyote=Math.max(0,p.coyote-dt);}
@@ -202,9 +311,12 @@ export class Game {
     // Wall blocks occupy their full rectangle. Resolve horizontal travel
     // against the previous height, then stop rising heads at the underside.
     // Swept edges also catch narrow blocks at high movement speeds.
-    for(const s of L.platforms)if(s.kind==='wall'&&solidWall(s)){
-      const bottom=s.y-solidDepth(s),left=s.x-RULES.radius,right=s.x+s.w+RULES.radius;
-      if(prevY<s.y-1e-7&&prevY+RULES.height>bottom+1e-7){
+    // A fold panel standing up is a wall too, and breathes like one: a body
+    // that has moved onto a standing player puts them out at the nearer edge.
+    for(const s of L.platforms){
+      const box=wallBox(s);if(!box)continue;
+      const bottom=box.bottom,left=box.x-RULES.radius,right=box.x+box.w+RULES.radius;
+      if(prevY<box.top-1e-7&&prevY+RULES.height>bottom+1e-7){
         if(prevX<=left&&p.x>left){p.x=left;p.vx=Math.min(0,p.vx);}
         else if(prevX>=right&&p.x<right){p.x=right;p.vx=Math.max(0,p.vx);}
         else if(p.x>left&&p.x<right){
@@ -212,17 +324,21 @@ export class Game {
         }
       }
     }
-    for(const s of L.platforms)if(s.kind==='wall'&&solidWall(s)&&p.x+RULES.radius>s.x&&p.x-RULES.radius<s.x+s.w){
-      const bottom=s.y-solidDepth(s);
+    for(const s of L.platforms){
+      const box=wallBox(s);if(!box||!(p.x+RULES.radius>box.x&&p.x-RULES.radius<box.x+box.w))continue;
+      const bottom=box.bottom;
       if(p.vy>0&&prevY+RULES.height<=bottom+1e-7&&p.y+RULES.height>=bottom){p.y=bottom-RULES.height;p.vy=0;p.springing=false;}
     }
     // Formable clay can be walked into a wall or off a cliff: a wall stops the
     // step, and a cliff is not a slope to be glued to.
     if(oldGround&&formWallAhead(oldGround,p,prevX,prevY,RULES.radius)){p.x=prevX;p.vx=0;}
-    if((oldGround?.kind==='balance'||oldGround?.kind==='bridge'||oldGround?.shape)&&p.vy<=0&&p.x>oldGround.x&&p.x<oldGround.x+oldGround.w&&formStaysGrounded(oldGround,p,RULES.radius))p.y=(oldGround.shape||oldGround.kind==='bridge')?surfaceAt(oldGround,p.x):Math.min(p.y,surfaceAt(oldGround,p.x));
+    // A dome's walker is glued to its arc the way a bridge's is to the sag, so
+    // running over the top follows the curve down the far side — until the
+    // arc turns too steep to stand on, where they are let go to slide off.
+    if((oldGround?.kind==='balance'||oldGround?.kind==='bridge'||oldGround?.kind==='dome'||oldGround?.shape)&&p.vy<=0&&p.x>oldGround.x&&p.x<oldGround.x+oldGround.w&&formStaysGrounded(oldGround,p,RULES.radius)&&!domeSteepAt(oldGround,p.x,RULES.radius))p.y=(oldGround.shape||oldGround.kind==='bridge'||oldGround.kind==='dome')?surfaceAt(oldGround,p.x):Math.min(p.y,surfaceAt(oldGround,p.x));
     // Clay that gives can sink under its rider and slope up ahead of them in the
     // same tick, so a rider it has already carried keeps a deeper allowance.
-    const candidates=L.platforms.filter(s=>s.active&&!s.broken&&!(p.dropTimer>0&&p.dropThrough===s.id)&&!formSteepAt(s,p.x,RULES.radius)&&p.x+RULES.radius>s.x&&p.x-RULES.radius<s.x+s.w&&prevY>=surfaceAt(s,p.x,true)-(s.kind==='spring'&&oldGround ? .55 : (s.give||s.form)&&oldGround===s ? .45 : .14)&&p.y<=surfaceAt(s,p.x)+.03&&p.vy<=Math.max(0,(surfaceAt(s,p.x)-surfaceAt(s,p.x,true))/dt)).sort((a,b)=>surfaceAt(b,p.x)-surfaceAt(a,p.x));
+    const candidates=L.platforms.filter(s=>s.active&&!s.broken&&!(p.dropTimer>0&&p.dropThrough===s.id)&&!formSteepAt(s,p.x,RULES.radius)&&!domeSteepAt(s,p.x,RULES.radius)&&p.x+RULES.radius>s.x&&p.x-RULES.radius<s.x+s.w&&prevY>=surfaceAt(s,p.x,true)-(s.kind==='spring'&&oldGround ? .55 : (s.give||s.form)&&oldGround===s ? .45 : .14)&&p.y<=surfaceAt(s,p.x)+.03&&p.vy<=Math.max(0,(surfaceAt(s,p.x)-surfaceAt(s,p.x,true))/dt)).sort((a,b)=>surfaceAt(b,p.x)-surfaceAt(a,p.x));
     if(candidates.length) {
       const s=candidates[0],impact=p.vy;
       if(s.kind==='break'&&p.stomping) {
@@ -266,7 +382,13 @@ export class Game {
     }
     // A wall that has just moved a rider sideways on sloping formable clay has
     // moved them off the surface they were set on; put their feet back on it.
-    {const ground=p.groundId&&L.platforms.find(s=>s.id===p.groundId);if(ground?.form)p.y=surfaceAt(ground,p.x);}
+    {const ground=p.groundId&&L.platforms.find(s=>s.id===p.groundId);if(ground?.form)p.y=surfaceAt(ground,p.x);
+      // The dome turns under whoever runs across it: the rider's travel this
+      // tick, in radians of the sphere, kept for the picture alone.
+      if(ground?.kind==='dome')ground.domeSpin=(ground.domeSpin||0)+(p.x-prevX)/(ground.w/2);}
+    // Trigger zones latch their channel the first time the player's body is
+    // inside them; the latch is kept with the checkpoint like a switch's.
+    for(const t of L.triggers||[])if(!this.latched[t.channel]&&p.x+RULES.radius>t.x&&p.x-RULES.radius<t.x+t.w&&p.y<t.y+t.h&&p.y+RULES.height>t.y)this.activate(t.channel,t.x+t.w/2,t.y+t.h/2);
     for(const s of L.platforms)if(s.checkpoint&&Math.abs(p.x-s.checkpoint)<1&&Math.abs(p.y-s.y)<.3&&this.checkpointId!==s.id) {
       this.checkpoint={x:s.checkpoint,y:s.y};this.checkpointId=s.id;this.activatedCheckpoints.add(s.id);p.health=RULES.maxHealth;
       this.event('checkpoint',{x:s.checkpoint,y:s.y,platformId:s.id});
@@ -281,6 +403,7 @@ export class Game {
       // finish the simulation tick normally, while collecting at most one flower.
       break;
     }
+    if(this.finale)this.updateFinale();
     for(const e of L.enemies)if(e.alive&&e.kind==='bat'){
       const top=e.y+BAT.top,above=prevY>=(e.prevY??e.y)+BAT.top-.18;
       // Swept top crossing catches a fast stomp even if it traverses the
@@ -312,14 +435,21 @@ export class Game {
     }
     contactMotherPuff(this,previousPlayer,input,RULES);
     updateShots(this,dt,previousPlayer);
-    for(const e of L.enemies)if(e.alive&&!['bat','drifter','spore','spitter'].includes(e.kind)&&Math.abs(p.x-e.x)<.72&&p.y<e.y+.83&&p.y+RULES.height>e.y+.15){
+    for(const e of L.enemies)if(e.alive&&DREAM_KINDS.includes(e.kind)){
+      const contact=contactDreamEnemy(this,e,prevY,input);
+      if(contact==='defeat')this.event('squish',{x:e.x,y:e.y+.45,kind:e.kind});
+      else if(contact==='hit')this.damage();
+    }
+    for(const e of L.enemies)if(e.alive&&!['bat','drifter','spore','spitter',...DREAM_KINDS].includes(e.kind)&&Math.abs(p.x-e.x)<.72&&p.y<e.y+.83&&p.y+RULES.height>e.y+.15){
       if(p.vy<0&&prevY>e.y+.54){e.alive=false;p.y=e.y+.85;p.vy=input.jumpHeld?12.6:9.5;p.groundId=null;p.stomping=false;p.springing=true;this.event('squish',{x:e.x,y:e.y,kind:'clayling'});}
       else this.damage();
     }
     for(const h of L.hazards)if(p.x+.2>h.x&&p.x-.2<h.x+h.w&&p.y<h.y+.7&&p.y+RULES.height>h.y-.4)this.damage(true);
     for(const c of L.crushers||[])if(pressTouches(c,p,RULES,prevY))this.damage(true);
     if(p.y<-7||p.y<this.checkpoint.y-13)this.damage(true);
-    if(p.x>L.end&&p.y>=L.platforms.find(s=>s.goal).y-.1&&(!L.boss||L.boss.state==='defeated')){
+    // Completion stays where the bell is; a chapter with an ending only rings
+    // it awake, though the wake deck is meant to be unreachable before then.
+    if(p.x>L.end&&p.y>=L.platforms.find(s=>s.goal).y-.1&&(!L.boss||L.boss.state==='defeated')&&(!this.finale||this.finale.state==='awake')){
       this.status='complete';this.event('complete',{index:this.index,coins:this.coins,stamps:this.stamps,time:this.elapsed,deaths:this.deaths});
     }
   }

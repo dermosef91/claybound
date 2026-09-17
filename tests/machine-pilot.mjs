@@ -1,7 +1,7 @@
 // All decisions produce ordinary joystick/jump input. Look-ahead clones are
 // discarded; the returned trace can be replayed from a fresh, untouched game.
 import {PRESS} from '../dist/presses.js';
-import {RULES} from '../dist/simulation.js';
+import {RULES,FINALE,finaleFlower} from '../dist/simulation.js';
 const copy=g=>{const c=Object.assign(Object.create(Object.getPrototypeOf(g)),structuredClone({...g,onEvent:null}));c.onEvent=()=>{};return c;};
 const dt=1/120;
 const clamp01=n=>Math.max(0,Math.min(1,n));
@@ -59,5 +59,18 @@ export function machineTransfer(original,link){
     if(g.player.groundId===b.id)return {g,controls};
     if(g.deaths!==original.deaths||g.respawnTimer||g.status!=='playing')return null;
     if(f>20&&p.groundId!==a.id)return null;
+  }return null;
+}
+// The ending: walk to the flower, then stand still while the world folds up
+// and the player wakes on the wake deck. No jump, no edit — the pickup is the
+// simulation's own doing, and success is standing on the link's target awake.
+export function finaleTransfer(original,link){
+  const g=copy(original),controls=[],F=g.level.finale;if(!F||!g.finale)return null;
+  const flower=finaleFlower(g.level),frames=Math.ceil(((F.duration??FINALE.duration)+2)*120);
+  for(let f=0;f<frames;f++){
+    const waiting=g.finale.state==='pickup'||g.finale.state==='awake';
+    const input=waiting?{}:{moveAxis:axis(g,flower.x)};controls.push(input);g.tick(dt,input);
+    if(g.finale.state==='awake'&&g.player.groundId===link.to)return {g,controls};
+    if(g.deaths!==original.deaths||g.respawnTimer||g.status!=='playing')return null;
   }return null;
 }
