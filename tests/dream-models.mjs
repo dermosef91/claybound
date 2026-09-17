@@ -32,8 +32,7 @@ import {animateDream} from '../dist/dream.js';
 import {HAT_WIDTHS,HAT_NEST,GIRAFFE_WITHERS,GIRAFFE_LEAVE} from '../dist/dream/parade.js';
 import {DREAM_FILES,PLANET_ORBS,dreamPlanet,dreamSaucer,dreamSculpture,dreamHat,dreamHatHeight,dreamCaterpillar,dreamGiraffe,skinnedBox} from '../dist/dream-assets.js';
 import {CATERPILLAR_RIG,CATERPILLAR_HEAD,GIRAFFE_BONES,GIRAFFE_POSE} from '../dist/dream-rigs.js';
-import {HATWORM_MODEL} from '../dist/dream-enemies.js';
-import {HATWORM} from '../dist/dream-enemy-rules.js';
+import {HATWORM_COLOURS} from '../dist/dream-enemies.js';
 import {animateEnemy,releaseEnemyView} from '../dist/enemies.js';
 import {clone} from '../dist/lib/SkeletonUtils.js';
 import {readPlayer} from './load-player.mjs';
@@ -488,7 +487,7 @@ console.log('PASS the dome spin turns the supplied planet');
 
   // Leaving: pulled and the player across, it turns and walks off left until hidden; home the moment the player is back left.
   const worm=g.level.enemies.find(e=>e.kind==='hatworm'&&e.y===back.y);assert(worm,'a hatworm patrols the giraffe\'s back');
-  const ev=w.enemyViews.get(worm.id);assert(ev?.model&&ev.parts.rig,'its view carries the supplied caterpillar');
+  const ev=w.enemyViews.get(worm.id);assert(ev?.parts.body,'its view is built');
   station.amount=1;g.player.x=back.x+back.w+GIRAFFE_LEAVE.past+2;
   const home=view.pivot.position.x;let turned=false,walked=false;
   for(let i=0;i<60*20;i++){g.time+=1/60;animateDream(w,g,1/60);if(Math.abs(view.pivot.rotation.y-Math.PI)<.01)turned=true;if(view.pivot.position.x<home-1)walked=true;}
@@ -501,33 +500,50 @@ console.log('PASS the dome spin turns the supplied planet');
   station.amount=0;settle(back.x+3,10);
   console.log(`PASS with the parade awake and the player across, the giraffe turns and walks off left ${GIRAFFE_LEAVE.distance} until hidden, and is home once the player is back left`);
 
-  // The hatworm on the back: supplied body and hats, names kept, walking on the bones, dying flat.
-  for(const name of ['Hatworm body','Hatworm head','Hatworm hat 1','Hatworm hat 2','Hatworm hat 3','Supplied clay caterpillar','Dream hat'])assert(ev.root.getObjectByName(name),`the hatworm has ${name}`);
-  assert(!ev.root.getObjectByName('Hatworm segment')&&!ev.root.getObjectByName('Hat brim'),'the sculpted beads and hats are gone');
-  assert.equal(ev.parts.hats.length,3,'three hats');
-  assert(ev.root.getObjectByName('Hatworm head').parent.name===CATERPILLAR_HEAD,'the hats hang from the head bone');
-  for(let i=0;i<60;i++)animateEnemy(ev,worm,1/60,'playing');w.scene.updateMatrixWorld(true);
-  const wb=skinnedBox(ev.model,w.scene),hb=new THREE.Box3().setFromObject(ev.root.getObjectByName('Hatworm head'),true);
-  assert(near(wb.min.y,worm.y,.03),`feet on the deck (${(wb.min.y-worm.y).toFixed(3)})`);
-  assert(wb.max.x-wb.min.x>HATWORM_MODEL.length-.05&&wb.max.x-wb.min.x<HATWORM_MODEL.length+.3,`about ${HATWORM_MODEL.length} long, hats overhanging a little (${(wb.max.x-wb.min.x).toFixed(2)})`);
-  assert(hb.max.y-worm.y<1.6&&hb.max.y-worm.y>HATWORM.perch,`the stack tops out between the perch and 1.6 (${(hb.max.y-worm.y).toFixed(2)})`);
-  // The first hat sits on the head: its foot is inside the head's dome, not above it.
-  const crownTop=(()=>{let top=-1e9;const p=new THREE.Vector3(),hat1=ev.parts.hats[0].getWorldPosition(new THREE.Vector3());ev.model.traverse(o=>{if(!o.isSkinnedMesh)return;for(let i=0;i<o.geometry.attributes.position.count;i++){o.getVertexPosition(i,p).applyMatrix4(o.matrixWorld);if(Math.abs(p.x-hat1.x)<.12&&Math.abs(p.z-hat1.z)<.12)top=Math.max(top,p.y);}});return top;})();
-  const foot=ev.parts.hats[0].getWorldPosition(new THREE.Vector3()).y;
-  assert(foot<crownTop&&foot>crownTop-.2,`the first hat's foot is set into the crown of the head (foot ${foot.toFixed(3)}, crown ${crownTop.toFixed(3)})`);
-  const bones=ev.parts.rig.rest.filter(r=>r.bone!==ev.parts.rig.head).slice(1);
-  assert(bones.some(r=>r.bone.position.y>r.position.y+1e-4)&&bones.every(r=>r.bone.position.y>=r.position.y-1e-9),'the hump lifts stations and never pushes one below the deck');
+  // The hatworm on the back is the sculpted worm in the board's colours, with
+  // the models loaded as without them; the supplied caterpillar is not it.
+  for(const name of ['Hatworm body','Hatworm head','Hatworm segment','Hatworm hat 1','Hatworm hat 2','Hatworm hat 3','Hat brim','Hat crown','Hat band'])assert(ev.root.getObjectByName(name),`the hatworm has ${name}`);
+  assert(!ev.root.getObjectByName('Supplied clay caterpillar')&&!ev.root.getObjectByName('Dream hat')&&!ev.model,'the hatworm is the sculpted worm, not the supplied caterpillar');
+  assert.equal(ev.parts.segments.length,4);assert.equal(ev.parts.hats.length,3);
+  ev.parts.segments.forEach((m,i)=>assert.equal(m.material.color.getHex(),HATWORM_COLOURS.beads[i%HATWORM_COLOURS.beads.length],`bead ${i+1} wears the board's colour`));
+  assert.equal(ev.parts.head.material.color.getHex(),HATWORM_COLOURS.head,'a lemon head');
+  assert.equal(ev.root.getObjectByName('Hat crown').material.color.getHex(),HATWORM_COLOURS.crown,'plum hats');
+  assert(ev.parts.segments[0].material.userData.clay&&w.assetMaterials.has(ev.parts.segments[0].material),'its colours wear the clay surface and are retained across streaming');
+  for(let i=0;i<60;i++)animateEnemy(ev,worm,1/60,'playing');
   worm.alive=false;animateEnemy(ev,worm,1/60,'playing');
   assert(ev.root.scale.y<1&&ev.root.scale.x>1,'pressed flat about the root, hats and all');
   worm.alive=true;
   w.syncVisible(g.level,900,true);assert(!w.enemyViews.get(worm.id),'the hatworm streams out far away');
-  w.syncVisible(g.level,back.x+3,true);assert(w.enemyViews.get(worm.id)?.model,'and comes back with the supplied body');
+  w.syncVisible(g.level,back.x+3,true);assert(w.enemyViews.get(worm.id)?.parts.segments,'and comes back');
   assert.equal(sharedDisposals,0,'streaming the creatures disposes nothing shared');
   releaseEnemyView(w.enemyViews.get(worm.id));
+  console.log(`PASS the hatworm on the giraffe's back is the sculpted worm in the board's colours — lime, orange, bubblegum, violet beads, a lemon head, plum hats — pressed flat when stomped, streaming cleanly`);
+
+  // The caterpillar lift is the supplied caterpillar: back at the deck's top,
+  // head raised at the front, walking on its bones only while the lift moves.
+  const lift=platform('parade-caterpillar'),lv=w.platforms.get('parade-caterpillar');
+  assert(lv?.caterpillar&&lv.root.getObjectByName('Supplied clay caterpillar'),'the lift carries the supplied caterpillar');
+  for(const name of ['Caterpillar bead','Caterpillar leg','Sleeping eye'])assert(!lv.root.getObjectByName(name),name+' has left the lift');
+  g.player.x=lift.x;w.syncVisible(g.level,lift.x,true);animateDream(w,g,0);w.scene.updateMatrixWorld(true);
+  const ride=lv.root.getObjectByName('Supplied clay caterpillar'),rideBox=skinnedBox(ride,w.scene);
+  const deckTop=(from,to,step=.5)=>{const out=[],p=new THREE.Vector3();for(let x=lift.x+from;x<lift.x+to;x+=step){let top=-1e9;ride.traverse(o=>{if(!o.isSkinnedMesh)return;for(let i=0;i<o.geometry.attributes.position.count;i++){o.getVertexPosition(i,p).applyMatrix4(o.matrixWorld);if(Math.abs(p.x-x)<step/2&&Math.abs(p.z)<.5&&p.y>top)top=p.y;}});out.push(top-lift.y);}return out;};
+  // (the tail curls up to the top at the back; the notch behind it and the
+  // body's middle lie a hand under the walk plane, as soft clay would)
+  const body=deckTop(.25,lift.w-1.2);
+  assert(body.every(d=>d>-.4&&d<.3)&&body.slice(2).every(d=>d>-.3),`the body's back lies along the ride's top (${body.map(d=>d.toFixed(2)).join(' ')})`);
+  assert(rideBox.max.y-lift.y>.3&&rideBox.max.y-lift.y<1,`the head rises at the front as the figurehead (${(rideBox.max.y-lift.y).toFixed(2)} above the ride)`);
+  assert(rideBox.max.x>lift.x+lift.w-.1&&rideBox.min.x<lift.x+.1,'and the body runs the ride\'s length');
+  assert(rideBox.max.x-rideBox.min.x>lift.w&&rideBox.max.x-rideBox.min.x<lift.w+1,'a little past its ends');
+  // Still, the hump is slight; moving, it walks.
+  const hump=()=>Math.max(...lv.caterpillar.rest.filter((r,i)=>i>0&&r.bone!==lv.caterpillar.head).map(r=>r.bone.position.y-r.position.y));
+  let still=0;for(let i=0;i<60;i++){g.time+=1/60;animateDream(w,g,1/60);still=Math.max(still,hump());}
+  lift.prevX=lift.x-.05;let walking=0;for(let i=0;i<60;i++){g.time+=1/60;animateDream(w,g,1/60);walking=Math.max(walking,hump());}
+  assert(still>0&&walking>still*2,`the walk pumps while the lift moves (${walking.toFixed(3)} against ${still.toFixed(3)} at rest)`);
+  delete lift.prevX;
   const saved=w.dreamAssets;w.dreamAssets=null;w.refreshEditor(g.level,back.x+3);
-  assert(w.platforms.get('parade-back').root.getObjectByName('Torso')&&w.enemyViews.get(worm.id).root.getObjectByName('Hatworm segment'),'a rig without the models gets the sculpted giraffe and hatworm back');
+  assert(w.platforms.get('parade-back').root.getObjectByName('Torso')&&w.platforms.get('parade-caterpillar').root.getObjectByName('Caterpillar bead')&&w.enemyViews.get(worm.id).root.getObjectByName('Hatworm segment'),'a rig without the models gets the sculpted giraffe and lift back, the hatworm as ever');
   w.dreamAssets=saved;w.refreshEditor(g.level,back.x+3);
-  assert(w.platforms.get('parade-back').root.getObjectByName('Supplied clay giraffe'),'restored, the supplied giraffe returns');
+  assert(w.platforms.get('parade-back').root.getObjectByName('Supplied clay giraffe')&&w.platforms.get('parade-caterpillar').root.getObjectByName('Supplied clay caterpillar'),'restored, the supplied giraffe and caterpillar return');
   assert.equal(sharedDisposals,0,'rebuilding disposes nothing shared');
-  console.log(`PASS the hatworm on the giraffe's back is the supplied caterpillar in three supplied hats, stack to ${(hb.max.y-worm.y).toFixed(2)}, walking on its bones, pressed flat when stomped, streaming and falling back cleanly`);
+  console.log(`PASS the caterpillar lift is the supplied caterpillar: back along the ride's top (${body.map(d=>d.toFixed(2)).join('/')}), head ${(rideBox.max.y-lift.y).toFixed(2)} above it, walking only while the lift moves, sculpted again without the models`);
 }

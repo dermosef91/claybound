@@ -57,6 +57,8 @@ const SPOTS={
  'parade-awake':{x:329.8,y:6.2,ground:'parade-neck',cameraX:326.5,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:.6},
  'parade-leaving':{x:340,y:7.8,ground:'parade-worm',cameraX:324,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:3.2,creatures:true},
  'parade-gone':{x:340,y:7.8,ground:'parade-worm',cameraX:324,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:7,creatures:true},
+ // Aboard the caterpillar float at its rest, before the parade wakes.
+ 'parade-ride':{x:344.7,y:3.6,ground:'parade-caterpillar',cameraX:345,cameraY:5,ticks:1,settle:.5},
  'parade-worm':{x:332,y:8.2,ground:'parade-head',ticks:120},
  'parade-stack':{x:332,y:8.2,ground:'parade-head',cameraX:334.3,cameraY:13.5,ticks:120},
  'parade-pulled':{x:332,y:8.2,ground:'parade-head',ticks:120,shaped:['parade-worm']},

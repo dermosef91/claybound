@@ -1,23 +1,37 @@
 import * as THREE from './lib/three.module.js';
 import {applyFlatten} from './clay-feel.js';
 import {BLINKER,DRIP} from './dream-enemy-rules.js';
-import {dreamCaterpillar,dreamHat,dreamHatHeight} from './dream-assets.js';
-import {restoreRest} from './dream-rigs.js';
 
 // The Soft Dream's creatures, sculpted in code from the world's clay
-// primitives in the theme's own slots — no model to load, so a section's
-// palette recolours them with everything else. Each view names its parts so
-// a scene check can find them, and each dies the way every other creature
-// does: pressed flat about its root by clay-feel.js, then broken into clumps
-// by clay-shatter.js from world.render. The simulation owns every position;
-// this file only dresses e.x/e.y and the state fields the rules leave behind.
-// The hatworm is the one with a supplied body: where the dream's models are
-// loaded it wears the uploaded caterpillar and three of the uploaded hats,
-// keeping the same part names; a bare rig gets the sculpted one.
+// primitives — no model to load. The blinker and the drip take the theme's
+// own slots, so a section's palette recolours them with everything else; the
+// hatworm wears the parade board's own colours (below) in every section. Each
+// view names its parts so a scene check can find them, and each dies the way
+// every other creature does: pressed flat about its root by clay-feel.js, then
+// broken into clumps by clay-shatter.js from world.render. The simulation owns
+// every position; this file only dresses e.x/e.y and the state fields the
+// rules leave behind.
 
 // A theme slot where the world has one, else a colour every world carries.
 const slot=(w,name,fallback='cream')=>w.mat?.[name]?name:fallback;
 const NAMES={hatworm:'Hatworm',blinker:'Blinker',drip:'Drip'};
+
+// The hatworm's colours, after the caterpillar on the Melted Parade's concept
+// board: beads in lime, orange, bubblegum and violet, a lemon head, plum hats
+// with lemon bands like the supplied hat on the plinth. Fixed rather than in
+// palette slots so the creature reads the same in every section it patrols.
+// Built once per World and retained like a supplied model's material, so a
+// view streaming out does not dispose what the next one draws with.
+export const HATWORM_COLOURS={beads:[0xa8dc5a,0xff9645,0xff6fb8,0x9b6be0],head:0xffcc4d,eye:0xfff6e6,pupil:0x2a1b3d,brim:0x3a2160,crown:0x4b2a7a,band:0xf2ee74};
+function hatwormMaterial(w,key,index=0){
+  const colour=Array.isArray(HATWORM_COLOURS[key])?HATWORM_COLOURS[key][index%HATWORM_COLOURS[key].length]:HATWORM_COLOURS[key];
+  const cache=w.hatwormMaterials??={},name=key+(Array.isArray(HATWORM_COLOURS[key])?index:'');
+  if(!cache[name]){
+    const m=new THREE.MeshStandardMaterial({color:colour,roughness:.94,metalness:0});m.name='Hatworm '+name;
+    (w.assetMaterials??=new Set()).add(m);cache[name]=m;
+  }
+  return cache[name];
+}
 
 export function createDreamEnemyView(w,e){
   const root=new THREE.Group();root.name=`${NAMES[e.kind]||'Dream creature'} ${e.id}`;root.position.set(e.x,e.y,.35);w.levelRoot.add(root);
@@ -30,81 +44,36 @@ export function createDreamEnemyView(w,e){
 }
 
 // --- the hatworm --------------------------------------------------------------
-// Four beads of body and a head, wearing three hats at once. The body group
-// turns to face the way it walks; the root stays upright so the press is
-// straight down whichever way it was going.
-//
-// With the models loaded, the body is the supplied caterpillar — 1.95 long,
-// well past the collider's .72 (the user asked for it half again the size
-// ASSET_REQUESTS had) — and the hats are the supplied hat, three of them
-// nested on a group hung from the head bone so they ride every nod. Widths
-// are in world units. headOffset seats the first hat's foot on the dome of the
-// head in the model's own units: the head bone is at (.40,.20), the dome —
-// the crest along the centre line — is at x .44….48, y .44, and the foot sits
-// .04 into it so the brim reads as pressed onto the clay rather than resting
-// above it (the ridge behind the dome is a whole .08 lower, which is where an
-// earlier fit left the hats hovering).
-export const HATWORM_MODEL={length:1.95,hatWidths:[.6,.52,.45],nest:.55,headOffset:[.03,.17,0]};
+// Four beads of body and a head, wearing three hats at once, in the board's
+// colours (HATWORM_COLOURS). The body group turns to face the way it walks;
+// the root stays upright so the press is straight down whichever way it was
+// going.
 function buildHatworm(w,view){
-  if(w.dreamAssets?.caterpillar&&w.dreamAssets?.hat){buildHatwormModel(w,view);return;}
   const body=new THREE.Group();body.name='Hatworm body';view.root.add(body);
   const segments=[];
-  for(let i=0;i<4;i++){const m=w.ball(.19,.19,.19,i%2?slot(w,'top'):'cream',body,-.27+i*.18,.2,0);m.name='Hatworm segment';segments.push(m);}
-  const head=w.ball(.24,.22,.22,slot(w,'top'),body,.3,.28,0);head.name='Hatworm head';
+  for(let i=0;i<4;i++){const m=w.ball(.19,.19,.19,hatwormMaterial(w,'beads',i),body,-.27+i*.18,.2,0);m.name='Hatworm segment';segments.push(m);}
+  const head=w.ball(.24,.22,.22,hatwormMaterial(w,'head'),body,.3,.28,0);head.name='Hatworm head';
   for(const z of [-.09,.09]){
-    w.ball(.06,.06,.04,'cream',body,.5,.34,z).name='Hatworm eye';
-    w.ball(.03,.03,.02,'dark',body,.545,.34,z).name='Hatworm pupil';
+    w.ball(.06,.06,.04,hatwormMaterial(w,'eye'),body,.5,.34,z).name='Hatworm eye';
+    w.ball(.03,.03,.02,hatwormMaterial(w,'pupil'),body,.545,.34,z).name='Hatworm pupil';
   }
   const hats=[];
   for(let i=0;i<3;i++){
     const hat=new THREE.Group();hat.name=`Hatworm hat ${i+1}`;hat.position.set(.3,.46+i*.14,0);body.add(hat);
-    w.cylinder(.26-i*.03,.05,'dark',hat,0,0,0).name='Hat brim';
-    w.cylinder(.16-i*.02,.13,i%2?slot(w,'accent','gold'):'dark',hat,0,.08,0).name='Hat crown';
-    w.cylinder(.17-i*.02,.035,'gold',hat,0,.04,0).name='Hat band';
+    w.cylinder(.26-i*.03,.05,hatwormMaterial(w,'brim'),hat,0,0,0).name='Hat brim';
+    w.cylinder(.16-i*.02,.13,hatwormMaterial(w,'crown'),hat,0,.08,0).name='Hat crown';
+    w.cylinder(.17-i*.02,.035,hatwormMaterial(w,'band'),hat,0,.04,0).name='Hat band';
     hats.push(hat);
   }
   view.parts={body,segments,head,hats};
 }
-function buildHatwormModel(w,view){
-  const body=new THREE.Group();body.name='Hatworm body';view.root.add(body);
-  const rig=dreamCaterpillar(w,body,HATWORM_MODEL.length);
-  // The head group hangs from the head bone, in the model's own units, at the
-  // crown; the hats nest inside it, each brim sunk into the crown below.
-  const head=new THREE.Group();head.name='Hatworm head';head.position.fromArray(HATWORM_MODEL.headOffset);rig.head.add(head);
-  const hats=[],stack=[];
-  for(let i=0,y=0;i<HATWORM_MODEL.hatWidths.length;i++){
-    const width=HATWORM_MODEL.hatWidths[i]/rig.scale,hat=new THREE.Group();hat.name=`Hatworm hat ${i+1}`;hat.position.y=y;head.add(hat);
-    dreamHat(w,hat,width);hats.push(hat);stack.push(y);
-    y+=dreamHatHeight(w,width)*HATWORM_MODEL.nest;
-  }
-  view.parts={body,rig,head,hats,stack};view.model=rig.model;
-}
 function animateHatworm(view,e,step){
-  const {body}=view.parts,t=view.time,moving=Math.abs(e.vx||0)>.05;
+  const {body,segments,head,hats}=view.parts,t=view.time,moving=Math.abs(e.vx||0)>.05;
   const angle=e.dir>0?0:Math.PI;view.turn+=(angle-view.turn)*(1-Math.exp(-14*step));body.rotation.y=view.turn;
   const wave=moving?1:.3;
-  if(view.parts.rig){animateHatwormModel(view,view.reducedMotion?wave*.3:wave);return;}
-  const {segments,head,hats}=view.parts;
   segments.forEach((m,i)=>{m.position.y=.2+Math.sin(t*10-i*1.2)*.035*wave;m.scale.y=.19*(1+Math.sin(t*10-i*1.2)*.08*wave);});
   head.position.y=.28+Math.sin(t*10+.6)*.025*wave;
   hats.forEach((hat,i)=>{hat.rotation.z=Math.sin(t*6+i*.9)*(.05+i*.03)*wave;hat.position.x=.3+Math.sin(t*6+i*.9)*.015*i;});
-}
-// The same walk on the supplied body: a hump travels down the bones from the
-// tail as the sculpted beads bobbed, each station lifted and stretched in turn
-// (never pushed below the deck), the head nodding at the neck, and the hats
-// rocking with it. The rest pose goes back first, so the walk is layered on
-// the model as it arrived and a paused frame holds exactly.
-function animateHatwormModel(view,wave){
-  const {rig,hats,stack}=view.parts,t=view.time;
-  restoreRest(rig.rest);
-  // rest[0] is the root bone; the stations follow it tail first, the head last.
-  rig.rest.forEach((r,i)=>{
-    if(i===0||r.bone===rig.head)return;
-    const s=Math.sin(t*10-(i-1)*1.2);
-    r.bone.position.y+=Math.max(0,s)*.035*wave;r.bone.scale.y=1+s*.08*wave;
-  });
-  rig.head.rotation.z=Math.sin(t*10+.6)*.025*wave;
-  hats.forEach((hat,i)=>{hat.rotation.z=Math.sin(t*6+i*.9)*(.015+i*.01)*wave;hat.position.x=Math.sin(t*6+i*.9)*.006*i;hat.position.y=stack[i];});
 }
 
 // --- the blinker --------------------------------------------------------------

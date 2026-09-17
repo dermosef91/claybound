@@ -54,6 +54,22 @@ export function rigCaterpillar(scene){
   return skinned;
 }
 
+// The caterpillar's walk on its rig, layered over the rest pose: a hump
+// travels down the stations from the tail, each lifted and stretched in turn
+// (never pushed below its feet), and the head nods at the neck. `wave` is 1
+// walking and about .3 standing, the way the sculpted beads bobbed; `rig` is
+// what dreamCaterpillar hands back. A paused frame holds exactly.
+export function caterpillarWalk(rig,t,wave){
+  restoreRest(rig.rest);
+  // rest[0] is the root bone; the stations follow it tail first, the head last.
+  rig.rest.forEach((r,i)=>{
+    if(i===0||r.bone===rig.head)return;
+    const s=Math.sin(t*10-(i-1)*1.2);
+    r.bone.position.y+=Math.max(0,s)*.035*wave;r.bone.scale.y=1+s*.08*wave;
+  });
+  rig.head.rotation.z=Math.sin(t*10+.6)*.025*wave;
+}
+
 // --- rest poses and overlays ---------------------------------------------------------
 // Every bone's local transform, to put back at the start of each frame.
 export function snapshotRest(model){

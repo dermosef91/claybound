@@ -1,7 +1,7 @@
 import * as THREE from '../lib/three.module.js';
 import {createDreamView} from '../dream-views.js';
-import {dreamHat,dreamHatHeight,dreamGiraffe} from '../dream-assets.js';
-import {restoreRest,rotateAbout,parentAxis,SIDE_AXIS} from '../dream-rigs.js';
+import {dreamHat,dreamHatHeight,dreamGiraffe,dreamCaterpillar} from '../dream-assets.js';
+import {restoreRest,rotateAbout,parentAxis,caterpillarWalk,SIDE_AXIS} from '../dream-rigs.js';
 import {sectionDecks,deck,lean,slot,rand} from './support.js';
 // Section 5 — The Melted Parade. One idea: a parade frozen mid-step, cream
 // statues on an ultramarine parade ground, each with exactly one bubblegum
@@ -285,9 +285,28 @@ function hats(w,parent,worm){
 
 // --- the caterpillar ----------------------------------------------------------------
 // The lift itself: five cream beads and a head with a bubblegum nose, on five
-// stubby legs that only pump while the lift is moving.
+// stubby legs that only pump while the lift is moving. With the dream's models
+// loaded it is the supplied caterpillar instead — its back at the deck's top,
+// the walk plane, its raised head the float's figurehead at the front, facing
+// the hand it shuttles toward — walking on its bones only while the lift moves.
+// `back` is the model-space height of the body's top, put on the deck; `extra`
+// how far the body runs past the deck's ends; `nod` pitches the head down a
+// little so it rises less above the ride.
+export const CATERPILLAR_LIFT={back:.25,extra:.4,nod:-.3};
 function caterpillar(w,s,g){
   g.name='Caterpillar · '+s.id;const cream=slot(w,'top');
+  if(w.dreamAssets?.caterpillar){
+    const rig=dreamCaterpillar(w,g,s.w+CATERPILLAR_LIFT.extra);
+    rig.root.position.set(s.w/2,-CATERPILLAR_LIFT.back*rig.scale,0);
+    let swing=0;
+    register(w,g,(game,dt,ctx)=>{
+      const live=game.level.platforms.find(q=>q.id===s.id),moving=!!live&&Math.abs(live.x-(live.prevX??live.x))>1e-5;
+      swing=ctx.reducedMotion?0:clamp(swing+(moving?dt*3:-dt*2),0,1);
+      caterpillarWalk(rig,ctx.time,ctx.reducedMotion?0:.3+.7*swing);
+      rig.head.rotation.z+=CATERPILLAR_LIFT.nod;
+    });
+    return {root:g,ropes:[],bounce:0,caterpillar:rig};
+  }
   for(let i=0;i<5;i++)w.ball(.46,.42,.46,cream,g,.55+i*.8,-.42,0).name='Caterpillar bead';
   const head=group(g,'Caterpillar head',4.1,-.42,0);
   w.ball(.56,.4,.5,cream,head,0,0,0).name='Head';
