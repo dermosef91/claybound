@@ -1,5 +1,6 @@
 import * as THREE from '../lib/three.module.js';
 import {createDreamView} from '../dream-views.js';
+import {dreamHat,dreamHatHeight} from '../dream-assets.js';
 import {sectionDecks,deck,lean,slot,rand} from './support.js';
 // Section 5 — The Melted Parade. One idea: a parade frozen mid-step, cream
 // statues on an ultramarine parade ground, each with exactly one bubblegum
@@ -134,26 +135,43 @@ function flowerHead(w,s,g){
 // The violet coil is the station's own clay view. Under it stands a cream
 // plinth (the bridge rests on its top once pulled), and on it a stack of five
 // hats that tumble off one by one as the pull passes .25 / .45 / .62 / .78 / .9
-// — visual keyframes only, landing along the stretched worm's back.
+// — visual keyframes only, landing along the stretched worm's back. The hats
+// are the supplied clay hat — violet with lemon patches, keeping its own
+// colours the way the orchard's planets do — cloned at five brim widths,
+// widest at the foot, each resting its brim on the crown below and sunk into
+// it a little, as soft clay would. Where the model is not loaded (a bare rig)
+// each hat is the sculpted brim and crown it used to be.
+
+// Local to the coil's underside: the column hangs from it down into the
+// melted paint (top of the pool at -1.5 in world), its foot standing in the
+// paint and its band a hand under the bridge that comes to rest on it.
 function plinth(w,parent){
   const cream=slot(w,'top');
-  w.box(2.2,9.4,2,cream,parent,0,3.1,0,.5).name='Plinth';
-  w.box(2.8,.5,2.4,slot(w,'bark','rope'),parent,0,-1.4,0,.15).name='Plinth foot';
-  w.box(2.32,.26,2.1,slot(w,'accent'),parent,0,6.4,0,.08).name='Plinth band';
+  w.box(2.2,9.4,2,cream,parent,0,-4.7,0,.5).name='Plinth';
+  w.box(2.8,.5,2.4,slot(w,'bark','rope'),parent,0,-9.2,0,.15).name='Plinth foot';
+  w.box(2.32,.26,2.1,slot(w,'accent'),parent,0,-2,0,.08).name='Plinth band';
 }
+export const HAT_WIDTHS=[1.56,1.46,1.36,1.26,1.16];
+// The share of a hat's height the next one sits up by: its brim overlaps the
+// crown below by the rest.
+export const HAT_NEST=.9;
 function hats(w,parent,worm){
-  const cream=slot(w,'top'),list=[];
-  for(let i=0;i<5;i++){
-    const hat=group(parent,`Hat ${i+1}`,0,i*.62,0);
-    w.cylinder(.78-i*.05,.12,cream,hat,0,.06,0).name='Hat brim';
-    w.cylinder(.5-i*.04,.52,cream,hat,0,.36,0).name='Hat crown';
-    if(i===2)w.cylinder(.52,.1,slot(w,'accent'),hat,0,.2,0).name='Hat band';
+  const cream=slot(w,'top'),list=[],model=!!w.dreamAssets?.hat;
+  for(let i=0,y=0;i<5;i++){
+    const width=HAT_WIDTHS[i],hat=group(parent,`Hat ${i+1}`,0,y,0);
+    if(model)dreamHat(w,hat,width);
+    else{
+      w.cylinder(width/2,.12,cream,hat,0,.06,0).name='Hat brim';
+      w.cylinder(.5-i*.04,.52,cream,hat,0,.36,0).name='Hat crown';
+      if(i===2)w.cylinder(.52,.1,slot(w,'accent'),hat,0,.2,0).name='Hat band';
+    }
     // Stack pose (local to the prop at the coil's top) and where it lands: on
     // the bridge's back edge, spaced along it, one full turn in the air and
     // settling almost upright at a random tilt. Each tumble is a pure function
     // of the pull's progress — from its threshold over the next tenth — so a
     // restore, a paused frame or a replay shows the same hats in the same place.
-    list.push({hat,at:[0,i*.62,0],to:[1.6+i*1.55,worm.shape.to.y-worm.shape.from.y+.1,-.9],spin:Math.PI*2+(rand(i*13+3)-.5)*.9,threshold:[.25,.45,.62,.78,.9][i]});
+    list.push({hat,at:[0,y,0],to:[1.6+i*1.55,worm.shape.to.y-worm.shape.from.y+.1,-.9],spin:Math.PI*2+(rand(i*13+3)-.5)*.9,threshold:[.25,.45,.62,.78,.9][i]});
+    y+=model?dreamHatHeight(w,width)*HAT_NEST:.62;
   }
   const pose=amount=>{
     for(const h of list){

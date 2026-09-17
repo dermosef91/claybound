@@ -10,8 +10,8 @@ import {deck,slot,rand} from './support.js';
 // slabs already standing, a path that closes like a book, and two pale hands
 // in the haze that might have done the folding. Nothing here leans or bobs:
 // stillness is what makes the folds read when they move. The one piece the
-// module draws for itself is the violet tongue: two strands of rope-twisted
-// clay that grow from either side of the gap and twist together.
+// module draws for itself is the violet tongue: a carpet of clay rolled up at
+// the brink that rolls out across the gap as it is pressed.
 //
 // Palette slots (applyDreamPalette): main → terrain/terrain2 (plum),
 // secondary → top (lime frosting), backdrop → back/back2 (pink haze),
@@ -53,23 +53,25 @@ function porthole(w,parent,x,y,z,r){
   const hollow=w.cylinder(r*.8,.16,'dark',parent,x,y,z+.1);hollow.rotation.x=Math.PI/2;hollow.name='Porthole';
 }
 
-// --- the twisted tongue -----------------------------------------------------------
+// --- the rolled tongue -----------------------------------------------------------
 // The shared clay view draws a station's piece as one rounded box remapped to
-// its collider. The tongue is drawn here instead, as two strands of clay with
-// the twist of a rolled rope in their skin. Strand A is the tongue itself and
-// the collider's body: standing on its post at rest, it slumps and lengthens
-// as it is pressed — an L whose upright shortens as its arm grows — and its
-// top is always flush with the walking surface, so what looks like floor is
-// floor. Strand B roots at the foot of the lemon wall across the gap and
-// reaches out to meet it, hanging under the deck line wherever there is no
-// collider yet, and lies in with A as the press completes, the two weaving in
-// depth like the strands of a braid. Each end curls into a scroll. Both are
-// fixed grids of rings whose positions are rewritten from the platform's pose
-// (poseTongue), so the frame the collider moves, the clay moves with it.
-const SEGS=90,RADIAL=12,TWIST=3.2,GROOVE=.22,WEAVE=7.5;
+// its collider. The tongue is drawn here instead, as a carpet: one ribbon of
+// violet clay 1.161 thick and 12.4 long at every moment, rolled up on the
+// brink at rest and rolling out to the right as it is pressed. The flat run
+// lies at deck level and is the walking surface; the roll stands on the run's
+// own underside at its far end, wound the way a rug is — the carpet passes
+// under it, climbs the far side, comes back over the top and winds in — and
+// pays out from underneath as it travels, so what stood tall on the brink lies
+// long across the gap. Run and roll together span exactly the collider's
+// width and the roll's box is the rest pose; between the two poses the roll
+// stands higher than the collider's top and the run lies a little under it,
+// the box being one box. Wound, the clay lies tight and thin and puffs back to
+// its thickness as it comes out, so the roll shows two or three layers. One
+// fixed grid of rings, rewritten from the platform's pose (poseTongue).
+const SEGS=120,RADIAL=16,TONGUE={thick:1.161,wound:.64,length:12.4,depth:2.4};
 const V=THREE.Vector3;
 
-function strandGeometry(seedX,seedY){
+function ribbonGeometry(seedX,seedY){
   const rings=SEGS+1,count=rings*RADIAL+2,geometry=new THREE.BufferGeometry();
   const position=new THREE.BufferAttribute(new Float32Array(count*3),3);position.setUsage(THREE.DynamicDrawUsage);
   geometry.setAttribute('position',position);
@@ -82,56 +84,53 @@ function strandGeometry(seedX,seedY){
     const a=s*RADIAL+r,b=s*RADIAL+(r+1)%RADIAL,c=(s+1)*RADIAL+r,d=(s+1)*RADIAL+(r+1)%RADIAL;
     index.push(a,b,c,b,d,c);
   }
-  // Two cap centres close the ends; the tips taper to almost nothing anyway.
+  // Two cap centres close the ends: the root hidden in the post, the tip in the roll's core.
   const capA=rings*RADIAL,capB=capA+1;
   for(let r=0;r<RADIAL;r++){index.push(capA,(r+1)%RADIAL,r);index.push(capB,SEGS*RADIAL+r,SEGS*RADIAL+(r+1)%RADIAL);}
   geometry.setIndex(index);
-  // Room for every pose: the standing tongue, the lying braid and the scrolls.
-  geometry.boundingSphere=new THREE.Sphere(new V(6.2,-3.5,0),11);
+  // Room for every pose: the roll on the post and the carpet across the gap.
+  geometry.boundingSphere=new THREE.Sphere(new V(6.2,-2,0),9);
   return geometry;
 }
 
-// Resample a polyline into SEGS+1 points spaced evenly along its length.
-function resample(points){
+// Resample a polyline (with a thickness at each point) into SEGS+1 points
+// spaced evenly along its length.
+function resample(points,thick){
   const lengths=[0];for(let i=1;i<points.length;i++)lengths.push(lengths[i-1]+points[i].distanceTo(points[i-1]));
-  const total=lengths[lengths.length-1],out=[];
+  const total=lengths[lengths.length-1],out=[],width=[];
   for(let k=0,j=0;k<=SEGS;k++){
     const d=total*k/SEGS;
     while(j<points.length-2&&lengths[j+1]<d)j++;
     const span=lengths[j+1]-lengths[j]||1,u=Math.max(0,Math.min(1,(d-lengths[j])/span));
-    out.push(new V().lerpVectors(points[j],points[j+1],u));
+    out.push(new V().lerpVectors(points[j],points[j+1],u));width.push(thick[j]+(thick[j+1]-thick[j])*u);
   }
-  return {points:out,total};
+  return {points:out,width,total};
 }
 
-// Two slow waves, so the skin reads as pinched by hand rather than turned on a lathe.
+// Two slow waves, so the skin reads as pinched by hand rather than pressed by a machine.
 const lump=(a,b)=>Math.sin(a*5.1+b*3.7)*.56+Math.sin(a*2.3-b*4.9)*.44;
+// A squircle: a rounded square at exponent p, a circle at 2.
+const squircle=(phi,p)=>{const c=Math.cos(phi),s=Math.sin(phi);return 1/Math.pow(Math.pow(Math.abs(c),p)+Math.pow(Math.abs(s),p),1/p);};
+// The tip of the ribbon: full section until `from`, then a rounded end.
+const taper=(u,from)=>u<=from?1:Math.max(.03,Math.sqrt(Math.max(0,1-((u-from)/(1-from))**2)));
 
-// Write one strand's rings along a spine. `radius(u)` gives the in-plane
-// half-thickness at u (0 root → 1 tip), `depth(u)` the half-depth; the
-// twist grooves and the hand noise are faded out on the up-facing side so
-// the top stays a floor, and every vertex over the collider's span is held
-// at or under the walking surface.
-function writeStrand(mesh,spine,{radius,depth,phase=0,clampTop=null}){
-  const {points,total}=resample(spine),a=mesh.geometry.attributes.position,out=a.array;
-  const T=new V(),N=new V(0,0,1),B=new V(),P=new V(),dir=new V();
+// Write the ribbon's rings along a spine: a rounded rectangle `width[k]`
+// across (in the plane) by `depth` deep, frames by parallel transport and a
+// little hand noise.
+function writeRibbon(mesh,spine,thick,{depth}){
+  const {points,width,total}=resample(spine,thick),a=mesh.geometry.attributes.position,out=a.array;
+  const T=new V(),N=new V(0,0,1),B=new V(),P=new V();
   for(let k=0;k<=SEGS;k++){
-    const u=k/SEGS,l=u*total,p=points[k];
+    const u=k/SEGS,l=u*total,p=points[k],end=taper(u,.965);
     T.subVectors(points[Math.min(SEGS,k+1)],points[Math.max(0,k-1)]);if(T.lengthSq()<1e-12)T.set(1,0,0);T.normalize();
     // Parallel transport: the last normal, less whatever of it now lies along the tangent.
     N.addScaledVector(T,-N.dot(T));if(N.lengthSq()<1e-8)N.set(0,0,1).addScaledVector(T,-T.z);N.normalize();
     B.crossVectors(T,N);
-    const ry=radius(u),rz=depth(u),turn=l/TWIST*Math.PI*2+phase;
     for(let r=0;r<RADIAL;r++){
       const phi=r/RADIAL*Math.PI*2,c=Math.cos(phi),s=Math.sin(phi);
-      dir.copy(N).multiplyScalar(c).addScaledVector(B,s);
-      const up=Math.max(0,dir.y),fade=(1-up)*(1-up);
-      // The rope's two plies: a pair of lobes that turn as the strand runs.
-      const groove=1-GROOVE*(.5+.5*Math.cos(2*(phi-turn)))*fade;
-      const noise=1+lump(l*1.7+phase,phi*1.3)*.045*fade;
-      const m=groove*noise;
-      P.copy(p).addScaledVector(N,c*rz*m).addScaledVector(B,s*ry*m);
-      if(clampTop&&P.x>clampTop.from&&P.x<clampTop.to&&P.y>-.005)P.y=-.005;
+      // Rounded rectangle in the (depth, thickness) plane.
+      const m=squircle(phi,5)*(1+lump(l*1.9,phi*1.1)*.03)*end;
+      P.copy(p).addScaledVector(N,c*depth/2*m).addScaledVector(B,s*width[k]/2*m);
       const i=(k*RADIAL+r)*3;out[i]=P.x;out[i+1]=P.y;out[i+2]=P.z;
     }
   }
@@ -141,76 +140,54 @@ function writeStrand(mesh,spine,{radius,depth,phase=0,clampTop=null}){
   a.needsUpdate=true;mesh.geometry.computeVertexNormals();
 }
 
-// A scroll: an arc of `radius` from `at`, setting out along `heading` (±1 in
-// x) and curling down and back through `sweep` radians.
-function scroll(points,at,heading,radius,sweep,steps=10){
-  for(let i=1;i<=steps;i++){
-    const a=sweep*i/steps;
-    points.push(new V(at.x+heading*radius*Math.sin(a),at.y-radius+radius*Math.cos(a),at.z));
-  }
-}
-// The tip of a strand: full thickness until `from`, then a tongue's taper to
-// a rounded end.
-const taper=(u,from)=>u<=from?1:Math.max(.02,Math.sqrt(Math.max(0,1-((u-from)/(1-from))**2)))*(1-.35*(u-from)/(1-from));
-
-function twistedTongue(w,s,g){
-  g.name='Twisted tongue · '+s.id;
-  const from=s.shape?.from??s,material=magicClayMaterial(w),strands=[];
-  for(const name of ['Tongue strand A','Tongue strand B']){
-    const mesh=new THREE.Mesh(strandGeometry(from.x,from.y),material);
-    mesh.name=name;mesh.castShadow=true;mesh.receiveShadow=true;mesh.frustumCulled=false;g.add(mesh);strands.push(mesh);
-  }
-  const view={root:g,tongue:{strands,key:null}};
+function rolledTongue(w,s,g){
+  g.name='Rolled tongue · '+s.id;
+  const from=s.shape?.from??s;
+  const mesh=new THREE.Mesh(ribbonGeometry(from.x,from.y),magicClayMaterial(w));
+  mesh.name='Tongue carpet';mesh.castShadow=true;mesh.receiveShadow=true;mesh.frustumCulled=false;g.add(mesh);
+  const view={root:g,tongue:{mesh,key:null}};
   poseTongue(view,s);
   return view;
 }
 
 // Local coordinates: the group sits at (s.x, s.y), so the collider spans
-// x 0..s.w and y −s.h..0, and the walking surface is y 0.
+// x 0..s.w and y −s.h..0. Its underside is the carpet's underside: on the lip
+// at rest, the carpet's depth below it at full, sinking between, so the run
+// (top at τ−s.h) settles from a step above the deck onto level with it as it
+// pays out. The carpet keeps its thickness τ and its length L; the flat run ℓ
+// and the roll's side S obey S² = τ·(L−ℓ) (the roll holds the wound length)
+// and ℓ+S = s.w (the two span the collider), which fixes ℓ for any pose.
 function poseTongue(view,s){
-  const key=`${s.w}:${s.h}:${s.y}`;if(view.tongue.key===key)return;view.tongue.key=key;
-  const {from,to}=s.shape,t=Math.max(0,Math.min(1,(s.w-from.w)/((to.w-from.w)||1)));
-  const [A,B]=view.tongue.strands;
-  // Strand A: the collider's body. Half-thickness r fills the box's narrow
-  // way; the upright runs from inside the post up to the corner, the arm runs
-  // to the box's end, and the scroll curls down and back within it.
-  const r=Math.min(s.w,s.h)/2,corner=Math.min(.7*r,Math.max(0,(s.h-r)*.9),Math.max(0,(s.w-2*r)*.9));
-  const curl=.2+.3*smooth(t),armEnd=s.w-r;
-  const spineA=[new V(r,-s.h-.3,0),new V(r,-r-corner,0)];
-  for(let i=1;i<=6;i++){const a=Math.PI-Math.PI/2*i/6;spineA.push(new V(r+corner+corner*Math.cos(a),-r-corner+corner*Math.sin(a),0));}
-  // The arm weaves in depth against strand B; the weave fades in from the corner.
-  const armFrom=r+corner,arm=Math.max(0,armEnd-armFrom),steps=Math.max(2,Math.ceil(arm*2));
-  const braid=smooth(t*3);
-  for(let i=1;i<=steps;i++){const x=armFrom+arm*i/steps,c=Math.cos(x/WEAVE*Math.PI*2),k=smooth((x-armFrom)/2)*braid;spineA.push(new V(x,-r-.3*Math.max(0,-c)*k,.6*c*k));}
-  const tipA=spineA[spineA.length-1].clone();
-  scroll(spineA,tipA,1,curl,3.3);
-  writeStrand(A,spineA,{radius:u=>r*taper(u,.82),depth:u=>(.45+.45*r)*taper(u,.82),phase:0,clampTop:{from:-.1,to:s.w+.1}});
-  // Strand B: rooted in the lemon wall's foot at world (to.x+to.w, −.58),
-  // reaching out by the press's share of the gap. Over the collider it lies
-  // level with the surface and weaves against A — whichever strand is behind
-  // dips a little, so the braid shows in the underside while the front one
-  // keeps the top a floor; over the void it sags, so a strand that has not
-  // met the tongue yet never reads as floor; its tip curls down.
-  const ax=to.x+to.w-s.x,ay=to.y-s.y-.58,reach=(to.w)*smooth(t),rB=.3+.28*smooth(t);
-  const spineB=[new V(ax+.35,ay,0)];
-  const n=Math.max(2,Math.ceil(reach*3));
-  for(let i=0;i<=n;i++){
-    const x=ax-reach*i/n,inside=x<=s.w;
-    let y=ay,z=0;
-    // A rope let out from the wall droops the further it reaches, lowest at
-    // its free end; once over the collider it rises to the surface within
-    // a stride and weaves there.
-    const sag=1.3*(1-t)*smooth((ax-x)/Math.max(.5,ax-s.w));
-    if(inside){const c=Math.cos(x/WEAVE*Math.PI*2);z=-.6*c*braid;y-=.3*Math.max(0,c)*braid+sag*(1-smooth((s.w-x)/1.5));}
-    else y-=sag;
-    // Its last stretch comes forward, so the scroll at its end hangs over the
-    // cliff face in front of the post rather than inside it.
-    const front=smooth((1.6-x)/1.6);z=z*(1-front)+2*front;
-    spineB.push(new V(x,y,z));
-  }
-  const tipB=spineB[spineB.length-1].clone();
-  scroll(spineB,tipB,-1,.28+.22*smooth(t),3.1);
-  writeStrand(B,spineB,{radius:u=>rB*taper(u,.8),depth:u=>(.45+.45*rB)*taper(u,.8),phase:Math.PI/2,clampTop:{from:-.1,to:s.w+.1}});
+  const key=`${s.w}:${s.h}`;if(view.tongue.key===key)return;view.tongue.key=key;
+  const {thick:tau,wound,length:L,depth}=TONGUE,W=s.w,floor=-s.h;
+  let lo=0,hi=L;
+  for(let i=0;i<40;i++){const mid=(lo+hi)/2;if(mid+Math.sqrt(tau*Math.max(0,L-mid))<W)lo=mid;else hi=mid;}
+  const run=Math.min(L,(lo+hi)/2),S=Math.max(0,W-run);
+  // The spine: from inside the post along the underside to the middle of the
+  // roll's foot, then a squircle spiral winding up the far side, back over
+  // the top, down the near side and in. The outer layer hugs the roll's box
+  // for its first three quarters, so the roll stands square on the run and
+  // fills the collider at rest; from there each turn draws in by the wound
+  // thickness. The run enters at full thickness and thins into the wind over
+  // the first quarter turn.
+  const spine=[new V(-.35,floor+tau/2,0)],thick=[tau];
+  const cx=run+S/2,cy=floor+S/2;
+  if(S>tau*.6){
+    // A small roll winds thinner than the carpet, so the last curl shrinks
+    // away rather than vanishing all at once; the run thins to meet it.
+    const enter=Math.min(tau,Math.max(.45,S*.45)),tw=Math.min(wound,S*.25),core=tw*.5;
+    if(enter<tau){spine.push(new V(cx-S/2,floor+tau/2,0));thick.push(tau);}
+    spine.push(new V(cx,floor+enter/2,0));thick.push(enter);
+    for(let i=1;i<600;i++){
+      const th=i*Math.PI/24,phi=-Math.PI/2+th;
+      const outer=S/2-tw*Math.max(0,th-Math.PI*1.5)/(Math.PI*2),t=enter+(tw-enter)*smooth(th/(Math.PI/2)),r=outer-t/2;
+      if(r<core)break;
+      const p=2.2+1.2*smooth((r-tw)/Math.max(.01,S/2-tw));
+      const q=squircle(phi,p)*r;
+      spine.push(new V(cx+Math.cos(phi)*q,cy+Math.sin(phi)*q,0));thick.push(t);
+    }
+  } else {spine.push(new V(Math.max(.4,W-tau*.2),floor+tau/2,0));thick.push(tau);}
+  writeRibbon(view.tongue.mesh,spine,thick,{depth});
 }
 
 // --- the hanging sheet ----------------------------------------------------------------
@@ -391,7 +368,7 @@ export default {
   // and the folds' stands; everything else (the two free masses — violet, they
   // are the puzzles — the tinted ramp, thin lemon ledges) keeps the shared look.
   deck(w,s,g){
-    if(s.shape&&s.id==='folding-tongue')return twistedTongue(w,s,g);
+    if(s.shape&&s.id==='folding-tongue')return rolledTongue(w,s,g);
     if(s.kind==='wall'&&s.id==='folding-tongue-post')return cliffPost(w,s,g);
     if(s.kind==='wall'&&s.id==='folding-cast-lintel')return hangingSheet(w,s,g);
     if(s.kind==='counter')return standingTile(w,s,g);

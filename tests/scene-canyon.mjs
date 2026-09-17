@@ -40,7 +40,18 @@ console.log('PASS removed foreground huts and middle scenery, retained rooftop c
 // Reproduce the canyon draw boundary after a blurred chapter, at the opening
 // and both windwells. The actual formations must reach the default framebuffer
 // together with gameplay, and the previous composite must stay hidden.
-for(const x of [4,45,93,194,240]){
+// Where to stand is read off the chapter's own landmarks rather than written
+// down, so a reprofiled canyon is still sampled at its basin and both of its
+// windwells instead of quietly skipping them.
+const centre=s=>s.x+s.w/2;
+const sampled=(()=>{
+  const g=new Game();g.start(0);
+  const mills=g.level.platforms.filter(s=>s.landmark==='windmill');
+  const basin=g.level.platforms.find(s=>s.landmark==='sandwheel');
+  assert.equal(mills.length,2,'the canyon raises two windwells');assert(basin,'and one eroded basin');
+  return [g.level.spawn.x+2.5,centre(basin),...mills.map(centre),centre(g.level.platforms.find(s=>s.goal))];
+})();
+for(const x of sampled){
   const g=new Game();g.start(0);const floor=g.level.platforms.find(s=>x>=s.x&&x<=s.x+s.w);
   Object.assign(g.player,{x,y:floor?.y??22});w.build(g.level,0,x);
   let target='unset';const calls=[],render=w.renderer.render,setTarget=w.renderer.setRenderTarget;
@@ -58,8 +69,8 @@ for(const x of [4,45,93,194,240]){
   w.render(g,1/60);w.renderer.render=render;w.renderer.setRenderTarget=setTarget;
   assert.equal(calls.length,1);assert.equal(calls[0].target,null);assert(calls[0].back&&calls[0].path&&!calls[0].composite);assert(calls[0].formations>=2);
   assert(!w.scene.getObjectByName('Clay cottage with laundry'),'no blue cottages anywhere in the canyon');
-  if(x===93)assert(w.levelRoot.getObjectByName('Eroded sandstone basin'),'the sinking shortcut has its own ruin landmark');
-  if([45,194].includes(x)){
+  if(floor?.landmark==='sandwheel')assert(w.levelRoot.getObjectByName('Eroded sandstone basin'),'the sinking shortcut has its own ruin landmark');
+  if(floor?.landmark==='windmill'){
     const mill=w.levelRoot.getObjectByName('Autumn clay windmill');assert(mill);
     const rotor=mill.getObjectByName('Rotating clay sails'),origin=rotor.position.clone();const turn=rotor.rotation.z;
     g.tick(1/30);w.render(g,1/30);assert(rotor.rotation.z>turn);assert(rotor.position.equals(origin));
@@ -70,23 +81,26 @@ assert.equal(sharedDisposals,0);
 console.log('PASS canyon formations in the direct draw pass, chapter return, no canyon cottages, two functional windmills, sandstone basin, stable rotor hubs and pause');
 
 {
-  const g=new Game();g.start(0);w.build(g.level,0,180);
+  const g=new Game();g.start(0);
+  // Wherever the crossing is authored, not where it once was.
+  const span=g.level.platforms.find(s=>s.id==='arch-drop'),at=centre(span);
+  w.build(g.level,0,at);
   const bridge=()=>w.platforms.get('arch-drop')?.root;
   assert.equal(bridge().name,'Clay rope bridge');
   assert(bridge().getObjectByName('Bridge rope knot'));
   const uniqueGeometry=new Set();bridge().traverse(o=>{if(o.geometry&&!w.assetGeometry.has(o.geometry)&&!w.baseGeometry.has(o.geometry))uniqueGeometry.add(o.geometry);});
   let disposed=0;for(const geometry of uniqueGeometry)geometry.addEventListener('dispose',()=>disposed++);
-  w.syncVisible(g.level,10,true);assert(!bridge());assert.equal(disposed,uniqueGeometry.size,'streamed rope tubes are released');
-  w.syncVisible(g.level,180,true);assert.equal(bridge().name,'Clay rope bridge');
-  w.refreshEditor(g.level,180);assert(bridge().getObjectByName('Bridge anchor post'));
+  w.syncVisible(g.level,g.level.spawn.x,true);assert(!bridge());assert.equal(disposed,uniqueGeometry.size,'streamed rope tubes are released');
+  w.syncVisible(g.level,at,true);assert.equal(bridge().name,'Clay rope bridge');
+  w.refreshEditor(g.level,at);assert(bridge().getObjectByName('Bridge anchor post'));
   assert.equal(sharedDisposals,0,'bridge streaming retains shared clay assets');
 }
 console.log('PASS rope bridge streaming, geometry disposal, return and editor rebuild');
 
 {
   const g=new Game();g.start(0);const before=JSON.stringify(g.level);
-  w.build(g.level,0,145);
-  const platform=g.level.platforms.find(s=>s.id==='arch-entry');
+  const platform=g.level.platforms.find(s=>s.id==='arch-entry'),at=centre(platform);
+  w.build(g.level,0,at);
   const checkTent=()=>{
     w.scene.updateMatrixWorld(true);
     const landmark=w.platforms.get(platform.id).root.getObjectByName('Landmark: arch');
@@ -100,8 +114,8 @@ console.log('PASS rope bridge streaming, geometry disposal, return and editor re
     let triangles=0;tent.traverse(o=>{if(o.isMesh){triangles+=o.geometry.index.count/3;assert(o.material.map&&o.material.normalMap&&o.material.roughnessMap);assert(w.assetGeometry.has(o.geometry));assert(o.castShadow&&o.receiveShadow);}});
     assert.equal(triangles,10388,'supplied tent topology is intact');
   };
-  checkTent();w.syncVisible(g.level,10,true);assert(!w.levelRoot.getObjectByName('Canyon tent'));
-  w.syncVisible(g.level,145,true);checkTent();w.refreshEditor(g.level,145);checkTent();
+  checkTent();w.syncVisible(g.level,g.level.spawn.x,true);assert(!w.levelRoot.getObjectByName('Canyon tent'));
+  w.syncVisible(g.level,at,true);checkTent();w.refreshEditor(g.level,at);checkTent();
   assert.equal(JSON.stringify(g.level),before,'tent replacement does not change collision or checkpoint data');
 }
 for(let index=0;index<LEVELS.length;index++){

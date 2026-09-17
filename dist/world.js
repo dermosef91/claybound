@@ -22,10 +22,11 @@ import {createShapeHands,animateShapeHands,disposeShapeHands} from './shape-hand
 import {loadCanyonAssets} from './canyon-assets.js';
 import {loadWindmills} from './windmill.js';
 import {loadForestAssets} from './forest.js';
+import {loadDreamAssets} from './dream-assets.js';
 import {loadSpitterAssets} from './spitter-asset.js';
 import {loadCavernAssets} from './cavern-asset.js';
 import {createCaveLights} from './cave-lighting.js';
-import {makeCanyonLift} from './canyon.js';
+import {makeCanyonLift,makeCanyonZip,animateCanyonZip} from './canyon.js';
 import {greatArchLedge} from './great-arch.js';
 import {makeRopeBridge} from './rope-bridge.js';
 import {bridgeOffset} from './bridge-surface.js';
@@ -231,6 +232,7 @@ export class World {
     if(L.biome==='desert'||L.enemies.some(e=>e.kind==='drifter'))await loadDrifters(this,onProgress);
     if(L.biome==='forest'||L.enemies.some(e=>e.kind==='spore'))await loadSpores(this,onProgress);
     if(L.biome==='forest')await loadForestAssets(this,onProgress);
+    if(L.biome==='dream')await loadDreamAssets(this,onProgress);
     if(L.boss?.kind==='mother-puff')await loadMotherPuff(this,onProgress);
     if(L.biome==='cave')await loadCavernAssets(this,onProgress);
     if(L.biome==='cave'||L.enemies.some(e=>e.kind==='spitter'))await loadSpitterAssets(this,onProgress);
@@ -257,6 +259,7 @@ export class World {
     if(['gate','ferry','orbit'].includes(s.kind))return createCavernMachine(this,s,g);
     if(this.biome==='citadel'&&(s.kind==='lift'||s.kind==='counter'))return makeCitadelLift(this,s,g);
     if(this.biome==='desert'&&s.kind==='lift')return makeCanyonLift(this,s,g);
+    if(s.kind==='zip')return makeCanyonZip(this,s,g);
     if(s.kind==='balance')return balanceDeck(this,s,g);
     let ropes=[],springPad,fracture;
     if(s.kind==='wall'){
@@ -531,6 +534,7 @@ export class World {
         applyDent(view,s);
       }
       animateCavernMachine(view,s,this);
+      if(s.kind==='zip')animateCanyonZip(this,s,view);
     }
     animateShapeHands(this,game,dt,game.status==='playing');
     for(const e of L.enemies){const view=this.enemyViews.get(e.id);animateEnemy(view,e,dt,game.status);settleSquash(this,e,view,L.platforms);}
