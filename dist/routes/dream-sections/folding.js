@@ -47,7 +47,7 @@ export default {
     // The ceiling: a block hanging 8.1–11.2 that sags into a ramp 58→64 rising
     // 4.0→6.0 on its own once folding-c latches. Terrain, not a puzzle: it is
     // drawn in the section's own colour.
-    part('folding-ceiling',{x:58,w:3,y:11.2,h:3.1},{x:58,w:6,y:4.0,h:.55,slope:2},{station:'folding-ceiling',clayRole:'ramp',tint:'terrain'}),
+    part('folding-ceiling',{x:58,w:3,y:11.2,h:3.1},{x:58,w:6,y:4.0,h:.6,slope:2},{station:'folding-ceiling',clayRole:'ramp',tint:'terrain'}),
     p('folding-shelf',64,2.5,6.0,'ledge'),
     p('folding-exit',63,7,0,'stone')
   ],
@@ -63,7 +63,7 @@ export default {
   ],
   stamps:[],
   // One slow hatworm on the far deck: flag at 54.5, patrol 56.2–57.5 (min−.8 > flag, ≥ .5 inside the deck).
-  enemies:[{kind:'hatworm',x:56.8,min:56.2,max:57.5,speed:.8}],
+  enemies:[{kind:'hatworm',x:56.8,y:4,min:56.2,max:57.5,speed:.8}],
   // The cloud void under the tongue and the first bridge, the step pit, the bridge pit.
   hazards:[{x:8,w:18.9,y:-2.5},{x:34.9,w:5.6,y:-2},{x:44.5,w:7.5,y:-2}],
   hints:[
@@ -87,7 +87,7 @@ export default {
     // Self-working terrain, not a purple beat: no hint, and its stretch is the
     // ramp itself, which is finished before anyone can stand there, so the
     // gesture cue never shows for it.
-    {id:'folding-ceiling',name:'The ceiling bends',verb:'Watch',gesture:'down',icon:'ramp',parts:['folding-ceiling'],
+    {id:'folding-ceiling',name:'The ceiling bends',verb:'Watch',gesture:'down',icon:'ramp',hint:'The ceiling bends into a ramp on its own once the fallen bridge is crossed.',parts:['folding-ceiling'],
      x:58,end:64,spawn:{x:55,y:4,groundId:'folding-far'},cueX:59.5,auto:'folding-c'}
   ],
   // Ultramarine bodies, lemon frosting, lilac haze, one magenta accent.

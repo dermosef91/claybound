@@ -24,7 +24,7 @@ export default {
     p('orchard-saucer-1',26,3,4.6,'lift',{moveX:.5,period:3.8}),
     p('orchard-saucer-2',31,3,5.6,'lift',{moveY:.4,period:3.8,phase:1.9}),
     p('orchard-apple-perch',30,2.4,7.7,'ledge',{optional:true}),
-    p('orchard-mid',37,7,3.0,'stone',{checkpoint:39,landmark:'tree'}),
+    p('orchard-mid',37,7,3.0,'stone',{checkpoint:39}),
     part('orchard-blob',BLOB,{station:'orchard-blob',clayRole:'mass'}),
     // The great inverted tree's trunk hangs from the canopy; the player walks under it.
     p('orchard-trunk',46,2.4,14.2,'wall',{h:6}),

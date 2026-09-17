@@ -68,7 +68,7 @@ export default {
     {kind:'blinker',x:72,y:16.8,min:68,max:75,bob:.5,speed:1.4}
   ],
   // The cloud sea under the whole climb; nothing stands below 0 between 8 and 91.
-  hazards:[{x:8,w:83,y:-3}],
+  hazards:[{x:8,w:42,y:-3},{x:50,w:41,y:-3}],
   hints:[{x:8,end:24,icon:'bell',title:'The knot',text:'Three strands hold the dream together. Undo each with a different hand.'}],
   winds:[],triggers:[],crushers:[],
   shaping:[

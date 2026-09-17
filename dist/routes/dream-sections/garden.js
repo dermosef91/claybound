@@ -52,7 +52,7 @@ export default {
   // The lawn's hatworm keeps to the left two thirds of slab-2, so the kneading
   // spot at the roll's foot (station x 23.8 onward) is out of its reach: a
   // player — or the pilot — standing there holding E is never walked into.
-  enemies:[{kind:'hatworm',x:21.6,min:20.6,max:22.8,speed:1.2}],
+  enemies:[{kind:'hatworm',x:21.6,y:1.6,min:20.6,max:22.8,speed:1.2}],
   hazards:[{x:42.5,w:19,y:-1.6}],
   hints:[
     {x:0,end:12,icon:'walk',title:"Look who's looking",text:'The flowers watch you. Walk on — the garden leans your way.'},

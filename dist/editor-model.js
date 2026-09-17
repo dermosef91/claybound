@@ -64,7 +64,7 @@ export function validateDraft(source,base){
   // An older imported forest has no boss clearing. Do not silently gate its
   // earlier finish bell on a boss that is outside that draft's playable path.
   if(source.boss?.kind!=='mother-puff')delete out.boss;
-  const nums={x:[-100,2000],y:[-40,160],w:[.6,80],h:[.6,80],moveX:[-30,30],moveY:[-30,30],period:[.5,60],phase:[-20,20],bob:[0,4],rise:[0,30],travel:[1,30],floorY:[-40,160],delay:[.15,3.5],duty:[.1,.95],duration:[1,60],fx:[-30,30],fy:[-15,25],speed:[.1,8],min:[-100,2000],max:[-100,2000],range:[.2,25],bellX:[.1,80],checkpoint:[-100,2080],rate:[.1,12],drop:[.1,40],conveyor:[-12,12],reach:[.2,10]};
+  const nums={x:[-100,2000],y:[-40,160],w:[.6,80],h:[.6,80],moveX:[-30,30],moveY:[-30,30],period:[.5,60],phase:[-20,20],bob:[0,4],rise:[0,30],travel:[1,30],floorY:[-40,160],delay:[.15,3.5],duty:[.1,.95],duration:[.3,60],fx:[-30,30],fy:[-15,25],speed:[.1,8],min:[-100,2000],max:[-100,2000],range:[.2,25],bellX:[.1,80],checkpoint:[-100,2080],rate:[.1,12],drop:[.1,40],conveyor:[-12,12],reach:[.2,10]};
   const oneOf=(value,choices,label)=>{if(!choices.includes(value))throw new Error(`${label} must be one of ${choices.join(', ')}.`);return value;};
   for(const list of LISTS){
     const items=source[list]??(OPTIONAL_LISTS.has(list)?[]:undefined);
@@ -127,6 +127,12 @@ export function validateDraft(source,base){
         if(clean.kind==='blinker'){clean.bob??=BLINKER.bob;clean.period??=BLINKER.period;clean.min??=clean.x-BLINKER.range;clean.max??=clean.x+BLINKER.range;clean.speed??=BLINKER.speed;}
         if(clean.kind==='drip'){clean.reach??=DRIP.reach;clean.period??=DRIP.period;clean.min??=clean.x;clean.max??=clean.x;}
         clean.min??=clean.x-1;clean.max??=clean.x+1;clean.speed??=1.5;
+        // A default a creature was given here lands after its kind, while the
+        // same field authored in the level lands before it. The draft's
+        // version is a hash of its text, so the two orders read as two
+        // layouts and a draft could not round-trip; write every creature in
+        // one order whatever it arrived with.
+        {const ordered={};for(const key of [...Object.keys(nums),'kind'])if(clean[key]!==undefined)ordered[key]=clean[key];for(const key of Object.keys(clean))delete clean[key];Object.assign(clean,ordered);}
         if(clean.min>clean.max)throw new Error('Enemy patrol start must precede its end.');clean.x=clamp(clean.x,clean.min,clean.max);
       }
       return clean;

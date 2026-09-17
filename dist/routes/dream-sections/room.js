@@ -75,7 +75,7 @@ export default {
     p('room-s1',96,2.4,6.2,'ledge'),
     p('room-s2',100,2.4,8.4,'pulse',{period:4,duty:.65,phase:0}),
     p('room-s3',96,2.4,10.6,'pulse',{period:4,duty:.65,phase:.5}),
-    p('room-s4',100.5,2.4,12.8,'crumble',{delay:.6}),
+    p('room-s4',100.5,2.4,12.8,'ledge'),
     p('room-mobile',104.5,2.6,13.4,'orbit',{moveX:2.8,moveY:2.8,period:6.4}),
     p('room-s5',108,3.5,16.6,'ledge',{checkpoint:110}),
     p('room-s6',108,2.4,18.8,'pulse',{period:4,duty:.65,phase:.25}),

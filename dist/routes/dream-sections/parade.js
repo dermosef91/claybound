@@ -84,7 +84,7 @@ export default {
      // over a 4.6 drop, beyond any jump; the coil's top is 6 above the head.
      bypass:{from:'parade-head',to:'parade-caterpillar',mode:'jump'},
      hint:'The hat-worm is coiled up asleep. Pull its violet tail to the right — drag it, or hold E / KNEAD — and it stretches over the pit… and nudges the caterpillar awake.'},
-    {id:'parade-fingers',name:'The hand opens',verb:'Wakes on its own',gesture:'out',icon:'stairs',parts:['parade-fingers'],x:54.5,end:69,
+    {id:'parade-fingers',name:'The hand opens',verb:'Wakes on its own',gesture:'out',icon:'stairs',hint:'The giant hand opens into a stair on its own as the caterpillar carries you past.',parts:['parade-fingers'],x:54.5,end:69,
      spawn:{x:57,y:4.4,groundId:'parade-palm'},cueX:60.6,auto:'parade-hand'}
   ],
   // Ultramarine parade ground, cream statues with one bubblegum detail each,
