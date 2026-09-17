@@ -10,8 +10,8 @@ const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
 // The incognito export is the source of truth, including deliberate deletions.
 {
  const canonical=validateDraft(LEVELS[0],LEVELS[0]);
- assert.equal(LEVELS[0].layoutVersion,10);assert(!LEVELS[0].custom);
- assert.equal(canonical.layoutVersion,'editor-10-1gws4fw','canonical canyon matches the approved editor export');
+ assert.equal(LEVELS[0].layoutVersion,11);assert(!LEVELS[0].custom);
+ assert.equal(canonical.layoutVersion,'editor-11-15255ug','canonical canyon matches the approved editor export');
  // The pocket's formable mass survives the round trip as data: its rule, its
  // clump and its solution, bounded, and no other rule is ever let in.
  const pocket=canonical.shaping.find(s=>s.id==='canyon-pocket'),authored=LEVELS[0].shaping.find(s=>s.id==='canyon-pocket');
