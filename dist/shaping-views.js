@@ -306,7 +306,9 @@ function animateMarbleView(mesh,s){
 // as a piece breathes. Neither prints nor glitter cover the whole skin: a noise
 // map picks the few spots a thumb pressed hard and the patches where glitter
 // was kneaded in, and everywhere else the clay keeps its plain surface.
-const MAGIC_SKIN=`
+// Exported for the Colour River's stream clay (dream/river-clay.js), which
+// wears the same hashes, spots and glitter recoloured.
+export const MAGIC_SKIN=`
 // A sine hash loses precision on large inputs, and chapters run to hundreds of
 // units. Folding coordinates into ±289 keeps every hash well conditioned while
 // leaving anything already inside that range untouched.

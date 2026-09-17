@@ -1,41 +1,73 @@
 import * as THREE from '../lib/three.module.js';
 import {deck,slot,rand} from './support.js';
 import {createDreamView} from '../dream-views.js';
-// Section 6 — The Colour River. ONE idea: three glossy streams of clay, each
+import {sculptClay} from '../clay.js';
+import {riverClay,flowTube,tickRiverClay} from './river-clay.js';
+// Section 6 — The Colour River. ONE idea: three streams of wet clay, each
 // with a verb. Yellow carries (the conveyor ledges ARE the yellow river, with
 // its source welling out of the bank and its plunge into the undertow), pink
 // throws (the springs are the crests of a pink column rising through the
 // yellow), blue sinks (the pads and the raft are blue, the blue lane slides
 // under them and arches over the backwards trench). Banks are the chapter's
 // rolled slabs in the section palette — mint bodies, lavender tops — so the
-// only colours on screen beyond the palette are the two licensed glossy
-// materials, yellow and blue (pink is the accent slot). The one moving thing
-// per screen besides the creatures: the river stripes scroll, and the geyser
-// spout rises out of the pool once the clot is pressed.
+// only colours on screen beyond the palette are the three stream materials.
+// The streams move: the yellow river's stripes scroll, every stream's surface
+// bulges and streaks along its flow (river-clay.js), and the geyser spout
+// rises out of the pool once the clot is pressed.
 
-const YELLOW=0xf2e94e,BLUE=0x2d47d4;
-// The two glossy stream materials, made once per world and kept in w.mat so
-// the streaming disposer and the level rebuild treat them as shared. They
-// carry a `clay` tag without the relief hook: the relief shader clamps
-// roughness to .52, and a stream is meant to shine.
-function glossy(w,name,hex){
-  if(!w.mat[name]){
-    const m=new THREE.MeshStandardMaterial({color:hex,roughness:.25,metalness:0});
-    m.userData.clay={type:'gloss',requestedDepth:0,depth:0};m.name=name;
-    w.mat[name]=m;
-  }
-  return name;
-}
-const yellow=w=>glossy(w,'riverYellow',YELLOW),blue=w=>glossy(w,'riverBlue',BLUE);
+// The stream materials: the formable clay's material recoloured, glossier and
+// flowing (river-clay.js), made once per world and kept in w.mat. Pink is the
+// section accent as its own stream rather than the palette slot, so it flows
+// like the other two.
+const YELLOW=0xf2e94e,BLUE=0x2d47d4,PINK=0xff62b0;
+const yellow=w=>riverClay(w,'riverYellow',YELLOW),blue=w=>riverClay(w,'riverBlue',BLUE),pink=w=>riverClay(w,'riverPink',PINK);
+// How fast each stream's surface travels, in units per second. Yellow keeps
+// pace with its conveyor ledges (5 and -4.5 in the route) so the pour and the
+// stripes agree; blue slides heavily; pink is thrown. A plunge or a fall is
+// handed a higher speed where it is built.
+const SPEED={riverYellow:4.5,riverBlue:2.4,riverPink:3};
 const group=(parent,name,x=0,y=0,z=0)=>{const g=new THREE.Group();g.name=name;g.position.set(x,y,z);parent.add(g);return g;};
 const attached=(o,scene)=>{for(let p=o;p;p=p.parent)if(p===scene)return true;return false;};
 
-// A stream: one tube along a smoothed curve through `points` ([x,y,z]).
-function tube(w,parent,points,r,mat,name){
-  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],p[1],p[2]??0)),false,'catmullrom',.5);
-  const n=Math.min(200,Math.max(10,Math.round(curve.getLength()*5)));
-  const m=w.mesh(new THREE.TubeGeometry(curve,n,r,8,false),mat,parent);
+// A stream: one tube along a smoothed curve through `points` ([x,y,z]),
+// authored source to destination so the flow runs the way the points do.
+// Sixteen sides and eight rings a unit, because a gloss highlight facets on
+// fewer and the wave bends the rope by a fifth of its radius; sculpted at a
+// third of the usual amplitude, since a pour is smooth where kneaded clay is
+// lumpy (w.mesh sees the sculpt and skips its own). `squash` and `spread`
+// flatten the section into an ellipse (a river lying on something is wider
+// than it is tall); the path is pre-divided so it still lands where the
+// points say. `hold` keeps the crest still for a river the player walks on.
+function stream(w,parent,points,r,mat,name,{speed=SPEED[mat]??3,hold=0,squash=1,spread=1}={}){
+  const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],p[1]/squash,(p[2]??0)/spread)),false,'catmullrom',.5),len=curve.getLength();
+  const n=Math.min(320,Math.max(16,Math.round(len*8)));
+  const base=new THREE.TubeGeometry(curve,n,r,16,false);
+  if(squash!==1||spread!==1)base.applyMatrix4(new THREE.Matrix4().makeScale(1,squash,spread));
+  const g=sculptClay(w,base,{amplitude:.02});
+  if(g!==base)base.dispose();
+  const m=w.mesh(flowTube(g,len,speed,hold),mat,parent);
   m.name=name;return m;
+}
+const tube=(w,parent,points,r,mat,name,speed)=>stream(w,parent,points,r,mat,name,speed===undefined?{}:{speed});
+// A river lying along a deck, in the deck's own coordinates (x 0..width, the
+// walk line at `top`): an ellipse in section, its crest on the walk line and
+// held still there, curling down past both ends so the tube's open mouths
+// face the ground. The downstream end hangs the full `hang`, the pour
+// spilling off; the upstream end, where a source lands on it, only dips.
+// `dir` is the flow, +1 left to right.
+function deckRiver(w,parent,width,mat,name,{speed,dir=1,top=0,r=.75,squash=.66,spread=1.25,hang=1.4,reach=.9}){
+  const c=top-r*squash,sign=dir<0?-1:1,[x0,x1]=sign>0?[0,width]:[width,0];
+  // A curl leaving the deck at x, outward by `sign`, down by h over rch.
+  const curl=(x,out,h,rch)=>[[x+out*rch*.6,c-h*.32],[x+out*rch,c-h]];
+  const pts=[...curl(x0,-sign,hang*.4,reach*.6).reverse(),[x0+sign*.1,c-.02],[width/2,c],[x1-sign*.1,c-.02],...curl(x1,sign,hang,reach)];
+  return stream(w,parent,pts.map(([x,y])=>[x,y,0]),r,mat,name,{speed,hold:1,squash,spread});
+}
+// A flowing sheet over a slab: a wide, low ellipse whose centre sits on the
+// slab's top (or, set forward in z, on its face), so its upper half heaves
+// out of the flat clay. Hazard water, so nothing holds its crest.
+function sheet(w,parent,x0,x1,y,mat,name,speed,{dir=1,z=0,spread=3.2}={}){
+  const pts=[[x0,y,z],[(x0+x1)/2,y,z],[x1,y,z]];if(dir<0)pts.reverse();
+  return stream(w,parent,pts,.45,mat,name,{speed,squash:.7,spread});
 }
 // Bubbles: small glossy balls that bob on the spot. Registered for animate();
 // entries whose mesh has streamed out are dropped there.
@@ -44,42 +76,38 @@ function bubble(w,parent,x,y,z,r,mat,seed){
   (w.riverBubbles??=[]).push({mesh:m,y,phase:rand(seed)*6.28,rate:1.3+rand(seed+1)*.8});
   return m;
 }
-// Give named meshes under a view another material.
-function retint(w,root,map){root.traverse(o=>{if(o.isMesh&&map[o.name])o.material=w.mat[map[o.name]];});}
+const hide=(root,...names)=>{for(const n of names){const o=root.getObjectByName(n);if(o)o.visible=false;}};
 
 // --- decks -----------------------------------------------------------------------
-// A yellow river ledge: the dream's conveyor deck (its cream stripes scroll at
-// the river's speed) in the glossy yellow, with a rounded underbelly, curled
-// ends and a few drips so it reads as a thick pour rather than a plank.
+// A yellow river ledge IS the river: the dream's conveyor deck keeps its
+// simulation and its cream stripes (shrunk to bits of foam riding the flow),
+// but the plank is hidden and a fat yellow river lies along the walk line in
+// its place, flowing the way the conveyor carries and spilling off both ends.
 function yellowDeck(w,s,g){
   const view=createDreamView(w,s,g),Y=yellow(w);
-  retint(w,g,{'River deck top':Y});
-  const body=g.getObjectByName('River deck body');if(body)body.visible=false;
-  const belly=group(g,'Yellow belly');
-  w.box(s.w-.2,.62,1.72,Y,belly,s.w/2,-.5,0,.3);
-  for(const x of [.15,s.w-.15])w.ball(.5,.36,.9,Y,belly,x,-.2,0);
-  for(let i=0;i<Math.max(2,Math.round(s.w/2.8));i++){
-    const x=.9+rand(i*3+s.x)*(s.w-1.8),len=.5+rand(i+s.x)*.4;
-    w.ball(.26,len,.24,Y,belly,x,-.82-len*.45,.35+rand(i*7+s.x)*.3);
-  }
+  hide(g,'River deck top','River deck body');
+  for(const stripe of view.dream?.stripes||[]){stripe.scale.y=.7;stripe.scale.z=.42;}
+  deckRiver(w,g,s.w,Y,'Yellow river',{speed:Math.abs(s.conveyor)*.9,dir:Math.sign(s.conveyor)||1});
   return view;
 }
-// A blue pad or raft: the dream's sinking raft (its ripple rings spread as it
-// goes under) in the glossy blue, over a saucer hull that sits half sunk.
+// A blue pad or raft: the dream's sinking raft keeps its floats and the
+// ripple rings that spread as it goes under, but its deck and hull give way
+// to a short blue river over a saucer hull that sits half sunk.
 function blueDeck(w,s,g){
   const view=createDreamView(w,s,g),B=blue(w);
-  retint(w,g,{'Raft deck':B,'Raft hull':B});
+  hide(g,'Raft deck','Raft hull');
+  deckRiver(w,g,s.w,B,'Blue pad river',{speed:1.2,r:.55,squash:.65,spread:1.45,hang:.7,reach:.5});
   const r=s.w*.5;
   const saucer=w.mesh(new THREE.LatheGeometry([[0,-1.05],[r*.3,-1],[r*.62,-.78],[r*.86,-.5],[r*.98,-.3]].map(([a,b])=>new THREE.Vector2(a,b)),22),B,g,s.w/2,0,0);
   saucer.scale.z=.62;saucer.name='Blue saucer';
   return view;
 }
-// A pink spring: the crest of the pink column — a fat glossy-looking bulb on
-// a short pink stem with a cream ring. The world's spring animator squashes
-// the whole root on a bounce, which suits a blob better than a pad.
+// A pink spring: the crest of the pink column — a fat glossy bulb on a short
+// pink stem with a cream ring. The world's spring animator squashes the whole
+// root on a bounce, which suits a blob better than a pad.
 function pinkSpring(w,s,g){
   g.position.set(s.x,s.y,0);g.name='Pink crest · '+s.id;
-  const A=slot(w,'accent','gold'),cx=s.w/2;
+  const A=pink(w),cx=s.w/2;
   w.cylinder(.46,1.6,A,g,cx,-1,-.05).name='Pink stem';
   w.ball(s.w*.56,.3,.86,A,g,cx,-.16,0).name='Pink crest pad';
   w.ball(.34,.3,.34,A,g,cx-.55,-.5,.32).name='Pink bead';
@@ -99,6 +127,11 @@ export default {
   // The banks keep the chapter's rolled slab: in this palette that is exactly
   // "mint bodies, lavender tops", and it pays for the streams.
 
+  // The deep water drawn by the props below is the whole picture of a hazard
+  // here: the engine's cream spike rows would poke through its surface, so
+  // the section keeps them out. The kill line is still the band's own.
+  hazard(){return true;},
+
   // The streams themselves, streamed in by WORLD x. Every point is taken from
   // a deck by id, so the same list serves the full chapter and a solo build.
   props(section,L){
@@ -111,20 +144,21 @@ export default {
     // Local coordinates for a group parked at the prop's centre.
     const local=parent=>(x,y,z=-1.15)=>[x-parent.position.x,y-parent.position.y,z];
 
-    // 1. The yellow source wells out of the entry bank and runs onto the
-    //    river; at the river's end it plunges, and the pink column rises
-    //    through the plunge to its crest — the first spring.
+    // 1. The yellow source wells out of the entry bank and runs the length of
+    //    the ledge as the river's upper layer, behind the crest; at the
+    //    ledge's end it plunges, and the pink column rises through the plunge
+    //    to its crest — the first spring. One tube, so the beads travel from
+    //    the bank to the plunge unbroken.
     prop('stream-a',E.x+5,S1.x+2.2,(w,parent)=>{
-      const P=local(parent),Y=yellow(w),A=slot(w,'accent','gold');
-      const g=group(parent,'Yellow source and plunge');
-      tube(w,g,[P(E.x+5.2,-1.1,-1.45),P(E.x+6.3,.05,-1.35),P(E.x+7.6,.3,-1.25),P(Y1.x+1.4,.14,-1.15),P(Y1.x+2.6,.1,-1.12)],.5,Y,'Yellow source');
-      const end=Y1.x+Y1.w;
+      const P=local(parent),Y=yellow(w),A=pink(w);
+      const g=group(parent,'Yellow source and plunge'),end=Y1.x+Y1.w;
       // The plunge crosses the pink column just above the deep's surface,
       // so the pierce is seen, then dives.
-      tube(w,g,[P(end-1.2,.1,-1.12),P(end+.4,-.04,-1.1),P(S1.x+.9,-.5,-1.1),P(S1.x+1.55,-.98,-1.1),P(S1.x+1.75,-1.7,-1.1),P(S1.x+1.6,-3.6,-1.1)],.5,Y,'Yellow plunge');
-      const pink=group(parent,'Pink column');
-      tube(w,pink,[P(S1.x+.9,-4,-1.05),P(S1.x+.82,-2.3,-1.05),P(S1.x+.98,-.9,-1.05),P(S1.x+.9,.5,-1.02)],.56,A,'Pink column');
-      bubble(w,g,...P(Y1.x+3.4,.55,-1.3),.2,Y,1);bubble(w,g,...P(end+1.5,-1.2,-.7),.17,Y,2);bubble(w,pink,...P(S1.x+1.6,-1.8,-.7),.21,A,3);
+      tube(w,g,[P(E.x+5.2,-1.1,-1.45),P(E.x+6.3,.05,-1.35),P(E.x+7.6,.3,-1.25),P(Y1.x+1.4,.14,-1.15),P(Y1.x+3,.1,-1.12),P((Y1.x+end)/2,.14,-1.12),
+        P(end-1.2,.1,-1.12),P(end+.4,-.04,-1.1),P(S1.x+.9,-.5,-1.1),P(S1.x+1.55,-.98,-1.1),P(S1.x+1.75,-1.7,-1.1),P(S1.x+1.6,-3.6,-1.1)],.5,Y,'Yellow run',5);
+      const column=group(parent,'Pink column');
+      tube(w,column,[P(S1.x+.9,-4,-1.05),P(S1.x+.82,-2.3,-1.05),P(S1.x+.98,-.9,-1.05),P(S1.x+.9,.5,-1.02)],.56,A,'Pink column');
+      bubble(w,g,...P(Y1.x+3.4,.55,-1.3),.2,Y,1);bubble(w,g,...P(end+1.5,-1.2,-.7),.17,Y,2);bubble(w,column,...P(S1.x+1.6,-1.8,-.7),.21,A,3);
     });
 
     // 2. The blue lane slides heavily under the three pads, then arches over
@@ -152,7 +186,7 @@ export default {
       const mouth=w.cylinder(.78,.7,top,cliff,...P(SL.x+.35,Y2.y+.95,-1.3));mouth.rotation.z=Math.PI/2;mouth.name='Pipe mouth';
       const pour=group(parent,'Yellow pour');
       tube(w,pour,[P(SL.x+.5,Y2.y+.92,-1.3),P(SL.x-.5,Y2.y+.7,-1.25),P(Y2.x+Y2.w-1.3,Y2.y+.3,-1.15),P(Y2.x+Y2.w-2.6,Y2.y+.14,-1.12)],.5,Y,'Yellow pour');
-      tube(w,pour,[P(Y2.x+1.1,Y2.y+.12,-1.12),P(Y2.x-.1,Y2.y-.05,-1.12),P(Y2.x-.85,Y2.y-.9,-1.12),P(Y2.x-1,Y2.y-2.2,-1.12),P(Y2.x-.9,Y2.y-3.3,-1.12)],.46,Y,'Yellow fall');
+      tube(w,pour,[P(Y2.x+1.1,Y2.y+.12,-1.12),P(Y2.x-.1,Y2.y-.05,-1.12),P(Y2.x-.85,Y2.y-.9,-1.12),P(Y2.x-1,Y2.y-2.2,-1.12),P(Y2.x-.9,Y2.y-3.3,-1.12)],.46,Y,'Yellow fall',6);
       const ribbon=group(parent,'Yellow ribbon');
       const rx=S2.x+S2.w/2;
       tube(w,ribbon,[P(rx,S2.y-6.4,-1.35),P(rx-.15,S2.y-3,-1.35),P(rx+.2,S2.y+1,-1.35),P(rx-.1,S2.y+5,-1.35),P(rx+.1,S2.y+8.8,-1.35)],.46,Y,'Yellow ribbon');
@@ -163,10 +197,11 @@ export default {
     // 4. The pool: a blue surface over the bed, the pink spout that bursts up
     //    once the clot is pressed (a bud until then), and the crest riding it.
     prop('pool',PB.x+PB.w-.5,FB.x+.5,(w,parent)=>{
-      const P=local(parent),B=blue(w),A=slot(w,'accent','gold');
+      const P=local(parent),B=blue(w),A=pink(w);
       const left=PB.x+PB.w,right=FB.x,surface=PB.y-4;
       const pool=group(parent,'Blue pool');
       w.box(right-left+.3,1.6,3,B,pool,...P((left+right)/2,surface-.8,0),.3);
+      sheet(w,pool,P(left-.15,0)[0],P(right+.15,0)[0],P(0,surface)[1],B,'Pool flow',.7);
       w.ball(.8,.25,.7,B,pool,...P(left+1.2,surface+.05,.4));w.ball(.55,.2,.5,B,pool,...P(right-1.1,surface+.05,-.3));
       const gx=R.x+R.w-.5;
       const geyser=group(parent,'Geyser',...P(gx,surface,-1.2));
@@ -185,20 +220,29 @@ export default {
       const P=local(parent),B=blue(w);
       const g=group(parent,'Blue fall');
       const bx=B4.x+B4.w/2;
-      tube(w,g,[P(bx-.2,B4.y-.4,-1.35),P(bx+.1,B4.y-2.2,-1.35),P(bx-.15,EX.y-.1,-1.35),P(bx+1,EX.y-.95,-1.35),P(EX.x+1.8,EX.y-1.1,-1.35)],.5,B,'Blue fall');
+      tube(w,g,[P(bx-.2,B4.y-.4,-1.35),P(bx+.1,B4.y-2.2,-1.35),P(bx-.15,EX.y-.1,-1.35),P(bx+1,EX.y-.95,-1.35),P(EX.x+1.8,EX.y-1.1,-1.35)],.5,B,'Blue fall',5);
       bubble(w,g,...P(bx+.6,B4.y-1.6,-.75),.18,B,10);bubble(w,g,...P(bx-.55,EX.y+.9,-.75),.15,B,11);
     });
 
-    // 6. The deep: every hazard band in the section wears a glossy blue
-    //    surface just over its spikes — the same blue that sinks — so the
-    //    undertow, the blue river's surface and the trench read as one deep
-    //    water. Render-only: the kill line is the band's own. The pool has
-    //    its surface from the geyser prop above.
+    // 6. The deep: every hazard band in the section wears a slab that runs
+    //    from just over its spikes down past the bottom of the view, so from
+    //    the camera nothing shows beneath the water, with a flowing sheet
+    //    heaving on top. Under a yellow ledge the deep is the yellow river's
+    //    own body — its top set lower so the ledge floats clear of it, and
+    //    pours stacked down its face flowing the ledge's way; elsewhere it
+    //    is the blue that sinks, so the undertow, the blue river's surface
+    //    and the trench read as one deep water. Render-only: the kill line
+    //    is the band's own. The pool has its surface from the geyser prop.
     for(const [i,h] of L.hazards.entries()){
       if(h.x<section.x-1||h.x>section.x+section.length||h.x>=PB.x+PB.w-1)continue;
+      const ledge=L.platforms.find(p=>p.conveyor&&p.x<h.x+h.w&&p.x+p.w>h.x&&p.y>h.y);
       prop('deep-'+i,h.x,h.x+h.w,(w,parent)=>{
-        const P=local(parent),B=blue(w),g=group(parent,'Blue deep');
-        w.box(h.w+.5,1.6,3,B,g,...P(h.x+h.w/2,h.y+.2,0),.3);
+        const P=local(parent),g=group(parent,ledge?'Yellow deep':'Blue deep'),M=ledge?yellow(w):blue(w);
+        const dir=ledge?Math.sign(ledge.conveyor)||1:1,top=ledge?h.y+.3:h.y+1,x0=P(h.x-.25,0)[0],x1=P(h.x+h.w+.25,0)[0];
+        w.box(h.w+.5,7,3,M,g,...P(h.x+h.w/2,top-3.5,0),.3);
+        const layer=(y,z,speed,spread)=>sheet(w,g,x0,x1,P(0,y)[1],M,'Deep flow',speed,{dir,z,spread});
+        layer(top,0,ledge?2.2:1.4,3.2);
+        if(ledge){layer(top-1.6,1.25,1.4,2.2);layer(top-3.4,1.2,1,2.2);}
       });
     }
     return list;
@@ -220,11 +264,13 @@ export default {
     for(const [dx,rx] of [[26,9],[58,7]]){const g=layers.place(far,section.x+dx,-6,-58);g.name='River mesa';w.ball(rx,3.6,4,'back',g,0,0,0);}
   },
 
-  // Per frame: the geyser rises while its channel is open and settles back to
-  // a bud when it is not (only in the lab does a channel ever close again);
-  // bubbles bob on the streams. Transform-only.
+  // Per frame: the streams' clock advances (their flow lives in the shader);
+  // the geyser rises while its channel is open and settles back to a bud when
+  // it is not (only in the lab does a channel ever close again); bubbles bob
+  // on the streams. Everything else is transform-only.
   animate(w,game,dt,section,ctx){
     const t=ctx.time,still=ctx.reducedMotion;
+    tickRiverClay(t,still);
     const gz=w.riverGeyser;
     if(gz&&attached(gz.spout,w.scene)){
       const on=!!game.latched['river-geyser']||game.channels['river-geyser']>0;
