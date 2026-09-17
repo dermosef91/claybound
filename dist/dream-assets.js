@@ -4,13 +4,15 @@ import {clayModel} from './clay.js';
 
 // The Soft Dream's supplied models: the Upside-Down Orchard's two clay
 // planets, which stand in for the dome islands' spheres, its two frosted
-// saucer bowls, which hang from the canopy on the orchard's ropes, and the
-// abstract sculpture whose pieces, hung top-down, ARE that canopy. Loaded once
-// per World, kept across level rebuilds, cloned per placement — the same shape
-// as the forest's and the canyon's sets. The collision never comes from here:
-// a dome is still the arc in simulation.js and a saucer is still its deck's
-// flat top; these only replace what is seen.
-export const DREAM_FILES={mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',sculpture:'dream-sculpture.glb'};
+// saucer bowls, which hang from the canopy on the orchard's ropes, the
+// abstract sculpture whose pieces, hung top-down, ARE that canopy, and the
+// Melted Parade's clay hat, stacked five high on the hat-worm's plinth. Loaded
+// once per World, kept across level rebuilds, cloned per placement — the same
+// shape as the forest's and the canyon's sets. The collision never comes from
+// here: a dome is still the arc in simulation.js, a saucer is still its deck's
+// flat top and the canopy and the hats are scenery; these only replace what
+// is seen.
+export const DREAM_FILES={mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb'};
 
 // Each planet's core orb in model space — the sphere the fruit and the leaf
 // sprouts are stuck onto — fitted over every vertex by a modal-radius
@@ -43,7 +45,7 @@ export async function loadDreamAssets(w,onProgress){
   await w.dreamLoading;onProgress?.(1);
 }
 const asset=(w,key)=>{
-  const a=w.dreamAssets?.[key];if(!a)throw new Error('Load the dream models before dressing the orchard.');
+  const a=w.dreamAssets?.[key];if(!a)throw new Error('Load the dream models before dressing the dream.');
   return a;
 };
 // A planet under `parent`, scaled so its core orb has `radius` with its centre
@@ -74,3 +76,17 @@ export function dreamSculpture(w,key,parent,width){
   root.add(model);parent.add(root);
   return root;
 }
+// The hat under `parent`, `width` across the brim, its foot — the brim's
+// underside — on the parent's origin. The parade's hat groups are moved and
+// spun about that foot, so a hat placed here tumbles exactly as the sculpted
+// one did. The upload is modelled about its own centre; the shift puts the
+// foot at the origin the way the saucer's puts its top there.
+export function dreamHat(w,parent,width){
+  const a=asset(w,'hat'),root=new THREE.Group(),model=a.scene.clone(true);
+  root.name='Dream hat';model.name='Supplied clay hat';
+  root.scale.setScalar(width/a.size.x);model.position.set(-a.center.x,-a.box.min.y,-a.center.z);
+  root.add(model);parent.add(root);
+  return root;
+}
+// How tall a hat `width` across stands, foot to crown — what a stack steps by.
+export const dreamHatHeight=(w,width)=>{const a=asset(w,'hat');return width*a.size.y/a.size.x;};

@@ -190,6 +190,13 @@ export function validateDraft(source,base){
           solution:s.solution.map((k,i)=>({x:finite(k?.x,...nums.x,`station ${s.id} stroke ${i+1} x`),lift:finite(k?.lift,-30,30,`stroke ${i+1} lift`),dx:finite(k?.dx,-30,30,`stroke ${i+1} dx`),dy:finite(k?.dy,-30,30,`stroke ${i+1} dy`),t:finite(k?.t,.05,10,`stroke ${i+1} t`)}))});
         if(s.relax===false)station.relax=false;
         if(s.shaped!==undefined)station.shaped=finite(s.shaped,.02,1,'station shaped share');
+        // A mould is a target surface authored like a clump; the station is done
+        // when the clay lies along it, and `message` is what that announces.
+        if(s.mould!==undefined){
+          if(!Array.isArray(s.mould)||s.mould.length<2||s.mould.length>24)throw new Error(`Station ${s.id} needs a mould of 2 to 24 knots.`);
+          station.mould=s.mould.map((k,i)=>[finite(k?.[0],0,1,`station ${s.id} mould knot ${i+1} across`),finite(k?.[1],-40,40,`station ${s.id} mould knot ${i+1} top`)]);
+        }
+        if(s.message!==undefined)station.message=text(s.message,'message',80);
       }
       // Where the prompt's hand cue stands, for any station that names one;
       // after the rule's own fields, so a formable mass keeps the key order

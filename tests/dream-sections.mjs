@@ -51,7 +51,8 @@ const standable=s=>!['wall','switch'].includes(s.kind);
 
 // A World with the renderer stubbed, the way tests/scene.mjs builds one. The
 // dream's only models are the orchard's planets, saucer bowls and canopy
-// sculpture, so the hero, the clay surface and those are all it needs.
+// sculpture and the parade's hat, so the hero, the clay surface and those are
+// all it needs.
 async function cpuWorld(){
   const w=Object.create(World.prototype);
   w.scene=new THREE.Scene();w.scene.background=new THREE.Color();w.scene.fog=new THREE.Fog(0,32,90);w.bump=new THREE.Texture();w.mat={};

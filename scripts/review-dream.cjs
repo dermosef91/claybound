@@ -37,14 +37,21 @@ const SPOTS={
  'garden-start':{x:1.5,y:0,ground:'start',ticks:120},
  'garden-arch':{x:26,y:2.4,ground:'garden-arch',ticks:120},
  'folding':{x:66,y:0,ground:'folding-entry',ticks:120},
- 'orchard':{x:136,y:0,ground:'orchard-entry',ticks:120},
- 'corridor':{x:211,y:0,ground:'corridor-entry',ticks:120},
- 'parade':{x:266,y:0,ground:'parade-entry',ticks:120},
- 'river':{x:341,y:0,ground:'river-entry',ticks:120},
- 'room':{x:416,y:0,ground:'room-entry',ticks:120},
- 'knot':{x:536,y:0,ground:'knot-entry',ticks:120},
- 'knot-climb':{x:571,y:5.6,ground:'knot-d',ticks:120},
- 'knot-wake':{x:597,y:0,ground:'knot-wake',ticks:120}
+ 'orchard':{x:176,y:0,ground:'orchard-entry',ticks:120},
+ 'corridor':{x:251,y:0,ground:'corridor-entry',ticks:120},
+ 'parade':{x:306,y:0,ground:'parade-entry',ticks:120},
+ // On the giraffe's head beside the hat-worm: the coil on its plinth, the
+ // camera raised to the stack of supplied hats on the coil's top (the play
+ // camera leaves the stack above the frame), and the pulled bridge resting on
+ // the plinth with the hats landed along its back.
+ 'parade-worm':{x:332,y:8.2,ground:'parade-head',ticks:120},
+ 'parade-stack':{x:332,y:8.2,ground:'parade-head',cameraX:334.3,cameraY:13.5,ticks:120},
+ 'parade-pulled':{x:332,y:8.2,ground:'parade-head',ticks:120,shaped:['parade-worm']},
+ 'river':{x:381,y:0,ground:'river-entry',ticks:120},
+ 'room':{x:461,y:0,ground:'room-entry',ticks:120},
+ 'knot':{x:581,y:0,ground:'knot-entry',ticks:120},
+ 'knot-climb':{x:617,y:4,ground:'knot-ledge-b',ticks:120},
+ 'knot-wake':{x:673,y:0,ground:'knot-wake',ticks:120}
 };
 const section=process.env.SPOTS?'':(process.env.SECTION||'');
 const raw=process.env.SPOTS||'garden-start,knot-wake';
@@ -88,9 +95,9 @@ async function serve(){
    body+='\nwindow.playtest={manual:false,get game(){return game},get world(){return world},get input(){return input},begin,home,draw(dt=0){world.render(game,dt);healthHUD.draw(game,dt);updateHUD(performance.now());},tick(n){for(let i=0;i<n;i++)game.tick(FIXED_DT,input);}};';
    await route.fulfill({contentType:'text/javascript',body});
   });
-  // The Soft Dream is a hidden chapter: begin() falls back to the last shown
-  // one unless the save carries the ß unlock, so a fresh profile is given it.
-  await page.addInitScript(()=>{try{const key='claybound-v1',s=JSON.parse(localStorage.getItem(key)||'{}');if(!s.labUnlocked){s.labUnlocked=true;localStorage.setItem(key,JSON.stringify(s));}}catch{}});
+  // The dream is offered only once ß has been typed on the chapter list; a
+  // review is that player, so the unlock is saved before the app reads it.
+  await page.addInitScript(()=>{try{const key='claybound-v1',s=JSON.parse(localStorage.getItem(key)||'{}');s.labUnlocked=true;localStorage.setItem(key,JSON.stringify(s));}catch{}});
   await page.goto(`http://127.0.0.1:${port}/`);
   await page.waitForFunction(()=>window.playtest&&document.body.classList.contains('title-scene-ready'),null,{timeout:120000});
   await page.evaluate(()=>{playtest.manual=true;});
@@ -109,6 +116,16 @@ async function serve(){
     // Deterministic machinery: the same number of fixed steps from a fresh
     // chapter start puts every mover in the same place every run.
     g.time=0;g.level.platforms.forEach(p=>{if(p.kind==='orbit'||p.kind==='ferry'||p.kind==='lift'){p.x=p.baseX??p.x;p.y=p.baseY??p.y;}});
+    // A spot may ask for stations already worked (`shaped:[ids]`): a posed
+    // piece is set to its full pose, a free mass to its authored solution, and
+    // the channel each opens is latched, so the frame shows the beat's end.
+    for(const entry of spot.shaped||[]){
+      const {id,amount=1}=typeof entry==='string'?{id:entry}:entry;
+      const station=g.level.shaping.find(s=>s.id===id);if(!station)continue;
+      if(station.rule==='form'){const {solveFormStation}=await import('./clay-rules.js');const s=g.level.platforms.find(p=>p.id===station.parts[0]);solveFormStation(station,s);station.done=true;}
+      else{station.target=station.amount=amount;station.announced=amount>=1;}
+      if(station.channel&&amount>=1){g.channels[station.channel]=100;g.latched[station.channel]=true;}
+    }
     playtest.tick(spot.ticks||120);
     Object.assign(g.player,{x:spot.x,y:spot.y,vx:0,vy:0,facing:1,groundId:spot.ground||null});
     w.syncVisible(g.level,spot.x,true);
