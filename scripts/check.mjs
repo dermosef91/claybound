@@ -51,7 +51,13 @@ if(!names.length){console.error('no checks matched');process.exit(1);}
 const sized=await Promise.all(names.map(async n=>({n,bytes:(await stat(new URL(n,TESTS))).size})));
 sized.sort((a,b)=>(slow(b.n)-slow(a.n))||b.bytes-a.bytes);
 
-const jobs=Math.max(1,Math.min(+process.env.JOBS||availableParallelism(),sized.length));
+// Two cores short of the machine rather than all of it. The run finishes when
+// its slowest worker does, and the last couple of workers land on whatever is
+// left over — slow cores on a big-little machine, or a core the editor and
+// another agent's run are already on — so a check that would take eight
+// seconds takes thirty and holds up the rest. Measured here, eight workers
+// finish a whole run in 23s where ten take 28s.
+const jobs=Math.max(1,Math.min(+process.env.JOBS||availableParallelism()-2,sized.length));
 const env={...process.env,...(full?{SEARCH:'1'}:{})};
 const results=[],started=Date.now();
 let next=0,failed=0;
