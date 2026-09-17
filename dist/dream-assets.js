@@ -3,19 +3,41 @@ import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel} from './clay.js';
 import {fixedMaterial,lid,slot} from './dream/support.js';
 
-// The Soft Dream's supplied models. One so far: the watching flower of the
-// Crooked Garden (dist/assets/dream-flower.glb, repacked by
-// scripts/prepare-dream-flower.py) — a clay flower with an eyeball for a
+// The Soft Dream's supplied models: the Crooked Garden's watching flower, the
+// Upside-Down Orchard's two clay planets, which stand in for the dome islands'
+// spheres, its two frosted saucer bowls, which hang from the canopy on the
+// orchard's ropes, and the Melted Parade's clay hat, stacked five high on the
+// hat-worm's plinth. Loaded once per World, kept across level rebuilds, cloned
+// per placement — the same shape as the forest's and the canyon's sets. The
+// collision never comes from here: a dome is still the arc in simulation.js, a
+// saucer is still its deck's flat top, the hats and the flowers are scenery;
+// these only replace what is seen.
+//
+// The flower (dist/assets/dream-flower.glb, repacked with the others by
+// scripts/prepare-dream-assets.py) is a clay flower with an eyeball for a
 // heart, supplied as a single mesh with no rig and no pupil. Rigging it is
 // done here at load: the mesh is cut in two where the petals begin, so the
 // head can turn on its own pivot, and the eyeball is found on the head's face
 // so a pupil can be set on it and slid toward the player. Every flower in the
 // chapter is a clone of those two parts under its own pivots.
-export const DREAM_FILES={flower:'dream-flower.glb'};
+export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb'};
 
-// The petals begin this far up the model; below it is stem, leaves and root.
+// Each planet's core orb in model space — the sphere the fruit and the leaf
+// sprouts are stuck onto — fitted over every vertex by a modal-radius
+// least-squares fit that rejects the decoration as outliers. dreamPlanet
+// scales a planet by r/radius and shifts it by -center, so this orb IS the
+// dome's collider and everything reaching past it is scenery the rider's spin
+// carries round. The uploads are unit-height; tests/dream-models.mjs re-fits
+// the shipped geometry against these numbers so a re-export cannot drift.
+export const PLANET_ORBS={
+  mint:{center:[.0210,.4632,-.0038],radius:.3704},
+  raspberry:{center:[.0046,.4859,-.0166],radius:.3911}
+};
+
+// The flower's petals begin this far up the model; below it is stem, leaves
+// and root.
 const HEAD_CUT=.62;
-// The eyeball as a share of the model's height, should the fit below fail.
+// The flower's eyeball as a share of the model's height, should the fit fail.
 const EYE_RADIUS=.115;
 
 // One mesh → two geometries sharing its vertex data: triangles whose centre is
@@ -74,17 +96,20 @@ function findEye(geometry,box){
 
 export function prepareDreamAsset(w,key,gltf){
   gltf.scene.updateMatrixWorld(true);
+  const box=new THREE.Box3().setFromObject(gltf.scene,true),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
+  if(!(size.x>0&&size.y>0&&size.z>0)||!DREAM_FILES[key])throw new Error('Invalid dream model: '+key);
+  // Every model keeps the colours it was painted in and takes only the clay
+  // surface relief.
+  clayMaterials(gltf.scene);clayModel(w,gltf.scene);retainModel(w,gltf.scene);
+  w.dreamAssets??={};const record=w.dreamAssets[key]={scene:gltf.scene,box,size,center};
+  if(key!=='flower')return;
+  // The flower's rig: its one mesh cut at the stem's top, and its eyeball found.
   let mesh=null;gltf.scene.traverse(o=>{if(o.isMesh&&!mesh)mesh=o;});
   if(!mesh)throw new Error('Invalid dream model: '+key);
-  const box=new THREE.Box3().setFromObject(gltf.scene,true),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
-  if(!(size.x>0&&size.y>0&&size.z>0))throw new Error('Invalid dream model: '+key);
-  // The flower keeps the colours it was painted in (no pull toward orange) and
-  // takes only the clay surface relief.
-  clayMaterials(gltf.scene,{orangeSource:0});clayModel(w,gltf.scene);retainModel(w,gltf.scene);
   const material=Array.isArray(mesh.material)?mesh.material[0]:mesh.material;
   const cutY=box.min.y+size.y*HEAD_CUT,{head,stem}=splitFlower(mesh.geometry,cutY),eye=findEye(mesh.geometry,box);
   w.assetGeometry.add(head);w.assetGeometry.add(stem);
-  w.dreamAssets??={};w.dreamAssets[key]={material,head,stem,box,size,center,cutY,eye};
+  Object.assign(record,{material,head,stem,cutY,eye});
 }
 export async function loadDreamAssets(w,onProgress){
   if(Object.keys(DREAM_FILES).every(key=>w.dreamAssets?.[key])){onProgress?.(1);return;}
@@ -97,6 +122,42 @@ export async function loadDreamAssets(w,onProgress){
   }
   await w.dreamLoading;onProgress?.(1);
 }
+const asset=(w,key)=>{
+  const a=w.dreamAssets?.[key];if(!a)throw new Error('Load the dream models before dressing the dream.');
+  return a;
+};
+// A planet under `parent`, scaled so its core orb has `radius` with its centre
+// on the parent's origin — the dome view's sphere group, which the spin turns.
+export function dreamPlanet(w,key,parent,radius){
+  const a=asset(w,key),orb=PLANET_ORBS[key],root=new THREE.Group(),model=a.scene.clone(true);
+  root.name='Dream planet '+key;model.name='Supplied clay planet';
+  root.scale.setScalar(radius/orb.radius);model.position.set(-orb.center[0],-orb.center[1],-orb.center[2]);
+  root.add(model);parent.add(root);
+  return root;
+}
+// A saucer bowl under `parent`, `width` across, its flat top on the parent's
+// origin plane and its foot hanging below — the walk plane of the deck it dresses.
+export function dreamSaucer(w,key,parent,width){
+  const a=asset(w,key),root=new THREE.Group(),model=a.scene.clone(true);
+  root.name='Dream saucer '+key;model.name='Supplied clay saucer';
+  root.scale.setScalar(width/a.size.x);model.position.set(-a.center.x,-a.box.max.y,-a.center.z);
+  root.add(model);parent.add(root);
+  return root;
+}
+// The hat under `parent`, `width` across the brim, its foot — the brim's
+// underside — on the parent's origin. The parade's hat groups are moved and
+// spun about that foot, so a hat placed here tumbles exactly as the sculpted
+// one did. The upload is modelled about its own centre; the shift puts the
+// foot at the origin the way the saucer's puts its top there.
+export function dreamHat(w,parent,width){
+  const a=asset(w,'hat'),root=new THREE.Group(),model=a.scene.clone(true);
+  root.name='Dream hat';model.name='Supplied clay hat';
+  root.scale.setScalar(width/a.size.x);model.position.set(-a.center.x,-a.box.min.y,-a.center.z);
+  root.add(model);parent.add(root);
+  return root;
+}
+// How tall a hat `width` across stands, foot to crown — what a stack steps by.
+export const dreamHatHeight=(w,width)=>{const a=asset(w,'hat');return width*a.size.y/a.size.x;};
 
 // Pupil and lid are the same two colours on every flower: near-black clay
 // polished as far as the relief shader allows, and the petals' pink.
@@ -106,12 +167,12 @@ const petalMaterial=w=>fixedMaterial(w,'dreamPetal',0xe8598a,{depth:.06});
 // A watching flower, `height` tall, standing with its root at the parent's
 // origin. Returns the parts the garden animates: `root` (turn it about z to
 // lean the whole flower), `head` (a pivot at the stem's top), `gaze` (a group
-// at the eyeball's centre holding the pupil — set its position from `eye` to
-// look somewhere) and `lid` (rotation.x −π/2 open … +π/2 shut).
+// at the eyeball's centre holding the pupil — turn it to look somewhere) and
+// `lid` (rotation.x −π/2 open … +π/2 shut).
 export function dreamFlower(w,parent,{height=2}={}){
   const a=w.dreamAssets?.flower;
   const root=new THREE.Group();root.name='Watching flower';parent.add(root);
-  if(!a)return standInFlower(w,root,height);
+  if(!a?.head)return standInFlower(w,root,height);
   const s=height/a.size.y;root.scale.setScalar(s);
   const offset=new THREE.Vector3(-a.center.x,-a.box.min.y,-a.center.z),cut=a.cutY+offset.y;
   const stem=new THREE.Mesh(a.stem,a.material);stem.position.copy(offset);stem.castShadow=stem.receiveShadow=true;stem.name='Flower stem';root.add(stem);

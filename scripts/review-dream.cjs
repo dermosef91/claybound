@@ -41,14 +41,21 @@ const SPOTS={
  'garden-bed':{x:70,y:3,ground:'garden-dock',ticks:120},
  'garden-exit':{x:92,y:0,ground:'garden-exit',ticks:120},
  'folding':{x:101,y:0,ground:'folding-entry',ticks:120},
- 'orchard':{x:171,y:0,ground:'orchard-entry',ticks:120},
- 'corridor':{x:246,y:0,ground:'corridor-entry',ticks:120},
- 'parade':{x:301,y:0,ground:'parade-entry',ticks:120},
- 'river':{x:376,y:0,ground:'river-entry',ticks:120},
- 'room':{x:451,y:0,ground:'room-entry',ticks:120},
- 'knot':{x:571,y:0,ground:'knot-entry',ticks:120},
- 'knot-climb':{x:606,y:5.6,ground:'knot-d',ticks:120},
- 'knot-wake':{x:632,y:0,ground:'knot-wake',ticks:120}
+ 'orchard':{x:211,y:0,ground:'orchard-entry',ticks:120},
+ 'corridor':{x:286,y:0,ground:'corridor-entry',ticks:120},
+ 'parade':{x:341,y:0,ground:'parade-entry',ticks:120},
+ // On the giraffe's head beside the hat-worm: the coil on its plinth, the
+ // camera raised to the stack of supplied hats on the coil's top (the play
+ // camera leaves the stack above the frame), and the pulled bridge resting on
+ // the plinth with the hats landed along its back.
+ 'parade-worm':{x:367,y:8.2,ground:'parade-head',ticks:120},
+ 'parade-stack':{x:367,y:8.2,ground:'parade-head',cameraX:369.3,cameraY:13.5,ticks:120},
+ 'parade-pulled':{x:367,y:8.2,ground:'parade-head',ticks:120,shaped:['parade-worm']},
+ 'river':{x:416,y:0,ground:'river-entry',ticks:120},
+ 'room':{x:496,y:0,ground:'room-entry',ticks:120},
+ 'knot':{x:616,y:0,ground:'knot-entry',ticks:120},
+ 'knot-climb':{x:652,y:4,ground:'knot-ledge-b',ticks:120},
+ 'knot-wake':{x:708,y:0,ground:'knot-wake',ticks:120}
 };
 const section=process.env.SPOTS?'':(process.env.SECTION||'');
 const raw=process.env.SPOTS||'garden-start,knot-wake';
@@ -92,6 +99,9 @@ async function serve(){
    body+='\nwindow.playtest={manual:false,get game(){return game},get world(){return world},get input(){return input},get saved(){return saved},begin,home,draw(dt=0){world.render(game,dt);healthHUD.draw(game,dt);updateHUD(performance.now());},tick(n){for(let i=0;i<n;i++)game.tick(FIXED_DT,input);}};';
    await route.fulfill({contentType:'text/javascript',body});
   });
+  // The dream is offered only once ß has been typed on the chapter list; a
+  // review is that player, so the unlock is saved before the app reads it.
+  await page.addInitScript(()=>{try{const key='claybound-v1',s=JSON.parse(localStorage.getItem(key)||'{}');s.labUnlocked=true;localStorage.setItem(key,JSON.stringify(s));}catch{}});
   await page.goto(`http://127.0.0.1:${port}/`);
   await page.waitForFunction(()=>window.playtest&&document.body.classList.contains('title-scene-ready'),null,{timeout:120000});
   // The dream is kept behind ß while it is built; begin() would otherwise
@@ -112,6 +122,16 @@ async function serve(){
     // Deterministic machinery: the same number of fixed steps from a fresh
     // chapter start puts every mover in the same place every run.
     g.time=0;g.level.platforms.forEach(p=>{if(p.kind==='orbit'||p.kind==='ferry'||p.kind==='lift'){p.x=p.baseX??p.x;p.y=p.baseY??p.y;}});
+    // A spot may ask for stations already worked (`shaped:[ids]`): a posed
+    // piece is set to its full pose, a free mass to its authored solution, and
+    // the channel each opens is latched, so the frame shows the beat's end.
+    for(const entry of spot.shaped||[]){
+      const {id,amount=1}=typeof entry==='string'?{id:entry}:entry;
+      const station=g.level.shaping.find(s=>s.id===id);if(!station)continue;
+      if(station.rule==='form'){const {solveFormStation}=await import('./clay-rules.js');const s=g.level.platforms.find(p=>p.id===station.parts[0]);solveFormStation(station,s);station.done=true;}
+      else{station.target=station.amount=amount;station.announced=amount>=1;}
+      if(station.channel&&amount>=1){g.channels[station.channel]=100;g.latched[station.channel]=true;}
+    }
     playtest.tick(spot.ticks||120);
     Object.assign(g.player,{x:spot.x,y:spot.y,vx:0,vy:0,facing:1,groundId:spot.ground||null});
     w.syncVisible(g.level,spot.x,true);

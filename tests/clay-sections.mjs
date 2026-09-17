@@ -126,9 +126,15 @@ const SECTIONS=[
   // The tower is the one piece meant to be stood on while it is still tall.
   {level:2,station:'kiln-tower',bypass:{from:'kiln-ledge',to:'kiln-tunnel',mode:'jump'},rideable:true},
   {level:2,station:'kiln-plug',bypass:{from:'kiln-tunnel',to:'kiln-run',mode:'jump'}},
-  // The Soft Dream: one purple beat per section, and three strands in the knot.
+  // The Soft Dream: one purple beat per section — three in the Folding Path,
+  // whose two free masses are walked onto flat — and three strands in the knot.
+  // The garden's is a free mass whose bulb bars the bed until it is worked.
   {level:4,station:'garden-bed',bypass:{from:'garden-dock',to:'garden-exit',mode:'jump'},form:true},
   {level:4,station:'folding-tongue',bypass:{from:'folding-entry',to:'folding-wall-bridge',mode:'jump'}},
+  // The slab is a floor under a hanging sheet until a trench is cast through it;
+  // the wall's bed is bare nails until the wall is laid down over them.
+  {level:4,station:'folding-cast',bypass:{from:'folding-land',to:'folding-cast-bridge',mode:'jump'},rideable:true,form:true},
+  {level:4,station:'folding-wall',bypass:{from:'folding-far',to:'folding-wall-land',mode:'jump'},rideable:true,form:true},
   // The blob is walked onto flat before it is pulled up into a stair.
   {level:4,station:'orchard-blob',bypass:{from:'orchard-mid',to:'orchard-under',mode:'jump'},rideable:true,form:true},
   {level:4,station:'corridor-plug',bypass:{from:'corridor-floor-1',to:'corridor-floor-2',mode:'jump'}},
@@ -256,10 +262,17 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
     return `stuck at ${p.x.toFixed(2)}, ${p.y.toFixed(2)}`;
   };
   const landing=g=>hopTo(g,g.level.platforms.find(p=>p.id==='pocket-landing').checkpoint);
+  // The drills below are points on the mass, written as offsets from its own
+  // left edge so the pocket can be moved as a block without rewriting them.
+  const MASS=LEVELS[0].platforms.find(q=>q.id==='pocket-clay').x;
+  const SAND=LEVELS[0].platforms.find(q=>q.id==='pocket-floor').y;
+  const DOCK=LEVELS[0].platforms.find(q=>q.id==='pocket-dock').x;
+  const END=(q=>q.x+q.w)(LEVELS[0].platforms.find(q=>q.id==='pocket-landing'));
+
 
   // Unworked, the pocket is a wall: twelve seconds of walking and hopping from
   // the dock never leave it.
-  {const {g,p}=boot();const r=landing(g);assert(r.startsWith('stuck')&&p.x<133.3,`the clump keeps the dock shut (${r})`);assert.equal(g.deaths,0);}
+  {const {g,p}=boot();const r=landing(g);assert(r.startsWith('stuck')&&p.x<MASS,`the clump keeps the dock shut (${r})`);assert.equal(g.deaths,0);}
   // 1. The authored solution: lean the spire into a bridge, slump the lump
   //    into a ramp, and the pocket is a walk with a hop at each end.
   {const {g,station,mass}=boot();solveFormStation(station,massOf(g,station),{dt});
@@ -268,16 +281,16 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
   // 2. Squash and slump: press the spire straight down from the air instead of
   //    leaning it, and it spreads into a mound with a bridge behind it.
   {const {g,station,mass}=boot();
-   for(let k=0;k<3;k++)stroke(g,mass,{x:134.3,lift:1,dx:0,dy:-3,t:1});
-   stroke(g,mass,{x:147,lift:0,dx:-5.5,dy:-2.6,t:1.8});
+   for(let k=0;k<3;k++)stroke(g,mass,{x:MASS+1,lift:1,dx:0,dy:-3,t:1});
+   stroke(g,mass,{x:MASS+13.7,lift:0,dx:-5.5,dy:-2.6,t:1.8});
    assert.equal(station.amount,1,'squashing and slumping reads as shaped');
    const r=landing(g);assert.equal(r,'landing',`a squashed spire and a slumped lump cross the pocket (${r})`);assert.equal(g.deaths,0);}
   // 3. Lean, pillar, launch: lean the spire, walk to the lump's foot, pull the
   //    clay up under your own feet (it carries you), then jump and stomp back
   //    into it — the crater throws you over the lump onto the landing.
   {const {g,station,mass,p}=boot();
-   stroke(g,mass,{x:134.5,lift:0,dx:6.5,dy:-3,t:1.7});
-   assert.equal(hopTo(g,142.6,6),'there','the bridge carries a walker to the lump\'s foot');
+   stroke(g,mass,{x:MASS+1.2,lift:0,dx:6.5,dy:-3,t:1.7});
+   assert.equal(hopTo(g,MASS+9.3,6),'there','the bridge carries a walker to the lump\'s foot');
    assert.equal(p.groundId,mass.id);
    const before=p.y;stroke(g,mass,{x:p.x,lift:0,dx:0,dy:2.2,t:1});
    assert(p.y>before+1.5&&p.groundId===mass.id,`a pull underfoot carries the player up (${(p.y-before).toFixed(2)})`);
@@ -285,13 +298,13 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
    g.tick(dt,{stompPressed:true});
    let sprung=false,apex=p.y,reached=false;g.onEvent=e=>{if(e.type==='spring')sprung=true;};
    for(let i=0;i<600;i++){g.tick(dt,{moveAxis:sprung?1:0,jumpHeld:true});apex=Math.max(apex,p.y);if(p.groundId==='pocket-landing'){reached=true;break;}if(g.deaths)break;}
-   assert(sprung,'the stomp is thrown back');assert(apex>16.5,`well over the lump (${apex.toFixed(2)})`);
+   assert(sprung,'the stomp is thrown back');assert(apex>mass.y+5.75,`well over the lump (${apex.toFixed(2)})`);
    assert(reached&&g.deaths===0,'and the flight steers onto the landing');
    assert.equal(station.amount,1);}
   // 4. Lean, then keyboard steps: lean the spire, and from the bridge hold E a
   //    stride back from the lump's face so a step rises ahead, hop up, repeat.
   {const {g,station,mass,p}=boot();
-   stroke(g,mass,{x:134.5,lift:0,dx:6.5,dy:-3,t:1.7});
+   stroke(g,mass,{x:MASS+1.2,lift:0,dx:6.5,dy:-3,t:1.7});
    let r='',holds=0;
    for(let round=0;round<8&&r!=='landing';round++){
      r=hopTo(g,154,3);if(r==='landing')break;
@@ -326,7 +339,7 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
   // crossing, so a save at the dock with the spire worked resumes as the clump
   // and the pocket is worked again.
   {const {g,station,mass}=boot();
-   stroke(g,mass,{x:134.5,lift:0,dx:6.5,dy:-3,t:1.7});
+   stroke(g,mass,{x:MASS+1.2,lift:0,dx:6.5,dy:-3,t:1.7});
    const save=g.snapshot();save.shaped=[...new Set([...save.shaped,station.id])];
    assert.equal(save.checkpointId,'pocket-dock');
    const back=new Game();back.start(0);assert(back.restore(save),'the save restores');
@@ -348,7 +361,7 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
   // on it, regrowing the towers would set the player on top of them.
   {const {g,station,mass,p}=boot();solveFormStation(station,massOf(g,station),{dt});
    const solved=Float64Array.from(mass.form.h);
-   Object.assign(p,{x:140,y:surfaceAt(mass,140)+1.5,vx:0,vy:0,groundId:null,coyote:0});const y0=p.y;
+   Object.assign(p,{x:MASS+6.7,y:surfaceAt(mass,MASS+6.7)+1.5,vx:0,vy:0,groundId:null,coyote:0});const y0=p.y;
    g.tick(dt,{shapeReset:true});
    assert.deepEqual(Array.from(mass.form.h),Array.from(solved),'R in the air over the clay changes nothing');
    assert(p.y<y0,'and the player keeps falling rather than riding a regrown tower');
@@ -356,15 +369,16 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
    // Standing dents the clay a little; what R must not do is put the clump back.
    assert(!Array.from(mass.form.h).every((h,i)=>Math.abs(h-mass.form.rest[i])<1e-9),'nor does R standing on it put the clump back');
    assert(Math.max(...Array.from(mass.form.h).map((h,i)=>Math.abs(h-solved[i])))<.5,'the solved shape stands, dented only by the boots');
-   Object.assign(p,{x:128,y:10.75,vx:0,vy:0,groundId:'pocket-dock'});g.tick(dt,{shapeReset:true});
+   const dock=LEVELS[0].platforms.find(q=>q.id==='pocket-dock');
+   Object.assign(p,{x:dock.x+4,y:dock.y,vx:0,vy:0,groundId:'pocket-dock'});g.tick(dt,{shapeReset:true});
    assert(Array.from(mass.form.h).every((h,i)=>h===mass.form.rest[i]),'from the dock, R puts the clump back');}
   // The beads: every one in the pocket can be picked up on the way across the
   // solved clay, by walking or by a standing hop under it.
   {const {g,station,mass,p}=boot();solveFormStation(station,massOf(g,station),{dt});
-   Object.assign(p,{x:124.5,vx:0});g.tick(dt,{});
-   const pocket=g.level.coins.filter(c=>c.x>=124&&c.x<=158);assert(pocket.length>=7);
+   Object.assign(p,{x:DOCK+.5,vx:0});g.tick(dt,{});
+   const pocket=g.level.coins.filter(c=>c.x>=DOCK&&c.x<=END);assert(pocket.length>=7);
    let stuck=0,last=p.x;
-   for(let i=0;i<20/dt&&p.x<157;i++){
+   for(let i=0;i<20/dt&&p.x<END-1;i++){
      stuck=Math.abs(p.x-last)<.004?stuck+1:0;last=p.x;
      const bead=pocket.find(c=>!c.taken&&c.x-p.x>-.3&&c.x-p.x<1.2&&c.y-(p.y+.65)>=.75);
      let axis=1,jump=false;
@@ -379,9 +393,9 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
   // stands. R softens it only from off the clay — never under the boots, which
   // would set them inside a regrown tower — and then the strokes work anew.
   {const {g,station,mass,p}=boot();solveFormStation(station,massOf(g,station),{dt});
-   const solved=Float64Array.from(mass.form.h);
-   assert.equal(hopTo(g,140,6),'there');g.damage(true);for(let i=0;i<70;i++)g.tick(dt,{});
-   assert.equal(g.deaths,1);assert.equal(p.groundId,'pocket-dock');assert(Math.abs(p.x-129)<.01,'respawned at the dock flag');
+   const solved=Float64Array.from(mass.form.h),dock=LEVELS[0].platforms.find(q=>q.id==='pocket-dock');
+   assert.equal(hopTo(g,MASS+6.7,6),'there');g.damage(true);for(let i=0;i<70;i++)g.tick(dt,{});
+   assert.equal(g.deaths,1);assert.equal(p.groundId,'pocket-dock');assert(Math.abs(p.x-LEVELS[0].platforms.find(q=>q.id==='pocket-dock').checkpoint)<.01,'respawned at the dock flag');
    for(let i=0;i<10/dt;i++)g.tick(dt,{});
    let worst=0;for(let i=0;i<mass.form.n;i++)worst=Math.max(worst,Math.abs(mass.form.h[i]-solved[i]));
    assert(worst<=FORM.sag+1e-9,`ten idle seconds later the bridge is as the boots left it, no slump (${worst.toFixed(3)})`);
@@ -389,9 +403,9 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
    // R under the boots is refused; R from the dock puts the clump back. (A
    // death used to leave the respawn timer a hair below zero, which read as
    // "still respawning" and left every station deaf to hands for good.)
-   Object.assign(p,{x:146,y:surfaceAt(mass,146),vx:0,vy:0,groundId:mass.id});g.tick(dt,{});assert(standingOn(station,p)>=0,'back on the ramp');
+   Object.assign(p,{x:MASS+12.7,y:surfaceAt(mass,MASS+12.7),vx:0,vy:0,groundId:mass.id});g.tick(dt,{});assert(standingOn(station,p)>=0,'back on the ramp');
    g.tick(dt,{shapeReset:true});assert.equal(station.amount,1,'R while standing on the clay is refused');
-   Object.assign(p,{x:129,y:10.75,vx:0,vy:0,groundId:'pocket-dock'});g.tick(dt,{});
+   Object.assign(p,{x:dock.x+5,y:dock.y,vx:0,vy:0,groundId:'pocket-dock'});g.tick(dt,{});
    g.tick(dt,{shapeReset:true});assert.equal(station.amount,0,'R from the dock softens the pocket back');
    assert(mass.form.h.every((h,i)=>h===mass.form.rest[i]),'to its clump');
    for(const input of formSolutionInputs(g,station,{dt}))g.tick(dt,input);
@@ -400,10 +414,10 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
   // end and the footing there shows; a walker who comes back onto it dies and
   // respawns at the dock with the clay as they left it.
   {const {g,station,mass,p}=boot();
-   for(let k=0;k<8;k++)stroke(g,mass,{x:133.6,lift:1,dx:0,dy:-6,t:1});
-   assert(mass.form.h[0]<.05&&surfaceAt(mass,133.8)<8.8,`the dock end is scraped to the sand (${surfaceAt(mass,133.8).toFixed(2)})`);
+   for(let k=0;k<8;k++)stroke(g,mass,{x:MASS+.3,lift:1,dx:0,dy:-6,t:1});
+   assert(mass.form.h[0]<.05&&surfaceAt(mass,MASS+.5)<SAND+.2,`the dock end is scraped to the sand (${surfaceAt(mass,MASS+.5).toFixed(2)})`);
    for(let i=0;i<1/dt;i++)g.tick(dt,{moveAxis:1});
-   assert(p.groundId===mass.id&&p.x>134.5&&!g.deaths,`walking off the dock carries the player past the bare strip onto clay (${p.x.toFixed(2)}, ${p.groundId})`);
+   assert(p.groundId===mass.id&&p.x>MASS+1.2&&!g.deaths,`walking off the dock carries the player past the bare strip onto clay (${p.x.toFixed(2)}, ${p.groundId})`);
    const kept=Float64Array.from(mass.form.h);
    for(let i=0;i<3/dt&&!g.deaths;i++)g.tick(dt,{moveAxis:-1});
    assert.equal(g.deaths,1,'walking back onto the bare sand kills');

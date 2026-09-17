@@ -29,9 +29,12 @@ for(const source of LEVELS[0].enemies){
   assert.deepEqual([...modes].sort(),['drifting','landing','lifting','rolling']);
 }
 const calm=instantiateLevel(0).enemies[3],gust=structuredClone(calm);
+// The draught is put around whichever patrol this is, so the check follows the
+// drifters wherever a chapter authors them.
+const draught={x:calm.min-10,w:calm.max-calm.min+20,y:calm.y-15,h:30,fx:12,fy:19,active:true};
 for(let i=1;i<240;i++){
   moveEnemy(calm,dt,i*dt,{winds:[]});
-  moveEnemy(gust,dt,i*dt,{winds:[{x:40,w:40,y:0,h:30,fx:12,fy:19,active:true}]});
+  moveEnemy(gust,dt,i*dt,{winds:[draught]});
 }
 assert(gust.windLift>.5&&gust.windLift<=.65);assert(gust.x>=gust.min&&gust.x<=gust.max);assert(Math.abs(gust.y-calm.y)>.5);
 console.log('PASS all four drifters alternate rolling and drifting, stay on their decks, rotate by travel, transition smoothly and respond to wind');

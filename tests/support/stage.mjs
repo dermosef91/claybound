@@ -24,10 +24,10 @@ import {createCaveLights} from '../../dist/cave-lighting.js';
 import {attachCanyon} from '../load-canyon.mjs';
 import {attachWindmills} from '../load-windmills.mjs';
 import {attachForest} from '../load-forest.mjs';
+import {attachDream} from '../load-dream.mjs';
 import {attachGrotto} from '../load-grotto.mjs';
 import {attachDrifter} from '../load-drifter.mjs';
 import {attachClay} from '../load-clay.mjs';
-import {attachDream} from '../load-dream.mjs';
 import {attachSpitter} from '../load-spitter.mjs';
 
 const asset=name=>new URL('../../dist/assets/'+name,import.meta.url);
@@ -59,6 +59,8 @@ export async function sceneStage(){
   await attachDrifter(w);
   prepareSporeAsset(w,await readGLB(asset('spore-puff.glb')));
   await attachClay(w);
+  // After the clay: the dream's flower stands by the spawn and its paint takes
+  // the relief the scene checks expect.
   await attachDream(w);
   for(const pose of ['idle','cast','friendly'])prepareMotherPuff(w,pose,await readGLB(asset(`mother-puff-${pose}.glb`)));
   await attachSpitter(w);

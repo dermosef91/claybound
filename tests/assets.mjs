@@ -55,7 +55,7 @@ console.log('PASS supplied cottage geometry, all three maps, base placement, uni
 // one mesh is cut into a head and a stem at load with every triangle kept,
 // the eyeball is found where the sculpt puts it, and a built flower stands
 // its requested height on its root with a pupil in front of the eyeball.
-const flowerGLB=await readGLB(url('dream-flower.glb')),flowerInfo=JSON.parse(await readFile(url('dream-flower.json')));
+const flowerGLB=await readGLB(url('dream-flower.glb')),flowerInfo=JSON.parse(await readFile(url('dream-assets.json')))['dream-flower.glb'];
 assert.equal(createHash('sha256').update(await readFile(url('dream-flower.glb'))).digest('hex'),flowerInfo.shippedSha256);
 let flowerMesh=null;flowerGLB.scene.traverse(o=>{if(o.isMesh&&!flowerMesh)flowerMesh=o;});
 const flowerTriangles=flowerMesh.geometry.index.count/3;
