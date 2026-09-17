@@ -81,10 +81,12 @@ export default {
      spawn:{x:27,y:0,groundId:'corridor-floor-1'},cueX:33.5,
      hint:'The throat never opens wide enough. Spread the violet plug — drag it outward, or hold E / KNEAD — until the floor sinks into a pocket you can crawl through.'}
   ],
-  // Interior: magenta and raspberry stripes, pink haze, mint eyes.
-  palettes:[{x:0,main:'#d9469a',secondary:'#8f2a5e',backdrop:'#f2bede',accent:'#8fe8cf',sky:'#efb2d6',fog:'#f6cfe6'}],
-  // The tunnel closes in a little (absolute view heights), then opens again
-  // toward the parade.
-  camera:[{x:0,viewH:10.2},{x:53,viewH:11.6}],
+  // Interior, after the painting: vermilion bodies (main), crimson-magenta
+  // frosting (secondary), plum between (accent), cream eyes, and a pink haze
+  // (sky/fog) with dim mauve columns (backdrop) standing in it.
+  palettes:[{x:0,main:'#dc4b30',secondary:'#be2f64',backdrop:'#986886',accent:'#6e2752',sky:'#e9a6aa',fog:'#e4a2ab'}],
+  // The ordinary framing: the striped ceiling and its eyes live in the top of
+  // the frame, so the corridor does not zoom in.
+  camera:[{x:0}],
   guides:[]
 };

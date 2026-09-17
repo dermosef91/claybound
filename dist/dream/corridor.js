@@ -1,44 +1,153 @@
 import * as THREE from '../lib/three.module.js';
-import {deck,slot,rand} from './support.js';
-// Section 4 — The Breathing Corridor. One idea: the tunnel breathes. Everything
-// here is coiled clay in four tones of one hue — magenta bodies, raspberry
-// tops, dark magenta between — with the pink haze of the palette behind it and
-// mint kept for the eyes alone. The corridor is a coil pot laid on its side:
+import {deck,sectionDecks,slot,rand} from './support.js';
+import {clayMaterial,clayShape,sculptClay} from '../clay.js';
+// Section 4 — The Breathing Corridor, after its painting: a tunnel built
+// entirely of thick WAVY stripes of soft clay — vermilion, red, magenta,
+// plum — stacked like layered Play-Doh with rounded lips. A heavy striped
+// ceiling runs the length of the corridor with big cream eyes set into its
+// stripes and soft drips hanging from it; the decks are striped slabs whose
+// layers undulate along the face; the pits are filled with soft pink and red
+// cones; behind everything a pink haze with dim mauve columns and arches.
 //
-//   · the decks are striped slabs (a magenta cap over wavy raspberry coils)
-//   · the breathing pillars, the throat and the teeth are stacks of rounded
-//     stripes that stretch with the breath — the whole stack is the `body`
-//     the breathe pose rescales, so the picture never disagrees with the wall
-//   · the ceiling and the trench floor are long wavy coils that vault over the
-//     pillars and teeth and press down where you walk; the throat hangs from
-//     the ceiling's lowest point
-//   · soft cones standing in the trenches and a few hanging from the vault;
-//     the tunnel closes down at both seams, where the ceiling is lowest
-//   · the molars are cream teeth on raspberry roots that stretch down out of
-//     the gum as the press bites (the shared cavern press view is hidden here)
-//   · six tiny eyes set in the pillars, the throat, the floor and a tooth,
-//     closed until you come near; then they open, watch, blink once and are
-//     gone again — never a big permanent eye
+//   · every mass is made of `ribbon`s: a rounded-lip stripe swept along x
+//     between two wavy curves, so stacked layers butt without a gap and the
+//     boundaries between them undulate the way the painting's strata do
+//   · the breathing pillars, the throat and the teeth are stacks of stripes
+//     that stretch with the breath (the stack is the breathe pose's `body`)
+//   · the eyes are big and permanent: a cream ball with a dark pupil in a
+//     socket of two stripe lobes; the pupil slides toward the player, the
+//     lobes close in a slow blink every 4–8 s — two over the pillar stretch,
+//     one over the entry, one in the throat, two by the teeth and the exit
+//   · the hazard hook draws cone beds in place of the engine's cream spikes;
+//     the kill line is untouched
+//   · the molars (presses) are fat vermilion drips that bite; the shared
+//     cavern press view is hidden in this section
 //
 // Coordinates on this side are WORLD: decks are looked up by id, and the
-// section's ceiling and floor profiles are drawn between them.
+// ceiling profile is drawn between them.
 
 const group=(parent,name,x=0,y=0,z=0)=>{const g=new THREE.Group();g.name=name;g.position.set(x,y,z);parent.add(g);return g;};
-const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-// The four tones every stripe in the corridor is drawn in: magenta (terrain),
-// raspberry (top), dark magenta (terrain2) and back to raspberry.
-const STRIPES=['terrain','top','terrain2','top'];
-const mat=(w,name)=>slot(w,name,'orange');
 
-// --- the animated registry -----------------------------------------------------
+// --- colours -------------------------------------------------------------------
+// The six palette slots give vermilion (terrain), magenta (top), plum (accent)
+// and the haze; the painting's deep red and the pink of its cones are the two
+// colours they cannot reach, so those two are fixed materials made once per
+// world and hooked into the clay relief.
+const RED=0xb42d33,PINK=0xdc7a82;
+function fixed(w,name,hex){
+  if(!w.mat)return 'orange';
+  if(!w.mat[name]){const m=new THREE.MeshStandardMaterial({color:hex,roughness:.95,metalness:0});m.name=name;clayMaterial(w,m,.075);w.mat[name]=m;}
+  return name;
+}
+const red=w=>fixed(w,'corridorRed',RED),pink=w=>fixed(w,'corridorPink',PINK);
+const mat=(w,name)=>slot(w,name,'orange');
+// The stripe cycle, top down: vermilion, red, magenta, plum.
+const cycle=w=>[mat(w,'terrain'),red(w),mat(w,'top'),mat(w,'accent')];
+
+// --- the animated registry ---------------------------------------------------
 // Eyes and molars are built inside streamed groups and moved per frame by
 // animate(); each entry is dropped once its group has left the scene.
 const registry=w=>w.corridorAnim??={eyes:[],molars:[]};
 const attached=(o,scene)=>{for(let p=o;p;p=p.parent)if(p===scene)return true;return false;};
 const worldPosition=new THREE.Vector3();
 
-// --- profiles -------------------------------------------------------------------
+// --- ribbons -------------------------------------------------------------------
+// The cross-section of a stripe about its centre: a rounded lip at the front
+// (top and bottom corners), a slight bulge across the face, square at the
+// back — so two stripes stacked never open a gap you can see through. Points
+// go round as [dy,dz]; the count never changes, so rings can be joined.
+function ring(h,D,lip){
+  const r=Math.min(lip,h*.46,D*.4),pts=[],bulge=Math.min(.08,h*.1);
+  pts.push([-h/2,-D/2],[-h/2,D/2-r]);
+  for(let i=1;i<=6;i++){const a=-Math.PI/2+Math.PI/2*i/6;pts.push([-h/2+r+Math.sin(a)*r,D/2-r+Math.cos(a)*r]);}
+  for(let i=1;i<=3;i++){const t=i/4;pts.push([-h/2+r+(h-2*r)*t,D/2+bulge*Math.sin(t*Math.PI)]);}
+  for(let i=0;i<=6;i++){const a=Math.PI/2*i/6;pts.push([h/2-r+Math.sin(a)*r,D/2-r+Math.cos(a)*r]);}
+  pts.push([h/2,-D/2]);
+  return pts;
+}
+// A stripe of clay swept along x from x0 to x1 between two curves top(x) and
+// bottom(x) (world or local, whatever the parent's frame is), `depth` deep
+// about z, its ends rounded off over `taper`. Built once, sculpted by
+// w.mesh; one draw.
+function ribbon(w,parent,{x0,x1,top,bottom,depth=3,z=0,lip=.3,step=.5,material,name='Clay stripe',zAt=null,taper=.4}){
+  const span=x1-x0,inner=Math.max(1,Math.round((span-2*taper)/step)),xs=[x0,x0+taper*.22,x0+taper*.58];
+  for(let i=0;i<=inner;i++)xs.push(x0+taper+(span-2*taper)*i/inner);
+  xs.push(x1-taper*.58,x1-taper*.22,x1);
+  const pos=[],idx=[],rings=xs.length;let M=0;
+  for(let i=0;i<rings;i++){
+    const x=xs[i],t=top(x),b=bottom(x),yc=(t+b)/2,h=Math.max(.06,t-b);
+    const e=Math.min(x-x0,x1-x)/taper,scale=e>=1?1:Math.max(.07,Math.sqrt(1-(1-e)*(1-e)));
+    const pts=ring(h*scale,depth*scale,lip);M=pts.length;
+    const zc=z+(zAt?zAt(x):0);
+    for(const [dy,dz] of pts)pos.push(x,yc+dy,zc+dz);
+  }
+  for(let i=0;i<rings-1;i++)for(let j=0;j<M;j++){
+    const a=i*M+j,b=i*M+(j+1)%M,c=(i+1)*M+j,d=(i+1)*M+(j+1)%M;
+    idx.push(a,c,b,b,c,d);
+  }
+  // End caps: a fan to a centre point at each end.
+  const c0=rings*M,c1=c0+1;
+  pos.push(xs[0],(top(xs[0])+bottom(xs[0]))/2,z+(zAt?zAt(xs[0]):0));
+  pos.push(xs[rings-1],(top(xs[rings-1])+bottom(xs[rings-1]))/2,z+(zAt?zAt(xs[rings-1]):0));
+  for(let j=0;j<M;j++){idx.push(c0,j,(j+1)%M);idx.push(c1,(rings-1)*M+(j+1)%M,(rings-1)*M+j);}
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();
+  const m=w.mesh(geo,material,parent,0,0,0);if(m.geometry!==geo)geo.dispose();
+  m.name=name;return m;
+}
+
+// --- lathes ------------------------------------------------------------------------
+// Soft cones and drips: unit-high lathes shared through the clay cache, three
+// cone variants and two drip variants for the whole chapter.
+const CONE=[[1,0],[1,.1],[.96,.24],[.86,.4],[.72,.56],[.56,.7],[.4,.82],[.25,.91],[.12,.97],[0,1]];
+const DRIP=[[1,0],[1,.1],[.95,.25],[.85,.42],[.7,.58],[.52,.72],[.34,.84],[.18,.93],[.06,.99],[0,1]];
+function lathe(w,key,profile,bulge){
+  return clayShape(w,key,()=>sculptClay(w,new THREE.LatheGeometry(profile.map(([r,y])=>new THREE.Vector2(r*(1+bulge*Math.sin(y*Math.PI)),y)),16),{amplitude:.05}));
+}
+function cone(w,parent,x,y,z,r,h,material,variant=0){
+  const m=w.mesh(lathe(w,'corridor-cone:'+variant,CONE,[0,.07,-.06][variant%3]),material,parent,x,y,z);
+  m.scale.set(r,h,r);m.name='Soft cone';return m;
+}
+function drip(w,parent,x,y,z,r,h,material,variant=0){
+  const m=w.mesh(lathe(w,'corridor-drip:'+variant,DRIP,[0,.06][variant%2]),material,parent,x,y,z);
+  m.scale.set(r,h,r);m.rotation.z=Math.PI;m.name='Ceiling drip';return m;
+}
+
+// --- eyes -----------------------------------------------------------------------------
+// A big permanent eye set into a stripe: a cream ball with a dark pupil, in a
+// socket of two lobes (red above, vermilion below) that bulge out of the
+// face around it. animate() slides the pupil toward the player and closes
+// the lobes over the ball in a slow blink.
+function eye(w,parent,x,y,z,seed,r=.6){
+  const g=group(parent,'Corridor eye',x,y,z);
+  w.ball(r,r*.92,r*.6,'cream',g,0,0,0).name='Eyeball';
+  const iris=group(g,'Eye pupil',0,0,r*.48);
+  w.ball(r*.4,r*.4,r*.16,'dark',iris,0,0,0).name='Pupil';
+  const upper=w.ball(r*2.6,r*.5,r*.95,red(w),g,0,r*1.02,-.3);upper.name='Eye lid';
+  const lower=w.ball(r*2.6,r*.48,r*.95,mat(w,'terrain'),g,0,-r*1.02,-.3);lower.name='Eye lid';
+  registry(w).eyes.push({group:g,iris,upper,lower,r,period:4.5+rand(seed)*3.5,phase:rand(seed+9)*5});
+  return g;
+}
+const BLINK=.34;
+function animateEyes(w,game,dt,ctx){
+  const list=registry(w).eyes;if(!list.length)return;
+  const p=game.player,t=ctx.time;
+  for(let i=list.length-1;i>=0;i--){
+    const e=list[i];
+    if(!attached(e.group,w.scene)){list.splice(i,1);continue;}
+    e.group.getWorldPosition(worldPosition);
+    const dx=ctx.playerX-worldPosition.x,dy=(p.y+.9)-worldPosition.y;
+    const still=ctx.reducedMotion;
+    e.iris.position.x=still?0:clamp(dx/9,-1,1)*e.r*.3;
+    e.iris.position.y=still?0:clamp(dy/7,-1,1)*e.r*.22;
+    const u=(((t+e.phase)%e.period)+e.period)%e.period/BLINK,k=!still&&u<1?Math.sin(u*Math.PI):0;
+    e.upper.position.y=e.r*(1.02-.7*k);e.lower.position.y=-e.r*(1.02-.7*k);
+    e.upper.scale.y=e.r*.5*(1+.5*k);e.lower.scale.y=e.r*.48*(1+.5*k);
+  }
+}
+
+// --- profiles -------------------------------------------------------------------------
 // A smooth height over x through keypoints [[x,y],…] (cosine between them,
 // flat beyond the ends).
 function profile(points){
@@ -52,141 +161,94 @@ function profile(points){
     return pts.at(-1)[1];
   };
 }
-// The corridor's decks by id and the ceiling / trench-floor profiles drawn
-// between them: the vault rises over the pillars and the teeth (the coils sit
-// behind the walk line, so a full jump's head may overlap them in the picture
-// for a moment without ever meeting them), presses down over the entry and floor-1,
-// and meets the throat's top at 7; the trench floor dips under the goo pit.
+// The corridor's decks by id and the ceiling's underside between them: as low
+// as the play allows — down to 4.4 at the two mouths, up over the pillars'
+// beads, meeting the throat's top at 7 and clearing the molars over floor-2.
+// The mass sits behind the walk line, so a full jump's head may overlap it
+// in the picture without ever meeting it.
 function layout(L){
   const ids=['entry','pillar-1','pillar-2','pillar-3','floor-1','throat','plug','floor-2','tooth-1','tooth-2','exit'];
   const d={};for(const id of ids)if(!(d[id]=deck(L,'corridor-'+id)))return null;
   const right=s=>s.x+s.w;
-  const ceiling=profile([
-    [d.entry.x,4.9],[d.entry.x+6,5.2],[d['pillar-1'].x-1,6.6],[d['pillar-1'].x+2.5,7.3],[d['pillar-3'].x+1.5,7.3],
-    [d['floor-1'].x+1,6.6],[d['floor-1'].x+5.5,5.5],[d['floor-1'].x+8.5,6.2],[d.throat.x,7],[right(d.throat),7],
-    [d['floor-2'].x-.5,6.6],[right(d['floor-2']),6.6],[d['tooth-1'].x+.5,7.4],[d['tooth-2'].x+1.8,7.4],
-    [d.exit.x+1.5,6.2],[right(d.exit),5.2]
+  const under=profile([
+    [d.entry.x-1.5,4.3],[d.entry.x+4,4.5],[right(d.entry),4.8],
+    [d['pillar-1'].x+1,5.5],[d['pillar-2'].x-.6,6.15],[right(d['pillar-2'])+.6,6.15],[d['pillar-3'].x+1.2,5.4],
+    [d['floor-1'].x+2,4.9],[d['floor-1'].x+5.5,5],[right(d['floor-1']),6.3],[d.throat.x,7.05],[right(d.throat),7.05],
+    [d['floor-2'].x,6.55],[right(d['floor-2']),6.55],[d['tooth-1'].x,6.45],[right(d['tooth-2']),6.45],
+    [d.exit.x+1.5,5.5],[right(d.exit),4.6],[right(d.exit)+1.5,4.4]
   ]);
-  const floor=profile([
-    [d.entry.x,-2.7],[d['floor-1'].x+7.5,-2.7],[d.throat.x-.5,-4.3],[d['floor-2'].x-.5,-4.3],[d['floor-2'].x+1,-2.7],[right(d.exit),-2.7]
-  ]);
-  return {d,ceiling,floor,left:d.entry.x,right:right(d.exit)};
+  return {d,under,left:d.entry.x,right:right(d.exit)};
 }
 
-// --- coils ------------------------------------------------------------------------
-// A rolled band of clay along x: a tube through points a unit apart following
-// `yAt`, flattened deep (scale z) so it reads as a coil laid on its side. Its
-// ends curl back into the body so no open tube mouth ever faces the camera.
-function coil(w,parent,x0,x1,yAt,r,material,depth,name='Coil'){
-  const pts=[new THREE.Vector3(x0+.15,yAt(x0+.15),-.45)];
-  for(let x=x0+.45;x<x1-.3;x+=1)pts.push(new THREE.Vector3(x,yAt(x),0));
-  pts.push(new THREE.Vector3(x1-.3,yAt(x1-.3),0),new THREE.Vector3(x1-.15,yAt(x1-.15),-.45));
-  const curve=new THREE.CatmullRomCurve3(pts,false,'centripetal',.5);
-  const m=w.mesh(new THREE.TubeGeometry(curve,Math.max(8,Math.round((x1-x0)*2)),r,10,false),material,parent,0,0,0);
-  m.scale.z=depth/(2*r);m.name=name;return m;
-}
-// A soft cone: one unit-high lathe, scaled per cone (tip up; rotate for a drip).
-function cone(w,parent,x,y,z,r,h,material,down=false){
-  const points=[[1,0],[.94,.1],[.76,.3],[.52,.55],[.28,.78],[.1,.94],[0,1]].map(([a,b])=>new THREE.Vector2(a,b));
-  const m=w.mesh(new THREE.LatheGeometry(points,14),material,parent,x,y,z);
-  m.scale.set(r,h,r);if(down)m.rotation.z=Math.PI;m.name=down?'Hanging cone':'Soft cone';return m;
-}
-
-// --- eyes ---------------------------------------------------------------------------
-// A tiny eye: a cream ball, a raspberry lid arc over it and a mint iris. Built
-// shut (scaled to nothing); animate() opens it when the player is within six
-// units, tracks them with the iris, blinks once and closes it again.
-function eye(w,parent,x,y,z,seed){
-  const g=group(parent,'Corridor eye',x,y,z);
-  w.ball(.22,.2,.15,'cream',g,0,0,0).name='Eye ball';
-  const iris=group(g,'Eye iris',0,0,.12);
-  w.ball(.095,.095,.05,slot(w,'accent','gold'),iris,0,0,0).name='Iris';
-  w.ball(.045,.045,.03,'dark',iris,0,0,.045).name='Pupil';
-  const lid=w.mesh(new THREE.TorusGeometry(.23,.06,6,14,Math.PI),mat(w,'top'),g,0,.01,.1);lid.name='Eye lid';
-  g.scale.setScalar(.001);
-  registry(w).eyes.push({group:g,iris,state:'closed',t:0,cool:rand(seed)*2});
-  return g;
-}
-const EYE={reach:6,open:.22,blinkAt:1.2,blink:.18,closeAt:2.4,close:.2,rest:6};
-function animateEyes(w,game,dt,ctx){
-  const list=registry(w).eyes;if(!list.length)return;
-  const p=game.player;
-  for(let i=list.length-1;i>=0;i--){
-    const e=list[i];
-    if(!attached(e.group,w.scene)){list.splice(i,1);continue;}
-    e.group.getWorldPosition(worldPosition);
-    const dx=ctx.playerX-worldPosition.x,dy=(p.y+1.2)-worldPosition.y;
-    e.cool=Math.max(0,e.cool-dt);
-    if(e.state==='closed'){
-      if(Math.abs(dx)<EYE.reach&&e.cool<=0){e.state='open';e.t=0;}
-      else{e.group.scale.setScalar(.001);continue;}
-    }
-    e.t+=dt;
-    let open=smooth(e.t/EYE.open);
-    if(e.t>EYE.closeAt)open*=1-smooth((e.t-EYE.closeAt)/EYE.close);
-    if(e.t>EYE.closeAt+EYE.close){e.state='closed';e.cool=EYE.rest;e.group.scale.setScalar(.001);continue;}
-    const blink=e.t>EYE.blinkAt&&e.t<EYE.blinkAt+EYE.blink?1-.88*Math.sin(Math.PI*(e.t-EYE.blinkAt)/EYE.blink):1;
-    const s=Math.max(.001,open);e.group.scale.set(s,Math.max(.001,s*blink),s);
-    if(!ctx.reducedMotion){e.iris.position.x=clamp(dx/EYE.reach,-1,1)*.085;e.iris.position.y=clamp(dy/8,-1,1)*.05;}
+// --- the striped decks ------------------------------------------------------------------
+// A stone deck: a flat-topped vermilion cap over six wavy strata — red,
+// magenta, plum, vermilion… — running down out of the frame, the layers'
+// boundaries undulating along the face and the face itself swelling in and
+// out. The exit deck carries one of the painting's low eyes in its face.
+function stripedDeck(w,s,g){
+  const W=s.w,mats=cycle(w),rows=7,pitch=.8,seed=s.x*.37;
+  g.name='Striped deck · '+s.id;
+  const edge=k=>k===0?()=>0:x=>-k*pitch+.17*Math.sin(x*1.15+k*1.9+seed)+.05*Math.sin(x*2.7+k);
+  for(let k=0;k<rows;k++){
+    ribbon(w,g,{x0:-.1,x1:W+.1,top:edge(k),bottom:edge(k+1),depth:k?3.2:3.4,z:k?-.06:0,lip:k?.28:.32,material:mats[k%4],
+      name:k?'Deck stripe':'Deck cap',zAt:x=>.07*Math.sin(x*.9+k*2.3+seed)});
   }
+  if(s.id==='corridor-exit')eye(w,g,W*.5,-1.6,1.62,5,.52);
+  return true;
+}
+// A floating ledge (none in the route today, but the painting has one): a
+// vermilion cap over a magenta stripe with plum drips hanging under it.
+function floatingLedge(w,s,g){
+  g.position.set(s.x,s.y,0);g.name='Floating ledge · '+s.id;
+  const W=s.w,T=mat(w,'terrain'),M=mat(w,'top'),A=mat(w,'accent');
+  const mid=x=>-.36+.04*Math.sin(x*2+s.x);
+  ribbon(w,g,{x0:-.08,x1:W+.08,top:()=>0,bottom:mid,depth:2.2,lip:.2,step:.4,material:T,name:'Ledge cap',taper:.3});
+  ribbon(w,g,{x0:.05,x1:W-.05,top:mid,bottom:x=>-.72+.06*Math.sin(x*2.6+s.x+1),depth:2,z:-.05,lip:.18,step:.4,material:M,name:'Ledge stripe',taper:.3});
+  for(let i=0;i<Math.max(2,Math.round(W/1.1));i++){
+    const x=.5+rand(i*3+s.x)*(W-1),r=.2+rand(i+s.x)*.14;
+    w.ball(r*1.3,r,r,A,g,x,-.74-r*.6,.1).name='Ledge drip';
+  }
+  return {root:g};
 }
 
 // --- the breathing walls ---------------------------------------------------------------
-// Pillars, throat and teeth: a stack of rounded stripes as the breathe pose's
-// `body` (centred, so scaling it about its middle and parking it at −h/2 keeps
-// the top at the collider's top and stretches the stripes with the breath).
-// The throat's lowest stripe is the fat raspberry underside you crawl under;
-// a pillar's top stripe is its cap.
+// Pillars, throat and teeth: a stack of wavy stripes as the breathe pose's
+// `body` (centred, so scaling it about its middle and parking it at −h/2
+// keeps the top at the collider's top and stretches the stripes with the
+// breath). A pillar's cap is vermilion; the throat hangs from the ceiling,
+// ends in a fat plum underside with drips and carries a big eye.
 function breathingWall(w,s,g){
   const h=s.baseH??s.h??4,W=s.w,hanging=s.breathe?.dy===undefined&&h>5;
   g.name='Breathing wall · '+s.id;
   const body=group(g,'Breathing wall body',W/2,-h/2,0);
-  const n=Math.max(3,Math.round(h/.78)),sh=h/n;
-  for(let i=0;i<n;i++){
-    const top=i===n-1,bottom=i===0,cap=hanging?bottom:top;
-    const y=-h/2+sh*(i+.5),name=cap?'top':STRIPES[(i+(hanging?1:0))%STRIPES.length];
-    const grow=cap?.08:0,radius=cap?Math.min(.34,W/3.2,sh/2.2):Math.min(.2,W/8,sh/3);
-    w.box(W+grow,sh+.06,2+grow,mat(w,name),body,0,y,0,radius).name=cap?'Wall cap':'Wall stripe';
+  const n=Math.max(3,Math.round(h/.78)),pitch=h/n,mats=cycle(w),seed=s.x*.5;
+  const edge=k=>k===0?()=>h/2:k===n?()=>-h/2:x=>h/2-k*pitch+.07*Math.sin(x*2.2+k*1.7+seed);
+  for(let k=0;k<n;k++){
+    const material=hanging&&k===n-1?mat(w,'accent'):mats[(k+(hanging?1:0))%4];
+    ribbon(w,body,{x0:-W/2-.04,x1:W/2+.04,top:edge(k),bottom:edge(k+1),depth:2.3,lip:.19,step:.4,material,name:'Wall stripe',taper:.3});
   }
-  // One tiny eye per wall that carries one (pillar-1, pillar-3, the teeth's
-  // first, and two in the throat), set in the root so it rides the top rather
-  // than stretching with the body.
-  if(s.id==='corridor-pillar-1')eye(w,g,W*.5,-1.3,1.03,1);
-  if(s.id==='corridor-pillar-3')eye(w,g,W*.5,-1.3,1.03,2);
-  if(s.id==='corridor-throat'){eye(w,g,.9,-4.2,1.03,3);eye(w,g,4.1,-3.4,1.03,4);}
-  if(s.id==='corridor-tooth-1')eye(w,g,W*.5,-1.2,1.03,6);
+  if(hanging){
+    const A=mat(w,'accent');
+    for(const [u,r] of [[-.34,.26],[.1,.34],[.38,.22]])w.ball(r*1.4,r*.8,r*1.1,A,body,u*W,-h/2+.02,.35).name='Throat drip';
+    eye(w,g,W/2,-2.9,1.32,3,.62);
+  }
   const live=s.h??h;body.scale.y=live/h;body.position.y=-live/2;
   return {root:g,dream:{kind:'breathe',body,lids:[],baseH:h}};
 }
 
-// --- the striped decks --------------------------------------------------------------------
-// A stone deck: a magenta cap at the walk line over five wavy coils narrowing
-// to nothing — the same rolled clay the tunnel is made of.
-function stripedDeck(w,s,g){
-  const W=s.w;
-  g.name='Striped deck · '+s.id;
-  w.box(W+.16,.62,3.4,mat(w,'terrain'),g,W/2,-.31,0,.3).name='Deck cap';
-  const rows=['top','terrain2','top','terrain','bark'];
-  for(let k=0;k<rows.length;k++){
-    const y=-.95-k*.8,phase=k*1.9+s.x*.7;
-    coil(w,g,-.12,W+.12,x=>y+.1*Math.sin(x*1.5+phase),.46,mat(w,rows[k]),2.7-k*.12,'Deck coil');
-  }
-  if(s.id==='corridor-floor-2')eye(w,g,3,-1.05,1.4,5);
-  return true;
-}
-
-// --- the molars ------------------------------------------------------------------------------
-// A press as a tooth: a cream molar on a raspberry root that stretches down
-// out of a gum bulge in the ceiling as the head descends. The tooth follows
-// the press's live y (its hurt box is ±.65 about it), squashes on impact and
-// trembles through the wind-up, like the cavern press it replaces.
+// --- the molars --------------------------------------------------------------------------
+// A press as a fat drip that bites: a vermilion crown with a magenta band
+// and a plum tip on a red root that stretches down out of a gum in the
+// ceiling as the head descends. The crown follows the press's live y (its
+// hurt box is ±.65 about it), squashes on impact and trembles through the
+// wind-up, like the cavern press it replaces.
 function molar(w,parent,c,ceilingY){
   const g=group(parent,'Molar');
-  w.ball(1.25,.5,1.1,mat(w,'top'),g,0,ceilingY,-.2).name='Gum';
-  const root=w.cylinder(.36,1,mat(w,'top'),g,0,ceilingY,-.05);root.name='Molar root';
+  w.ball(1.3,.55,1.1,red(w),g,0,ceilingY,-.2).name='Gum';
+  const root=w.cylinder(.4,1,red(w),g,0,ceilingY,-.05);root.name='Molar root';
   const tooth=group(g,'Molar tooth',0,c.y??ceilingY-1,0);
-  w.box(1.6,1.3,2,'cream',tooth,0,0,0,.42).name='Molar crown';
-  w.box(1.5,.26,1.9,mat(w,'top'),tooth,0,.58,0,.1).name='Molar gum line';
+  drip(w,tooth,0,.72,0,.88,1.45,mat(w,'terrain'),0).name='Molar crown';
+  w.ball(.9,.26,.9,mat(w,'top'),tooth,0,.6,0).name='Molar band';
   registry(w).molars.push({group:g,root,tooth,x:c.x,ceiling:ceilingY,squash:1,c:null});
   return g;
 }
@@ -214,51 +276,87 @@ export default {
   // Stone decks: striped slabs instead of the chapter's rolled slab.
   dress(w,s,g){return stripedDeck(w,s,g);},
   // Breathing walls (pillars, throat, teeth): striped bodies posed by the
-  // breathe view; everything else keeps the dream's own look.
-  deck(w,s,g){return s.kind==='wall'&&s.breathe?breathingWall(w,s,g):null;},
-  // The tunnel itself, streamed by world x: the ceiling and floor coils, the
-  // cones and the molars.
+  // breathe view; ledges the painting's floating slab; everything else keeps
+  // the dream's own look (the violet plug stays violet — it is the puzzle).
+  deck(w,s,g){
+    if(s.kind==='wall'&&s.breathe)return breathingWall(w,s,g);
+    if(s.kind==='ledge'&&!s.shape)return floatingLedge(w,s,g);
+    return null;
+  },
+  // The hazard bands: a plum bed at the kill line over a dark trench floor,
+  // filled with soft cones — a front row of pink, red and magenta standing
+  // on the bed, a taller paler row behind. Under the plug the cones stay
+  // short so the worked plug hides them.
+  hazard(w,h,g){
+    const L=w.currentLevel,plug=L&&deck(L,'corridor-plug'),pit=!!plug&&plug.x>=h.x&&plug.x<h.x+h.w,k=pit?.42:1;
+    const A=mat(w,'accent'),B=mat(w,'bark'),P=pink(w),R=red(w),M=mat(w,'top');
+    g.name='Cone bed';
+    const seam=x=>-.5+.08*Math.sin(x*1.4+h.x),floor=x=>-1.4+.1*Math.sin(x*1.1+h.x*2);
+    ribbon(w,g,{x0:-.25,x1:h.w+.25,top:()=>.06,bottom:seam,depth:2.9,z:-.35,lip:.22,material:A,name:'Cone bed band'});
+    ribbon(w,g,{x0:-.15,x1:h.w+.15,top:seam,bottom:floor,depth:2.6,z:-.5,lip:.22,material:B,name:'Trench floor'});
+    ribbon(w,g,{x0:-.05,x1:h.w+.05,top:floor,bottom:x=>-2.4+.1*Math.sin(x*.9+h.x),depth:2.4,z:-.6,lip:.22,material:A,name:'Trench floor'});
+    const n=Math.max(2,Math.round(h.w/.85));
+    for(let i=0;i<n;i++){
+      const x=(i+.5)/n*h.w+(rand(i+h.x)-.5)*.4,r=.5+rand(i*3+h.x)*.3,hh=(1.1+rand(i*7+h.x)*1.2)*k;
+      cone(w,g,x,.02,-.15+rand(i*5+h.x)*.4,r,hh,[P,R,M][i%3],i);
+    }
+    const m=Math.max(1,Math.round(h.w/1.3));
+    for(let i=0;i<m;i++){
+      const x=(i+.5)/m*h.w+(rand(i*11+h.x)-.5)*.7,r=.62+rand(i*13+h.x)*.3,hh=(1.9+rand(i*17+h.x)*1.3)*k;
+      cone(w,g,x,-.8,-1.15-rand(i)*.3,r,hh,i%2?P:M,i+1);
+    }
+    return true;
+  },
+  // The tunnel itself, streamed by world x: the striped vault with its eyes
+  // and drips, and the molars.
   props(section,L){
     const lay=layout(L);if(!lay)return [];
-    const {d,ceiling,floor,left,right}=lay,length=right-left,list=[];
-    // Ceiling and trench floor: seven long coils spanning the section, so the
-    // bands run unbroken from mouth to mouth.
-    list.push({key:'tunnel',x:left+length/2,w:length+4,y:0,z:-1.7,make(w,parent){
-      const g=group(parent,'Corridor tunnel',-(left+length/2),0,0);
-      const rows=['top','terrain','terrain2','top'];
-      for(let k=0;k<4;k++)coil(w,g,left-.6,right+.6,x=>ceiling(x)+.5+k*.82+.1*Math.sin(x*1.1+k*2.1),.52,mat(w,rows[k]),2.7,'Ceiling coil');
-      for(let k=0;k<3;k++)coil(w,g,left-.6,right+.6,x=>floor(x)-k*.82+.08*Math.sin(x*1.3+k*1.7),.52,mat(w,rows[k]),2.6,'Floor coil');
-    }});
-    // Soft cones standing in the two trenches (behind the hazard spikes, off
-    // the pillars' footprints) and a few drips hanging from the vault.
-    const standing=(key,x,w,cones)=>list.push({key,x,w,y:-1.62,z:-1.5,make(w2,parent){
-      const g=group(parent,'Trench cones',-x,0,0);
-      cones.forEach(([cx,r,h],i)=>cone(w2,g,cx,0,0,r,h,mat(w2,i%2?'terrain2':'top')));
-    }});
-    const t1=d.entry.x+8,t2=d['floor-2'].x+8;
-    standing('cones-1',(t1+d['floor-1'].x)/2,d['floor-1'].x-t1+1,[[t1+.7,.6,2.2],[t1+4.5,.7,3],[t1+5.3,.45,1.6],[t1+9,.65,2.6],[t1+9.7,.4,1.4],[t1+13.1,.55,2]]);
-    standing('cones-2',(t2+d.exit.x)/2,d.exit.x-t2+1,[[t2+.25,.42,1.6],[t2+2.4,.55,2.4],[t2+2.9,.38,1.5]]);
-    list.push({key:'drips',x:left+length/2,w:length+2,y:0,z:-1.6,make(w,parent){
-      const g=group(parent,'Vault drips',-(left+length/2),0,0);
-      [[left+4,.42,1],[d['pillar-2'].x-1.4,.5,2.2],[d['floor-1'].x+2.5,.4,1.3],[d['floor-2'].x+1.5,.45,1.4],[right-1.6,.4,1.1]]
-        .forEach(([x,r,h])=>cone(w,g,x,ceiling(x)+.08,0,r,h,mat(w,'top'),true));
+    const {d,under,left,right}=lay,length=right-left,cx=left+length/2,list=[];
+    const rgt=s=>s.x+s.w;
+    // The vault: six stripes the length of the section, the lowest one's
+    // underside on the profile, each boundary wavy so the layers swell and
+    // thin; four eyes set into it; ten drips, the fattest at the two mouths.
+    list.push({key:'vault',x:cx,w:length+6,y:0,z:-1.5,make(w,parent){
+      const g=group(parent,'Corridor vault',-cx,0,0);
+      const T=mat(w,'terrain'),R=red(w),M=mat(w,'top'),A=mat(w,'accent'),P=pink(w);
+      const mats=[T,R,M,A,R,T],pitch=.92;
+      const edge=k=>x=>under(x)+k*pitch+(k?.2:.15)*Math.sin(x*.9+k*2.2)+.06*Math.sin(x*2.4+k*.7);
+      for(let k=0;k<6;k++)ribbon(w,g,{x0:left-2.5,x1:right+2.5,top:edge(k+1),bottom:edge(k),depth:3,lip:.32,material:mats[k],name:'Vault stripe',zAt:x=>.08*Math.sin(x*.7+k*1.9)});
+      const at=(x,lift,seed,r)=>eye(w,g,x,under(x)+lift,1.72,seed,r);
+      at(d.entry.x+4.2,.95,1,.58);
+      at(d['pillar-1'].x+1.9,1.05,2,.68);
+      at(d['pillar-3'].x-.3,1.05,4,.62);
+      at(d['tooth-1'].x+2.1,1.05,6,.62);
+      const drips=[[d.entry.x+.4,.8,2.2,R],[d.entry.x+6.6,.5,1.2,T],[d['pillar-2'].x-1.3,.5,1.3,P],[d['pillar-3'].x-1.6,.44,.95,R],
+        [d['floor-1'].x+1.2,.6,1.3,T],[d['floor-1'].x+7,.5,1.4,R],[d['floor-2'].x+1.9,.55,1.5,P],[d['tooth-1'].x-.8,.42,1.1,R],
+        [d.exit.x+1.2,.52,1.4,T],[rgt(d.exit)+.2,.74,2,R]];
+      drips.forEach(([x,r,h,m],i)=>drip(w,g,x,under(x)+.15,.95,r,h,m,i));
     }});
     // The molars: one per press the section brought.
-    (L.crushers||[]).filter(c=>c.x>=left&&c.x<right).forEach((c,i)=>list.push({key:'molar-'+i,x:c.x,w:3,y:0,z:0,make(w,parent){molar(w,parent,c,ceiling(c.x));}}));
+    (L.crushers||[]).filter(c=>c.x>=left&&c.x<right).forEach((c,i)=>list.push({key:'molar-'+i,x:c.x,w:3,y:0,z:0,make(w,parent){molar(w,parent,c,under(c.x)+.25);}}));
     return list;
   },
-  // Far scenery: pale arches standing in the pink haze, the way the reference's
-  // tunnel recedes into soft openings. Emissive backdrop slots read as haze.
+  // Far scenery: the pink haze of the palette with dim mauve columns and
+  // arches at two depths — the painting's deep organic tunnel receding.
   backdrop(w,L,section,layers){
-    const far=layers.at(.4);
-    for(let i=0;i<4;i++){
-      const g=layers.place(far,section.x+7+i*13.5,-1.5,-34);
-      const arch=w.mesh(new THREE.TorusGeometry(3.4+rand(i+40)*1.2,1,8,22,Math.PI),i%2?'back2':'back',g,0,0,0);
-      arch.scale.y=1.35;arch.name='Haze arch';
+    const near=layers.at(.45),far=layers.at(.22);
+    for(let i=0;i<6;i++){
+      const x=section.x-12+i*16+rand(i+50)*3,h=13+rand(i+51)*4,g=layers.place(near,x,-9,-30);g.name='Haze column';
+      w.box(2.6+rand(i+52)*1,h,2.6,'back2',g,0,h/2,0,1.2);w.ball(1.7,1.2,1.5,'back2',g,0,h,0);
+      if(i%2===0){const arch=w.mesh(new THREE.TorusGeometry(3.6,1,8,26,Math.PI),'back2',g,3.6,h-2.8,0);arch.scale.y=1.5;arch.name='Haze arch';}
+    }
+    for(let i=0;i<6;i++){
+      const x=section.x-14+i*24+rand(i+60)*4,g=layers.place(far,x,-8,-52);g.name='Haze mound';
+      w.ball(6+rand(i+61)*3,4.5+rand(i+62)*2,4,'back',g,0,0,0);
+      if(i%2){const h=17+rand(i+63)*5;w.box(3.2,h,3,'back',g,5.5,h/2-1,-2,1.4);}
     }
   },
   animate(w,game,dt,section,ctx){
     animateEyes(w,game,dt,ctx);
     animateMolars(w,game,dt);
+    // The chapter's placeholder side scenery (a pastel mound with two beads in
+    // front of every deck, depth-scenery.js) is not this section's look: the
+    // striped slabs stand clean, as in the painting.
+    if(w.depthViews?.size)for(const s of sectionDecks(game.level,section)){const v=w.depthViews.get(s.id);if(v)v.root.visible=false;}
   }
 };
