@@ -29,9 +29,11 @@ const SUPPORT=[/^load-/,/-pilot\.mjs$/,/-fixture\.mjs$/,/^gamepad-imports\.mjs$/
 const ELSEWHERE=new Set(['perf.mjs']);
 const FLAGS={'editor-ui.mjs':['--experimental-vm-modules'],'perf-squash.mjs':['--expose-gc']};
 // Left out of --fast. These are the ones worth the wait before a merge but not
-// after every edit; keeping the list here, next to the runner, means the
-// tiering is one line to revisit rather than three package.json entries.
-const SLOW=new Set(['scene.mjs','characters.mjs','clay-sections.mjs']);
+// after every edit: the scene files, which each parse every supplied model,
+// and the two that sweep the real physics. Keeping the rule here, next to the
+// runner, means the tiering is one line to revisit rather than three
+// package.json entries.
+const slow=n=>n.startsWith('scene')||n==='characters.mjs'||n==='clay-sections.mjs';
 
 const argv=process.argv.slice(2);
 const fast=argv.includes('--fast'),full=argv.includes('--full');
@@ -39,7 +41,7 @@ const filters=argv.filter(a=>!a.startsWith('--'));
 
 const names=(await readdir(TESTS)).filter(n=>n.endsWith('.mjs')
   &&!SUPPORT.some(p=>p.test(n))&&!ELSEWHERE.has(n)
-  &&!(fast&&SLOW.has(n))
+  &&!(fast&&slow(n))
   &&(!filters.length||filters.some(f=>n.includes(f))));
 if(!names.length){console.error('no checks matched');process.exit(1);}
 
@@ -47,7 +49,7 @@ if(!names.length){console.error('no checks matched');process.exit(1);}
 // finished, so the long ones start first. Size stands in for cost among the
 // others; it is a guess, but a wrong guess only costs a little scheduling.
 const sized=await Promise.all(names.map(async n=>({n,bytes:(await stat(new URL(n,TESTS))).size})));
-sized.sort((a,b)=>(SLOW.has(b.n)-SLOW.has(a.n))||b.bytes-a.bytes);
+sized.sort((a,b)=>(slow(b.n)-slow(a.n))||b.bytes-a.bytes);
 
 const jobs=Math.max(1,Math.min(+process.env.JOBS||availableParallelism(),sized.length));
 const env={...process.env,...(full?{SEARCH:'1'}:{})};
