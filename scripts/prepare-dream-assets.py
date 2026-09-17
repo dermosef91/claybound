@@ -6,10 +6,12 @@ Usage: python3 scripts/prepare-dream-assets.py UPLOAD_DIRECTORY [DECIMATED_HAT_G
 The source GLBs are untouched. Only the embedded textures are repacked — thumbnailed
 to 1024 and re-encoded as JPEG — while every geometry buffer view is copied across
 unchanged. That matters here more than elsewhere: PLANET_ORBS in dist/dream-assets.js
-was fitted on these vertices, so the manifest records each geometry buffer's digest
-and the triangle count, and tests/dream-models.mjs checks the shipped file against
-them. Sources absent from the given directory keep their existing manifest entry, so
-a single new upload can be prepared without re-encoding the others.
+was fitted on these vertices, and the Crooked Garden's watching flower is cut into
+head and stem and has its eyeball fitted from them at load, so the manifest records
+each geometry buffer's digest and the triangle count, and tests/dream-models.mjs
+checks the shipped file against them. Sources absent from the given directory keep
+their existing manifest entry, so a single new upload can be prepared without
+re-encoding the others.
 
 The hat is the one exception. hat.glb arrives at 324,212 triangles — thirty times a
 planet, and the parade stacks five of them — so it is decimated first with glTF
@@ -33,11 +35,13 @@ import numpy as np
 
 root=Path(__file__).resolve().parents[1]
 assets={
+ 'dream-flower.glb':'clay+flower+model.glb',
  'dream-planet-mint.glb':'colorful+clay+planet+3d+model.glb',
  'dream-planet-raspberry.glb':'colorful+planet+3d+model.glb',
  'dream-saucer-mint.glb':'colorful+clay+platform+1.glb',
  'dream-saucer-raspberry.glb':'colorful+clay+platform+2.glb',
- 'dream-hat.glb':'hat.glb'
+ 'dream-hat.glb':'hat.glb',
+ 'dream-sculpture.glb':'colorful+abstract+sculpture+3d+model.glb'
 }
 # Models shipped from a decimated copy rather than the upload's own geometry.
 decimated={'dream-hat.glb':Path(sys.argv[2]) if len(sys.argv)>2 else None}

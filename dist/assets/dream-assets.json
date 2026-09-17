@@ -106,5 +106,47 @@
     ],
     "geometryUnchanged": false,
     "adaptation": "glTF Transform 4.4.1 weld + simplify ratio=.025 error=.01; metallic-roughness map dropped"
+  },
+  "dream-sculpture.glb": {
+    "source": "colorful+abstract+sculpture+3d+model.glb",
+    "sourceSha256": "cc8a3bcdc854aead8c6bb20b61d5abf7e6f1f0ee9aa307159d941b4047b90684",
+    "shippedSha256": "5fb73b1cc67ee571a504e2eb33931562baa61a1c48c3da019e6eb54280b39e46",
+    "sourceBytes": 704016,
+    "shippedBytes": 338572,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 5428,
+    "geometryBufferSha256": [
+      "9d00a8e560910d57453ae5ec5bb67bf4c59476d5b5fb760498a073886c9054a0",
+      "bb792b4e319c2d0d855c366e9367c290536f6e100ad9c74273c6d522ddd96381",
+      "c2430e55d26dd0964f35aff261b48dabf97e9678ead2328c1deb70c613e14006",
+      "c57558db876c500cbb49204dca4677e5a5e72f3ac9482673f9090b85f451723a"
+    ],
+    "geometryUnchanged": true
+  },
+  "dream-flower.glb": {
+    "source": "clay+flower+model.glb",
+    "sourceSha256": "3a4bed517c69a5de45782a79714d1bceeac7a290aa404d86941fe14ca1dd161d",
+    "shippedSha256": "9dfdff30d96aad2f79f20fde4fdab764a2f41b16ca1fa6963c084326413f0fee",
+    "sourceBytes": 1004076,
+    "shippedBytes": 617216,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 12756,
+    "geometryBufferSha256": [
+      "9b8af79348f2dd746d7ccdbaaa7a76d09d7f25d78439c45e35aa017bd8a05ae3",
+      "89e7ca2fb49dfd169d02525bb8e07e6981d63c1c1feb20841c6fd1189fa30433",
+      "58597d47495fbebc6997405ff4f75cccc1f9aed468697bf10cc9b9bdecb2bead",
+      "a864f557336943ad4dd37d3c8e6cf689045d7de2070d15d3e6b6a8b51b957d0f"
+    ],
+    "geometryUnchanged": true
   }
 }
