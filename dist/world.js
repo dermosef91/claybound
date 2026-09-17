@@ -243,6 +243,10 @@ export class World {
   makePlatform(s) {
     const g=new THREE.Group();g.position.set(s.x,s.y,0);this.levelRoot.add(g);
     if(s.motherArena){createMotherArenaFloor(this,s,g);return {root:g,ropes:[]};}
+    // The dream's section modules and its own kinds and dressings (dream.js,
+    // dream-views.js) are offered every platform first — a tinted station's
+    // clay included; whatever they decline is built by the branches below.
+    if(this.biome==='dream'){const v=dreamPlatformView(this,s,g);if(v)return v;}
     if(s.shape)return createClayView(this,s,g);
     if(s.kind==='bridge'){
       const view=makeRopeBridge(this,s,g);
@@ -254,9 +258,6 @@ export class World {
     if(this.biome==='citadel'&&(s.kind==='lift'||s.kind==='counter'))return makeCitadelLift(this,s,g);
     if(this.biome==='desert'&&s.kind==='lift')return makeCanyonLift(this,s,g);
     if(s.kind==='balance')return balanceDeck(this,s,g);
-    // The dream's own kinds and dressings come from dream-views.js; whatever it
-    // declines is built by the ordinary branches below.
-    if(this.biome==='dream'){const v=dreamPlatformView(this,s,g);if(v)return v;}
     let ropes=[],springPad,fracture;
     if(s.kind==='wall'){
       const height=s.h??4;

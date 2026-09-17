@@ -12,6 +12,7 @@ import {clayCacheOverBudget,trimClayShapes,clayShape,sculptClay} from './clay.js
 import {createMotherPuff} from './mother-puff.js';
 import {caveWallDressing} from './cavern.js';
 import {settleSquash,squashPending} from './clay-shatter.js';
+import {syncDreamScenery} from './dream.js';
 
 const attached=(o,root)=>{for(let p=o;p;p=p.parent)if(p===root)return true;return false;};
 export function disposeBranch(w,root){
@@ -129,6 +130,8 @@ export function syncStream(w,L,center,force=false){
     if(near(d.x-width/2,width))addScenery('decor:'+i,()=>w.decorViews[i]=decorView(w,d),()=>delete w.decorViews[i],d.x);
   });
   syncDepthScenery(w,L,near,addScenery);
+  // The dream's section modules stream their props the same way (dream.js).
+  if(w.biome==='dream')syncDreamScenery(w,L,near,addScenery);
   w.streamWanted=wanted;
   for(const [key,v]of w.streamViews)if(!wanted.has(key)){v.remove();disposeBranch(w,v.root);w.streamViews.delete(key);}
   // Anything queued that the camera has since left behind is dropped unbuilt.

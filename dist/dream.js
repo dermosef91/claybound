@@ -1,11 +1,26 @@
 import * as THREE from './lib/three.module.js';
 import {createDreamView,animateDreamViews} from './dream-views.js';
+import {dreamVisual} from './dream/index.js';
+import {dreamSectionAt,sectionDecks} from './dream/support.js';
+export {dreamSectionAt,sectionDecks};
 // The Soft Dream's biome module: the theme the shared materials start from,
 // the terrain and backdrop stand-ins, and the per-frame work the chapter adds
 // to the renderer — a palette that cross-fades with the player's x, a camera
 // roll/zoom list, props that lean toward the player, and the hook through
 // which the dream's own platform views (dream-views.js) are built and animated.
 // Everything here is render-only: the simulation never reads any of it.
+//
+// Each section has a visual module of its own (dist/dream/<key>.js, listed in
+// dist/dream/index.js). This file finds a platform's section by x through
+// L.dreamSections — the table the assembler attaches — and offers the module
+// its deck dressing, its far scenery, its streamed props and a per-frame
+// hook, falling back to the chapter's defaults for anything it declines.
+
+// The section a chapter x belongs to and its visual module, if any.
+function visualAt(L,x){
+  const section=dreamSectionAt(L,x);
+  return {section,visual:section?dreamVisual(section.key):null};
+}
 
 const rand=n=>{const v=Math.sin(n*127.1+87.3)*43758.5453;return v-Math.floor(v);};
 const WHITE=new THREE.Color(0xffffff);
@@ -20,11 +35,20 @@ export const THEME_DREAM={
 };
 
 // --- terrain -----------------------------------------------------------------
+// A stone deck: the section's own dressing if its visual module claims it
+// (dress() returned true), else the chapter's rolled slab. Flags and the bell
+// are placed exactly as the generic terrain does, so checkpoints and the goal
+// need nothing extra from a section author.
+export function buildDreamTerrain(w,s,g){
+  const {section,visual}=visualAt(w.currentLevel,s.x);
+  if(visual?.dress?.(w,s,g,section)!==true)rolledSlab(w,s,g);
+  if(s.checkpoint)w.flag(s.checkpoint-s.x,.05,g,.83,s.id);
+  if(s.goal)w.makeBell(g,s.bellX??s.w-3.5,.1);
+}
 // A chunky rolled slab: three softly rounded rows narrowing downward under the
 // walkable cap, with the cap's ends curled up into lips so a deck reads as a
-// sheet of Play-Doh rolled at both edges. Flags and the bell are placed exactly
-// as the generic terrain does, so checkpoints and the goal need nothing extra.
-export function buildDreamTerrain(w,s,g){
+// sheet of Play-Doh rolled at both edges.
+export function rolledSlab(w,s,g){
   const width=s.w,depth=3.4,rows=3,rowH=10.4/rows;
   for(let row=0;row<rows;row++){
     const inset=row*.22;
@@ -59,16 +83,40 @@ export function buildDreamTerrain(w,s,g){
     const x=.7+rand(i*7+s.x)*(width-1.4),y=-1.3-rand(i*3+s.x)*7;
     w.ball(.38+rand(i+s.x)*.22,.28,.2,i%2?'terrain2':'accent',g,x,y,1.6+(i%3)*.03);
   }
-  if(s.checkpoint)w.flag(s.checkpoint-s.x,.05,g,.83,s.id);
-  if(s.goal)w.makeBell(g,s.bellX??width-3.5,.1);
 }
 
 // --- backdrop ----------------------------------------------------------------
 function group(parent,name,x=0,y=0,z=0){const g=new THREE.Group();g.name=name;g.position.set(x,y,z);parent.add(g);return g;}
+// Far scenery a section module places by WORLD x, without the wrapping math.
+// `at(factor)` is one parallax group per factor (shared by every section that
+// asks for it), registered with a repeat so large it never wraps; `place(
+// group, worldX, y, z)` adds a child at the layer-local x (worldX*factor), so
+// the child stands at worldX when the camera is there and drifts at the
+// layer's rate as it moves. animateEnvironment reads a layer's children once,
+// so everything has to be placed at build — which is when backdrop() runs.
+export function dreamLayers(w){
+  const groups=new Map();
+  const at=(factor,{heightFollow}={})=>{
+    const key=factor.toFixed(3);
+    if(!groups.has(key)){
+      const g=group(w.backRoot,`Dream section layer ×${key}`);g.userData.factor=factor;
+      w.parallax.push({group:g,factor,heightFollow:heightFollow??Math.min(1,.5+factor*.8),repeat:1e6});
+      groups.set(key,g);
+    }
+    return groups.get(key);
+  };
+  const place=(layer,worldX,y=0,z=-30)=>{
+    const factor=layer?.userData?.factor;
+    if(factor===undefined)throw new Error('layers.place wants a group from layers.at(factor)');
+    return group(layer,'Dream backdrop item',worldX*factor,y,z);
+  };
+  return {at,place};
+}
 // Placeholder parallax: two layers of large soft blobs and a few tall rounded
 // columns, and a ring of flat accent swirls high in the sky. Every layer
 // repeats every 150 units, so items are laid inside 0..150. The columns are
 // registered as leaners (they turn toward the player) and the swirls spin.
+// Then every section's module adds its own far scenery through dreamLayers.
 export function buildDreamBackdrop(w,L){
   w.dreamLeaners=[];w.dreamSwirls=[];
   const far=group(w.backRoot,'Dream far blobs'),mid=group(w.backRoot,'Dream near blobs'),sky=group(w.backRoot,'Dream sky swirls');
@@ -94,7 +142,40 @@ export function buildDreamBackdrop(w,L){
     ring.scale.y=.55;ring.rotation.z=rand(i+32)*6;
     w.dreamSwirls.push({mesh:ring,speed:(rand(i+33)-.5)*.5});
   }
+  const layers=dreamLayers(w);
+  for(const section of L.dreamSections||[])dreamVisual(section.key)?.backdrop?.(w,L,section,layers);
   w.backRoot.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
+}
+
+// --- props -------------------------------------------------------------------
+// A section's props() list, gathered once per level: {key,x,w,y,z,make} with
+// x the WORLD x of the prop's centre and w its width, keyed
+// dream:<section>:<key>. Streamed by streaming.js as scenery, like authored
+// decoration: never a collider, always behind a deck the player is about to
+// land on, dropped (and disposed) when the camera leaves.
+function dreamProps(w,L){
+  if(w.dreamPropsFor===L)return w.dreamProps;
+  const list=[],keys=new Set();
+  for(const section of L.dreamSections||[]){
+    const visual=dreamVisual(section.key);
+    for(const prop of visual?.props?.(section,L)||[]){
+      if(typeof prop?.make!=='function'||!Number.isFinite(prop.x)||!prop.key)throw new Error(`dream/${section.key}: every prop needs {key, x, make(w,parent)} — got ${JSON.stringify(prop)}`);
+      const key=`dream:${section.key}:${prop.key}`;
+      if(keys.has(key))throw new Error(`dream/${section.key}: two props share the key ${prop.key}`);
+      keys.add(key);list.push({...prop,key,section});
+    }
+  }
+  w.dreamPropsFor=L;w.dreamProps=list;return list;
+}
+export function syncDreamScenery(w,L,near,addScenery){
+  for(const prop of dreamProps(w,L)){
+    const width=prop.w??2;
+    if(!near(prop.x-width/2,width))continue;
+    addScenery(prop.key,()=>{
+      const parent=new THREE.Group();parent.name=prop.key;parent.position.set(prop.x,prop.y??0,prop.z??0);w.levelRoot.add(parent);
+      prop.make(w,parent,prop.section);return parent;
+    },()=>{},prop.x);
+  }
 }
 
 // --- palettes ----------------------------------------------------------------
@@ -184,6 +265,10 @@ function leanStep(w,x,dt){
 }
 
 // --- per frame ---------------------------------------------------------------
+// Section modules' animate() runs for every section the player is within 40
+// units of, with one shared context record (read it, do not keep it).
+const ctx={playerX:0,time:0,reducedMotion:false};
+const REACH=40;
 export function animateDream(w,game,dt){
   if(w.biome!=='dream')return;
   const L=game.level,x=game.player.x;
@@ -192,9 +277,28 @@ export function animateDream(w,game,dt){
   leanStep(w,x,dt);
   if(!w.reducedMotion)for(const s of w.dreamSwirls||[])s.mesh.rotation.z+=dt*s.speed;
   animateDreamViews(w,game,dt);
+  ctx.playerX=x;ctx.time=game.time;ctx.reducedMotion=!!w.reducedMotion;
+  for(const section of L.dreamSections||[]){
+    if(x<section.x-REACH||x>section.x+section.length+REACH)continue;
+    dreamVisual(section.key)?.animate?.(w,game,dt,section,ctx);
+  }
 }
 
-// The dream's own platform kinds (dome, fold, sink, conveyor decks, breathing
-// walls…) are built by dream-views.js; anything it declines falls through to
-// the ordinary per-kind views in world.js.
-export function dreamPlatformView(w,s,g){return createDreamView(w,s,g)||null;}
+// A platform's view in the dream. The section's module is asked first
+// (deck()); then the dream's own kinds (dome, fold, sink, conveyor decks,
+// breathing walls…) are built by dream-views.js; anything both decline falls
+// through to the ordinary per-kind views in world.js. A view a module returns
+// gets the checkpoint flag and the goal bell if it left them out, so a
+// section author never has to think about either.
+export function dreamPlatformView(w,s,g){
+  const {section,visual}=visualAt(w.currentLevel,s.x);
+  if(visual?.deck){
+    const view=visual.deck(w,s,g,section);
+    if(view){
+      if(s.checkpoint&&!g.getObjectByName('Checkpoint flag'))w.flag(s.checkpoint-s.x,.08,g,.83,s.id);
+      if(s.goal&&!g.getObjectByName('Chapter goal'))w.makeBell(g,s.bellX??s.w-3,.1);
+      return {ropes:[],bounce:0,...view,root:view.root||g};
+    }
+  }
+  return createDreamView(w,s,g)||null;
+}
