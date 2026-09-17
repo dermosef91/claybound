@@ -241,8 +241,11 @@ export default {
       const near=Math.abs(f.group.getWorldPosition(scratch).x-ctx.playerX)<11;
       f.lidK=still?(near?1:0):ease(f.lidK,near?1:0,dt,2.5);f.lid.position.y=3+f.lidK*2.1*f.scale;
     }
+    // Crumble views that have streamed out are dropped here, so a long session
+    // of rebuilds never grows the list.
+    if(w.knotCrumbles)w.knotCrumbles=w.knotCrumbles.filter(c=>c.root.parent);
     for(const c of w.knotCrumbles||[]){
-      if(!c.root.parent)continue;const s=game.level.platforms.find(q=>q.id===c.id);
+      const s=game.level.platforms.find(q=>q.id===c.id);
       const k=s?.timer>0&&!still?Math.min(1,s.timer/(s.delay??.62)):0;
       c.root.rotation.z=Math.sin(game.time*38)*.035*k;c.root.position.y=s?s.y+Math.sin(game.time*52)*.03*k:c.root.position.y;
     }
