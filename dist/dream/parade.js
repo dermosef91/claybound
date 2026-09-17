@@ -133,8 +133,8 @@ function flowerHead(w,s,g){
 // --- the hat-worm's plinth and hats ---------------------------------------------------
 // The violet coil is the station's own clay view. Under it stands a cream
 // plinth (the bridge rests on its top once pulled), and on it a stack of five
-// hats that tumble off one by one as the pull passes .3 / .5 / .7 / .85 / 1 —
-// visual keyframes only, landing along the stretched worm's back.
+// hats that tumble off one by one as the pull passes .25 / .45 / .62 / .78 / .9
+// — visual keyframes only, landing along the stretched worm's back.
 function plinth(w,parent){
   const cream=slot(w,'top');
   w.box(2.2,9.4,2,cream,parent,0,3.1,0,.5).name='Plinth';
@@ -150,22 +150,20 @@ function hats(w,parent,worm){
     if(i===2)w.cylinder(.52,.1,slot(w,'accent'),hat,0,.2,0).name='Hat band';
     // Stack pose (local to the prop at the coil's top) and where it lands: on
     // the bridge's back edge, spaced along it, one full turn in the air and
-    // settling almost upright at a random tilt.
-    list.push({hat,at:[0,i*.62,0],to:[1.6+i*1.55,worm.shape.to.y-worm.shape.from.y+.1,-.9],spin:Math.PI*2+(rand(i*13+3)-.5)*.9,threshold:[.3,.5,.7,.85,.99][i],t:0});
+    // settling almost upright at a random tilt. Each tumble is a pure function
+    // of the pull's progress — from its threshold over the next tenth — so a
+    // restore, a paused frame or a replay shows the same hats in the same place.
+    list.push({hat,at:[0,i*.62,0],to:[1.6+i*1.55,worm.shape.to.y-worm.shape.from.y+.1,-.9],spin:Math.PI*2+(rand(i*13+3)-.5)*.9,threshold:[.25,.45,.62,.78,.9][i]});
   }
-  let first=true;
-  register(w,parent,(game,dt,ctx)=>{
-    const station=(game.level.shaping||[]).find(st=>st.id==='parade-worm'),amount=station?.amount??0;
+  const pose=amount=>{
     for(const h of list){
-      const falling=amount>=h.threshold;
-      if(first)h.t=falling?1:0;
-      h.t=ctx.reducedMotion?(falling?1:0):clamp(h.t+(falling?dt/1.1:-dt/.4),0,1);
-      const k=smooth(h.t),arc=Math.sin(k*Math.PI)*1.4;
+      const k=smooth((amount-h.threshold)/.1),arc=Math.sin(k*Math.PI)*1.4;
       h.hat.position.set(h.at[0]+(h.to[0]-h.at[0])*k,h.at[1]+(h.to[1]-h.at[1])*k+arc,h.at[2]+(h.to[2]-h.at[2])*k);
       h.hat.rotation.z=-h.spin*k;
     }
-    first=false;
-  });
+  };
+  pose(0);
+  register(w,parent,game=>pose((game.level.shaping||[]).find(st=>st.id==='parade-worm')?.amount??0));
 }
 
 // --- the caterpillar ----------------------------------------------------------------
