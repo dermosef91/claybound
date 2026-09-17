@@ -111,16 +111,18 @@ export default {
      solution:[{x:82,lift:0,dx:6.5,dy:-3.8,t:1.9},{x:87.5,lift:0,dx:6.9,dy:-.6,t:1.8},{x:93.2,lift:0,dx:1.2,dy:.4,t:.7}],
      hint:'A fat violet bulb blocks the bed. Grab it and drag it right and down: lean it over into a ramp along the bed. Clay is ground; the pink slime under it is not. Or face it and hold E to work it into steps. Step off and press R to soften it.'}
   ],
-  // The familiar world, then the arch's centre tips it into candy: purple
-  // bodies under lime frosting, then hotter and stranger, and by the bed a
-  // violet that hands over to the Folding Path's ultramarine and lemon.
-  // (`backdrop` is drawn emissive, so it reads about twice as bright as
-  // written: a deep salmon shows as the painting's far rock.)
+  // The familiar world — terracotta under lime frosting, salmon pillars —
+  // already stands under a peach evening sky that hazes to pink at the
+  // horizon (the redesign boards); the arch's centre tips it into candy:
+  // purple bodies under lime frosting, then hotter and stranger, and by the
+  // bed a violet that hands over to the Folding Path's ultramarine and lemon.
+  // `sky` is the gradient's top and `fog` its horizon band (dream.js), so the
+  // four entries stay in one peach→pink family and the sky never snaps.
   palettes:[
-    {x:0,main:'#d9713f',secondary:'#6db34d',backdrop:'#c8785e',accent:'#f26d8c',sky:'#7fa8e8',fog:'#f2c7d6'},
-    {x:42.75,main:'#8a3f9e',secondary:'#c9ef5a',backdrop:'#a97fc9',accent:'#f27ab8',sky:'#f2b8a0',fog:'#f3c0d8'},
-    {x:62,main:'#7a2f9e',secondary:'#d4f542',backdrop:'#9a70c4',accent:'#ff6fc2',sky:'#f7a98e',fog:'#f6b7d6'},
-    {x:88,main:'#5a3ab8',secondary:'#e2f25c',backdrop:'#a893cf',accent:'#f75fb6',sky:'#d9a9c9',fog:'#f2c0d6'}
+    {x:0,main:'#e07a3c',secondary:'#93c957',backdrop:'#e39a86',accent:'#ec6f9d',sky:'#f6c6a6',fog:'#f3bfc8'},
+    {x:42.75,main:'#8a3f9e',secondary:'#c9ef5a',backdrop:'#b98ad4',accent:'#f27ab8',sky:'#f4b4a3',fog:'#f0b9d3'},
+    {x:62,main:'#7a2f9e',secondary:'#d4f542',backdrop:'#a97cca',accent:'#ff6fc2',sky:'#f5a793',fog:'#f3b5d6'},
+    {x:88,main:'#5a3ab8',secondary:'#e2f25c',backdrop:'#b09bd6',accent:'#f75fb6',sky:'#dfa9c9',fog:'#f0bcd8'}
   ],
   camera:[],guides:[]
 };

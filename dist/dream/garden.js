@@ -414,6 +414,10 @@ export default {
   // most of a colour by z −40, so the rock stands at z −25 where a third of
   // it is haze, and only the clouds sit deeper.
   quietBackdrop:true,
+  // The far scenery is drawn through the backdrop blur (citadel-depth.js) at
+  // this texel radius, so the pillars read as a set photographed with a
+  // short depth of field while the decks stay crisp.
+  softBackdrop:1.3,
   backdrop(w,L,section,layers){
     const far=layers.at(.22),sky=layers.at(.1),mid=layers.at(.3);
     const x0=section.x;
