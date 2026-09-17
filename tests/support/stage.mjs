@@ -27,6 +27,7 @@ import {attachForest} from '../load-forest.mjs';
 import {attachGrotto} from '../load-grotto.mjs';
 import {attachDrifter} from '../load-drifter.mjs';
 import {attachClay} from '../load-clay.mjs';
+import {attachDream} from '../load-dream.mjs';
 import {attachSpitter} from '../load-spitter.mjs';
 
 const asset=name=>new URL('../../dist/assets/'+name,import.meta.url);
@@ -58,6 +59,7 @@ export async function sceneStage(){
   await attachDrifter(w);
   prepareSporeAsset(w,await readGLB(asset('spore-puff.glb')));
   await attachClay(w);
+  await attachDream(w);
   for(const pose of ['idle','cast','friendly'])prepareMotherPuff(w,pose,await readGLB(asset(`mother-puff-${pose}.glb`)));
   await attachSpitter(w);
   prepareTitleMesa(w,await readGLB(asset('title/cactus-mesa.glb')));

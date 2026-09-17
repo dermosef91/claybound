@@ -13,6 +13,8 @@ The current blockout art is in `dist/setpieces.js`. These models replace visible
 
 Every creature, statue and piece of furniture in the dream ships as a sculpted clay stand-in built in `dist/dream/*.js`; the collision is always the platform data, so a supplied model only replaces what is seen. All of these are nice-to-have. Colours live in the chapter's palette slots, so supply neutral (cream) albedo where a colour is not named and let the material do the rest; matte clay surfaces, rounded edges.
 
+**Supplied:** the Crooked Garden's **watching flower** (`clay+flower+model.glb`, a Tripo export: pink petals around a cream eyeball, green stem, two leaves, a root blob, 1 unit tall, no rig, no pupil) ships as `dist/assets/dream-flower.glb` via `scripts/prepare-dream-flower.py`. `dist/dream-assets.js` rigs it at load — the mesh is cut into head and stem so the head can turn, the eyeball is located on the head and a glossy pupil and a petal-pink lid are added — and the garden slides the pupil toward the player, turns the head, blinks the lid and leans the stem.
+
 | Asset | Used in | Shape and animation | Runtime fit |
 |---|---|---|---|
 | Hat-worm | The Melted Parade (statue and the `hatworm` creature) | A fat segmented worm wearing five stacked hats; hats as separate parts so they can tumble off | Creature about 1.4 wide × .85 tall, origin at the foot centre; statue any size (scaled by width). |

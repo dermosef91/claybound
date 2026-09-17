@@ -127,7 +127,7 @@ const SECTIONS=[
   {level:2,station:'kiln-tower',bypass:{from:'kiln-ledge',to:'kiln-tunnel',mode:'jump'},rideable:true},
   {level:2,station:'kiln-plug',bypass:{from:'kiln-tunnel',to:'kiln-run',mode:'jump'}},
   // The Soft Dream: one purple beat per section, and three strands in the knot.
-  {level:4,station:'garden-roll',bypass:{from:'garden-slab-2',to:'garden-mound',mode:'jump'}},
+  {level:4,station:'garden-bed',bypass:{from:'garden-dock',to:'garden-exit',mode:'jump'},form:true},
   {level:4,station:'folding-tongue',bypass:{from:'folding-entry',to:'folding-wall-bridge',mode:'jump'}},
   // The blob is walked onto flat before it is pulled up into a stair.
   {level:4,station:'orchard-blob',bypass:{from:'orchard-mid',to:'orchard-under',mode:'jump'},rideable:true,form:true},
