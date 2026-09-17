@@ -76,6 +76,20 @@ export function drip(w,parent,x,y,z,r,h,material,variant=0){
   const m=w.mesh(lathe(w,'dream-drip:'+(variant%2),DRIP,[0,.06][variant%2]),material,parent,x,y,z);
   m.scale.set(r,h,r);m.rotation.z=Math.PI;m.name='Drip';return m;
 }
+// A hanging leaf: widest just under where it is pinched onto a lip, pointed
+// at the tip, and flattened front-to-back so it reads as a blade rather than
+// a drip. `r` is its half-width, `h` its length below (x,y,z).
+const LEAF=[[.55,0],[.9,.12],[1,.28],[.86,.5],[.6,.7],[.3,.87],[0,1]];
+export function leaf(w,parent,x,y,z,r,h,material,variant=0){
+  const m=w.mesh(lathe(w,'dream-leaf:'+(variant%2),LEAF,[0,.05][variant%2]),material,parent,x,y,z);
+  m.scale.set(r,h,r*.42);m.rotation.z=Math.PI;m.name='Leaf';return m;
+}
+// A mushroom's stem, unit high: a flared foot, a slight waist, a little wider
+// again under the cap. Scale (r, height, r).
+const STEM=[[.62,0],[.55,.12],[.44,.4],[.4,.72],[.48,.95],[.5,1]];
+export const stem=w=>lathe(w,'dream-stem',STEM,0,18);
+// A cap's rolled rim: a unit torus, sculpted, to lie flat under a cap's edge.
+export const rim=w=>clayShape(w,'dream-rim',()=>sculptClay(w,new THREE.TorusGeometry(1,.14,8,30),{amplitude:.02}));
 // An upper hemisphere of radius 1: an eyelid hinged at the eye's centre, so
 // rotation.x swings it from behind the eye (-π/2, open) over the top to the
 // front (+π/2, shut).

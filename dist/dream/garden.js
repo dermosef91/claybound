@@ -1,5 +1,5 @@
 import * as THREE from '../lib/three.module.js';
-import {sectionDecks,deck,lean,slot,rand,fixedMaterial,cone,drip,lid,attached} from './support.js';
+import {sectionDecks,deck,lean,slot,rand,fixedMaterial,cone,drip,leaf,stem,rim,lid,attached} from './support.js';
 import {clayShape,sculptClay} from '../clay.js';
 import {createCrumble} from '../crumble.js';
 import {dreamFlower} from '../dream-assets.js';
@@ -53,6 +53,9 @@ const violet=w=>fixedMaterial(w,'gardenViolet',0x8e6cc2,{depth:.06});
 const moss=w=>fixedMaterial(w,'gardenMoss',0x9dd061,{depth:.05});
 const bead=w=>fixedMaterial(w,'gardenBead',0xf3a3c9,{depth:.04});
 const farLilac=w=>fixedMaterial(w,'gardenFarLilac',0xc9a6d8,{depth:.02});
+// The mushrooms' cap: the boards' soft pink, kept apart from the accent the
+// flowers and berries use.
+const capPink=w=>fixedMaterial(w,'gardenCap',0xea8db7,{depth:.06});
 
 // --- where the arch stands -----------------------------------------------------------
 // The palette flips at the arch's centre, 3.75 into the arch deck; everything
@@ -143,15 +146,43 @@ function body(w,s,g,{weird=false}={}){
   if(s.id==='garden-dock'||s.id==='garden-exit')clayEye(w,g,width*.5,-1.55,1.62,.62,'terrain2',s.x*7);
 }
 
+// --- mushroom parts ------------------------------------------------------------------------
+// The boards' mushroom: a cream stem that flares at the foot, a flattened
+// cap whose rim rolls under onto a cream gill disc, and cream plates pressed
+// into the top. `cap` builds everything above the stem about (x,y), the cap's
+// centre, with radii rx/ry/rz; the plates ([dx,dz,r] in fractions of the
+// radii) sit on the ellipsoid's surface.
+const PLATES=[[-.42,.3,.2],[.35,.45,.16],[.15,-.4,.18],[-.05,.02,.13]];
+function cap(w,g,x,y,rx,ry,rz,material,dot,plates=PLATES){
+  w.ball(rx,ry,rz,material,g,x,y,0).name='Mushroom cap';
+  const roll=w.mesh(rim(w),material,g,x,y-ry*.45,0);roll.rotation.x=Math.PI/2;roll.scale.set(rx*.94,rz*.9,ry*1.2);roll.name='Mushroom rim';
+  w.ball(rx*.84,ry*.3,rz*.84,'cream',g,x,y-ry*.5,0).name='Mushroom gills';
+  for(const [dx,dz,r] of plates){
+    const yy=y+ry*Math.sqrt(Math.max(0,1-dx*dx-dz*dz))-.02;
+    w.ball(r,.06,r*.85,dot,g,x+dx*rx,yy,dz*rz).name='Mushroom plate';
+  }
+}
+// A stem of the given height from (x,y), leaning by `bend`; returns where its
+// top landed so the cap can sit on it.
+function mushroomStem(w,g,x,y,r,height,bend){
+  const st=w.mesh(stem(w),'cream',g,x,y,0);st.scale.set(r,height,r);st.rotation.z=bend;st.name='Mushroom stem';
+  return {x:x-Math.sin(bend)*height,y:y+Math.cos(bend)*height};
+}
+
 // --- deck dressings ----------------------------------------------------------------------
-// A floating pad before the arch: a slab of clay under a frosting cap, the
-// frosting run over its lip, like the flying steps of every other chapter.
+// A floating pad before the arch: a mushroom's cap lying in the air — its
+// flat top the walk plane, plates pressed into it, the rim rolled under, a
+// cream stalk stub hanging from its middle and green leaves pinched along
+// its lip. A box, not a dome, so a foot at the edge never floats.
 function floatPad(w,s,g){
   g.name='Garden floating pad · '+s.id;
-  w.box(s.w+.1,.42,2.6,'top',g,s.w/2,-.2,0,.16).name='Pad frosting';
-  w.box(s.w-.2,.9,2.3,'terrain',g,s.w/2,-.82,0,.22).name='Pad body';
-  for(let i=0;i<Math.ceil(s.w/.9);i++){const x=.4+i*.9;if(x>s.w-.3)continue;w.ball(.42,.15,.14,'top',g,x,-.34,1.2).name='Pad bead';}
-  for(let i=0;i<2;i++)drip(w,g,.7+rand(i*3+s.x)*(s.w-1.4),-.4,1.18,.18,.4+rand(i+s.x)*.4,'top',i);
+  const cx=s.w/2,pink=capPink(w);
+  w.box(s.w+.1,.5,2.4,pink,g,cx,-.25,0,.24).name='Pad cap';
+  const roll=w.mesh(rim(w),pink,g,cx,-.44,0);roll.rotation.x=Math.PI/2;roll.scale.set(cx+.02,1.16,.9);roll.name='Pad rim';
+  for(const [dx,dz,r] of PLATES)w.ball(r*1.1,.06,r*.95,'cream',g,cx+dx*(cx-.2),0,dz*.9).name='Pad plate';
+  drip(w,g,cx,-.5,0,.55,1.35,'cream',0);
+  for(let i=0;i<3;i++)leaf(w,g,.55+i*(s.w-1.1)/2,-.4,1.02,.24,.65+rand(i*3+s.x)*.3,'top',i);
+  leaf(w,g,cx+.6,-.4,-.95,.2,.55,'top',1);
   return {root:g};
 }
 // An eye pad: a lidded eyeball lying in the pool's air with its top at the
@@ -208,11 +239,9 @@ function snappingFlower(w,s,g){
 // bounce, so the cap dips when it fires.
 function mushroomSpring(w,s,g){
   g.name='Garden mushroom spring · '+s.id;
-  const cx=s.w/2,pre=familiar(w,s.x),cap=pre?'accent':'terrain',dot=pre?'cream':'gold';
-  w.cylinder(.42,1.3,'cream',g,cx,-.9,0).name='Mushroom stem';
-  w.ball(s.w*.56,.4,1,cap,g,cx,-.34,0).name='Mushroom cap';
-  w.ball(s.w*.42,.16,.8,'cream',g,cx,-.66,.05).name='Mushroom gills';
-  for(const [dx,dz,r] of [[-.42,.3,.16],[.3,.45,.13],[.18,-.4,.14]])w.ball(r,r*.5,r,dot,g,cx+dx,-.03,dz).name='Mushroom dot';
+  const cx=s.w/2,pre=familiar(w,s.x),capMat=pre?capPink(w):'terrain',dot=pre?'cream':'gold';
+  mushroomStem(w,g,cx,-1.7,.5,1.4,0);
+  cap(w,g,cx,-.4,s.w*.56,.4,1,capMat,dot);
   return {root:g};
 }
 // The arch's keystone: a chunky block where the two halves of the arch meet,
@@ -250,16 +279,15 @@ function flower(w,parent,{height,strength,seed}){
   watch(w,{gaze:f.gaze,lid:f.lid,head:f.head,pupil:f.pupil,seed});
   return f.root;
 }
-// A mushroom: cream stem, a squashed cap — pink with cream spots before the
-// arch, purple with yellow spots after — and, if asked, an eye in the cap.
+// A mushroom: a bent cream stem under a rolled cap — pink with cream plates
+// before the arch, purple with yellow after — and, if asked, an eye in the cap.
 function mushroom(w,parent,{size=1,eye=false,seed=0}){
   const g=lean(w,group(parent,'Garden mushroom'),{x:parent.position.x,y:parent.position.y,strength:.08});
   g.scale.setScalar(size);
-  const pre=familiar(w,parent.position.x),cap=pre?'accent':'terrain',dot=pre?'cream':'gold';
-  w.cylinder(.34,1.4,'cream',g,0,.7,0).name='Mushroom stem';
-  w.ball(1.05,.5,.95,cap,g,0,1.4,0).name='Mushroom cap';
-  for(const [dx,dz,r] of [[-.45,.35,.17],[.35,.5,.13],[.2,-.45,.15]])w.ball(r,r*.5,r,dot,g,dx,1.78,dz).name='Mushroom dot';
-  if(eye)clayEye(w,g,0,1.42,.8,.3,cap,seed);
+  const pre=familiar(w,parent.position.x),capMat=pre?capPink(w):'terrain',dot=pre?'cream':'gold';
+  const top=mushroomStem(w,g,0,0,.42,1.55,(rand(seed)-.5)*.18);
+  cap(w,g,top.x,top.y,1.1,.44,1,capMat,dot);
+  if(eye)clayEye(w,g,top.x,top.y+.02,.86,.3,capMat,seed);
   return g;
 }
 // A bush: three frosting-coloured balls with two berries.
@@ -344,10 +372,11 @@ function mound(w,g,size,seed){
   w.ball(size*.36,size*.2,size*.3,moss(w),g,flip*size*.1,size*.55,size*.25).name='Mound moss';
   w.ball(size*.15,size*.15,size*.13,bead(w),g,flip*size*.8,size*.32,size*.4).name='Mound bead';
 }
-function farMushroom(w,g,height,cap,stem,capMat,spots){
-  w.box(height*.16,height,height*.16,stem,g,0,height/2,0,height*.06).name='Far mushroom stem';
-  w.ball(cap,cap*.42,cap*.8,capMat,g,0,height,0).name='Far mushroom cap';
-  if(spots)for(const [dx,dz] of [[-.4,.3],[.35,.4],[.05,-.35]])w.ball(cap*.13,cap*.06,cap*.12,spots,g,dx*cap,height+cap*.36,dz*cap).name='Far mushroom spot';
+// A tall mushroom of the backdrop: the same stem and cap, the stem bent by
+// its seed, the plates sized to the cap.
+function farMushroom(w,g,height,capR,capMat,spots,seed=0){
+  const top=mushroomStem(w,g,0,0,height*.13,height,(rand(seed)-.5)*.14);
+  cap(w,g,top.x,top.y,capR,capR*.42,capR*.8,capMat,spots,PLATES.slice(0,3).map(([dx,dz,r])=>[dx,dz,r*capR*.8]));
 }
 function puffCloud(w,g,size){
   w.ball(size,size*.6,size*.7,cloud(w),g,0,0,0).name='Cloud';
@@ -402,7 +431,7 @@ export default {
     const shroom=(key,on,dx,size,eye=false)=>on&&list.push({key,x:on.x+dx,y:on.y,w:2.2*size,z:-1.1,make:(w,parent)=>mushroom(w,parent,{size,eye,seed:dx*3+size})});
     const shrub=(key,on,dx,size)=>on&&list.push({key,x:on.x+dx,y:on.y,w:2*size,z:-1.3,make:(w,parent)=>bush(w,parent,size)});
     // The familiar start: one big flower turns to watch the spawn.
-    bloom('flower-a',entry,3.5,3.6,.18,1);shrub('bush-a',entry,1.4,1);shroom('mushroom-a',entry,11,.6);
+    bloom('flower-a',entry,3.5,3.6,.18,1);shrub('bush-a',entry,1.4,1);shroom('mushroom-a',entry,7.6,.85);
     // The steps and the pads: a second flower, then a small third one.
     bloom('flower-b',step2,5,2.4,.2,2);shroom('mushroom-b',step2,1,.5);
     bloom('flower-c',float2,2.2,1.8,.22,3);
@@ -481,8 +510,7 @@ export default {
       pillar(w,layers.place(near,x0+dx,-3.5,-20),{width,height,seed:7+i});
       mound(w,layers.place(near,x0+dx-width*1.1,-3.2,-19),1.4+i*.3,i+5);
     }
-    for(const [dx,height,cap] of [[10,4.2,1.5],[40,4.6,1.7]])farMushroom(w,layers.place(far,x0+dx,-3.5,-23),height,cap,'back2','back','cream');
-    for(const [dx,height,cap] of [[5,2.2,.9],[29,2.6,1]])farMushroom(w,layers.place(far,x0+dx,-3.5,-28),height,cap,'back2','back','cream');
+    for(const [i,[dx,height,capR]] of [[10,4.2,1.5],[40,4.6,1.7]].entries())farMushroom(w,layers.place(far,x0+dx,-3.5,-23),height,capR,capPink(w),'cream',i+3);
     for(const [dx,y,len,tilt] of [[-6,5,.8,.04],[10,6.6,.62,-.05],[24,4.4,.9,.03],[38,6.2,.7,-.04],[50,5.4,.8,.05]]){
       const g=layers.place(sky,x0+dx,y,-38);
       const s=w.mesh(streak(w),cloud(w),g,0,0,0);s.scale.set(len,.36,.3);s.rotation.z=tilt;s.name='Sky swirl streak';
@@ -494,7 +522,7 @@ export default {
       w.dreamSwirls?.push({mesh:c,speed:(i%2?-1:1)*.14});
     }
     for(const [dx,y,width] of [[102,3.4,3.4],[118,4.6,2.8]])island(w,layers.place(mid,x0+dx,y,-30),width);
-    for(const [dx,height,cap] of [[94,5.4,1.9],[112,6.4,2.2]])farMushroom(w,layers.place(mid,x0+dx,-3.5,-31),height,cap,'terrain','terrain2','gold');
+    for(const [i,[dx,height,capR]] of [[94,5.4,1.9],[112,6.4,2.2]].entries())farMushroom(w,layers.place(mid,x0+dx,-3.5,-31),height,capR,'terrain','gold',i+11);
   },
 
   // Every eye aims its pupil at the player and blinks; the flowers turn their
