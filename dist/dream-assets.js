@@ -1,16 +1,22 @@
 import * as THREE from './lib/three.module.js';
+import {clone} from './lib/SkeletonUtils.js';
 import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel} from './clay.js';
+import {rigCaterpillar,snapshotRest,poseGiraffe,GIRAFFE_POSE,GIRAFFE_BONES,CATERPILLAR_HEAD} from './dream-rigs.js';
 
 // The Soft Dream's supplied models: the Upside-Down Orchard's two clay
 // planets, which stand in for the dome islands' spheres, its two frosted
-// saucer bowls, which hang from the canopy on the orchard's ropes, and the
-// Melted Parade's clay hat, stacked five high on the hat-worm's plinth. Loaded
-// once per World, kept across level rebuilds, cloned per placement — the same
-// shape as the forest's and the canyon's sets. The collision never comes from
-// here: a dome is still the arc in simulation.js, a saucer is still its deck's
-// flat top and the hats are scenery; these only replace what is seen.
-export const DREAM_FILES={mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb'};
+// saucer bowls, which hang from the canopy on the orchard's ropes, the Melted
+// Parade's clay hat — stacked five high on the hat-worm's plinth and three
+// high on every hatworm's head — the caterpillar that is the hatworm's body,
+// and the parade's giraffe. Loaded once per World, kept across level rebuilds,
+// cloned per placement — the same shape as the forest's and the canyon's
+// sets; the two creatures are skinned, so they clone through SkeletonUtils.
+// The collision never comes from here: a dome is still the arc in
+// simulation.js, a saucer is still its deck's flat top, the hatworm is still
+// HATWORM in dream-enemy-rules.js and the giraffe's decks are still the
+// level's ledges; these only replace what is seen.
+export const DREAM_FILES={mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb'};
 
 // Each planet's core orb in model space — the sphere the fruit and the leaf
 // sprouts are stuck onto — fitted over every vertex by a modal-radius
@@ -25,6 +31,10 @@ export const PLANET_ORBS={
 };
 
 export function prepareDreamAsset(w,key,gltf){
+  // The caterpillar is boned here, before the clay materials go on (they mark
+  // skinned meshes as never frustum-culled) and before the box is measured —
+  // at rest the skin reproduces the mesh, so the box is the upload's own.
+  if(key==='caterpillar')rigCaterpillar(gltf.scene);
   gltf.scene.updateMatrixWorld(true);
   const box=new THREE.Box3().setFromObject(gltf.scene,true),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
   if(!(size.x>0&&size.y>0&&size.z>0)||!DREAM_FILES[key])throw new Error('Invalid dream model: '+key);
@@ -78,3 +88,44 @@ export function dreamHat(w,parent,width){
 }
 // How tall a hat `width` across stands, foot to crown — what a stack steps by.
 export const dreamHatHeight=(w,width)=>{const a=asset(w,'hat');return width*a.size.y/a.size.x;};
+
+// A vertex-accurate box of a placed skinned model, in `frame`'s own space:
+// the skin is evaluated on the CPU, which is why this is for placement and
+// tests, never per frame.
+export function skinnedBox(model,frame=model){
+  model.updateMatrixWorld(true);
+  const inverse=frame.matrixWorld.clone().invert(),box=new THREE.Box3(),v=new THREE.Vector3();
+  model.traverse(o=>{
+    if(!o.isMesh)return;const count=o.geometry.attributes.position.count;
+    for(let i=0;i<count;i++)box.expandByPoint(o.getVertexPosition(i,v).applyMatrix4(o.matrixWorld).applyMatrix4(inverse));
+  });
+  return box;
+}
+
+// The caterpillar under `parent`, `length` long, its feet on the parent's
+// origin plane and centred on it — the hatworm's body. Cloned with its
+// skeleton, with the rest pose kept so the walk can be layered on each frame.
+export function dreamCaterpillar(w,parent,length){
+  const a=asset(w,'caterpillar'),root=new THREE.Group(),model=clone(a.scene),scale=length/a.size.x;
+  root.name='Dream caterpillar';model.name='Supplied clay caterpillar';
+  root.scale.setScalar(scale);model.position.set(-a.center.x,-a.box.min.y,-a.center.z);
+  root.add(model);parent.add(root);
+  return {root,model,scale,rest:snapshotRest(model),head:model.getObjectByName(CATERPILLAR_HEAD)};
+}
+// The giraffe under `parent`, posed for the parade (dream-rigs.js), scaled so
+// the surface of its back stands `backTop` above the parent's origin plane,
+// where its feet stand; its withers — the last spine bone, where the neck
+// leaves the body — at `withersX` along the parent's x. The rest pose kept is
+// the posed one, so the lean and the march are layered over the parade stance.
+export function dreamGiraffe(w,parent,{backTop,withersX=0}){
+  const a=asset(w,'giraffe'),root=new THREE.Group(),model=clone(a.scene),scale=backTop/GIRAFFE_POSE.backTop;
+  root.name='Dream giraffe';model.name='Supplied clay giraffe';
+  root.scale.setScalar(scale);root.add(model);parent.add(root);
+  const yaw=poseGiraffe(model),rest=snapshotRest(model);
+  const bone=name=>model.getObjectByName(name);
+  const bones={neck:GIRAFFE_BONES.neck.map(bone),hips:GIRAFFE_BONES.hips.map(bone),knees:GIRAFFE_BONES.knees.map(bone),head:bone(GIRAFFE_BONES.head),withers:bone(GIRAFFE_BONES.withers)};
+  const box=skinnedBox(model,root),withers=bones.withers.getWorldPosition(new THREE.Vector3()).applyMatrix4(root.matrixWorld.clone().invert());
+  model.position.set(withersX/scale-withers.x,-box.min.y,-(box.min.z+box.max.z)/2);
+  root.updateMatrixWorld(true);
+  return {root,model,scale,yaw,rest,bones};
+}

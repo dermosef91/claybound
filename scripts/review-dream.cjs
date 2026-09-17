@@ -44,6 +44,15 @@ const SPOTS={
  // camera raised to the stack of supplied hats on the coil's top (the play
  // camera leaves the stack above the frame), and the pulled bridge resting on
  // the plinth with the hats landed along its back.
+ // Beside the ground hatworm under the boots, then up the supplied giraffe:
+ // on its back with the second hatworm, on the collar at its neck, and a
+ // pulled-back look at the whole animal from its knee.
+ 'parade-boots':{x:314.5,y:0,ground:'parade-ground-1',ticks:120,creatures:true},
+ 'parade-back':{x:324.5,y:4,ground:'parade-back',ticks:120,creatures:true},
+ 'parade-neck':{x:329.8,y:6.2,ground:'parade-neck',ticks:120},
+ 'parade-giraffe':{x:319.8,y:2,ground:'parade-knee',cameraX:326.5,cameraY:4.6,ticks:120},
+ // 181 ticks lands the march (GIRAFFE_MARCH.rate 2.6) on a peak of the swing.
+ 'parade-awake':{x:329.8,y:6.2,ground:'parade-neck',cameraX:326.5,cameraY:4.6,ticks:181,shaped:['parade-worm']},
  'parade-worm':{x:332,y:8.2,ground:'parade-head',ticks:120},
  'parade-stack':{x:332,y:8.2,ground:'parade-head',cameraX:334.3,cameraY:13.5,ticks:120},
  'parade-pulled':{x:332,y:8.2,ground:'parade-head',ticks:120,shaped:['parade-worm']},
@@ -110,8 +119,11 @@ async function serve(){
    const info=await page.evaluate(async spot=>{
     const g=playtest.game,w=playtest.world;
     const {cameraTarget}=await import('./camera.js');
-    g.level.enemies.forEach(e=>{if(Math.abs(e.x-spot.x)<30){e.alive=false;}});
-    Object.assign(g.player,{x:spot.x,y:spot.y,vx:0,vy:0,facing:1,groundId:spot.ground||null,invuln:0});
+    // Creatures near the spot are cleared so the parked player is not hurt;
+    // a spot judging a creature keeps them (`creatures:true`) and parks the
+    // player invulnerable instead.
+    if(!spot.creatures)g.level.enemies.forEach(e=>{if(Math.abs(e.x-spot.x)<30){e.alive=false;}});
+    Object.assign(g.player,{x:spot.x,y:spot.y,vx:0,vy:0,facing:1,groundId:spot.ground||null,invuln:spot.creatures?1e9:0});
     g.sectionId=Math.max(0,g.level.sections.findLastIndex(s=>spot.x>=s.x));
     // Deterministic machinery: the same number of fixed steps from a fresh
     // chapter start puts every mover in the same place every run.
@@ -127,7 +139,7 @@ async function serve(){
       if(station.channel&&amount>=1){g.channels[station.channel]=100;g.latched[station.channel]=true;}
     }
     playtest.tick(spot.ticks||120);
-    Object.assign(g.player,{x:spot.x,y:spot.y,vx:0,vy:0,facing:1,groundId:spot.ground||null});
+    Object.assign(g.player,{x:spot.x,y:spot.y,vx:0,vy:0,facing:1,groundId:spot.ground||null,invuln:spot.creatures?1e9:0});
     w.syncVisible(g.level,spot.x,true);
     const target=cameraTarget(g.player,w.viewW,w.viewH,w.landscape);
     w.cameraAnchorY=g.player.y;w.cameraX=spot.cameraX??target.x;w.cameraY=spot.cameraY??target.y;w.lastPlayerX=spot.x;w.cameraLook=0;w.cameraFace=1;w.trauma=0;w.shake=0;
@@ -142,7 +154,8 @@ async function serve(){
     let lights=0,transparent=0,meshes=0;
     w.scene.traverse(o=>{if(o.isLight&&o.visible&&o.intensity>0)lights++;if(o.isMesh&&o.visible&&o.material?.transparent)transparent++;if(o.isMesh)meshes++;});
     const palette=w.dreamPalette?Object.fromEntries(Object.entries(w.dreamPalette).map(([k,c])=>[k,'#'+c.getHexString()])):null;
-    return {spot:spot.name,x:spot.x,cameraX:w.cameraX,cameraY:w.cameraY,viewW:w.viewW,viewH:w.viewH,roll:w.dreamRoll||0,palette,calls,triangles,geometries:info.memory.geometries,textures:info.memory.textures,programs:info.programs.length,frameMs:frames[30],frameMsP90:frames[54],lights,transparentMeshes:transparent,sceneMeshes:meshes};
+    const creatures=spot.creatures?g.level.enemies.filter(e=>Math.abs(e.x-spot.x)<30).map(e=>`${e.kind}@${e.x.toFixed(1)},${e.y}${e.alive?'':' dead'}${w.enemyViews?.get(e.id)?.model?' model':''}`):undefined;
+    return {spot:spot.name,x:spot.x,cameraX:w.cameraX,cameraY:w.cameraY,viewW:w.viewW,viewH:w.viewH,roll:w.dreamRoll||0,palette,calls,triangles,geometries:info.memory.geometries,textures:info.memory.textures,programs:info.programs.length,frameMs:frames[30],frameMsP90:frames[54],lights,transparentMeshes:transparent,sceneMeshes:meshes,creatures};
    },spot);
    await page.screenshot({path:path.join(out,spot.name+'.png')});
    results.push(info);

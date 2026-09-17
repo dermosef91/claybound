@@ -9,7 +9,14 @@ unchanged. That matters here more than elsewhere: PLANET_ORBS in dist/dream-asse
 was fitted on these vertices, so the manifest records each geometry buffer's digest
 and the triangle count, and tests/dream-models.mjs checks the shipped file against
 them. Sources absent from the given directory keep their existing manifest entry, so
-a single new upload can be prepared without re-encoding the others.
+a single new upload can be prepared without re-encoding the others. A source is looked
+for in the given directory and then in its parent: the parade's caterpillar and giraffe
+were uploaded to "new assets" itself, beside the chapter folder.
+
+The caterpillar ships unrigged, as it arrived; dist/dream-rigs.js builds its bones at
+load, so its geometry too stays byte-identical. The giraffe arrives rigged, and its
+joint, weight and inverse-bind buffers are geometry views like any other — copied
+unchanged, with the joint count recorded so a re-export cannot silently drop a bone.
 
 The hat is the one exception. hat.glb arrives at 324,212 triangles — thirty times a
 planet, and the parade stacks five of them — so it is decimated first with glTF
@@ -37,8 +44,15 @@ assets={
  'dream-planet-raspberry.glb':'colorful+planet+3d+model.glb',
  'dream-saucer-mint.glb':'colorful+clay+platform+1.glb',
  'dream-saucer-raspberry.glb':'colorful+clay+platform+2.glb',
- 'dream-hat.glb':'hat.glb'
+ 'dream-hat.glb':'hat.glb',
+ 'dream-caterpillar.glb':'caterpillar.glb',
+ 'dream-giraffe.glb':'giraffe.glb'
 }
+def locate(source):
+ """The upload, in the given directory or its parent; None when it is not in this upload."""
+ for base in [Path(sys.argv[1]),Path(sys.argv[1]).resolve().parent]:
+  if (base/source).exists():return base/source
+ return None
 # Models shipped from a decimated copy rather than the upload's own geometry.
 decimated={'dream-hat.glb':Path(sys.argv[2]) if len(sys.argv)>2 else None}
 adaptation={'dream-hat.glb':'glTF Transform 4.4.1 weld + simplify ratio=.025 error=.01; metallic-roughness map dropped'}
@@ -72,9 +86,10 @@ def drop_textures(doc,slot):
 manifestPath=root/'dist/assets/dream-assets.json'
 manifest=json.loads(manifestPath.read_text()) if manifestPath.exists() else {}
 for shipped,source in assets.items():
- if not (Path(sys.argv[1])/source).exists():
+ upload=locate(source)
+ if not upload:
   print(shipped,'unchanged; source not in this upload');continue
- original=(Path(sys.argv[1])/source).read_bytes()
+ original=upload.read_bytes()
  if shipped in decimated:
   if not decimated[shipped]:
    print(shipped,'skipped; pass the decimated GLB as the second argument to ship it');continue
@@ -106,5 +121,6 @@ for shipped,source in assets.items():
  (root/'dist/assets'/shipped).write_bytes(result)
  manifest[shipped]={'source':source,'sourceSha256':digest(original),'shippedSha256':digest(result),'sourceBytes':len(original),'shippedBytes':len(result),'textures':image_sizes,'triangles':triangles,'geometryBufferSha256':geometry,'geometryUnchanged':shipped not in decimated}
  if shipped in adaptation:manifest[shipped]['adaptation']=adaptation[shipped]
- print(shipped,f'{len(original):,} → {len(result):,} bytes; {triangles:,} triangles,','decimated' if shipped in decimated else 'geometry preserved')
+ if doc.get('skins'):manifest[shipped]['joints']=len(doc['skins'][0]['joints'])
+ print(shipped,f'{len(original):,} → {len(result):,} bytes; {triangles:,} triangles,','decimated' if shipped in decimated else 'geometry preserved',f"; {manifest[shipped]['joints']} joints" if 'joints' in manifest[shipped] else '')
 manifestPath.write_text(json.dumps(manifest,indent=2)+'\n')

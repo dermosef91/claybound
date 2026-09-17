@@ -1,6 +1,7 @@
 import * as THREE from '../lib/three.module.js';
 import {createDreamView} from '../dream-views.js';
-import {dreamHat,dreamHatHeight} from '../dream-assets.js';
+import {dreamHat,dreamHatHeight,dreamGiraffe} from '../dream-assets.js';
+import {restoreRest,rotateAbout,parentAxis,SIDE_AXIS} from '../dream-rigs.js';
 import {sectionDecks,deck,lean,slot,rand} from './support.js';
 // Section 5 — The Melted Parade. One idea: a parade frozen mid-step, cream
 // statues on an ultramarine parade ground, each with exactly one bubblegum
@@ -95,6 +96,12 @@ function boots(w,parent,x){
 // the torso on five straight legs, a collar on the neck, and a six-petal flower
 // for a head. Cream throughout; the flower's bubblegum face is its one detail
 // and it tilts toward the player (a leaner pivoting at the flower's centre).
+//
+// With the dream's models loaded the back deck carries the supplied giraffe
+// instead (giraffe(), below): the decks stay exactly where the level puts
+// them, and the model is scaled and posed under them — back under the back
+// deck, neck rising past its end through the collar, head under the head
+// deck. The knee stays sculpted, tucked under the tail as the sixth leg.
 function knee(w,s,g){
   g.name='Giraffe knee · '+s.id;const cream=slot(w,'top');
   w.ball(.92,.46,.82,cream,g,.8,-.46,0).name='Knee';
@@ -102,7 +109,54 @@ function knee(w,s,g){
   bar(w,g,[1.1,-.55,-.2],[2.9,.2,-.3],.34,cream).name='Thigh';
   return {root:g,ropes:[],bounce:0};
 }
+// Where the supplied giraffe's withers stand past the back deck's right end,
+// how far its head turns toward the player, and its marching cadence.
+export const GIRAFFE_WITHERS=1.4,GIRAFFE_LEAN=.12,GIRAFFE_MARCH={rate:2.6,hip:.3,knee:.4,from:.7};
+function giraffe(w,s,g){
+  g.name='Giraffe body · '+s.id;const cream=slot(w,'top');
+  // The saddle is the deck's own top: a cream slab over a cushion that
+  // follows the back down toward the rump and the flanks — the back is round
+  // and lower at its ends than at its ridge, and the walk plane is flat — with
+  // a bubblegum fringe at the slab's front lip for the statue's one detail.
+  // The cushion's top is the walk plane; the back's ridge sinks into it the
+  // way the plinth hats sink into each other.
+  w.box(s.w+.3,.4,2.6,cream,g,s.w/2,-.2,0,.16).name='Saddle';
+  w.ball(s.w/2-.1,.9,1,cream,g,s.w/2,-1,0).name='Saddle cushion';
+  w.box(s.w+.3,.14,.2,slot(w,'accent'),g,s.w/2,-.33,1.3,.05).name='Saddle fringe';
+  const rig=dreamGiraffe(w,g,{backTop:s.y,withersX:s.w+GIRAFFE_WITHERS});rig.root.position.set(0,-s.y,0);
+  // The world's side axis in each driven bone's parent frame, read off the
+  // posed rest once: every overlay below is a turn about it.
+  const axes=new Map();
+  for(const b of [...rig.bones.neck,...rig.bones.hips,...rig.bones.knees])axes.set(b,parentAxis(b,SIDE_AXIS,rig.model));
+  const at=new THREE.Vector3();let lean=0;
+  register(w,g,(game,dt,ctx)=>{
+    restoreRest(rig.rest);
+    // The neck turns toward the player as the flower head did — the same
+    // atan2(dx, 6) feel, eased at the same rate, held at rest under reduced
+    // motion — split evenly along its four bones.
+    const target=ctx.reducedMotion?0:Math.atan2(ctx.playerX-rig.bones.head.getWorldPosition(at).x,6)*GIRAFFE_LEAN;
+    lean=ctx.reducedMotion?target:lean+(target-lean)*(1-Math.exp(-dt*3));
+    for(const b of rig.bones.neck)rotateAbout(b,axes.get(b),-lean/rig.bones.neck.length);
+    // A breath at the base of the neck only; anything on the spine would move the feet.
+    if(!ctx.reducedMotion)rig.bones.neck[0].position.multiplyScalar(1+Math.sin(ctx.time*1.6)*.012);
+    // Woken by the hat-worm's pull, it marches on the spot: diagonal pairs of
+    // legs swing together and the knee bends on the forward swing. How awake
+    // it is follows the pull's progress over its last stretch — a pure
+    // function of the station, like the hats' tumble, so a restore, a paused
+    // frame or a replay show the same stance. The body never moves — the deck
+    // the player stands on is honest terrain.
+    const amount=(game.level.shaping||[]).find(st=>st.id==='parade-worm')?.amount??0;
+    const awake=ctx.reducedMotion?0:smooth((amount-GIRAFFE_MARCH.from)/(1-GIRAFFE_MARCH.from));
+    if(awake>0)rig.bones.hips.forEach((hip,i)=>{
+      const swing=Math.sin(ctx.time*GIRAFFE_MARCH.rate+(i<2?0:Math.PI))*awake;
+      rotateAbout(hip,axes.get(hip),swing*GIRAFFE_MARCH.hip);
+      rotateAbout(rig.bones.knees[i],axes.get(rig.bones.knees[i]),-Math.max(0,swing)*GIRAFFE_MARCH.knee);
+    });
+  });
+  return {root:g,ropes:[],bounce:0,giraffe:rig};
+}
 function torso(w,s,g){
+  if(w.dreamAssets?.giraffe)return giraffe(w,s,g);
   g.name='Giraffe body · '+s.id;const cream=slot(w,'top');
   w.box(s.w+.3,1.7,2.5,cream,g,s.w/2,-.85,0,.8).name='Torso';
   // Spots in the ground's own ultramarine, pressed flat on the flank.
@@ -116,12 +170,22 @@ function torso(w,s,g){
 }
 function collar(w,s,g){
   g.name='Giraffe neck · '+s.id;const cream=slot(w,'top');
-  bar(w,g,[-1.6,-2.5,-.3],[2.7,.6,-.3],.5,cream).name='Neck';
-  w.ball(.92,.48,.8,cream,g,.8,-.48,0).name='Collar';
+  // The supplied giraffe brings its own neck, which passes just right of this
+  // deck on its way up; the collar pad reaches over to ring it.
+  const model=!!w.dreamAssets?.giraffe;
+  if(!model)bar(w,g,[-1.6,-2.5,-.3],[2.7,.6,-.3],.5,cream).name='Neck';
+  (model?w.ball(1.5,.48,.9,cream,g,1.3,-.48,0):w.ball(.92,.48,.8,cream,g,.8,-.48,0)).name='Collar';
   return {root:g,ropes:[],bounce:0};
 }
 function flowerHead(w,s,g){
   g.name='Giraffe head · '+s.id;const cream=slot(w,'top');
+  if(w.dreamAssets?.giraffe){
+    // On the supplied head the deck is a bonnet: a cream pad with one
+    // bubblegum bead at its front lip. The neck under it does the leaning.
+    w.ball(1.35,.22,1,cream,g,1.2,-.1,0).name='Bonnet';
+    w.ball(.2,.16,.16,slot(w,'accent'),g,1.2,-.12,.95).name='Bonnet bead';
+    return {root:g,ropes:[],bounce:0};
+  }
   const face=lean(w,group(g,'Giraffe face',1.2,-1.3,0),{x:s.x+1.2,y:s.y,strength:.22});
   for(let i=0;i<6;i++){
     const a=i/6*Math.PI*2,p=w.ball(.68,.4,.3,cream,face,Math.cos(a)*1.05,Math.sin(a)*1.05,0);p.rotation.z=a;p.name='Petal';
