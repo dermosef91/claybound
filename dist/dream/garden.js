@@ -40,7 +40,8 @@ const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
 // shader allows, a soft sheen rather than gloss.
 const slime=w=>fixedMaterial(w,'gardenSlime',0xf05aa6,{roughness:.4,depth:.03});
 const slimeLight=w=>fixedMaterial(w,'gardenSlimeLight',0xf78ac0,{roughness:.4,depth:.03});
-const cloud=w=>fixedMaterial(w,'gardenCloud',0xf2a9c6,{depth:.05});
+const cloud=w=>fixedMaterial(w,'gardenCloud',0xf09fcb,{depth:.05});
+const cloudLilac=w=>fixedMaterial(w,'gardenCloudLilac',0xd4a4e6,{depth:.05});
 const peach=w=>fixedMaterial(w,'gardenPeach',0xf6b48f,{depth:.05});
 const falls=w=>fixedMaterial(w,'gardenFalls',0x8fd0f4,{roughness:.4,depth:.03});
 const petal=w=>fixedMaterial(w,'dreamPetal',0xe8598a,{depth:.06});
@@ -116,6 +117,22 @@ const scroll=w=>clayShape(w,'garden-scroll',()=>sculptClay(w,new THREE.TubeGeome
 const tendril=w=>clayShape(w,'garden-tendril',()=>sculptClay(w,new THREE.TubeGeometry(new Helix(.42,1.6,2.2),40,.09,6,false),{amplitude:.02}));
 const streak=w=>clayShape(w,'garden-streak',()=>sculptClay(w,new THREE.TubeGeometry(new Sine(14,1.1,1.25),48,.6,7,false),{amplitude:.03}));
 const coil=w=>clayShape(w,'garden-coil',()=>sculptClay(w,new THREE.TubeGeometry(new Spiral(.6,4.2,1.75),96,.62,8,false),{amplitude:.03}));
+// A ribbon cloud: a long wave of clay that hooks into a curl at its far end,
+// tapering toward both ends so the curl reads. TubeGeometry lays its rings
+// along the path at i/segments, so each ring is pulled toward its own centre
+// by the taper after the fact.
+const RIBBON=[[0,0],[3,.6],[6.5,-.2],[10,.5],[13,-.1],[15.2,.45],[16.5,-.2],[16.4,-1.05],[15.5,-1],[15.4,-.45]];
+const ribbon=w=>clayShape(w,'garden-ribbon',()=>{
+  const path=new THREE.CatmullRomCurve3(RIBBON.map(([x,y])=>new THREE.Vector3(x,y,0)),false,'centripetal',.6);
+  const segments=110,radial=9,geo=new THREE.TubeGeometry(path,segments,.5,radial,false),p=geo.attributes.position,centre=new THREE.Vector3();
+  for(let i=0;i<=segments;i++){
+    const t=i/segments,taper=.7+.5*Math.sin(Math.min(1,t/.85)*Math.PI)*(1-t*.35);
+    path.getPointAt(t,centre);
+    for(let j=0;j<=radial;j++){const k=i*(radial+1)+j;p.setXYZ(k,centre.x+(p.getX(k)-centre.x)*taper,centre.y+(p.getY(k)-centre.y)*taper,centre.z+(p.getZ(k)-centre.z)*taper);}
+  }
+  geo.computeVertexNormals();
+  return sculptClay(w,geo,{amplitude:.03});
+});
 
 // --- terrain -------------------------------------------------------------------------
 // The body every other chapter's decks are made of (environments.js's plain
@@ -389,10 +406,11 @@ function farMushroom(w,g,height,capR,capMat,spots,seed=0){
   const top=mushroomStem(w,g,0,0,height*.13,height,(rand(seed)-.5)*.14);
   cap(w,g,top.x,top.y,capR,capR*.42,capR*.8,capMat,spots,PLATES.slice(0,3).map(([dx,dz,r])=>[dx,dz,r*capR*.8]));
 }
-function puffCloud(w,g,size){
-  w.ball(size,size*.6,size*.7,cloud(w),g,0,0,0).name='Cloud';
-  w.ball(size*.7,size*.5,size*.6,cloud(w),g,-size*.8,-size*.08,.1).name='Cloud';
-  w.ball(size*.6,size*.42,size*.5,cloud(w),g,size*.85,-size*.12,-.1).name='Cloud';
+function puffCloud(w,g,size,material=cloud(w)){
+  w.ball(size,size*.62,size*.7,material,g,0,0,0).name='Cloud';
+  w.ball(size*.72,size*.5,size*.6,material,g,-size*.85,-size*.1,.1).name='Cloud';
+  w.ball(size*.62,size*.44,size*.5,material,g,size*.9,-size*.14,-.1).name='Cloud';
+  w.ball(size*.55,size*.4,size*.45,material,g,size*.3,size*.34,.15).name='Cloud';
 }
 // A floating island with a waterfall pouring off it: the fall widens as it
 // drops and breaks into foam at its lip and its foot.
@@ -540,11 +558,17 @@ export default {
       mound(w,layers.place(near,x0+dx-width*1.1,-3.2,-19),1.4+i*.3,i+5);
     }
     for(const [i,[dx,height,capR]] of [[10,4.2,1.5],[40,4.6,1.7]].entries())farMushroom(w,layers.place(far,x0+dx,-3.5,-23),height,capR,capPink(w),'cream',i+3);
-    for(const [dx,y,len,tilt] of [[-6,5,.8,.04],[10,6.6,.62,-.05],[24,4.4,.9,.03],[38,6.2,.7,-.04],[50,5.4,.8,.05]]){
-      const g=layers.place(sky,x0+dx,y,-38);
-      const s=w.mesh(streak(w),cloud(w),g,0,0,0);s.scale.set(len,.36,.3);s.rotation.z=tilt;s.name='Sky swirl streak';
+    // Ribbon clouds wind across the top of the view and hook into curls; puffy
+    // clouds in two pinks sit a little lower and deeper. A layer this far
+    // shows everything within 100 units, ten times closer together than in
+    // the world, so the clouds are spread over the whole chapter's width to
+    // stand seven or eight apart on screen.
+    const ribbons=layers.at(.12);
+    for(const [i,[dx,y,len,tilt]] of [[-44,5.9,.72,.05],[22,6.2,.62,-.04],[88,5.6,.75,.03]].entries()){
+      const g=layers.place(ribbons,x0+dx,y,-16);
+      const r=w.mesh(ribbon(w),i%2?cloudLilac(w):cloud(w),g,0,0,0);r.scale.set(len,.5,.36);r.rotation.z=tilt;if(i%2)r.rotation.y=Math.PI;r.name='Ribbon cloud';
     }
-    for(const [dx,y,size] of [[2,4,1.1],[30,6,.9],[46,4.6,1]])puffCloud(w,layers.place(sky,x0+dx,y,-38),size);
+    for(const [i,[dx,y,size]] of [[-30,3.4,1.3],[45,4.4,1.1],[120,3.8,1.2]].entries())puffCloud(w,layers.place(sky,x0+dx,y,-34),size,i%2?cloudLilac(w):cloud(w));
     for(const [i,[dx,y,size]] of [[96,7.2,.7],[110,5.6,.55],[124,8.2,.75]].entries()){
       const g=layers.place(mid,x0+dx,y,-34);
       const c=w.mesh(coil(w),i%2?peach(w):cloud(w),g,0,0,0);c.scale.set(size,size*.72,.4);c.name='Sky coil';
