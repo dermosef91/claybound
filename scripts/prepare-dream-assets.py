@@ -22,7 +22,8 @@ assets={
  'dream-planet-mint.glb':'colorful+clay+planet+3d+model.glb',
  'dream-planet-raspberry.glb':'colorful+planet+3d+model.glb',
  'dream-saucer-mint.glb':'colorful+clay+platform+1.glb',
- 'dream-saucer-raspberry.glb':'colorful+clay+platform+2.glb'
+ 'dream-saucer-raspberry.glb':'colorful+clay+platform+2.glb',
+ 'dream-sculpture.glb':'colorful+abstract+sculpture+3d+model.glb'
 }
 def pad(b,value=b'\0'):return b+value*((-len(b))%4)
 def digest(b):return hashlib.sha256(b).hexdigest()
