@@ -48,7 +48,7 @@ export default {
   detours:[path(['garden-mound',['garden-shroom','fall'],'garden-crown',['garden-mound','fall']])],
   recoveries:[],
   coins:[{x:15,y:2.4},{x:17,y:2.6},{x:22,y:3.4},{x:28,y:4.2},{x:30.5,y:5},{x:33,y:5.8},{x:45.5,y:7},{x:50.4,y:7.8},{x:55,y:7},{x:59.4,y:6.2},{x:37.6,y:10.2},{x:38.8,y:10.2}],
-  stamps:[{x:38.3,y:10.6}],
+  stamps:[{x:38.3,y:9.6}],
   // The lawn's hatworm keeps to the left two thirds of slab-2, so the kneading
   // spot at the roll's foot (station x 23.8 onward) is out of its reach: a
   // player — or the pilot — standing there holding E is never walked into.

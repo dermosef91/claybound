@@ -40,7 +40,7 @@ export default {
   detours:[path(['orchard-saucer-2','orchard-apple-perch',['orchard-saucer-2','fall']])],
   recoveries:[path(['orchard-far',['orchard-exit','fall']])],
   coins:[{x:11.5,y:4.2},{x:21,y:5.4},{x:27.5,y:6.8},{x:32.5,y:8},{x:40,y:5},{x:49,y:5.6},{x:56,y:10.6},{x:59.6,y:12.6},{x:65,y:12},{x:71.4,y:10.6}],
-  stamps:[{x:31.2,y:9.8}],
+  stamps:[{x:31.2,y:8.7}],
   // Three lemon apples that let go: over the first dome, over the root and over
   // the last crumbling apple — each ≥ 4.6 above the surface beneath, none over
   // a lift or the kneading stand.
