@@ -70,10 +70,20 @@ function door(w,parent,scale=1,leafMat='accent'){
   w.ball(.11,.11,.11,'gold',leaf,2*hw-.75,1.25,.16).name='Door knob';
   return g;
 }
-// A spilled puddle over a hazard band: one flat rounded slab enclosing the
-// shared spike row, its surface just under the band's kill line.
-function puddle(w,parent,width,mat){
-  const m=w.box(width+.6,1.3,2.7,mat,parent,width/2,.25,0,.3);m.name='Puddle';return m;
+// A spill over a hazard band: a run of overlapping flattened blobs — liquid
+// clay, lumpy and soft, nothing a foot could trust — whose tops meet the
+// band's kill line and swallow the shared spike row.
+function spill(w,parent,width,mat){
+  const step=2.1,count=Math.max(2,Math.ceil(width/step)),pitch=(width-1.2)/(count-1);
+  for(let i=0;i<count;i++){
+    const x=.6+i*pitch,bulge=.85+rand(i*7+width)*.2;
+    w.ball(1.55,bulge,1.5,mat,parent,x,.08,(i%2?-.2:.15)).name='Spill blob';
+  }
+}
+// The gingham: a flat cloth over the hazard, low enough that the pins come
+// through it — a floor you can see is not for standing on.
+function cloth(w,parent,width,mat){
+  const m=w.box(width+.6,.9,2.7,mat,parent,width/2,.05,0,.3);m.name='Cloth';return m;
 }
 // A pulled-out drawer as a ledge: the drawer's lip, a cream edge, a knob.
 function drawerLip(w,g,width,pieces=null){
@@ -221,6 +231,7 @@ function lamp(w,s,g){
   const v=createDreamView(w,s,g);
   if(!v)return null;
   const tea=-1.2-s.y,bottom=-s.w;
+  w.cylinder(s.w/2+.38,.16,slot(w,'top'),g,s.w/2,-s.w/2,0).name='Lamp brim';
   w.cylinder(.09,bottom-tea,'dark',g,s.w/2,(bottom+tea)/2,0).name='Lamp cord';
   w.cylinder(.3,.28,'dark',g,s.w/2,bottom-.1,0).name='Lamp socket';
   return v;
@@ -228,11 +239,12 @@ function lamp(w,s,g){
 function dollChair(w,s,g){
   const mat=slot(w,'accent','gold'),pieces=[];
   const part=(m,i)=>{pieces.push({mesh:m,rest:m.position.clone(),seed:i*13+s.x,layer:i>2?1:0});return m;};
-  part(w.box(s.w,.32,1.8,mat,g,s.w/2,-.16,0,.1),0).name='Doll seat';
+  part(w.box(s.w,.42,1.8,mat,g,s.w/2,-.21,0,.12),0).name='Doll seat';
   for(const [i,x]of [.3,s.w-.3].entries())part(w.box(.18,1.5,.18,mat,g,x,-1.05,-.2,.06),1+i).name='Doll chair leg';
   part(w.box(.2,1.5,.2,mat,g,s.w-.18,.75,-.55,.06),3).name='Doll chair post';
   part(w.box(.2,1.5,.2,mat,g,.18,.75,-.55,.06),4).name='Doll chair post';
   part(w.box(s.w-.1,.24,.22,mat,g,s.w/2,1.45,-.55,.06),5).name='Doll chair rail';
+  part(w.box(s.w-.4,.2,.18,mat,g,s.w/2,.8,-.55,.05),6).name='Doll chair slat';
   return view(g,{fracture:{pieces,crumbClock:0}});
 }
 function lip(w,s,g){drawerLip(w,g,s.w);return view(g);}
@@ -248,10 +260,11 @@ export default {
   // furniture-less décor — a window, a picture, a small far door, a skirting
   // board — in the backdrop slot, the right way up in pass 1, upside down in
   // pass 2, at a third of the size in pass 3, and a chest of drawers turned on
-  // end for the shaft. Nearly on the walk plane (factor .88) so it reads as the
-  // wall the furniture stands against, not a distant view.
+  // end for the shaft. Nearly on the walk plane (factor .93) and with no
+  // vertical follow, so it reads as the wall the furniture stands against and
+  // stays put when the camera climbs — a wall, not a sky.
   backdrop(w,L,section,layers){
-    const wall=layers.at(.88);
+    const wall=layers.at(.93,{heightFollow:0});
     const entry=deck(L,'room-entry');if(!entry)return;
     const at=(x,y,z=-9)=>layers.place(wall,x,y,z);
     const back=slot(w,'back'),top=slot(w,'top');
@@ -268,22 +281,22 @@ export default {
     const skirting=(x0,x1,y,flip)=>{const g=at((x0+x1)/2,y);g.name='Skirting';w.box(x1-x0,.5,.5,back,g,0,flip?-.25:.25,0,.1);};
     const X=x=>entry.x+x;
     // Pass 1 — the right way up.
-    window(X(5),3.2,1,false);picture(X(21.5),11.6,1);farDoor(X(11.5),-1.4,.6,false);skirting(X(8),X(28),-1.4,false);
+    window(X(5),1.0,1,false);picture(X(21.5),10.8,1);farDoor(X(11.5),-1.4,.6,false);skirting(X(8),X(28),-1.4,false);
     // Pass 2 — upside down: the ceiling is the floor.
-    window(X(41),12.6,1,true);picture(X(35),3.6,1);farDoor(X(52.5),16.2,.6,true);skirting(X(30),X(58),16.2,true);
+    window(X(41),11.6,1,true);picture(X(35),3.6,1);farDoor(X(52.5),16.2,.6,true);skirting(X(30),X(58),16.2,true);
     // Pass 3 — a third of the size, on the gingham.
     window(X(66),.4,.36,false);picture(X(72.5),2.6,.36);farDoor(X(80.5),-.9,.28,false);picture(X(88.2),6.8,.36);skirting(X(60),X(75.5),-.9,false);
     // Pass 4 — the chest of drawers turned on end: two columns of drawer
     // fronts up the shaft, glowing knobs.
     const shaft=at(X(106),-1,-9);shaft.name='Shaft of drawers';
     const knob=slot(w,'accent','gold');
-    for(let row=0;row<5;row++)for(const [i,cx]of [-7,5].entries()){
-      const width=i?12:9.5,y=row*5.6+2.8;
+    for(let row=0;row<5;row++)for(const [i,cx]of [-7,4].entries()){
+      const width=i?10.5:9.5,y=row*5.6+2.8;
       w.box(width,5.2,1.2,back,shaft,cx,y,0,.3).name='Drawer front';
       w.ball(.36,.36,.24,knob,shaft,cx+(row%2?1.6:-1.6),y-.2,.7).name='Drawer knob';
     }
     // Pass 1 again: the last door has the first door's window beside it.
-    window(X(117.5),3.2,1,false);
+    window(X(117.6),1.0,1,false);
   },
 
   // --- streamed props: doors, puddles, the cup, the ceiling, doll things, the mobile hub
@@ -295,14 +308,14 @@ export default {
     // Doors: the hut door at 1.5, then one per pass; the last is the hut door again.
     for(const [key,x,y]of [['door-1',X(1.5),0],['door-2',table.x+4,table.y],['door-3',l3.x+2,l3.y],['door-4',foot.x+1,foot.y],['door-5',exit.x+2,exit.y]])
       prop(key,x,y,3,0,(w,parent)=>door(w,parent,1));
-    // Puddles over the hazards: the drink, the tea, the gingham, the ink. The
-    // nails under the floorboards keep the shared spike row — they are nails.
+    // Spills over the hazards: the drink, the tea, the gingham, the ink. The
+    // nails under the floorboards keep the shared spike row bare — they are nails.
     const hazards=(L.hazards||[]).filter(h=>h.x>=section.x&&h.x<section.x+section.length).sort((a,b)=>a.x-b.x);
-    const mats=['accent','back',null,null,'back'];
+    const mats=['accent','terrain2',null,null,'terrain2'];
     hazards.forEach((h,i)=>{
       if(i===2){prop('gingham',h.x+h.w/2,h.y,h.w+1,0,(w,parent)=>gingham(w,parent,h.w));return;}
       if(!mats[i])return;
-      prop(`puddle-${i}`,h.x+h.w/2,h.y,h.w+1,0,(w,parent)=>{const g=group(parent,'Spill',-h.w/2,0,0);puddle(w,g,h.w,slot(w,mats[i]));});
+      prop(`spill-${i}`,h.x+h.w/2,h.y,h.w+1,0,(w,parent)=>{const g=group(parent,'Spill',-h.w/2,0,0);spill(w,g,h.w,slot(w,mats[i]));});
     });
     // Pass 1: the giant cup on the table.
     prop('cup',table.x+1.7,table.y,3,-1.3,(w,parent)=>teacup(w,parent,0,1.55));
@@ -350,9 +363,9 @@ export default {
 // the front face both read as checks. Built at the hazard's own position.
 function gingham(w,parent,width){
   const g=group(parent,'Gingham floor',-width/2,0,0);
-  puddle(w,g,width,slot(w,'top'));
+  cloth(w,g,width,slot(w,'top'));
   const stripe=slot(w,'accent','gold');
-  for(let x=1.1;x<width-.3;x+=2.2)w.box(.7,1.34,2.74,stripe,g,x,.25,0,.3).name='Gingham stripe';
-  for(const z of [-.9,0,.9])w.box(width+.62,.04,.7,stripe,g,width/2,.9,z,.02).name='Gingham cross stripe';
-  w.box(width+.62,.36,.04,stripe,g,width/2,.3,1.36,.02).name='Gingham front stripe';
+  for(let x=1.1;x<width-.3;x+=2.2)w.box(.7,.94,2.74,stripe,g,x,.05,0,.3).name='Gingham stripe';
+  for(const z of [-.9,0,.9])w.box(width+.62,.04,.7,stripe,g,width/2,.5,z,.02).name='Gingham cross stripe';
+  w.box(width+.62,.3,.04,stripe,g,width/2,.1,1.36,.02).name='Gingham front stripe';
 }
