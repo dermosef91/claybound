@@ -60,6 +60,7 @@ export const DECOR_KINDS={
   cloud:{label:'Cloud',icon:'layers-2',size:7,z:-17},
   cactus:{label:'Cactus',icon:'flower-2',size:1.75,z:-1.25,biomes:['desert']},
   'canyon-arch':{label:'Rock arch',icon:'landmark',size:12,z:-16,biomes:['desert']},
+  'purple-arch':{label:'Purple arch',icon:'mountain',size:20,z:-16,biomes:['desert']},
   summit:{label:'Summit',icon:'triangle',size:16,z:-22,biomes:['desert']},
   tent:{label:'Camp tent',icon:'tent',size:4,z:-1.25,biomes:['desert']},
   'cave-mouth':{label:'Cave mouth',icon:'view',size:5,z:-2.5,biomes:['desert']},

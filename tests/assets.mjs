@@ -7,6 +7,7 @@ import {prepareEnemyAsset,createEnemyView,animateEnemy} from '../dist/enemies.js
 import {prepareCastleAsset,castle} from '../dist/castle.js';
 import {prepareCottageAsset,cottageModel} from '../dist/cottage.js';
 import {prepareDreamAsset,dreamFlower} from '../dist/dream-assets.js';
+import {prepareCanyonAsset} from '../dist/canyon-assets.js';
 import {World} from '../dist/world.js';
 const url=name=>new URL('../dist/assets/'+name,import.meta.url),w={levelRoot:new THREE.Group()};
 const gltf=await readGLB(url('enemy.glb')),motion=JSON.parse(await readFile(url('enemy-motion.json')));
@@ -79,3 +80,27 @@ const pupil=bloom.pupil.getWorldPosition(new THREE.Vector3()),gaze=bloom.gaze.ge
 assert(pupil.z>gaze.z+.2,'the pupil sits on the front of the eyeball');
 assert.equal(bloom.lid.rotation.x,-Math.PI/2,'the lid starts open');
 console.log('PASS supplied watching flower: manifest hash, head/stem cut, eyeball fit, rigged placement');
+
+// The canyon's purple arch: the shipped file matches its manifest, the upload's
+// mesh arrives untouched, and the metallic-roughness map the chapter cannot use
+// is gone rather than orphaned — a dropped map has to leave its texture, image
+// and buffer view behind it, or the bytes ship anyway.
+const purpleInfo=JSON.parse(await readFile(url('canyon-purple-arch.json'))),purpleBytes=await readFile(url('canyon-purple-arch.glb'));
+assert.equal(createHash('sha256').update(purpleBytes).digest('hex'),purpleInfo.shippedSha256);
+assert.equal(purpleBytes.length,purpleInfo.shippedBytes);
+assert(purpleInfo.geometryUnchanged&&purpleInfo.geometryBufferSha256.length>0,'it ships the upload\'s own geometry');
+assert(purpleInfo.textures.length===2&&purpleInfo.textures.every(([x,y])=>x<=1024&&y<=1024),'colour and normal only, at 1024 or less');
+assert(purpleBytes.length<1400000,`the purple arch ships within the canyon scenery budget (${purpleBytes.length})`);
+const purpleGLB=await readGLB(url('canyon-purple-arch.glb'));
+let purpleMesh=null;purpleGLB.scene.traverse(o=>{if(o.isMesh&&!purpleMesh)purpleMesh=o;});
+assert.equal(purpleMesh.geometry.index.count/3,purpleInfo.triangles);
+assert.equal(purpleInfo.triangles,10317,'the sculpt is shipped undecimated');
+assert(purpleMesh.material.map&&purpleMesh.material.normalMap,'the clay relief and colour both have a map to read');
+assert(!purpleMesh.material.metalnessMap&&!purpleMesh.material.roughnessMap,'the map the matte clay cannot use is dropped');
+const purpleWorld={levelRoot:new THREE.Group()};
+prepareCanyonAsset(purpleWorld,'purpleArch',purpleGLB);
+const purple=purpleWorld.canyonAssets.purpleArch;
+assert(Math.abs(purple.width-1.772)<.01&&Math.abs(purple.height-.992)<.01,'the measured silhouette is the upload\'s own');
+assert(Math.abs(purple.base+.497)<.01,'its base is where the sculpt puts it, unstretched');
+for(const material of purpleWorld.assetMaterials)assert.equal(material.userData.clayOrangeSource,.99,'the orange source is the albedo\'s measured red');
+console.log('PASS supplied purple arch: manifest hash, undecimated mesh, dropped metallic map, measured bounds, orange source');

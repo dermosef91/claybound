@@ -54,6 +54,7 @@ const BUILDERS={
   cloud(w,g,size){cloudModel(w,g,0,size*.34,0,size);},
   cactus(w,g,size){canyonWide(w,'cactus',g,size);},
   'canyon-arch'(w,g,size){canyonWide(w,'arch',g,size);},
+  'purple-arch'(w,g,size){canyonWide(w,'purpleArch',g,size);},
   summit(w,g,size){canyonWide(w,'summit',g,size);},
   tent(w,g,size){canyonWide(w,'tent',g,size);},
   'cave-mouth'(w,g,size){canyonWide(w,'cave',g,size);},

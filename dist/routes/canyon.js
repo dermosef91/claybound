@@ -185,6 +185,15 @@ const L=makeRoom({
     {x:101.3,w:17.2,y:3},{x:126,w:2,y:3.25},{x:153,w:13,y:6.25},{x:243,w:20.25,y:19.75}
   ],
   shaping:[],
+  // The valley bottoms out at the pocket — the descent ends here and the climb
+  // to the summit starts — and what marks it is a formation standing behind the
+  // violet clay: wider than the mass itself, so the purple reads as running out
+  // from under it, set back at the backdrop's own depth so it belongs to the
+  // horizon rather than the route. Its base is the riverbed shelf's own top, so
+  // it stands on the floor of the valley rather than in front of it; layout 12
+  // raised that shelf from y .6 to y 3.5 and the arch came up with it. Scenery
+  // only — and, being a placement and not built geometry, the workshop's to move.
+  decor:[{kind:'purple-arch',x:110,y:3.5,size:20,z:-16}],
   hints:[
     {x:0,end:9,icon:'walk',title:'Move and jump',text:'A / D or arrows to move. Hold jump to leap.'},
     {x:46,end:55,icon:'sink',title:'Crumbling ledges',text:'Cracked ledges crumble. Keep moving — the riverbed below them bites.'},
