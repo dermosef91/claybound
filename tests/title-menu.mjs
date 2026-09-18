@@ -34,3 +34,14 @@ assert(!settingsMarkup(true,false,{characters:[CHARACTERS[0]],character:'clay',c
   'a single character offers no choice to make');
 assert(!settingsMarkup(true,false).includes('title-characters'));
 console.log('PASS settings character picker: hidden until unlocked, every option present, exactly one checked, absent when there is nothing to choose');
+
+// Stop motion is a switch beside Rumble, off unless the player turned it on.
+for(const stopMotion of [false,true]){
+  const markup=settingsMarkup(true,false,{stopMotion}),row=markup.match(/<button class="title-setting" data-action="settings-stopmotion"[\s\S]*?<\/button>/)?.[0];
+  assert(row,'the panel offers stop motion');
+  assert(row.includes('role="switch"')&&row.includes(`aria-checked="${stopMotion}"`),'as a switch showing the saved state');
+  assert(row.includes(stopMotion?'<strong>On</strong>':'<strong>Off</strong>'));
+  assert(row.includes('data-lucide="camera"'),'with a glyph from the committed subset');
+}
+assert(settingsMarkup(true,false).includes('data-action="settings-stopmotion" role="switch" aria-checked="false"'),'off by default');
+console.log('PASS settings stop motion: a switch beside rumble, off until chosen, showing the saved state');

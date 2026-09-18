@@ -4,6 +4,7 @@ import {clayModel} from './clay.js';
 import {assetURL} from './model-assets.js';
 import {animateFlowerCelebration} from './flower-celebration.js';
 import {CHARACTERS} from './characters.js';
+import {puppetStep,boilPuppet} from './stop-motion.js';
 
 const clamp=THREE.MathUtils.clamp;
 const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
@@ -208,7 +209,11 @@ export function animateHero(w,game,dt){
   // Remove last frame's procedural pose before the mixer evaluates its clips.
   if(c.flower?.basePose){for(const [bone,q] of c.flower.basePose)bone.quaternion.copy(q);c.flower.basePose=null;}
   // Normal locomotion keeps running; the reward clock drives only the arm/head overlay.
-  const step=paused?0:Math.min(dt,.05),air=!p.groundId;
+  // Every eased quantity below — the turn, the gait, the crossfades, the impact
+  // spring, the lean — takes this one step, so under stop motion the whole pose
+  // holds and cuts together rather than the clips stepping inside a body that
+  // still glides. The root's position is set from the simulation and stays smooth.
+  const step=paused?0:puppetStep(w.puppetClock,dt),air=!p.groundId;
   c.clock+=step;c.root.position.set(p.x,p.y,.48);c.lastVx=p.vx;
   c.turn=damp(c.turn,p.facing<0?Math.PI:0,26,step);c.root.rotation.y=c.turn;
   if(c.loaded){
@@ -253,6 +258,7 @@ export function animateHero(w,game,dt){
       action.setEffectiveWeight(c.weights[name]<.00001?0:c.weights[name]);
     }
     c.mixer.update(step);
+    if(!paused)boilPuppet(c.asset,w.puppetClock);
     // A small foot-anchored response complements, rather than distorts, the rig.
     c.springV+=(-IMPACT_K*c.spring-IMPACT_DAMP*c.springV)*step;c.spring+=c.springV*step;c.spring=clamp(c.spring,-IMPACT_LIMIT,IMPACT_LIMIT);
     const strength=w.reducedMotion?.25:1,windup=p.stompWindup>0?.07:0;

@@ -2,6 +2,7 @@ import * as THREE from './lib/three.module.js';
 import { RoundedBoxGeometry } from './lib/RoundedBoxGeometry.js';
 import {createHero,loadHero,detachHero,animateHero,heroEvent} from './hero.js';
 import {characterChoice} from './characters.js';
+import {createPuppetClock,tickPuppets} from './stop-motion.js';
 import {applyEnvironment,buildBackdrop,buildTerrain,animateEnvironment} from './environments.js';
 import {makeCitadelLift} from './citadel.js';
 import {makeMovingPlatform,movingPlatformMaterials} from './moving-platform.js';
@@ -97,9 +98,12 @@ function shakeNoise(seed,t){
 }
 
 export class World {
-  constructor(canvas,{onProgress,character}={}) {
+  constructor(canvas,{onProgress,character,stopMotion=false}={}) {
     this.canvas=canvas;this.time=0;this.cameraX=8.3;this.cameraY=3.4;this.particles=[];this.clouds=[];this.shake=0;this.trauma=0;this.cameraLook=0;
     this.reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // A player's choice, unlike reducedMotion: the settings panel flips it on a
+    // running world, and the clock it drives is shared by every puppet animator.
+    this.stopMotion=stopMotion;this.puppetClock=createPuppetClock();
     this.renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.65));
     this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -469,6 +473,8 @@ export class World {
     const heroDt=dt;
     if(game.status==='paused')dt=0;
     this.time+=dt;
+    // Once per frame, before any puppet reads it: the whole set exposes together.
+    tickPuppets(this,dt);
     const t=this.time,p=game.player,L=game.level;
     const edit=this.editorCamera;
     if(!edit&&L.boss&&this.canvas){
