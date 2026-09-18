@@ -1,7 +1,7 @@
 // Section 3 — The Upside-Down Orchard. Local x 0..75, ids prefixed orchard-.
 // ONE idea: the orchard grows down. A raspberry canopy hangs across the sky
 // with lemon apples (three of them are drips), saucers hang from it on ropes,
-// and the ground is a pair of mint spheres the player runs over. Under the
+// and the ground is a pair of clay planets hanging over open sky. Under the
 // canopy's great inverted tree a free mass of violet clay is the only way up:
 // pull a pillar out of it and hop the stair onto the hanging saucer.
 import {p,path} from '../../route-authoring.js';
@@ -49,7 +49,10 @@ export default {
     {kind:'drip',x:64.5,y:14.7,reach:1.2,period:4},
     {kind:'drip',x:71.4,y:13.2,reach:1.2,period:4}
   ],
-  hazards:[{x:8,w:29,y:-2.5},{x:44,w:13,y:0},{x:67,w:2,y:-2.5}],
+  // No nails under the domes and saucers: they hang over open sky, and a
+  // fall from them is the drop past -7 that kills everywhere. The mass keeps
+  // its bed of nails and the two-unit tail gap its own.
+  hazards:[{x:44,w:13,y:0},{x:67,w:2,y:-2.5}],
   hints:[
     {x:8,end:24,icon:'jump',title:'Round islands',text:'Run over the domes; jump from their sides, not their crowns.'},
     {x:37,end:58,icon:'knead',title:'Pull it up',text:STATION_HINT}

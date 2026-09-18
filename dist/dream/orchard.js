@@ -10,8 +10,8 @@ import {deck,slot,rand,fixedMaterial,lathe,drip} from './support.js';
 // the top of the world, and its harvest hangs under it — red apples, lime
 // pears and small bunches on dark stems and cream strings, green leaves
 // pushing out from under every piece; saucers hang from it on cream strings
-// knotted with an apple; the ground is a pair of clay planets in a lavender
-// pool and floating islands under lime icing, their mint bodies pressed with
+// knotted with an apple; the ground is a pair of clay planets hanging over
+// open sky and floating islands under lime icing, their mint bodies pressed with
 // pink, raspberry and lime; and the great tree grows the wrong way — roots
 // waving in the sky, a cream trunk hanging, the supplied iced-apple sculpture
 // for a crown at the bottom. The palette's four colours — mint (main), raspberry (secondary),
@@ -25,7 +25,7 @@ import {deck,slot,rand,fixedMaterial,lathe,drip} from './support.js';
 // the hanging ledges, as the supplied frosted bowls or a sculpted one), makes
 // the crumbling decks into apples that drop off their stalks, and builds the
 // great inverted tree on the trunk wall; props() lays the canopy, its leaves
-// and fruit and the pools; backdrop() puts the pink bullseye behind the tree,
+// and fruit; backdrop() puts the pink bullseye behind the tree,
 // lavender mounds with fruit on their crowns and apples hanging in from the
 // top of the lavender distance; animate() waves the roots and keeps the
 // swinging saucer's rope pointing at the canopy.
@@ -333,7 +333,7 @@ const PLANETS={'orchard-dome-1':'mint','orchard-dome-2':'raspberry'};
 // leaf sprout has to start clear of both the crown and the flank the route
 // lands on, or a rider stands in its leaves for the whole crossing. A quarter
 // turn clockwise tilts it like a planet's axis — top sprout up and to the
-// right, the other down into the pool — 45° from the crown and near 90° from
+// right, the other down into the sky below — 45° from the crown and near 90° from
 // the left flank the route arrives by. 0 would leave it upright as modelled.
 const PLANET_REST=-Math.PI/4;
 function dome(w,s,g){
@@ -366,14 +366,11 @@ export default {
   },
   // Scenery by WORLD x: the canopy (twelve supplied sculptures in six props,
   // each following the canopy curve — or, where the model is not loaded,
-  // twelve raspberry balls), the leaves and fruit under it and the lavender
-  // pool over the long hazard band (the two-unit tail gap keeps its bare nails).
+  // twelve raspberry balls) and the leaves and fruit under it. Nothing lies
+  // under the domes and saucers: they hang over open sky, and the lavender
+  // mounds of the backdrop are the only ground in sight.
   props(section,L){
     const entry=deck(L,'orchard-entry'),x0=entry?entry.x:section.x,list=[];
-    const pool=(key,localX,width)=>list.push({key,x:x0+localX+width/2,w:width+1,y:-2.3,z:-.25,make(w,parent){
-      w.box(width+.3,1.5,3.2,slot(w,'water','blueLight'),parent,0,0,0,.5).name='Orchard pool';
-    }});
-    pool('pool',8,29);
     // How low anything may hang at a local x: 2.6 over the highest deck within
     // reach of it — a dome's apex is its y; the formable mass counts the
     // pillar that can be pulled out of it.
