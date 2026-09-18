@@ -31,10 +31,12 @@ assert(game.player.x>s.x+s.w,'one walk carries all the way over the span');
 
 // Reverse across the curve, then jump from its middle without being snapped
 // back onto it. Also land from above onto both slopes and the central plank.
-const rightBank=game.level.platforms.find(p=>p.id==='arch-bridge-right');
+const rightBank=game.level.platforms
+  .filter(p=>p.kind!=='wall'&&p.x>=s.x+s.w-.05)
+  .reduce((best,p)=>p.x<best.x?p:best);
 Object.assign(game.player,{x:rightBank.x+rightBank.w*.5,y:rightBank.y,vx:0,vy:0,groundId:rightBank.id});
-for(let i=0;i<160&&game.player.groundId!=='arch-bridge-left';i++)game.tick(dt,{left:true});
-assert.equal(game.player.groundId,'arch-bridge-left');
+for(let i=0;i<260&&game.player.groundId!==bank.id;i++)game.tick(dt,{left:true});
+assert.equal(game.player.groundId,bank.id,'and back again, off the far bank onto the near one');
 for(const u of [.15,.5,.85]){
   const x=s.x+s.w*u;
   Object.assign(game.player,{x,y:surfaceAt(s,x)+1.8,vx:0,vy:-2,groundId:null});

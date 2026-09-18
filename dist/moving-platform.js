@@ -4,7 +4,7 @@ import {clayMaterial} from './clay.js';
 // One sculpted timber-and-rope assembly for the moving decks in every world.
 // All ornamental pieces move with the deck; only the upper rope can stretch
 // to a fixed ceiling. The top of the timber remains at the collision plane.
-function materials(w){
+export function movingPlatformMaterials(w){
   if(w.movingPlatformMaterials)return w.movingPlatformMaterials;
   w.assetMaterials??=new Set();
   const colors={wood:0xc6652c,grain:0x98431e,ridge:0xd9803d,strap:0x95532d,
@@ -42,7 +42,7 @@ function disk(w,g,x,y,z,r,depth,m,name){
   const mesh=w.ball(r,r,depth,m,g,x,y,z);mesh.name=name;return mesh;
 }
 
-function braid(w,g,x,start,end,z,k,m){
+export function braid(w,g,x,start,end,z,k,m){
   const rope=new THREE.Group();rope.name='Two twisted honey rope strands';rope.position.set(x,start,z);g.add(rope);
   const length=Math.max(.15,end-start),pitch=.43*k;
   for(let strand=0;strand<2;strand++){
@@ -51,14 +51,17 @@ function braid(w,g,x,start,end,z,k,m){
       const y=i/steps*length,angle=y/pitch*Math.PI*2+strand*Math.PI;
       points.push([Math.cos(angle)*.054*k,y,Math.sin(angle)*.054*k]);
     }
-    tube(w,rope,points,.061*k,strand?m.ropeShade:m.rope,'Spun clay rope',Math.min(640,steps),false,6);
+    // The cap is only ever reached by a rope far longer than a lift's: a
+    // sixty-unit ropeway cable lays a hundred turns, and sampling those at
+    // the old limit turned the lay of the rope into hash.
+    tube(w,rope,points,.061*k,strand?m.ropeShade:m.rope,'Spun clay rope',Math.min(1600,steps),false,6);
   }
   return rope;
 }
 
 export function makeMovingPlatform(w,s,g,{ceiling=null}={}){
   g.name='Star-bound timber moving platform';
-  const m=materials(w),k=Math.min(1.15,Math.max(.48,s.w/5.8)),h=.94*k,front=.79;
+  const m=movingPlatformMaterials(w),k=Math.min(1.15,Math.max(.48,s.w/5.8)),h=.94*k,front=.79;
   const beam=w.box(s.w,h,1.58,m.wood,g,s.w/2,-h/2,0,h*.43);beam.name='Rounded orange timber beam';
   // Flowing wood fibres wrap around two knots. Low relief keeps the surface
   // sculptural at close range without turning the board into striped planks.

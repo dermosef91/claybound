@@ -51,7 +51,11 @@ console.log('PASS cradle deck/axle transforms, visible opening grates, projectil
     }});assert.equal(triangles,10440);
     const rear=room.getObjectByName('Recessed sandstone wall with sky windows');assert(rear.material.bumpMap===w.clay.detail);
     assert(new THREE.Box3().setFromObject(rear,true).max.z<box.min.z,'recess never masks the supplied sculpted wall');
-    for(const id of ['arch-shelf','arch-balcony','arch-flower'])assert(w.platforms.get(id).root.getObjectByName('Sandstone ledge root'));
+    // Every thin ledge the arch holds, whichever ones it is authored with.
+    const entry=g.level.platforms.find(q=>q.id==='arch-entry'),roof=g.level.platforms.find(q=>q.id==='arch-roof');
+    const inside=g.level.platforms.filter(q=>q.kind==='ledge'&&q.x>entry.x&&q.x<roof.x+roof.w);
+    assert(inside.length>=2,'the arch holds ledges to dress');
+    for(const q of inside)assert(w.platforms.get(q.id)?.root.getObjectByName('Sandstone ledge root'),q.id+' is dressed as a sandstone ledge');
     return box;
   };
   const initial=inspect();assert.equal(JSON.stringify(g.level),original,'scenery leaves the authored physics and collectibles unchanged');

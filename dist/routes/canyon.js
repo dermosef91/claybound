@@ -15,10 +15,17 @@ const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,
 // the same set of rooms reprofiled around the riverbed, which is why the deck
 // ids, the widths and the pocket's own numbers are the ones they always were.
 //
+// Layout 11 is the workshop pass over that shape: the riverbed is floored with
+// spiked sandstone so the sinking run has a bottom you can see and must not
+// reach, the crumbling ledges are levelled into a line over it, the gondola is
+// given a long swing in place of a step, and the way into the arch is a
+// crumble and a stub onto a wider bridge rather than two narrow banks. The
+// flower in the arch moved onto the crumbling steps that reach it.
+//
 // Coordinates are authored final: there is no `makeRoom` seam here, because
 // nothing is being opened up inside a finished chapter.
 const L={
-  layoutVersion:10,
+  layoutVersion:11,
   name:'The Sunbaked Canyon',short:'Sunbaked Canyon',label:'Riverbed & ropeway',biome:'desert',
   intro:'Down off the plateau to the clay riverbed, then up the long wall to the ropeway.',
   sky:'#80afe0',fog:'#f1bba0',spawn:{x:1.5,y:13},end:354,previousDistance:1175,cameraY:2,
@@ -41,25 +48,35 @@ const L={
     p('arrival',18,6,11.2),
     p('notch',26,3.8,10.1,'ledge'),
     p('rope-cross',32,4,9.4,'lift',{moveX:1.1,period:5.2}),
-    p('lookout',38,5,8.5,'stone',{checkpoint:40,landmark:'arch',rest:true}),
-    // --- the sinking sandstone, carrying the descent to the floor -------------
+    p('lookout',38,5.5,8.5,'stone',{landmark:'arch'}),
+    // --- the sinking sandstone, and the floor it runs over --------------------
+    // The crumbling ledges hold one line across the valley; under them the
+    // riverbed is floored with sandstone and sown with spikes, so a missed
+    // ledge falls somewhere visible and fatal rather than into blank air.
     p('basin',46,7,7.6,'stone',{checkpoint:48,landmark:'sandwheel'}),
+    p('clay-3-copy-1',53,20,2.5,'stone',{spiked:true}),
     p('sand1',55,3.8,6.6,'crumble',{delay:1.2}),
-    p('sand2',61,3.6,5.6,'crumble',{delay:1}),
+    p('sand2',61,3.6,6,'crumble',{delay:1}),
     p('sand3',67,3.8,4.8,'crumble',{delay:.9}),
     p('sand-rest',73,5,4.2),
-    p('sand4',80,3.6,3.4,'crumble',{delay:1}),
-    p('sand5',86,3.8,2.8,'crumble',{delay:.9}),
-    // --- the riverbed: the pocket, moved down whole ---------------------------
-    // The block below is the Sandwright's Pocket exactly as it was authored,
-    // lowered eight units and carried to the valley floor. Every relationship
-    // inside it is preserved: the shelf fills the chasm to 2.15 below the dock,
-    // the spikes lie half a unit under the clay's base, and nothing here can be
-    // jumped. Bare sandstone kills and any clay at all is safe.
-    p('pocket-dock',92,9.3,2.75,'stone',{checkpoint:97,landmark:'sandwheel'}),
+    p('clay-3',78,13.75,2.25,'stone',{spiked:true}),
+    p('sand4',80,3.6,5.25,'crumble',{delay:1}),
+    p('sand5',86.5,3.8,5.75,'crumble',{delay:.9}),
+    // --- the riverbed: the pocket ---------------------------------------------
+    // One mass of clay on a sandstone shelf that fills the chasm, with spikes
+    // half a unit below the clay's base, so bare sandstone kills and any clay
+    // at all is safe. Since layout 11 the dock stands over the clay's rest
+    // surface, so the pocket is entered from above: the clump can be stepped
+    // onto, and what stops it being a way across is the pit between its
+    // towers, which is deeper than a hop out of it.
+    p('pocket-dock',92,9.3,6.25,'stone',{checkpoint:97,landmark:'sandwheel'}),
     p('pocket-floor',101.3,17.2,.6,'wall',{h:6.6}),
     part('pocket-clay',{x:101.3,w:17.2,y:2.75,h:2.15},{x:101.3,w:17.2,y:2.75,h:2.15},{station:'canyon-pocket',clayRole:'mass'}),
     p('pocket-landing',118.5,7.5,6.2,'stone',{checkpoint:122}),
+    // A spiked stub in the gap out of the pocket: the step across is a jump.
+    // `spiked` says the band on top of it is meant to be there, so the audit
+    // reads a deck sown with spikes as authored rather than as a mistake.
+    p('clay-4',126,2,3.25,'stone',{spiked:true}),
     // --- the climb begins, and with it the wind -------------------------------
     p('windwell',128,7,6.2,'stone',{checkpoint:130,landmark:'windmill',rest:true}),
     p('valve1',132,1.8,6.33,'switch',{channel:'wind-a',latch:true}),
@@ -67,8 +84,7 @@ const L={
     p('wind-crown',142,4,12,'ledge'),
     p('wind-turn',137.25,4.5,13.65,'ledge'),
     p('wind-exit',147,6,13.4),
-    p('wind-gondola',154,4,14.5,'lift',{moveX:1.15,moveY:.55,period:5}),
-    p('upstep',160,3.6,16,'ledge'),
+    p('wind-gondola',157.5,4,14,'lift',{moveX:4.25,moveY:1.25,period:7}),
     p('rest-bank',166,7.65,16.8,'stone',{checkpoint:168,rest:true}),
     // --- the sky-sand run, the steep middle of the wall -----------------------
     p('last-well',176,6,17.4,'stone',{landmark:'windmill'}),
@@ -77,47 +93,46 @@ const L={
     p('sky-lift',190,4,20.4,'lift',{moveY:1,period:5.2,phase:-.8}),
     p('sky2',197,4,23.8,'ledge'),
     p('sky-rest',203,5,24.4,'stone',{checkpoint:205}),
-    p('sky-sand',210,3.7,25.1,'crumble',{delay:1}),
-    p('sky-rope',216,4,25.9,'lift',{moveX:.7,moveY:.65,period:4.8}),
-    // --- the rope bridge into the arch, and the cave climb --------------------
-    // The bridge crossing now leads *into* the cave rather than out of it, so
-    // the arch is met at its mouth and climbed through to the roof. The cave
-    // shell follows `arch-entry` and `arch-roof` on its own (great-arch.js), so
-    // moving the pair up here brings the backdrop with them.
-    p('arch-bridge-left',221,1.1,25.4),
-    p('arch-drop',222.1,5.65,25.46,'bridge'),
-    p('arch-bridge-right',227.75,1.15,25.4),
+    p('sky-sand',210,3.25,25.1,'crumble',{delay:1}),
+    p('sky-sand-copy-1',215.75,3,26,'crumble',{delay:1}),
+    // --- the bridge into the arch, and the cave climb -------------------------
+    // The crossing leads *into* the arch's mouth rather than out of it, off a
+    // stub of sandstone. The cave shell follows `arch-entry` and `arch-roof` on
+    // its own (great-arch.js), so the pair carry the backdrop with them.
+    p('clay-5',221.25,2,26.5),
+    p('arch-drop',223.25,6.5,26.5,'bridge'),
     p('arch-entry',230,13,26.6,'stone',{checkpoint:236,landmark:'arch',rest:true}),
-    p('arch-shelf',245,4,27.8,'ledge'),
-    p('arch-lift',251,4,29.4,'lift',{moveY:2.2,period:5.8,phase:-1.57}),
-    p('arch-balcony',257,4,32.2,'ledge'),
+    p('arch-shelf',244.75,4,27.75,'ledge'),
+    p('clay-2-copy-1',250.75,2.5,29.25,'crumble'),
+    p('arch-lift',254.5,3.25,29.25,'lift',{moveY:2.2,period:5.8,phase:-1.57}),
+    p('arch-balcony',257.75,4,32.25,'ledge'),
     p('arch-roof',263,6,33.2),
     // --- the summit, and the ropeway down -------------------------------------
     // The trolley hangs off the summit's shoulder. It runs sixty units out and
     // twenty-four down, which is far past the fall the chapter would otherwise
     // allow — the ride is exempt while it carries someone, and the deck it sets
     // them on carries a flag of its own so the exemption has somewhere to land.
-    p('summit',272,9,34.6,'stone',{checkpoint:275,landmark:'arch',rest:true}),
+    p('summit',272,9,34.6,'stone',{checkpoint:276.5,landmark:'arch',rest:true}),
     p('zip-trolley',281.5,2.6,34.6,'zip',{travel:60,drop:24,duration:4.5}),
     p('bell-roof',342,15,10.2,'stone',{goal:true,timber:true,checkpoint:344,landmark:'bellgate'}),
-    // --- the three flower ledges ----------------------------------------------
-    p('basin-flower',61.5,3.2,3.1,'ledge',{optional:true}),
+    // --- the flower ledges, and the crumbling steps up to the last one --------
+    p('basin-flower',61.25,3.2,3.75,'ledge',{optional:true}),
     p('well-flower',133.25,3.2,15.4,'ledge',{optional:true}),
-    p('arch-flower',248.75,2.5,33.95,'ledge',{optional:true}),
-    p('clay-2',253.75,2.25,34.2,'crumble')
+    p('clay-2-copy-2',251,2.25,33,'crumble'),
+    p('clay-2',247,2.25,33.75,'crumble',{optional:true})
   ],
   route:['start','lift1','arrival','notch','rope-cross',['lookout','walk'],
     'basin','sand1','sand2','sand3','sand-rest','sand4','sand5',
     'pocket-dock','pocket-clay','pocket-landing',
-    'windwell',['valve1','walk'],'wind-step','wind-crown','wind-exit','wind-gondola','upstep','rest-bank',
-    'last-well',['valve2','walk'],'clay-1','sky-lift','sky2','sky-rest','sky-sand','sky-rope',
-    ['arch-bridge-left','fall'],['arch-drop','walk'],['arch-bridge-right','walk'],'arch-entry',
-    'arch-shelf','arch-lift','arch-balcony','arch-roof','summit',
+    'windwell',['valve1','walk'],'wind-step','wind-crown','wind-exit','wind-gondola','rest-bank',
+    'last-well',['valve2','walk'],'clay-1','sky-lift','sky2','sky-rest','sky-sand','sky-sand-copy-1',
+    'clay-5',['arch-drop','walk'],['arch-entry','walk'],
+    'arch-shelf','clay-2-copy-1','arch-lift','arch-balcony','arch-roof','summit',
     ['zip-trolley','board'],['bell-roof','ride']],
   detours:[
     path(['wind-crown','wind-turn','well-flower','wind-turn','wind-crown','wind-exit']),
     path(['sand2',['basin-flower','fall'],'sand3']),
-    path(['arch-balcony','clay-2','arch-flower','clay-2','arch-balcony','arch-roof'])
+    path(['arch-balcony','clay-2-copy-2','clay-2','clay-2-copy-2','arch-balcony','arch-roof'])
   ],
   recoveries:[],
   // Both wells stand on the climb. Nothing before the riverbed blows at all,
@@ -135,32 +150,33 @@ const L={
   ],
   coins:[
     {x:10.75,y:14},{x:14,y:13.5},{x:17.5,y:13},{x:28,y:11.4},{x:40.5,y:9.6},
-    ...row(56,7.7,2),...row(62,6.7,2),...row(68,5.9,2),...row(81,4.5,2),...row(87,3.9,2),
-    {x:94.25,y:4.2},...row(104.3,5.2,3,1.3),{x:116.5,y:8.3},{x:120.5,y:7.6},{x:123,y:7.6},
-    {x:129.25,y:7.3},{x:139,y:9.25},{x:140.5,y:11.35},{x:144.25,y:12.9},...row(155,15.9,2),
+    ...row(56,7.7,2),...row(62,7.1,2),...row(68,5.9,2),...row(81,6.35,2),...row(87.5,6.85,2),
+    {x:94.25,y:7.7},...row(104.3,5.2,3,1.3),{x:116.5,y:8.3},{x:120.5,y:7.6},{x:123,y:7.6},
+    {x:130,y:4.8},{x:139,y:9.25},{x:140.5,y:11.35},{x:144.25,y:12.9},...row(158.5,15.4,2),
     ...row(167.5,17.9,3),{x:185.75,y:19.5},...row(191.5,21.8,2),{x:198.75,y:24.9},{x:204,y:25.5},
-    ...row(223.5,26.6,3),...row(237,27.9,3),{x:252.5,y:30.6},{x:258.75,y:33.3},{x:265,y:34.3},
-    {x:274.5,y:35.7},...row(345,11.4,3,1.25)
+    {x:224.85,y:27.5},{x:226.85,y:27},{x:228.6,y:27.5},...row(237,27.9,3),
+    {x:255.25,y:30.45},{x:259.5,y:33.35},{x:265,y:34.3},{x:274.5,y:35.7},...row(345,11.4,3,1.25)
   ],
-  stamps:[{x:63.1,y:4.1},{x:134.85,y:16.4},{x:250,y:34.95}],
-  // The drifters keep to the roomy banks, as they did before: an arrival deck,
-  // a rest in the sinking run, a bank on the climb and the arch's roof. None of
-  // them stands over a flag, and no crossing depends on bouncing off one.
+  stamps:[{x:62.85,y:4.75},{x:134.85,y:16.4},{x:248,y:34.25}],
+  // The drifters keep to the roomy banks: an arrival deck, a rest in the
+  // sinking run, a bank on the climb and the arch's roof. None of them stands
+  // over a flag, and no crossing depends on bouncing off one.
   enemies:[
     {kind:'drifter',x:21,y:11.95,min:19.2,max:22.8,speed:.85,bob:.16,period:5.2,phase:0},
     {kind:'drifter',x:75.5,y:4.95,min:74,max:77,speed:.95,bob:.18,period:4.8,phase:1.1},
     {kind:'drifter',x:171.5,y:17.55,min:170.5,max:173,speed:.8,bob:.15,period:5.6,phase:1.5},
     {kind:'drifter',x:266,y:33.95,min:264.5,max:267.5,speed:1.05,bob:.2,period:4.5,phase:2.2}
   ],
-  // Spikes lie well under the line the route walks, in the gaps it jumps.
+  // Spikes lie under the line the route walks: on the riverbed floor, on the
+  // stub out of the pocket, and in the gaps the climb jumps.
   hazards:[
-    {x:10,w:8,y:8.6},{x:24,w:14,y:7},{x:51,w:50,y:.3},{x:101.3,w:17.2,y:.1},
-    {x:150,w:9,y:11.4},{x:186,w:20,y:15},{x:213,w:6,y:22},{x:246,w:16,y:25.4}
+    {x:10,w:8,y:2.5},{x:24,w:14,y:2.5},{x:43.25,w:2.75,y:.25},{x:53,w:38.75,y:2.5},
+    {x:101.3,w:17.2,y:.1},{x:126,w:2,y:3.25},{x:153,w:13,y:6.25},{x:243,w:20.25,y:19.75}
   ],
   shaping:[],
   hints:[
     {x:0,end:9,icon:'walk',title:'Move and jump',text:'A / D or arrows to move. Hold jump to leap.'},
-    {x:46,end:55,icon:'sink',title:'Crumbling ledges',text:'Cracked ledges crumble. Keep moving — they carry you down to the riverbed.'},
+    {x:46,end:55,icon:'sink',title:'Crumbling ledges',text:'Cracked ledges crumble. Keep moving — the riverbed below them bites.'},
     {x:128,end:136,icon:'updraft',title:'Activate wind',text:'Step on the valve. From here the wells blow, and the wind lifts your jumps.'},
     {x:272,end:284,icon:'bell',title:'Ride the ropeway',text:'Step onto the trolley. Your weight sends it down the cable to the bell.',
       touchText:'Step onto the trolley. Your weight sends it down the cable to the bell.'}
@@ -171,20 +187,26 @@ const L={
 // --- The Sandwright's Pocket ---------------------------------------------------
 // One mass of clay, formable the way the lab's lump is — no pose, only a surface
 // the hand drags where it likes — sitting free on a sandstone shelf that fills
-// the riverbed from its floor up to 2.15 below the dock. It rests as two towers
-// with a skim of clay over the pit between them: a spire flush with the dock's
-// end, a unit out of a jump's reach and a wall to walk into, and a lump against
-// the landing's cliff, cresting a unit above the landing. The shelf is sown with
-// spikes half a unit below the clay's base, so bare sandstone kills and any clay
-// at all is safe. Nothing here can be jumped; the pocket opens only once the
-// clay is worked, and any shape that carries the player counts.
+// the riverbed from its floor up to the clay's base. It rests as two towers with
+// a skim of clay over the pit between them: a spire at the dock's end, a lump
+// against the landing's cliff cresting a unit above the landing. The shelf is
+// sown with spikes half a unit below the clay's base, so bare sandstone kills
+// and any clay at all is safe.
+//
+// The dock overlooks the clay rather than meeting it, so the clump can be
+// stepped onto — the room is entered from above. That is not a way through:
+// the pit between the towers is deeper than a hop, the lump's crest is out of
+// reach from the floor of it, and a player who drops in works their way out
+// with the same hand or held E that opens the pocket in the first place. The
+// pocket still opens only once the clay is worked, and any shape that carries
+// the player counts.
 // A knot is placed by the world x it stands at, as a share of the mass's width.
 // Rounded, because the last knot sits exactly on the far end and the division
 // that puts it there lands a whisker past 1 in binary.
 const K=(x,top)=>[Math.round((x-101.3)/17.2*1e6)/1e6,top];
 L.shaping.push(
   {id:'canyon-pocket',rule:'form',free:true,relax:false,shaped:.24,icon:'knead',name:'Shape the pocket',verb:'Grab it and drag',gesture:'up',cueX:102.6,
-   parts:['pocket-clay'],x:92,end:126,spawn:{x:96,y:2.75,groundId:'pocket-dock'},
+   parts:['pocket-clay'],x:92,end:126,spawn:{x:96,y:6.25,groundId:'pocket-dock'},
    clump:[K(101.3,3.7),K(104,3.7),K(105.2,-1.8),K(111.8,-1.8),K(113,4.4),K(118.5,4.4)],
    solution:[{x:102.5,lift:0,dx:6.5,dy:-3,t:1.7},{x:115,lift:0,dx:-5.5,dy:-2.6,t:1.8}],
    hint:'Grab the violet clay and drag it: lean the spire into a bridge, slump the lump into a ramp, or shape your own way. Clay is ground; bare sand is not. Or face the clay and hold E to work it into steps. Step off and press R to soften it.'}
