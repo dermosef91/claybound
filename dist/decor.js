@@ -1,5 +1,5 @@
 import * as THREE from './lib/three.module.js';
-import {DECOR_KINDS,decorSize,placeDecor} from './decor-kinds.js';
+import {DECOR_KINDS,decorSize,placeDecor,backdropSize,backdropFactor,placeBackdrop} from './decor-kinds.js';
 import {clayTree,clayTorch} from './environments.js';
 import {canyonModel} from './canyon-assets.js';
 import {forestModel} from './forest.js';
@@ -80,6 +80,39 @@ const BUILDERS={
 };
 
 export const decorBuilders=()=>Object.keys(BUILDERS);
+// One layer per distinct depth, so an authored horizon costs a chapter as many
+// parallax entries as it has depths rather than as many as it has pieces. The
+// map is render state and resets with the rest of it in `applyEnvironment`.
+function backdropLayer(w,factor){
+  w.backdropLayers??=new Map();
+  const key=factor.toFixed(3);
+  let group=w.backdropLayers.get(key);
+  if(!group){
+    group=new THREE.Group();group.name='Authored backdrop '+key;
+    w.backRoot.add(group);
+    // `repeat` past any chapter's length is what keeps these singletons: the
+    // wrap in `animateEnvironment` rounds to zero and never copies them.
+    w.parallax.push({group,factor,heightFollow:1,repeat:1e6});
+    w.backdropLayers.set(key,group);
+  }
+  return group;
+}
+// Authored backdrop is built once with the chapter rather than streamed. A
+// piece at factor .17 is in frame for a hundred units of camera travel either
+// side, so a window drawn around its own x would pop it in and out in the
+// wrong places; and an authored horizon is a handful of objects, not a field.
+export function backdropView(w,item){
+  const spec=DECOR_KINDS[item.kind],root=new THREE.Group();
+  root.name='Backdrop: '+(spec?.label||item.kind);
+  placeBackdrop(root,item);
+  backdropLayer(w,backdropFactor(item)).add(root);
+  try{BUILDERS[item.kind]?.(w,root,backdropSize(item));}
+  catch(error){root.userData.decorError=error.message;}
+  // Every backdrop is behind everything a player can reach, so none of it pays
+  // for a shadow pass — the same rule decoration applies past z -8.
+  root.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
+  return root;
+}
 export function decorView(w,item){
   const spec=DECOR_KINDS[item.kind],root=new THREE.Group();
   root.name='Decoration: '+(spec?.label||item.kind);

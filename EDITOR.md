@@ -50,6 +50,22 @@ Every prop carries five properties beyond its position:
 
 The palette is per chapter, because a prop is one of the shapes the game already knows how to build and some of those belong to one biome's models. Seven shapes — boulders, pebbles, a rock shelf, a clay pot, a torch, a tree and a cloud — take the chapter's own palette and are offered everywhere; the canyon adds its arches, summits, cacti, tents and cave mouth, the Wildwood its mushrooms, blooms, crowns, groves and falls, Ember Caverns its crystals, amber mushrooms, moss and grotto rock, and the Hanging Quarter its cottages, laundry, doorways and the skyline castle.
 
+### The horizon
+
+**Add** offers the same shapes twice: once as props, and once under **On the horizon**. A horizon piece is the same catalogue entry standing in a parallax layer instead of the playfield, which is what lets a chapter's far scenery be authored rather than only grown in code.
+
+It carries one property decoration has no equivalent for:
+
+| Property | Meaning |
+| --- | --- |
+| Distance | How far away the piece is, from 0.05 in the far sky to 0.95 almost in the playfield. It decides how fast the piece crosses the frame and how long it stays in it |
+
+**Position X is the world x the piece is centred on.** That is the only number worth authoring, so it is the one stored: when the camera reaches that x, the piece is exactly there, and either side of it the piece drifts past at the rate its Distance sets. Everything else reads as it does for a prop, except that Depth reaches much further back — to sixty units, because the canyon's own far skyline stands at fifty-three and the caverns' veil at fifty-nine, and a list that could not reach them could not hold the scenery it exists to stand beside.
+
+Two things follow from a piece being genuinely far away, and both are the parallax rather than a rough edge. **A distant piece answers a drag slowly** — moving it one unit across the frame moves its authored x by one unit over its Distance, so the far sky needs a long drag. And its height follows the camera the way the rest of its layer does, so a piece is framed against the ground it was placed over rather than pinned to it.
+
+A horizon piece is built with its chapter instead of streamed, because at a low Distance it is in frame for a hundred units of travel either side and a window drawn around its own x would bring it in and out in the wrong places. Each Distance costs one parallax layer, however many pieces stand at it, and an authored piece never tiles — the repeating skyline fields the chapters grow are a separate thing, and they stay in code.
+
 **Decoration is scenery and nothing else.** It is never a collider, never a collectible, never a checkpoint and never reaches the simulation as anything a player can touch, so there is no way to make a chapter unplayable with it. A placement names one of the game's shapes rather than carrying geometry, and an unrecognised name is refused on import instead of being carried. A chapter with no decoration keeps the layout version it had, so adding this layer retires nobody's checkpoints; moving decoration afterwards does revise it.
 
 The top **Test** button starts at the chapter spawn. A selected platform offers **Test from this platform**. Both run the real platforming simulation, then **Back to editor** restores the unchanged draft, selection, undo history and camera. Test checkpoints and results do not update campaign progress or records. The jump guides also sample the real simulation with full running speed and jump held; they show the initial mechanism state, not a guarantee through every moving phase.
@@ -87,7 +103,8 @@ Arrows, duplicate, delete and undo work on a selected prop exactly as they work 
 
 ## Architecture and verification
 
-- `editor-model.js`: validated data, draft persistence, transformations, connection repair and bounded undo history.
+- `editor-model.js`: validated data, draft persistence, transformations, connection repair and bounded undo history. The horizon is a list of its own beside decoration, bounded and counted separately, and both stay outside the gameplay lists.
+- `decor-kinds.js` also holds the horizon's bounds and the small amount of parallax arithmetic the editor and the frame have to agree on: where a piece sits inside its layer, and where that puts it for a given camera.
 - `decor-kinds.js` / `decor.js`: the decoration and landmark catalogues as data with no renderer in them — including which chapters key scenery off a platform's id rather than its landmark's name, which `story-landmarks.js` reads from the same table — and the builders that turn a placement into geometry from the chapter's existing shapes and supplied models.
 - `editor.js`: touch/pointer/keyboard tools, inspector, overview, overlays and simulation-sampled jump guides.
 - `editor.css`: responsive desktop inspector and mobile bottom sheet, 44px touch targets and safe-area handling.

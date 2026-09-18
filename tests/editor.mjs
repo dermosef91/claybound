@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {LEVELS} from '../dist/levels.js';
 import {Game,FIXED_DT} from '../dist/simulation.js';
-import {DraftLibrary,DraftSession,validateDraft,selectedObject,DRAFT_KEY,KINDS,LISTS} from '../dist/editor-model.js';
-import {DECOR_KINDS,DECOR_LIMIT,decorPalette,LANDMARKS,landmarkAuthority,landmarkChoices,landmarkLabel,CAVE_STORY_ROLES} from '../dist/decor-kinds.js';
+import {DraftLibrary,DraftSession,validateDraft,selectedObject,DRAFT_KEY,KINDS,LISTS,BACKDROP} from '../dist/editor-model.js';
+import {DECOR_KINDS,DECOR_LIMIT,decorPalette,BACKDROP_BOUNDS,BACKDROP_LIMIT,BACKDROP_DEFAULT,backdropWorldX,LANDMARKS,landmarkAuthority,landmarkChoices,landmarkLabel,CAVE_STORY_ROLES} from '../dist/decor-kinds.js';
 import {jumpGuide} from '../dist/editor.js';
 const memory=new Map(),storage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)};
 const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
@@ -127,6 +127,42 @@ console.log('PASS physics jump guides, import boundaries, quota fallback, old-la
  const over=JSON.parse(library.export(0,s.level));over.level.decor=Array.from({length:DECOR_LIMIT+1},()=>({kind:'boulder',x:5,y:1}));
  assert.throws(()=>library.read(JSON.stringify(over),0),/maximum/);
  library.reset(0);
+}
+// The horizon is the same bargain as decoration, one number further out.
+{
+ const canonical=validateDraft(LEVELS[0],LEVELS[0]).layoutVersion,s=new DraftSession(library,0);
+ assert.deepEqual(s.level[BACKDROP],[],'a chapter with no authored horizon gets an empty list, not a missing one');
+ s.add('backdrop:canyon-arch',180,-4);
+ const piece=selectedObject(s.level,s.selection);
+ assert.equal(s.selection.list,BACKDROP,"the palette's horizon half adds to the horizon");
+ assert.equal(piece.kind,'canyon-arch');assert.equal(piece.z,BACKDROP_DEFAULT.z);assert.equal(piece.factor,BACKDROP_DEFAULT.factor);
+ assert.equal(piece.size,DECOR_KINDS['canyon-arch'].size);
+ assert.notEqual(s.level.layoutVersion,canonical,'an authored horizon is part of the chapter, so it revises the version');
+ // Distance belongs to the layer, so swapping the shape keeps it.
+ s.startChange();s.set('factor',.18);s.commit();
+ s.startChange();s.set('kind','summit');s.commit();
+ assert.equal(s.level[BACKDROP][0].factor,.18,'a distance the author set survives a change of shape');
+ assert.equal(s.level[BACKDROP][0].size,DECOR_KINDS.summit.size,'but an untouched width follows the new shape');
+ // Where the editor will draw it, and where the frame will put it, agree.
+ assert.equal(backdropWorldX(s.level[BACKDROP][0],s.level[BACKDROP][0].x),s.level[BACKDROP][0].x);
+ // It carries nothing into the simulation, and is not a platform's to carry.
+ const game=new Game();game.start(0,library.get(0));
+ assert.equal(game.level[BACKDROP].length,1);
+ assert.deepEqual(game.level.platforms.map(p=>p.id),LEVELS[0].platforms.map(p=>p.id));
+ assert.deepEqual(library.read(library.export(0,s.level),0)[BACKDROP],s.level[BACKDROP],'the horizon round-trips through a backup');
+ // A backup written before this list existed still imports.
+ const legacy=JSON.parse(library.export(0,s.level));delete legacy.level[BACKDROP];
+ assert.deepEqual(library.read(JSON.stringify(legacy),0)[BACKDROP],LEVELS[0][BACKDROP]??[],"an older backup keeps the chapter's own horizon");
+ for(const bad of [{kind:'unknown-shape'},{kind:'summit',factor:0},{kind:'summit',factor:2},{kind:'summit',z:-90},{kind:'summit',z:4},{kind:'summit',size:900},{size:2}]){
+  const file=JSON.parse(library.export(0,s.level));file.level[BACKDROP]=[{x:10,y:2,...bad}];
+  assert.throws(()=>library.read(JSON.stringify(file),0),/backdrop|Backdrop/,JSON.stringify(bad));
+ }
+ const over=JSON.parse(library.export(0,s.level));over.level[BACKDROP]=Array.from({length:BACKDROP_LIMIT+1},()=>({kind:'summit',x:5,y:1}));
+ assert.throws(()=>library.read(JSON.stringify(over),0),/maximum/);
+ s.remove();assert.equal(s.level[BACKDROP].length,0);
+ assert.equal(s.level.layoutVersion,canonical,'placing and clearing a horizon piece leaves the layout version alone');
+ library.reset(0);
+ console.log('PASS the authored horizon: defaults, distance kept across a shape change, revision, round trip, older backups and refused placements');
 }
 // The scenery a platform already carries. A landmark is a name on a deck, and
 // the workshop must only offer to choose it where the chapter honours the name.

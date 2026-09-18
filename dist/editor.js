@@ -1,5 +1,5 @@
-import {DraftSession,KINDS,LISTS,DECOR,selectedObject,objectLabel,repairDraft} from './editor-model.js';
-import {DECOR_KINDS,DECOR_BOUNDS,decorPalette,decorSize,placeDecor,LANDMARKS,landmarkAuthority,landmarkBox,landmarkChoices,landmarkLabel} from './decor-kinds.js';
+import {DraftSession,KINDS,LISTS,DECOR,BACKDROP,selectedObject,objectLabel,repairDraft} from './editor-model.js';
+import {DECOR_KINDS,DECOR_BOUNDS,decorPalette,decorSize,placeDecor,BACKDROP_BOUNDS,BACKDROP_DEFAULT,backdropSize,backdropFactor,backdropWorldX,backdropLift,placeBackdrop,LANDMARKS,landmarkAuthority,landmarkBox,landmarkChoices,landmarkLabel} from './decor-kinds.js';
 import {instantiateLevel} from './levels.js';
 import {Game,FIXED_DT,RULES} from './simulation.js';
 import {BAT,batPatrolBounds} from './enemy-rules.js';
@@ -85,7 +85,7 @@ export class LevelEditor{
     for(const p of this.game.level.platforms){p.active=true;if(p.channel)this.game.channels[p.channel]=10;}
     const spawn=this.session.level.spawn,ground=this.game.level.platforms.find(p=>spawn.x>=p.x&&spawn.x<=p.x+p.w&&Math.abs(spawn.y-p.y)<.2);
     Object.assign(this.game.player,spawn,{vx:0,vy:0,groundId:ground?.id??null});
-    if(rebuild){this.world.refreshEditor(this.game.level,this.camera.x);this.widths=new Map(this.game.level.platforms.map(p=>[p.id,p.w]));this.heights=new Map(this.game.level.platforms.filter(p=>p.kind==='wall').map(p=>[p.id,p.h]));this.sizes=(this.game.level.decor||[]).map(decorSize);}
+    if(rebuild){this.world.refreshEditor(this.game.level,this.camera.x);this.widths=new Map(this.game.level.platforms.map(p=>[p.id,p.w]));this.heights=new Map(this.game.level.platforms.filter(p=>p.kind==='wall').map(p=>[p.id,p.h]));this.sizes=(this.game.level.decor||[]).map(decorSize);this.horizonSizes=(this.game.level.backdrop||[]).map(backdropSize);this.factors=(this.game.level.backdrop||[]).map(backdropFactor);}
     else{
       for(const p of this.game.level.platforms){const v=this.world.platforms.get(p.id);if(v){v.root.scale.x=p.w/(this.widths?.get(p.id)||p.w);if(p.kind==='wall')v.root.scale.y=p.h/(this.heights?.get(p.id)||p.h);}}
       for(const list of ['coins','stamps'])this.game.level[list].forEach((p,i)=>{const v=(list==='coins'?this.world.coinViews:this.world.stampViews)[i];if(v)v.position.x=p.x;});
@@ -95,6 +95,13 @@ export class LevelEditor{
       (this.game.level.decor||[]).forEach((d,i)=>{
         const v=this.world.decorViews?.[i];if(!v)return;
         placeDecor(v,d);v.scale.setScalar(decorSize(d)/(this.sizes?.[i]||decorSize(d)));
+      });
+      // A horizon piece follows the same way, except that changing its
+      // Distance moves it to another layer, which a rebuild has to do.
+      (this.game.level.backdrop||[]).forEach((d,i)=>{
+        const v=this.world.backdropViews?.[i];if(!v)return;
+        if(backdropFactor(d).toFixed(3)!==(this.factors?.[i]??backdropFactor(d)).toFixed(3))return;
+        placeBackdrop(v,d);v.scale.setScalar(backdropSize(d)/(this.horizonSizes?.[i]||backdropSize(d)));
       });
     }
     this.mapDirty=true;
@@ -107,7 +114,7 @@ export class LevelEditor{
   // resized or deleted from here. Whichever layer is not being edited stays on
   // screen, drawn faintly, because a prop is placed against the route and a
   // route is judged against its scenery.
-  editable(){return this.decorating?[DECOR,'platforms']:[...LISTS,'spawn'];}
+  editable(){return this.decorating?[DECOR,BACKDROP,'platforms']:[...LISTS,'spawn'];}
   // A platform selected while decorating is open for its landmark and its
   // scenery flags, and closed to everything that would change the route.
   dressing(){return this.decorating&&this.session.selection?.list==='platforms';}
@@ -119,6 +126,15 @@ export class LevelEditor{
     this.notice(on?'Decorating. Tap a prop to move it, tap a platform for the scenery it carries, and Add places a new prop. The route itself holds still.':'Back to gameplay objects. Your decoration stays where you left it.');
   }
   decorBox(d){const size=decorSize(d),a=this.toScreen(d.x-size/2,d.y+size),b=this.toScreen(d.x+size/2,d.y);return {left:a.x,right:b.x,top:a.y,bottom:b.y};}
+  // A horizon piece is never where its own x says: its layer has slid by
+  // cameraX*(1-factor) and lifted with the camera. Outline it, hit it and drag
+  // it where the frame has actually put it, or the box points at empty sky.
+  backdropAt(d){return {x:backdropWorldX(d,this.camera.x),y:d.y+backdropLift(d,this.camera.y)};}
+  backdropBox(d){
+    const size=backdropSize(d),at=this.backdropAt(d);
+    const a=this.toScreen(at.x-size/2,at.y+size),b=this.toScreen(at.x+size/2,at.y);
+    return {left:a.x,right:b.x,top:a.y,bottom:b.y};
+  }
   // A landmark stands metres above the deck that owns it, so the deck's own
   // thin hit line is nowhere near the prop being looked at. This is where it
   // actually is, on screen.
@@ -152,6 +168,17 @@ export class LevelEditor{
       else html+=`<p>A finish platform builds its own bell and frame, so it carries no landmark of its own.</p>`;
       html+=checkbox('house','Built as a house',p.house)+checkbox('arch','Carries an arch',p.arch)+checkbox('entrance','Reads as an entrance',p.entrance)+checkbox('rest','A breather along the route',p.rest);
       html+=`<p class="editor-save-note">${esc(save)}</p>`;
+    }
+    else if(sel.list===BACKDROP){
+      // Distance is the honest name for the parallax factor: it is what the
+      // number means to an author, and it is the one field decoration has no
+      // equivalent for. Position X is the world x the piece is centred on.
+      const [size,depth,factor,turn,lean]=[BACKDROP_BOUNDS.size,BACKDROP_BOUNDS.z,BACKDROP_BOUNDS.factor,BACKDROP_BOUNDS.turn,BACKDROP_BOUNDS.lean];
+      const palette=decorPalette(this.session.level.biome);
+      const shapes=palette.some(([value])=>value===p.kind)?palette:[...palette,[p.kind,DECOR_KINDS[p.kind]]];
+      html+=`<label class="editor-field editor-wide"><span>Horizon shape</span><select data-field="kind">${shapes.map(([value,spec])=>option(value,spec.label,p.kind)).join('')}</select></label>`;
+      html+=`<div class="editor-fields">${field('x','Position X',p.x)}${field('y','Height',p.y,.25,-40,160)}${field('size','Size across',backdropSize(p),.25,...size)}${field('z','Depth',p.z??BACKDROP_DEFAULT.z,.25,...depth)}${field('factor','Distance',backdropFactor(p),.01,...factor)}${field('turn','Turn (degrees)',p.turn??0,5,...turn)}${field('lean','Lean (degrees)',p.lean??0,1,...lean)}</div>`;
+      html+=`<p class="editor-note">Distance 0.05 is the far sky and 0.95 is almost the playfield. It decides how fast the piece crosses the frame, and how long it stays in it.</p>`;
     }
     else if(sel.list===DECOR){
       const [size,depth,turn,lean]=[DECOR_BOUNDS.size,DECOR_BOUNDS.z,DECOR_BOUNDS.turn,DECOR_BOUNDS.lean];
@@ -245,7 +272,11 @@ export class LevelEditor{
       if(action==='collapse'){this.collapsed=!this.collapsed;this.renderInspector();return;}
       if(action==='close'){this.closePopover();return;}
       if(action==='test'||action==='test-here'){this.playtest(action==='test-here');return;}
-      if(action==='add'&&this.decorating){this.popover('A little dressing',`<div class="editor-palette">${decorPalette(this.session.level.biome).map(([type,spec])=>`<button data-edit="place" data-type="decor:${type}">${icon(spec.icon)}<span>${esc(spec.label)}</span></button>`).join('')}</div><p>Props appear at the center of your view. They are scenery only: nothing here blocks a jump, counts towards collectibles or survives into the simulation.</p>`);return;}
+      if(action==='add'&&this.decorating){
+        const palette=decorPalette(this.session.level.biome);
+        const shapes=prefix=>`<div class="editor-palette">${palette.map(([type,spec])=>`<button data-edit="place" data-type="${prefix}:${type}">${icon(spec.icon)}<span>${esc(spec.label)}</span></button>`).join('')}</div>`;
+        this.popover('A little dressing',`${shapes('decor')}<p>Props appear at the center of your view. They are scenery only: nothing here blocks a jump, counts towards collectibles or survives into the simulation.</p><h3>On the horizon</h3>${shapes('backdrop')}<p>The same shapes, standing in a parallax layer instead of the playfield. A horizon piece is placed by the world x it is centred on and drifts past at the rate its Distance sets, so it answers a drag more slowly the further away it is.</p>`);return;
+      }
       if(action==='add'){this.popover('A little something new',`<div class="editor-palette">${Object.entries(KINDS).map(([type,label])=>`<button data-edit="place" data-type="${type}">${icon(type==='lift'?'move-vertical':type==='spring'?'arrow-up-from-line':type==='switch'?'power':'square')}<span>${label}</span></button>`).join('')}${Object.entries({coins:'Clay bead',stamps:'Secret flower',enemies:'Clayling',...(this.session.level.biome==='cave'?{bat:'Flying bat',spitter:'Echo Spitter'}:{}),...(this.session.level.biome==='desert'?{drifter:'Dust Drifter'}:{}),...(this.session.level.biome==='forest'?{spore:'Spore Puff'}:{}),hazards:'Spikes',winds:'Wind area',crushers:'Press'}).map(([type,label])=>`<button data-edit="place" data-type="${type}">${icon({coins:'circle-dot',stamps:'flower-2',enemies:'bug',bat:'bird',spitter:'circle-dot',drifter:'wind',spore:'sprout',hazards:'triangle-alert',winds:'wind',crushers:'arrow-down-to-line'}[type])}<span>${label}</span></button>`).join('')}</div><p>New objects appear at the center of your view. Drag to place them.</p>`);return;}
       if(action==='place'){this.session.add(buttonElement.dataset.type,this.round(this.camera.x),this.round(this.camera.y));this.closePopover();this.changed();return;}
       if(action==='duplicate'||action==='delete'){this.guardRoute();if(action==='delete')this.session.remove();else this.session.duplicate();this.changed();return;}
@@ -316,6 +347,7 @@ export class LevelEditor{
       const a=this.toScreen(p.x,hoverHeight(p)),width=(p.w||0)*this.dimensions().h/this.camera.viewH;
       let distance;
       if(list===DECOR)distance=LevelEditor.boxDistance(this.decorBox(p),point);
+      else if(list===BACKDROP)distance=LevelEditor.boxDistance(this.backdropBox(p),point);
       else if(list==='platforms'&&p.kind==='bridge'){
         const x=clamp(this.toWorld(point).x,p.x,p.x+p.w),deck=this.toScreen(x,deckHeight(p,x)),thickness=.4*this.dimensions().h/this.camera.viewH;
         distance=Math.hypot(Math.max(a.x-point.x,0,point.x-a.x-width),Math.max(deck.y-point.y,0,point.y-deck.y-thickness));
@@ -345,6 +377,7 @@ export class LevelEditor{
     if(grabbing&&p?.kind==='wall'&&!this.decorating)for(const side of ['top','bottom']){const h=this.toScreen(p.x+p.w/2,p.y-(side==='bottom'?p.h:0));if(Math.hypot(point.x-h.x,point.y-h.y)<23)handle=side;}
     // A prop resizes about its own centre, so either handle does the same job.
     if(grabbing&&p&&this.session.selection.list===DECOR){const box=this.decorBox(p),base=this.toScreen(p.x,p.y);for(const edge of [box.left,box.right])if(Math.hypot(point.x-edge,point.y-base.y)<23)handle='across';}
+    if(grabbing&&p&&this.session.selection.list===BACKDROP){const box=this.backdropBox(p),at=this.backdropAt(p),base=this.toScreen(at.x,at.y);for(const edge of [box.left,box.right])if(Math.hypot(point.x-edge,point.y-base.y)<23)handle='across';}
     const hit=this.mode==='select'&&!this.spacePan?this.hit(point):null;
     // A platform tapped while decorating opens its scenery. It must not come
     // away with the finger, so the drag stays a pan.
@@ -359,9 +392,19 @@ export class LevelEditor{
     }
     if(g.type==='pan'){const u=this.camera.viewH/this.dimensions().h;this.camera.x=clamp(g.camera.x-(point.x-g.start.x)*u,-80,2030);this.camera.y=clamp(g.camera.y+(point.y-g.start.y)*u,-35,170);return;}
     if(!g.moved&&Math.hypot(point.x-g.start.x,point.y-g.start.y)<4)return;g.moved=true;
-    const at=this.toWorld(point),before=selectedObject(this.session.pending.level,this.session.selection),dx=this.round(before.x+at.x-g.world.x)-before.x,dy=this.round(before.y+at.y-g.world.y)-before.y;
+    const at=this.toWorld(point),before=selectedObject(this.session.pending.level,this.session.selection);
+    // A horizon piece slides at a fraction of the playfield, so a finger that
+    // moves it one unit on screen has to move its authored x by one unit over
+    // that fraction. Everything else answers the finger one for one.
+    const rate=this.session.selection?.list===BACKDROP?backdropFactor(before):1;
+    const dx=this.round(before.x+(at.x-g.world.x)/rate)-before.x,dy=this.round(before.y+at.y-g.world.y)-before.y;
     if(g.type==='move')this.session.move(dx,dy,this.carry);
-    else if(g.handle==='across'){this.session.level=clone(this.session.pending.level);selectedObject(this.session.level,this.session.selection).size=clamp(this.round(Math.abs(at.x-before.x)*2),...DECOR_BOUNDS.size);}
+    else if(g.handle==='across'){
+      this.session.level=clone(this.session.pending.level);
+      const obj=selectedObject(this.session.level,this.session.selection),horizon=this.session.selection.list===BACKDROP;
+      const centre=horizon?backdropWorldX(before,this.camera.x):before.x;
+      obj.size=clamp(this.round(Math.abs(at.x-centre)*2),...(horizon?BACKDROP_BOUNDS.size:DECOR_BOUNDS.size));
+    }
     else{this.session.level=clone(this.session.pending.level);const obj=selectedObject(this.session.level,this.session.selection),min=obj.goal?2.5:.6;if(g.handle==='top'){obj.h=clamp(this.round(before.h+dy),Math.max(.6,-40-before.y+before.h),Math.min(80,160-before.y+before.h));obj.y=before.y+obj.h-before.h;}else if(g.handle==='bottom')obj.h=clamp(this.round(before.h-dy),.6,80);else if(g.handle==='right')obj.w=clamp(this.round(before.w+at.x-g.world.x),min,80);else{obj.w=clamp(this.round(before.w-dx),min,80);obj.x=before.x+before.w-obj.w;}repairDraft(this.session.level);}
     this.preview();
   }
@@ -413,6 +456,20 @@ export class LevelEditor{
       if(selected){ctx.fillStyle='#ffe9a613';ctx.fillRect(box.left,box.top,box.right-box.left,box.bottom-box.top);}
     }
     ctx.globalAlpha=this.decorating?1:.42;
+    // The horizon is outlined in its own colour and never gets a base line:
+    // a piece that floats in the sky has no ground to stand its feet on, and a
+    // line under it would read as one.
+    for(const [index,d]of (L[BACKDROP]||[]).entries()){
+      const box=this.backdropBox(d);
+      if(box.right<-40||box.left>w+40||box.top>h+40||box.bottom<-40)continue;
+      const selected=this.session.selection?.list===BACKDROP&&this.session.selection.index===index;
+      ctx.strokeStyle=selected?'#ffe9a6':'#9fd4ff8c';ctx.lineWidth=selected?2.5:1;ctx.setLineDash(selected?[]:[2,5]);
+      ctx.strokeRect(box.left,box.top,box.right-box.left,box.bottom-box.top);ctx.setLineDash([]);
+      if(!selected)continue;
+      ctx.fillStyle='#ffe9a613';ctx.fillRect(box.left,box.top,box.right-box.left,box.bottom-box.top);
+      const at=this.backdropAt(d),base=this.toScreen(at.x,at.y);
+      if(this.decorating)for(const edge of [box.left,box.right]){ctx.beginPath();ctx.arc(edge,base.y,8,0,Math.PI*2);ctx.fillStyle='#fff0be';ctx.fill();ctx.strokeStyle='#3e4c4e';ctx.stroke();}
+    }
     for(const [index,d]of (L[DECOR]||[]).entries()){
       const box=this.decorBox(d);
       if(box.right<-40||box.left>w+40||box.top>h+40||box.bottom<-40)continue;

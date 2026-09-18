@@ -10,6 +10,42 @@ export const DECOR_LIMIT=240;
 // Depth is signed: negative sits behind the play plane, positive in front of
 // it. The camera looks from z 26, so the near limit keeps a prop in frame.
 export const DECOR_BOUNDS={size:[.25,60],z:[-44,9],turn:[-180,180],lean:[-80,80]};
+// A backdrop placement names a shape from the very same catalogue, at a
+// parallax depth. What separates it from decoration is `factor`: it joins a
+// layer that scrolls at that fraction of the playfield, which is what makes a
+// horizon read as far away rather than as a very large prop holding still.
+//
+// Depth reaches far past decoration's. The canyon's own far skyline stands at
+// z -53 and the cave's veil at -59, so a list bounded at -44 could not hold
+// the scenery it exists to replace. Nothing comes in front of the play plane,
+// because a parallax layer is drawn before it.
+export const BACKDROP_LIMIT=80;
+export const BACKDROP_BOUNDS={size:[.5,90],z:[-60,-4],factor:[.05,.95],turn:[-180,180],lean:[-80,80]};
+export const BACKDROP_DEFAULT={z:-30,factor:.35};
+export const backdropSize=item=>item.size??DECOR_KINDS[item.kind]?.size??1;
+export const backdropFactor=item=>Math.min(Math.max(item.factor??BACKDROP_DEFAULT.factor,BACKDROP_BOUNDS.factor[0]),BACKDROP_BOUNDS.factor[1]);
+// `x` is authored as the world x the item is centred on, which is the only
+// number an author can reason about. The layer itself moves by
+// cameraX*(1-factor), so holding the item at x*factor inside it puts the
+// silhouette exactly on world x when the camera arrives, and lets it drift
+// either side at the rate its depth implies. The layer carries a `repeat` far
+// wider than any chapter, so an authored horizon piece stays one object
+// instead of tiling — the built fields tile, authored ones do not.
+export const backdropOffset=item=>item.x*backdropFactor(item);
+// Where the silhouette actually is for a given camera. The editor needs this
+// to outline, hit-test and drag something that is not where its own x says.
+// Written as a drift away from the piece's own x rather than as the frame's
+// `cameraX*(1-factor) + x*factor`. The two are the same identity, but this one
+// is exact at the anchor: a piece asked where it is when the camera is on its
+// x answers with that x, instead of with x plus a rounding error.
+export const backdropWorldX=(item,cameraX)=>item.x+(cameraX-item.x)*(1-backdropFactor(item));
+// How far the layer lifts at a given camera height, mirroring the clamp in
+// `animateEnvironment` so the editor can draw the box where the frame puts it.
+export const backdropLift=(item,cameraY)=>Math.max(0,cameraY-1.1)*Math.min(1,1-backdropFactor(item)*.35);
+export function placeBackdrop(root,item){
+  root.position.set(backdropOffset(item),item.y,item.z??BACKDROP_DEFAULT.z);
+  root.rotation.set(0,(item.turn||0)*Math.PI/180,(item.lean||0)*Math.PI/180);
+}
 // `size` is the prop's width in world units, and `z` where it reads best by
 // default. Both are only starting points — every placement can move either.
 // A kind without `biomes` uses the chapter's own palette, so it belongs
