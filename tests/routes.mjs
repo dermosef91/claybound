@@ -39,8 +39,10 @@ export function settledRock(index,id,source){
     const g=new Game();g.start(index,source);g.onEvent=()=>{};
     const station=g.level.shaping.find(s=>s.id===id);
     applySolvedSurface(g,station,source);
-    for(let k=0;k<2400&&!station.done;k++)g.tick(dt,{});
-    assert(station.done,`${id}: the solved surface sends its rock over the edge`);
+    // Until the rock is down and the scene watching it is over, so a sweep
+    // never starts with the hands off.
+    for(let k=0;k<2400&&!(station.ball.landed&&!g.cinema);k++)g.tick(dt,{});
+    assert(station.done&&station.ball.landed&&!g.cinema,`${id}: the solved surface sends its rock over the edge`);
     settled.set(key,{ball:{...station.ball},broken:g.level.platforms.filter(s=>s.broken).map(s=>s.id)});
   }
   return settled.get(key);
@@ -105,7 +107,7 @@ if(process.argv[1]?.endsWith('routes.mjs')){
  for(const [i,L]of LEVELS.entries()){
   // The original compact traversal retains its length; Wildwood now adds
   // a 51-unit boss clearing beyond that route.
-  assert(Math.abs(((L.boss?L.end-51:L.end)-L.spawn.x)/L.previousDistance-.3)<.005);assert.equal(L.stamps.length,[3,2,5,3,3][i]);
+  assert(Math.abs(((L.boss?L.end-51:L.end)-L.spawn.x)/L.previousDistance-.3)<.005);assert.equal(L.stamps.length,[4,2,5,3,3][i]);
   assert.equal(new Set(L.platforms.map(s=>s.id)).size,L.platforms.length);assert.equal(L.platforms.filter(s=>s.goal).length,1);
   assert(Math.abs(L.platforms.find(s=>s.goal).x+L.platforms.find(s=>s.goal).bellX-L.end)<1e-6);
   for(const link of [...L.routeLinks,...L.detours.flat(),...L.recoveries.flat()]){

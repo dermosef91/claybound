@@ -311,23 +311,34 @@ function marbleShare(station){
 // breaks the planks that are its for the breaking, and lands on whatever floor
 // the level put under them. The hand-off from the form's own x happens once,
 // here, because only the mass knows where it stands.
+// Seconds the fall is watched for after the rock has come to rest.
+export const ROCK_WATCH=.9;
 function stepSpilledRock(game,station,s,dt){
   const m=station.ball;
   if(m.wx===undefined){m.wx=s.x+m.x;m.wy=s.y-s.h+m.y;m.vy=0;game.event?.('spill',{x:m.wx,y:m.wy,r:m.r,platformId:s.id});}
-  if(m.landed)return void stepRockFall(m,dt);
-  const platforms=game.level?.platforms||[];
-  const decks=[],walls=[];
-  for(const q of platforms){
-    if(q===s||q.active===false||q.broken)continue;
-    const box=wallBox(q);if(box)walls.push(box);
-    if(q.shape||q.form||q.kind==='zip'||q.kind==='lift'||q.kind==='bridge')continue;
-    decks.push({id:q.id,x:q.x,w:q.w,top:q.y,breakable:q.kind==='break'&&!!q.rockOnly});
+  if(m.landed)stepRockFall(m,dt);
+  else {
+    const platforms=game.level?.platforms||[];
+    const decks=[],walls=[];
+    for(const q of platforms){
+      if(q===s||q.active===false||q.broken)continue;
+      const box=wallBox(q);if(box)walls.push(box);
+      if(q.shape||q.form||q.kind==='zip'||q.kind==='lift'||q.kind==='bridge')continue;
+      decks.push({id:q.id,x:q.x,w:q.w,top:q.y,breakable:q.kind==='break'&&!!q.rockOnly});
+    }
+    for(const hit of stepRockFall(m,dt,{decks,walls})){
+      const deck=platforms.find(q=>q.id===hit.id);if(!deck)continue;
+      if(hit.breakable){m.smashed=(m.smashed||0)+1;game.breakPlatform?.(deck,m.wx,m.wy-m.r);}
+      else game.event?.('rock-land',{x:m.wx,y:m.wy-m.r,r:m.r,platformId:deck.id});
+    }
   }
-  for(const hit of stepRockFall(m,dt,{decks,walls})){
-    const deck=platforms.find(q=>q.id===hit.id);if(!deck)continue;
-    if(hit.breakable){m.smashed=(m.smashed||0)+1;game.breakPlatform?.(deck,m.wx,m.wy-m.r);}
-    else game.event?.('rock-land',{x:m.wx,y:m.wy-m.r,r:m.r,platformId:deck.id});
-  }
+  // The fall is a scene: from the brink to a beat after the rock has come to
+  // rest the game watches the rock rather than the player, who stands where
+  // they worked the clay. `rested` outlives the watch so a resumed rock,
+  // restored where it lay, is not watched again.
+  if(!m.landed)game.cinema={x:m.wx,y:m.wy,rock:station.id};
+  else if((m.rested=(m.rested||0)+dt)<ROCK_WATCH)game.cinema={x:m.wx,y:m.wy,rock:station.id};
+  else if(game.cinema?.rock===station.id)game.cinema=null;
 }
 // The formable mass a station owns, built if it is not there yet.
 const massOf=(station,s)=>station.form=s.form||(s.form=createForm(s.w,s.h,station.clump,{free:!!station.free,pace:station.pace}));

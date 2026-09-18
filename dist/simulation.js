@@ -69,6 +69,9 @@ export class Game {
     // `strands` remembers which required stations have already been heard
     // finishing, so a restore does not announce them all over again.
     this.finale=this.level.finale?{state:'waiting',time:0,strands:[]}:null;
+    // A scene the game is watching instead of the player — a rock going over
+    // its edge — as {x,y}; the camera follows it and the hands are off.
+    this.cinema=null;
     const ground=this.level.platforms.find(p=>this.level.spawn.x>=p.x&&this.level.spawn.x<=p.x+p.w&&Math.abs(p.y-this.level.spawn.y)<.2);
     this.respawnTimer=0;this.player={...this.level.spawn,vx:0,vy:0,facing:1,health:RULES.maxHealth,invuln:0,coyote:ground?.135:0,jumpBuffer:0,groundId:ground?.id??null,stomping:false,springing:false,squash:0,skidding:false,stride:0,stompWindup:0,stunTime:0,sporeGrace:0};
     this.status='playing';this.event('level',{index});
@@ -114,7 +117,7 @@ export class Game {
     for(const rock of Array.isArray(save.rocks)?save.rocks:[]){
       const station=(this.level.shaping||[]).find(s=>s.id===rock.id),m=station?.ball;
       if(!m||!Number.isFinite(rock.x)||!Number.isFinite(rock.y))continue;
-      Object.assign(m,{spilled:true,wx:rock.x,wy:rock.y,vx:0,vy:0,landed:!!rock.landed,smashed:rock.smashed||0,groundId:rock.groundId||null,home:false,still:0});
+      Object.assign(m,{spilled:true,wx:rock.x,wy:rock.y,vx:0,vy:0,landed:!!rock.landed,smashed:rock.smashed||0,groundId:rock.groundId||null,home:false,still:0,rested:rock.landed?9:0});
       if(m.landed||m.smashed){
         station.done=true;station.open=1;station.amount=station.target=1;station.announced=true;
         // Latched here, ahead of the settle below, so a done station does not
@@ -226,6 +229,9 @@ export class Game {
       this.finale.time+=dt;
       if(this.finale.time>=(L.finale.duration??FINALE.duration))this.wake();
     }
+    // A scene being watched — a boulder going over the edge — is watched
+    // standing still: gravity and landing stay live, the hands are off.
+    if(this.cinema){input={};p.jumpBuffer=0;p.stomping=false;p.stompWindup=0;p.vx=0;}
     for(const c of Object.keys(this.channels))if(!this.latched[c])this.channels[c]=Math.max(0,this.channels[c]-dt);
     for(const wind of L.winds||[])wind.active=!wind.channel||this.channels[wind.channel]>0;
     for(const s of L.platforms) {

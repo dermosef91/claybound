@@ -94,14 +94,21 @@ let save;
  stand(g,deck(g,'boulder-mount'),st.spawn.x);
  for(const input of formSolutionInputs(g,st,{dt}))g.tick(dt,input);
  assert(st.amount<1&&!st.done,'the strokes alone do not finish the station');
- let k=0;for(;k<1440&&!st.done;k++)g.tick(dt,{});
+ // The fall is a scene: from the brink the game watches the rock, not the
+ // player, whose hands are off — held input moves them nowhere.
+ let k=0;for(;k<1440&&!st.ball.spilled;k++)g.tick(dt,{});
+ assert(st.ball.spilled&&g.cinema&&g.cinema.rock==='boulder-run'&&Math.abs(g.cinema.x-st.ball.wx)<1e-9,'the scene begins as the boulder leaves the brink, on the boulder');
+ const stood=g.player.x;for(let i=0;i<30;i++){g.tick(dt,{moveAxis:1,jumpPressed:i===0,jumpHeld:true});k++;}
+ assert.equal(g.player.x,stood,'and the player stands still through it, whatever they press');
+ for(;k<1440&&!st.done;k++)g.tick(dt,{});
  assert(st.done&&st.ball.spilled&&st.ball.smashed>=1,`the boulder goes over and smashes something (${k} ticks after the last stroke)`);
  assert(planks.broken&&planks.active===false,'the planks are gone');
  assert(events.some(e=>e.type==='spill'),'the room hears it leave');
  assert(events.some(e=>e.type==='break'&&e.platformId==='plank-floor'&&!e.spore),'and hears the planks break');
  assert(g.latched['boulder-down']&&events.some(e=>e.type==='activate'&&e.channel==='boulder-down'),'done opens the station channel');
- tick(g,600);
+ let watched=0;for(let i=0;i<600;i++){g.tick(dt,{});if(g.cinema)watched++;}
  assert(st.ball.landed&&st.ball.groundId==='cave-floor'&&st.ball.wx>312&&st.ball.wx<317,`it rests on the cave floor under the hole (x ${st.ball.wx.toFixed(2)})`);
+ assert(!g.cinema&&watched>60&&watched<400,`the scene ends a beat after the boulder rests (${(watched*dt).toFixed(2)}s more)`);
  assert.equal(st.amount,1);assert(st.announced);
  // R softens the clay; the boulder stays down and the cave stays open.
  resetStation(st,g);tick(g,60);
@@ -131,6 +138,7 @@ let save;
  assert(st.ball.spilled&&st.ball.landed&&Math.abs(st.ball.wx-save.rocks[0].x)<1e-9,'the boulder lies where it fell');
  assert(st.done&&st.amount===1&&g.latched['boulder-down'],'the station is done');
  assert.equal(heard,0,'and nothing was announced during the restore');
- tick(g,120);assert(st.ball.landed&&st.done,'and stays so');
+ assert(!g.cinema,'a rock restored where it lay is not watched');
+ tick(g,120);assert(st.ball.landed&&st.done&&!g.cinema,'and stays so');
  console.log('PASS the save: a checkpoint past the drop resumes with the boulder down, the cave open and no restore-time announcement');
 }

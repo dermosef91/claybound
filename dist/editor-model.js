@@ -191,6 +191,17 @@ export function validateDraft(source,base){
           solution:s.solution.map((k,i)=>({x:finite(k?.x,...nums.x,`station ${s.id} stroke ${i+1} x`),lift:finite(k?.lift,-30,30,`stroke ${i+1} lift`),dx:finite(k?.dx,-30,30,`stroke ${i+1} dx`),dy:finite(k?.dy,-30,30,`stroke ${i+1} dy`),t:finite(k?.t,.05,10,`stroke ${i+1} t`)}))});
         if(s.relax===false)station.relax=false;
         if(s.shaped!==undefined)station.shaped=finite(s.shaped,.02,1,'station shaped share');
+        // Wet clay: a pace of its own (settle, relaxTime, relaxMin in seconds,
+        // and whether a rider's weight holds it) and, if the station says so,
+        // a throw of its own under a stomp.
+        if(s.pace!==undefined){
+          if(!s.pace||typeof s.pace!=='object')throw new Error(`Station ${s.id} has a pace that is not an object.`);
+          const pace={};
+          for(const key of ['settle','relaxTime','relaxMin'])if(s.pace[key]!==undefined)pace[key]=finite(s.pace[key],.05,120,`station ${s.id} pace ${key}`);
+          if(s.pace.holdUnderfoot!==undefined)pace.holdUnderfoot=!!s.pace.holdUnderfoot;
+          station.pace=pace;
+        }
+        if(s.launch!==undefined)station.launch=finite(s.launch,4,40,`station ${s.id} launch`);
         // A mould is a target surface authored like a clump; the station is done
         // when the clay lies along it, and `message` is what that announces.
         if(s.mould!==undefined){

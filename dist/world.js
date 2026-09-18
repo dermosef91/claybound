@@ -4,7 +4,7 @@ import {createHero,loadHero,detachHero,animateHero,heroEvent} from './hero.js';
 import {characterChoice} from './characters.js';
 import {applyEnvironment,buildBackdrop,buildTerrain,animateEnvironment} from './environments.js';
 import {makeCitadelLift} from './citadel.js';
-import {makeMovingPlatform} from './moving-platform.js';
+import {makeMovingPlatform,movingPlatformMaterials} from './moving-platform.js';
 import {renderCitadelDepth} from './citadel-depth.js';
 import {loadEnemies,createEnemyView,animateEnemy,releaseEnemyViews} from './enemies.js';
 import {loadCastle} from './castle.js';
@@ -392,6 +392,13 @@ export class World {
     else if(e.type==='mother-hit'||e.type==='mother-collapse'){this.burst(e.x,e.y,'gold',20,1.3);this.addTrauma(.52);}
     else if(e.type==='mother-bounce')this.burst(e.x,e.y,'orange',10,.7);
     else if(e.type==='break'&&e.spore)burstSporePod(this,e);
+    // A plank floor going through flies apart as wood, the whole width of it,
+    // on top of the burst every break raises.
+    else if(e.type==='break'&&this.currentLevel?.platforms.find(p=>p.id===e.platformId)?.timber){
+      const wood=movingPlatformMaterials(this);
+      clayFragments(this,e.x,e.y+.1,e.w,30,1.9,false,{material:Math.random()<.5?wood.grain:wood.wood,size:2.6});
+      this.burst(e.x,e.y,'orange',23,2);
+    }
     else if(e.type==='crumble-collapse')clayFragments(this,e.x,e.y,e.w,24,1.1,true);
     else if(e.type==='press-impact'){clayFragments(this,e.x,e.y,e.w+1,14,.85);if(Math.abs(this.cameraX-e.x)<this.viewW*.6)this.addTrauma(.45);}
     else if(e.type==='shot-pop'||e.type==='spitter-fire')this.burst(e.x,e.y,'gold',e.type==='shot-pop'?5:3,.4);
@@ -476,15 +483,21 @@ export class World {
     this.cameraFace=this.cameraFace===undefined?p.facing||1:this.cameraFace+((p.facing||1)-this.cameraFace)*(1-Math.exp(-dt*2.6));
     this.cameraAnchorY=cameraAnchorY(this.cameraAnchorY,p,this.viewH,dt);
     const citadel=this.biome==='citadel';
-    const target=motherCamera(L.boss,p,this.viewW,this.viewH,this.landscape)||cameraTarget(p,this.viewW,this.viewH,this.landscape,this.cameraLook,this.cameraAnchorY,this.cameraFace);
+    // A scene the game is watching — a boulder going over its edge — takes the
+    // frame with it: the rock sits in the upper part of the view so what it is
+    // about to come down on is in the picture, and the pan is slower than the
+    // follow, so it reads as the camera turning to look rather than snapping.
+    const scene=game.cinema;
+    const target=scene?{x:scene.x+this.viewW*.04,y:scene.y-this.viewH*.16}:motherCamera(L.boss,p,this.viewW,this.viewH,this.landscape)||cameraTarget(p,this.viewW,this.viewH,this.landscape,this.cameraLook,this.cameraAnchorY,this.cameraFace);
     const targetX=menu?L.spawn.x+this.viewW*.11:target.x;
     const targetY=menu?L.spawn.y+this.viewH*VERTICAL_BIAS:target.y;
-    const cameraRate=L.boss?.state==='reveal'?2:L.boss?.state==='defeated'?3.5:6.7;
+    this.sceneReturn=scene?1.2:Math.max(0,(this.sceneReturn||0)-dt);
+    const cameraRate=scene||this.sceneReturn>0?4.4:L.boss?.state==='reveal'?2:L.boss?.state==='defeated'?3.5:6.7;
     this.cameraX+=(targetX-this.cameraX)*(1-Math.exp(-dt*cameraRate));
     // Standing, the frame settles onto the player. Airborne it is gentle,
     // because the anchor is already holding still — until a long fall drags the
     // anchor along, where it has to keep up or the landing leaves the screen.
-    const verticalRate=p.groundId?7:anchorDragged(this.cameraAnchorY,p,this.viewH)?10:4.5;
+    const verticalRate=scene?5:p.groundId?7:anchorDragged(this.cameraAnchorY,p,this.viewH)?10:4.5;
     this.cameraY+=(targetY-this.cameraY)*(1-Math.exp(-dt*verticalRate));
     }else{this.cameraX=edit.x;this.cameraY=edit.y;}
     this.trauma=Math.max(0,(this.trauma||0)-dt*TRAUMA_DECAY);this.shake=shakeAmplitude(this.trauma);
