@@ -70,6 +70,11 @@ assets={
  # sets one on it at load, as for the flower). Uploaded to ~/Downloads:
  #   python3 scripts/prepare-dream-assets.py ~/Downloads
  'dream-arch.glb':'Meshy_AI_Clay_Garden_Arch_0917232650_texture.glb',
+ # The Breathing Corridor's eye: a fleshy eyeball with its pupil painted into
+ # the colour map, so the ball itself turns to look (dist/dream-assets.js holds
+ # the fitted sphere and the pupil's axis). Uploaded to ~/Downloads, like the
+ # arch.
+ 'dream-eyeball.glb':'Meshy_AI_Fleshy_Eyeball_0918110855_texture.glb',
  # The Breathing Corridor's cavern wall, repeated across its backdrop.
  'dream-cavern.glb':'crimson+caverns.glb'
 }
@@ -87,8 +92,9 @@ adaptation={'dream-hat.glb':'glTF Transform 4.4.1 weld + simplify ratio=.025 err
  'dream-cavern.glb':'glTF Transform 4 weld + simplify ratio=.1 error=.04 (10,425 → 5,362 triangles); metallic-roughness map dropped'}
 # Models whose metallic-roughness map is left out of the shipped file (the
 # arch's and the cavern's, like the hat's, paint a gloss the matte clay world
-# does not have).
-matte={'dream-hat.glb','dream-arch.glb','dream-cavern.glb'}
+# does not have; the eyeball's is a 4096² map — over half its 16.5 MB —
+# painting a roughness clayMaterials overrides anyway).
+matte={'dream-hat.glb','dream-arch.glb','dream-cavern.glb','dream-eyeball.glb'}
 SLOTS=['baseColorTexture','metallicRoughnessTexture','normalTexture','occlusionTexture','emissiveTexture']
 def pad(b,value=b'\0'):return b+value*((-len(b))%4)
 def digest(b):return hashlib.sha256(b).hexdigest()
