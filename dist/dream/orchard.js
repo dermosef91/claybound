@@ -84,13 +84,17 @@ const leafPale=w=>fixedMaterial(w,'orchardLeafLight',0x62b247,{depth:.04});
 const stemBrown=w=>fixedMaterial(w,'orchardStem',0x96633f,{depth:.04});
 // The islands' pressings: hot bubblegum (a step lighter and less saturated
 // than the palette's raspberry — a paler pink rendered the same hue and value
-// as the arcs behind every island), the planets' teal, and a clay-shaded
-// near-white with a whisper of lavender for the pale lobe (a lavender base
-// rendered as a shadow of the pillars; the 'back' slot's emissive copy made
-// it a flat pasted disc).
+// as the arcs behind every island), the planets' teal, and a warm cream-white
+// with the lightest shading for the pale lobe, so it renders as white clay
+// pressed into the mint. The base has to carry real warmth (about 15%
+// saturation): the dream's blue-white sky light and the filmic tone mapping
+// pull a near-white to neutral, so a lavender base rendered as a shadow of
+// the pillars and a barely-warm one as a grey pebble (the 'back' slot's
+// emissive copy made it a flat pasted disc). Warmer than this and it closes
+// on the biscuit ropes.
 const pink=w=>fixedMaterial(w,'orchardPink',0xf4609f,{depth:.06});
 const teal=w=>fixedMaterial(w,'orchardTeal',0x3a9bb3,{depth:.06});
-const lobeWhite=w=>fixedMaterial(w,'orchardLobe',0xece6ea,{depth:.07});
+const lobeWhite=w=>fixedMaterial(w,'orchardLobe',0xf7e9d3,{depth:.05});
 // The freckle on the crumbling apples' cheek: warm enough not to read as a
 // pale drip tip beside the lime tongues, lighter than the hood's orange.
 const peach=w=>fixedMaterial(w,'orchardPeach',0xf0a878,{depth:.05});
@@ -183,8 +187,9 @@ function fruitBunch(w,parent,x,y,z,r,seed){
 // pink fog) and any more heaped in the ring's dip — with dark leaves lying
 // out sideways from its flanks, tips a little up, so the pile stays squat
 // (about 1.45×size tall over its origin) and reads as fruit lying on a hill,
-// not a plant growing out of it. The leaf is drawn a little larger than the
-// balls, so a pile at distant scale still shows one legible leaf.
+// not a plant growing out of it. The leaf is drawn at the balls' own scale —
+// about one ball long, as the reference's hill fruit — so a pile at distant
+// scale shows a legible leaf without two wings framing the ring.
 function fruitCluster(w,parent,x,y,z,size,seed,{count=3,leaves=2}={}){
   const g=group(parent,'Fruit cluster',x,y,z);
   const mats=[appleFar(w),raspberryFar(w),limeFar(w),goldFar(w)];
@@ -193,7 +198,7 @@ function fruitCluster(w,parent,x,y,z,size,seed,{count=3,leaves=2}={}){
     if(i<4)w.ball(r,r*.95,r,mats[i%4],g,Math.cos(a)*d,Math.sin(a)*d*.35,Math.sin(a)*d*.4).name='Cluster ball';
     else w.ball(r,r*.95,r,mats[i%4],g,(rand(seed+i)-.5)*size*.3,size*.45,0).name='Cluster ball';
   }
-  for(let i=0;i<leaves;i++)leaf(w,g,(i%2?.4:-.4)*size,size*.3,size*.35,size*.62,(i%2?-1:1)*(1.05+rand(seed+i+60)*.3),{mat:leafFar(w)});
+  for(let i=0;i<leaves;i++)leaf(w,g,(i%2?.4:-.4)*size,size*.3,size*.35,size*.5,(i%2?-1:1)*(1.05+rand(seed+i+60)*.3),{mat:leafFar(w)});
   return g;
 }
 // The fruit under the canopy. Which kind hangs at a spot, how far it drops
@@ -451,13 +456,19 @@ function saucer(w,s,g,section){
   // hanging saucer's approach), where one would hang beside a player standing
   // there or across the line they jump. How many hang, and which side, is
   // drawn per bowl from its section-local x, so a row of them is not one
-  // ornament stamped five times; a lone leaf grows a little.
+  // ornament stamped five times; a lone leaf grows a little. A bowl with a
+  // deck under BOTH rims (the perch over saucer-2) still gets dressed, as
+  // every bowl in the reference is: one small blade standing up and outward
+  // off its left rim behind the walk, tip under the walk plane and off the
+  // deck's span — the detour arrives from saucer-2 on the right, so nothing
+  // lands there.
   const under=side=>{const ex=(s.baseX??s.x)+(side>0?W:0);return (w.currentLevel?.platforms??[]).some(o=>{if(o===s||o.kind==='wall')return false;const top=o.y+(o.shape?5.2:0),pad=o.shape?1.5:0,ox=o.baseX??o.x;return top<s.y&&s.y-top<3&&ox-pad<ex+1.2&&ox+o.w+pad>ex-1.2;});};
   const lx=((s.baseX??s.x)-section.x)*.53,free=[-1,1].filter(side=>!under(side)),k=rand(lx+5),sides=free.length<2?free:k<.35?[-1]:k<.7?[1]:free;
   for(const side of sides){
     const lone=sides.length===1,size=lone?(side<0?.72:.68):(side<0?.6:.5),jit=(rand(lx+6)-.5)*.24;
     leaf(w,g,side<0?-.1:W+.1,side<0?-.45:-.5,-.9,size,Math.PI+side*.72+jit,{pale:(k>.5)===(side>0),twist:-side*.2,tilt:.3}).name='Saucer leaf';
   }
+  if(!sides.length)leaf(w,g,-.1,-.3,-.9,.45,1.25,{pale:k<.5,twist:.2,tilt:-.2}).name='Saucer leaf';
   return hangFrom(w,s,g,{root:g,ropes:[],bounce:0},section);
 }
 
@@ -493,9 +504,13 @@ function appleDeck(w,s,g,section){
   w.ball(.3,.26,.13,peach(w),g,mid+.15,-1.75,1.05).name='Apple freckle';
   w.ball(.18,.16,.1,peach(w),g,mid+.9,-2.15,.6).name='Apple freckle';
   // The leaf roots just outside the skirt's rim (the round body swallows
-  // anything rooted inside its outline) and hangs steeply down and out.
+  // anything rooted inside its outline) and BEHIND the walk plane — the rim
+  // is only .35 deep at that x, so a root at z −.3 still reads as growing
+  // from it — leaning back as it hangs steeply down and out, so the whole
+  // blade stays behind the player stepping off the end (crumb-2's hangs on
+  // the side of the fall onto the exit island).
   const next=(w.currentLevel?.platforms??[]).some(o=>o!==s&&Math.abs(o.y-s.y)<1.5&&o.x>=s.x+W&&o.x<=s.x+W+2.5),side=next?-1:1;
-  leaf(w,g,mid+side*(W/2+.1),-.5,.1,.55,-side*2.7,{pale:side>0,twist:side*.2,tilt:.3}).name='Apple leaf';
+  leaf(w,g,mid+side*(W/2+.1),-.5,-.3,.55,-side*2.7,{pale:side>0,twist:side*.2,tilt:.45}).name='Apple leaf';
   return hangFrom(w,s,g,{root:g,ropes:[],bounce:0,fracture},section);
 }
 
