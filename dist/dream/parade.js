@@ -1,8 +1,12 @@
 import * as THREE from '../lib/three.module.js';
 import {createDreamView} from '../dream-views.js';
-import {dreamHat,dreamHatHeight,dreamGiraffe,dreamCaterpillar} from '../dream-assets.js';
+import {dreamHat,dreamHatHeight,dreamGiraffe,dreamCaterpillar,dreamColumn,dreamCane,dreamSun,dreamValance,dreamBanner,COLUMN_MEDALLION} from '../dream-assets.js';
 import {restoreRest,rotateAbout,parentAxis,caterpillarWalk,SIDE_AXIS} from '../dream-rigs.js';
-import {sectionDecks,deck,lean,slot,rand} from './support.js';
+import {createClayView} from '../shaping-views.js';
+import {createBead} from '../beads.js';
+import {clayShape,sculptClay} from '../clay.js';
+import {bakeStatic} from '../cavern.js';
+import {sectionDecks,deck,lean,slot,rand,fixedMaterial} from './support.js';
 // Section 5 — The Melted Parade. One idea: a parade frozen mid-step, cream
 // statues on an ultramarine parade ground, each with exactly one bubblegum
 // detail, waking one member at a time as the player passes. Four colours —
@@ -12,6 +16,14 @@ import {sectionDecks,deck,lean,slot,rand} from './support.js';
 // are its body, a coiled hat-worm on a plinth, a caterpillar that is the lift,
 // a hand whose fist is the self-opening stair, a tiny house on its fingertips,
 // a teapot by the exit. One thing moves per screen besides the creatures.
+//
+// Over that the parade is dressed as a carnival, in the supplied models: the
+// spiral sun becomes a lollipop on a candy-striped column, banner towers stand
+// at the edges of the frame with a smiling sun behind, and the hat-worm bridge
+// wears a swag valance with its pennant on the plinth. Those bring their own
+// painted cream, bubblegum, violet and gold; the few pieces still sculpted
+// beside them (bunting, balloons, hills) take the same colours as fixed
+// materials, and the ground keeps the palette's ultramarine.
 //
 // Render side is WORLD: decks are looked up by id, props are placed from
 // those decks, and everything built inside a deck's group is local to it.
@@ -44,6 +56,21 @@ function bubblegumGlow(w){
   const m=new THREE.MeshStandardMaterial({color:0xff6fb8,emissive:0xff6fb8,emissiveIntensity:.5,roughness:.7,metalness:0,fog:false});
   m.name='Parade bubblegum glow';return w.paradeGum=m;
 }
+// The carnival's clay colours, read off the supplied models so the sculpted
+// bunting, balloons and plinth cap match them. Kept in w.mat (fixedMaterial),
+// so streamed props share them and never dispose them. `skyPink` is the one
+// unfogged variant, for the lollipop's knob up in the sky layer.
+const carnival={
+  cream:w=>fixedMaterial(w,'paradeCream',0xf4ead6,{depth:.05}),
+  pink:w=>fixedMaterial(w,'paradePink',0xf08cc8,{depth:.05}),
+  purple:w=>fixedMaterial(w,'paradePurple',0x8b5ad0,{depth:.05}),
+  lemon:w=>fixedMaterial(w,'paradeLemonClay',0xf3e7a8,{depth:.05}),
+  skyPink:w=>fixedMaterial(w,'paradeSkyPink',0xee9ad0,{depth:.04,fog:false})
+};
+const models=w=>!!w.dreamAssets?.banner;
+// The lollipop's column, foot to knob, in the sky layer: against the disc's
+// nine-unit spread its stick is a hand across, as the target frame has it.
+const COLUMN_HEIGHT=9;
 
 // --- the parade ground ----------------------------------------------------------
 // A flat ultramarine plaza: a lighter cap over a darker body, the ends rolled
@@ -243,12 +270,19 @@ function flowerHead(w,s,g){
 
 // Local to the coil's underside: the column hangs from it down into the
 // melted paint (top of the pool at -1.5 in world), its foot standing in the
-// paint and its band a hand under the bridge that comes to rest on it.
+// paint. Under the bridge that comes to rest on it (its clay and the valance
+// reach down to about -2.3) a violet cap with gold buttons, and from that the
+// banner's smiley pennant hanging down the column's face; a bare rig keeps
+// the bubblegum band it had.
+const PLINTH_CAP=-2.7,PLINTH_BANNER=1.5;
 function plinth(w,parent){
   const cream=slot(w,'top');
   w.box(2.2,9.4,2,cream,parent,0,-4.7,0,.5).name='Plinth';
   w.box(2.8,.5,2.4,slot(w,'bark','rope'),parent,0,-9.2,0,.15).name='Plinth foot';
-  w.box(2.32,.26,2.1,slot(w,'accent'),parent,0,-2,0,.08).name='Plinth band';
+  if(!models(w)){w.box(2.32,.26,2.1,slot(w,'accent'),parent,0,-2,0,.08).name='Plinth band';return;}
+  w.box(2.5,.46,2.3,carnival.purple(w),parent,0,PLINTH_CAP,0,.12).name='Plinth cap';
+  for(const x of [-.78,-.26,.26,.78]){const b=createBead(w,parent);b.position.set(x,PLINTH_CAP,1.18);b.scale.setScalar(.5);b.name='Plinth button';}
+  dreamBanner(w,parent,PLINTH_BANNER).position.set(0,PLINTH_CAP-.28,1.1);
 }
 export const HAT_WIDTHS=[1.56,1.46,1.36,1.26,1.16];
 // The share of a hat's height the next one sits up by: its brim overlaps the
@@ -281,6 +315,32 @@ function hats(w,parent,worm){
   };
   pose(0);
   register(w,parent,game=>pose((game.level.shaping||[]).find(st=>st.id==='parade-worm')?.amount??0));
+}
+
+// --- the hat-worm bridge --------------------------------------------------------------
+// The station's own violet clay, built by shaping-views as for every station,
+// with the banner's swag valance hung along its underside: the rail tucked
+// under the clay's rounded bottom lip, VALANCE_TILES tiles across the pulled
+// width so the gold buttons meet at the joins. The clay is posed by the
+// station each frame (x 0..w, y -h..0, its front at z ≈ 1.3); the valance
+// follows it — the rail at the live bottom edge, the strip stretched to the
+// live width, its swags gathered short while the worm is still coiled and
+// hanging full once it is pulled out. Nothing sits on the top: the clay's
+// surface IS the walk plane. A bare rig shows the plain clay it always had.
+export const VALANCE_TILES=4;
+const VALANCE_Z=1.24;
+function wormDeck(w,s,g){
+  const view=createClayView(w,s,g);
+  if(!models(w))return view;
+  const from=s.shape.from,full=s.shape.to.w,hang=group(g,'Valance',0,-s.h,0),strip=group(hang,'Valance strip');
+  for(let i=0;i<VALANCE_TILES;i++)dreamValance(w,strip,full/VALANCE_TILES).position.set((i+.5)*full/VALANCE_TILES,.08,VALANCE_Z);
+  const pose=live=>{
+    hang.position.y=-live.h;strip.scale.x=live.w/full;
+    strip.scale.y=.5+.5*smooth((live.w-from.w)/(full-from.w));
+  };
+  pose(s);
+  register(w,g,game=>{const live=game.level.platforms.find(q=>q.id===s.id);if(live)pose(live);});
+  return view;
 }
 
 // --- the caterpillar ----------------------------------------------------------------
@@ -393,15 +453,29 @@ function teapot(w,parent,wakeX){
 
 // --- bunting and paint ----------------------------------------------------------------
 // One string of pennants sagging between two points (parent-local), cream
-// string, cream and bubblegum flags.
-function bunting(w,parent,a,b,count,seed){
-  const points=[];for(let i=0;i<=16;i++){const t=i/16;points.push(new THREE.Vector3(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t-Math.abs(b[0]-a[0])*.09*4*t*(1-t),0));}
-  const curve=new THREE.CatmullRomCurve3(points);
-  const string=w.mesh(new THREE.TubeGeometry(curve,32,.04,5,false),slot(w,'top'),parent,0,0,0);string.name='Bunting string';string.castShadow=false;
+// string. Dressed for the carnival the flags cycle bubblegum, cream, violet
+// and lemon at `size` times the plain string's, with a gold button where each
+// hangs from the string; a bare rig gets the plain cream-and-bubblegum string.
+// A dressed flag is a flat triangle of clay facing the camera (a three-sided
+// cone, seen edge-on, shades to silver whatever its colour), one shape per
+// size in the clay cache.
+const pennantShape=(w,size)=>clayShape(w,'parade-pennant:'+size.toFixed(2),()=>{
+  const s=new THREE.Shape();s.moveTo(-.22*size,0);s.lineTo(.22*size,0);s.lineTo(0,-.52*size);s.closePath();
+  const g=new THREE.ExtrudeGeometry(s,{depth:.06,bevelEnabled:true,bevelThickness:.02,bevelSize:.02,bevelSegments:2,steps:1});
+  return sculptClay(w,g,{amplitude:.03});
+});
+function bunting(w,parent,a,b,count,seed,{size=1,sag=.09}={}){
+  const points=[];for(let i=0;i<=16;i++){const t=i/16;points.push(new THREE.Vector3(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t-Math.abs(b[0]-a[0])*sag*4*t*(1-t),0));}
+  const curve=new THREE.CatmullRomCurve3(points),dressed=models(w);
+  const colours=dressed?[carnival.pink(w),carnival.cream(w),carnival.purple(w),carnival.lemon(w)]:[slot(w,'top'),slot(w,'accent')];
+  const string=w.mesh(new THREE.TubeGeometry(curve,32,.04,5,false),dressed?carnival.cream(w):slot(w,'top'),parent,0,0,0);string.name='Bunting string';string.castShadow=false;
   for(let i=0;i<count;i++){
-    const t=(i+.5)/count,p=curve.getPoint(t);
-    const flag=w.mesh(new THREE.ConeGeometry(.2,.46,3),(i+seed)%2?slot(w,'accent'):slot(w,'top'),parent,p.x,p.y-.26,0);
-    flag.rotation.z=Math.PI;flag.scale.z=.35;flag.name='Pennant';flag.castShadow=false;
+    const t=(i+.5)/count,p=curve.getPoint(t),colour=colours[(i+seed)%colours.length];
+    let flag;
+    if(dressed){flag=w.mesh(pennantShape(w,size),colour,parent,p.x,p.y+.02,-.03);}
+    else{flag=w.mesh(new THREE.ConeGeometry(.2*size,.46*size,3),colour,parent,p.x,p.y-.26*size,0);flag.rotation.z=Math.PI;flag.scale.z=.35;}
+    flag.name='Pennant';flag.castShadow=false;
+    if(dressed){const bead=createBead(w,parent);bead.position.set(p.x,p.y,.05);bead.scale.setScalar(.2*size);bead.name='Bunting button';bead.castShadow=false;}
   }
 }
 // Pink paint filling a pit: a flat glossy slab the spikes poke up through.
@@ -423,6 +497,7 @@ export default {
       case 'parade-back':return torso(w,s,g);
       case 'parade-neck':return collar(w,s,g);
       case 'parade-head':return flowerHead(w,s,g);
+      case 'parade-worm':return wormDeck(w,s,g);
       case 'parade-caterpillar':return caterpillar(w,s,g);
       case 'parade-fingers':return fist(w,s,g);
       case 'parade-house':return fingertips(w,s,g);
@@ -441,27 +516,75 @@ export default {
       list.push({key:'paint-'+i,x:h.x+h.w/2,y:h.y,w:h.w+2,z:0,make:(w,parent)=>paint(w,parent,h.w)});
     if(entry&&ground2)list.push({key:'bunting-a',x:entry.x+9,y:entry.y,w:16,z:-1.7,make(w,parent){
       w.cylinder(.09,5.4,slot(w,'top'),parent,-7,2.7,0).name='Bunting pole';w.cylinder(.09,5.4,slot(w,'top'),parent,7,2.7,0).name='Bunting pole';
-      bunting(w,parent,[-7,5.4,0],[7,5.4,0],7,0);
+      bunting(w,parent,[-7,5.4,0],[7,5.4,0],7,0,{size:1.4});
     }});
     if(worm&&palm)list.push({key:'bunting-b',x:(worm.x+2.5+palm.x)/2,y:7.9,w:palm.x-worm.x,z:-1.6,make(w,parent){
-      const half=(palm.x-worm.x-2.5)/2;bunting(w,parent,[-half,.3,0],[half+.6,-.6,0],9,1);
+      const half=(palm.x-worm.x-2.5)/2;bunting(w,parent,[-half,.3,0],[half+.6,-.6,0],9,1,{size:1.5});
     }});
     if(exit)list.push({key:'teapot',x:exit.x+4.2,y:exit.y,w:4,z:-1.4,make:(w,parent)=>teapot(w,parent,section.x+66)});
     return list;
   },
+  // The parade brings its own sky, so the placeholder columns and blobs sink
+  // while the player is here (dream.js) and the horizon below is the parade's.
+  quietBackdrop:true,
   backdrop(w,L,section,layers){
+    // Parallax: an item at world X in a layer of factor f shows at cameraX +
+    // (X - cameraX)·f, and the layer rises with the camera at about .6–.75 of
+    // its height. Positions below were laid out for the two frames that matter
+    // — the plaza at the entry (camera ≈ x+8) and the hat-worm bridge (camera
+    // ≈ x+36, y ≈ 8) — with the fog (30..98 from a camera at z 26) doing the
+    // hazing: the lollipop crisp at z -36 without fog, the towers a little
+    // soft at -22, the sun softer at -30, the spires and hills dissolving
+    // toward lilac at -42 and -50.
+    const x0=section.x,dressed=models(w);
+    const sky=layers.at(.12),far=layers.at(.16),haze=layers.at(.08),mid=layers.at(.3),drift=layers.at(.22);
     // The spiral sun: two ribbons, lemon and bubblegum, wound together over the
-    // pit and the ride and turning very slowly. Parallax layers rise with the
-    // camera (heightFollow), so it hangs low enough to show from the plaza and
-    // climbs into view as the player climbs the giraffe. The placeholder sky's
-    // columns and blobs stay as the shared base — nothing else is added, so
-    // the distance stays lilac and quiet behind the statues.
-    const sky=layers.at(.12),sun=layers.place(sky,section.x+46,6.5,-36);sun.name='Spiral sun';
+    // pit and the ride and turning very slowly. It hangs low enough to show
+    // from the plaza and climbs into view as the player climbs the giraffe.
+    // With the models loaded it is a lollipop: the candy column stands under
+    // it with its bow and smiley medallion at the disc's centre, in front of
+    // the ribbons, and a pink knob of clay peeks over the disc's top. Only the
+    // disc turns.
+    const sun=layers.place(sky,x0+46,6.5,-36);sun.name='Spiral sun';
+    const disc=group(sun,'Spiral disc',0,0,dressed?-1.8:0);
     for(const [k,mat] of [[0,lemon(w)],[1,bubblegumGlow(w)]]){
       const pts=[];for(let i=0;i<=90;i++){const a=i/90*Math.PI*2*2.4+(k?Math.PI:0),r=.5+i/90*3.6;pts.push(new THREE.Vector3(Math.cos(a)*r,Math.sin(a)*r,0));}
-      const ribbon=w.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),140,.36,6,false),mat,sun,0,0,0);ribbon.name=k?'Sun ribbon bubblegum':'Sun ribbon lemon';
+      const ribbon=w.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),140,.36,6,false),mat,disc,0,0,0);ribbon.name=k?'Sun ribbon bubblegum':'Sun ribbon lemon';
     }
-    register(w,sun,(game,dt,ctx)=>{if(!ctx.reducedMotion)sun.rotation.z-=dt*.05;});
+    register(w,sun,(game,dt,ctx)=>{if(!ctx.reducedMotion)disc.rotation.z-=dt*.05;});
+    if(dressed){
+      dreamColumn(w,sun,COLUMN_HEIGHT,{reach:30}).position.set(0,-COLUMN_HEIGHT*COLUMN_MEDALLION,.2);
+      w.ball(2.2,1.9,1.6,carnival.skyPink(w),sun,0,4.2,-2.6).name='Lollipop knob';
+    } else w.cylinder(1,15,slot(w,'back'),sun,0,-6.5,-1.3).name='Lollipop stick';
+    // Lilac hills along the whole section, in the palette's own backdrop
+    // colours — what the placeholder's blobs gave, now the parade's to keep.
+    for(let i=0;i<8;i++){
+      const g=layers.place(far,x0-40+i*25,-1.5,-50);g.name='Parade hill';
+      w.ball(7+rand(i+70)*4,3.5+rand(i+71)*1.5,4,i%2?'back':'back2',g,0,0,0);
+    }
+    if(!dressed)return;
+    // The smiling sun, high and to the left, soft in the haze.
+    dreamSun(w,layers.place(haze,x0-42,6.2,-30),5.5);
+    // Two banner towers at the edges of the bridge's frame, with two strings of
+    // bunting slung between them — merged, so each string is a handful of
+    // draws — and three more posts far off as the carnival's spires. The
+    // strings hang low enough to clear the bridge's hats.
+    const towers=[[2,14],[68,14]];
+    for(const [dx,h] of towers){const g=layers.place(mid,x0+dx,-4,-18);g.name='Banner tower';dreamCane(w,g,h);}
+    const strings=layers.place(mid,x0+35,0,-18),half=(towers[1][0]-towers[0][0])/2*.3;strings.name='Tower bunting';
+    bunting(w,strings,[-half,2.4,0],[half,2.4,0],14,0,{size:1.6,sag:.1});
+    bunting(w,strings,[-half,4.2,0],[half,.6,0],12,2,{size:1.5,sag:.07});
+    bakeStatic(w,strings);
+    for(const [dx,h] of [[-20,5],[14,5.5],[80,5]]){const g=layers.place(far,x0+dx,-3,-46);g.name='Far spire';dreamCane(w,g,h);}
+    // Balloons drifting high over the parade, bobbing a little.
+    for(const [i,[dx,y]] of [[8,9],[40,11],[52,10],[70,12]].entries()){
+      const g=layers.place(drift,x0+dx,y,-30);g.name='Balloon';
+      const b=group(g,'Balloon body');
+      w.ball(.5,.6,.5,[carnival.pink,carnival.lemon,carnival.purple][i%3](w),b,0,0,0).name='Balloon skin';
+      w.ball(.1,.08,.1,carnival.cream(w),b,0,-.62,0).name='Balloon knot';
+      w.cylinder(.025,2.2,carnival.cream(w),b,0,-1.75,0).name='Balloon string';
+      register(w,g,(game,dt,ctx)=>{b.position.y=ctx.reducedMotion?0:Math.sin(ctx.time*.7+i*1.9)*.25;});
+    }
   },
   animate(w,game,dt,section,ctx){
     const list=w.paradeAnim;if(!list?.length)return;

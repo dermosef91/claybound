@@ -51,7 +51,12 @@ assets={
  'dream-sculpture.glb':'colorful+abstract+sculpture+3d+model.glb',
  'dream-caterpillar.glb':'caterpillar.glb',
  'dream-giraffe.glb':'giraffe.glb',
- 'dream-fruit.glb':'3d+fruit+sculpture.glb'
+ 'dream-fruit.glb':'3d+fruit+sculpture.glb',
+ # The Melted Parade's dressing, uploaded to "parade 3d assets" under the chapter's folder.
+ 'dream-banner.glb':'decorative banner 3d model.glb',
+ 'dream-column.glb':'decorative+candy+column+3d+model.glb',
+ 'dream-cane.glb':'whimsical+candy+cane+3d+model.glb',
+ 'dream-sun.glb':'smiley+sun+3d+model.glb'
 }
 def locate(source):
  """The upload, in the given directory or its parent; None when it is not in this upload."""

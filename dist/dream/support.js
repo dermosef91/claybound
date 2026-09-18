@@ -47,13 +47,16 @@ export const rand=n=>{const v=Math.sin(n*127.1+87.3)*43758.5453;return v-Math.fl
 // streaming disposer and a level rebuild treat it as shared. Matte clay takes
 // the relief hook; `gloss` skips it (the relief shader clamps roughness to
 // .52, and slime or a pupil is meant to shine) and carries the clay tag the
-// scene checks look for. Returns the name, for w.box/w.ball/w.mesh. Tagged
-// `fixed` so the foreground scenery knows it may clone it for its fade — a
-// palette slot must stay shared, a fixed colour need not.
-export function fixedMaterial(w,name,hex,{roughness=.95,depth=.075,gloss=false}={}){
+// scene checks look for. `fog:false` keeps a colour out of the haze — for sky
+// pieces meant to stay crisp at depth; give the fogged and unfogged uses of one
+// colour different names, since the first call fixes the material. Returns the
+// name, for w.box/w.ball/w.mesh. Tagged `fixed` so the foreground scenery
+// knows it may clone it for its fade — a palette slot must stay shared, a
+// fixed colour need not.
+export function fixedMaterial(w,name,hex,{roughness=.95,depth=.075,gloss=false,fog=true}={}){
   if(!w.mat)return 'orange';
   if(!w.mat[name]){
-    const m=new THREE.MeshStandardMaterial({color:hex,roughness:gloss?.25:roughness,metalness:0});m.name=name;
+    const m=new THREE.MeshStandardMaterial({color:hex,roughness:gloss?.25:roughness,metalness:0,fog});m.name=name;
     if(gloss)m.userData.clay={type:'gloss',requestedDepth:0,depth:0};
     else{clayMaterial(w,m,depth);m.userData.clay??={type:'relief',requestedDepth:depth,depth:0};}
     m.userData.fixed=true;
