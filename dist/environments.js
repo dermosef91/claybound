@@ -10,9 +10,12 @@ import {CLAY_PALETTE} from './palette.js';
 import {THEME_DREAM,buildDreamTerrain,buildDreamBackdrop} from './dream.js';
 const rand=n=>{const v=Math.sin(n*127.1+87.3)*43758.5453;return v-Math.floor(v);};
 
+// `crumble` says what a theme's crumbling ledges are built from (crumble.js):
+// 'clay', the chapter's own top and terrain fractured, or — unset — the grey
+// porous stone the blight also wears, which the chapters after the first meet.
 export const THEMES={
   citadel:{terrain:0x315e96,terrain2:0x2d588c,top:CLAY_PALETTE.orange,bark:0x244973,barkLight:CLAY_PALETTE.orangeLight,foliage:0x4775a2,leafLight:0x638eb8,vine:0x3e6491,back:0x587fa8,back2:0x416e9d,accent:CLAY_PALETTE.orange,water:0x507d9f,rope:0xdfbc86,dust:0xe8cca0,skyLight:0xd3e3f0,groundLight:0x23466b,sun:0xffe3bd,sunPower:3.25,ambient:2.1,fill:0xb8d1e9,fillPower:.5},
-  desert:{terrain:CLAY_PALETTE.orange,terrain2:CLAY_PALETTE.orangeDark,top:CLAY_PALETTE.orangeLight,bark:0x8e4e27,barkLight:0xbe793d,foliage:0x408559,leafLight:0x5b9b62,vine:0x487c47,back:CLAY_PALETTE.orangeLight,back2:CLAY_PALETTE.orange,accent:0xffd568,water:0x7daaae,rope:0xe3b56f,dust:0xf1c798,skyLight:0xd3e5fa,groundLight:0xa35b35,sun:0xffdfb6,sunPower:3.3,ambient:2.1,fill:0xc7def7,fillPower:.7,cameraElevation:1.6},
+  desert:{terrain:CLAY_PALETTE.orange,terrain2:CLAY_PALETTE.orangeDark,top:CLAY_PALETTE.orangeLight,bark:0x8e4e27,barkLight:0xbe793d,foliage:0x408559,leafLight:0x5b9b62,vine:0x487c47,back:CLAY_PALETTE.orangeLight,back2:CLAY_PALETTE.orange,accent:0xffd568,water:0x7daaae,rope:0xe3b56f,dust:0xf1c798,skyLight:0xd3e5fa,groundLight:0xa35b35,sun:0xffdfb6,sunPower:3.3,ambient:2.1,fill:0xc7def7,fillPower:.7,cameraElevation:1.6,crumble:'clay'},
   forest:{terrain:0xaa7950,terrain2:0x906344,top:0x67a650,bark:0x795135,barkLight:0xb68a52,foliage:0x628448,leafLight:0x87a958,vine:0x58804b,back:0x93aa91,back2:0xa58b68,accent:0xf4d592,water:0x86b7b3,rope:0x829656,dust:0xaec387,skyLight:0xe5f0d7,groundLight:0x606646,sun:0xffe5b7,sunPower:3.2,ambient:2.1,fill:0xc4e1dc,fillPower:.7,cameraElevation:1.65},
   dream:THEME_DREAM,
   // Cave clay is a colourless dark slate and the lights are neutral greys:

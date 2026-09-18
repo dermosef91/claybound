@@ -7,7 +7,7 @@ import {createBead} from '../dist/beads.js';
 import {createHealthClumps,animateHealthClumps} from '../dist/health-hud.js';
 import {exportReview} from './review-scene.mjs';
 const dir=process.argv[2],w=Object.create(World.prototype);
-w.scene=new THREE.Scene();w.levelRoot=new THREE.Group();w.fxRoot=new THREE.Group();w.scene.add(w.levelRoot,w.fxRoot);w.particles=[];w.flags=[];w.mat={};w.biome='desert';
+w.scene=new THREE.Scene();w.levelRoot=new THREE.Group();w.fxRoot=new THREE.Group();w.scene.add(w.levelRoot,w.fxRoot);w.particles=[];w.flags=[];w.mat={};w.biome='desert';w.theme={crumble:'clay'};
 for(const [key,color]of Object.entries({top:0xedac54,terrain:0xd16b38,cream:0xf1d8a3,dust:0xf1c798}))w.mat[key]=new THREE.MeshStandardMaterial({color,roughness:.94});
 const images=await attachClay(w),s={x:-3,w:6,y:0,kind:'crumble',timer:Number(process.env.CRUMBLE_AGE||.45),delay:1,active:true};
 s.active=s.timer<=s.delay;const root=new THREE.Group();root.position.set(s.x,s.y,0);w.levelRoot.add(root);const view={root,fracture:createCrumble(w,s,root)};animateCrumble(w,view,s,1/60);
