@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {parseHTML} from 'linkedom';
+import {BACKDROP_DEFAULT,BACKDROP_BOUNDS} from '../dist/decor-kinds.js';
 const {window,document}=parseHTML(await readFile(new URL('../dist/index.html',import.meta.url),'utf8'));
 const timers=new Map();let timerId=0;const setTimer=(fn,delay=0)=>{timers.set(++timerId,{fn,delay});return timerId;},clearTimer=id=>timers.delete(id);
 const storage=new Map(),localStorage={getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v)};
@@ -337,6 +338,60 @@ await click('[data-edit="delete"]');assert.equal(editor.session.level.decor.leng
 await click('[data-edit="more"]');await click('#editor-popover [data-edit="browse"]');
 assert($('editor-browse').textContent.includes('Cactus'),'browsing while decorating lists props');
 await click('#editor-popover [data-edit="close"]');
+// The horizon half of the same mode. A piece is authored by the world x it is
+// centred on, so while the camera is anywhere else it is not drawn where its
+// own x says — the palette, the outline, the tap and the drag all have to go
+// through the parallax, or it cannot be edited at all.
+editor.select(null);
+await click('[data-edit="add"]');
+assert(document.querySelector('[data-type="backdrop:canyon-arch"]'),'the palette offers the horizon while decorating');
+await click('[data-type="backdrop:canyon-arch"]');
+assert.equal(editor.session.selection.list,'backdrop');
+const skyIndex=editor.session.selection.index,sky=()=>editor.session.level.backdrop[skyIndex];
+assert.equal(sky().kind,'canyon-arch');
+assert.equal(sky().factor,BACKDROP_DEFAULT.factor,'placed at the default distance');
+assert.equal(sky().z,BACKDROP_DEFAULT.z,'and the default depth');
+for(const [key,value]of [['y','10'],['size','24'],['z','-30'],['factor','0.5'],['turn','20'],['lean','-5']]){
+ const control=$('editor-inspector').querySelector(`[data-field="${key}"]`);assert(control,key);
+ control.value=value;control.dispatchEvent(new window.Event('change',{bubbles:true}));
+ assert.equal(sky()[key],Number(value));
+}
+const skyEnter=(key,value)=>{const c=$('editor-inspector').querySelector(`[data-field="${key}"]`);c.value=value;c.dispatchEvent(new window.Event('change',{bubbles:true}));};
+skyEnter('factor','3');assert.equal(sky().factor,.5,'a distance past the bounds is refused');
+assert($('editor-message').textContent.includes(String(BACKDROP_BOUNDS.factor[1])),'and says what the bounds are');
+skyEnter('z','-90');assert.equal(sky().z,-30,'a depth past the bounds is refused too');
+editor.draw();
+// The outline follows the frame rather than the stored x.
+const piece=structuredClone(sky()),at=editor.backdropAt(piece);
+assert(Math.abs(at.x-piece.x)>1e-9,'the camera is not on the piece, so it is not drawn at its own x');
+assert.deepEqual(editor.hit(editor.toScreen(at.x,at.y+1)),{list:'backdrop',index:skyIndex},'a tap where it is drawn selects it');
+// A drag moves the authored x by one over the distance, so the silhouette
+// keeps up with the finger instead of lagging it.
+const skyUnit=surface.height/editor.camera.viewH,grab=editor.toScreen(at.x,at.y+.5);
+editor.pointerDown(pointer(95,grab.x,grab.y));
+editor.pointerMove(pointer(95,grab.x+2*skyUnit,grab.y));
+editor.pointerUp(pointer(95,grab.x+2*skyUnit,grab.y));
+assert.equal(sky().x,piece.x+4,'two units across the frame at distance .5 is four units of authored x');
+assert.equal(sky().y,piece.y,'and a level drag leaves the height alone');
+// The handle resizes about the centre the frame is drawing, not the stored x.
+const drawn=structuredClone(sky()),drawnAt=editor.backdropAt(drawn);
+const skyBox=editor.backdropBox(drawn),skyBase=editor.toScreen(drawnAt.x,drawnAt.y);
+editor.pointerDown(pointer(96,skyBox.right,skyBase.y));assert.equal(editor.gesture.handle,'across');
+editor.pointerMove(pointer(96,skyBox.right+skyUnit,skyBase.y));
+assert.equal(editor.game.level.backdrop[skyIndex].size,drawn.size+2,'live preview follows the horizon handle');
+editor.pointerUp(pointer(96,skyBox.right+skyUnit,skyBase.y));
+assert.equal(sky().size,drawn.size+2);
+await click('[data-edit="undo"]');assert.equal(sky().size,drawn.size,'undo reaches the horizon');
+const skyCount=editor.session.level.backdrop.length;
+await click('[data-edit="duplicate"]');assert.equal(editor.session.level.backdrop.length,skyCount+1);
+await click('[data-edit="delete"]');assert.equal(editor.session.level.backdrop.length,skyCount,'it duplicates and deletes like a prop');
+await click('[data-edit="more"]');await click('#editor-popover [data-edit="browse"]');
+assert($('editor-browse').textContent.includes('horizon'),'browsing names it as a horizon piece');
+await click('#editor-popover [data-edit="close"]');
+// Leave the draft as the rest of this file expects to find it.
+editor.select({list:'backdrop',index:skyIndex});
+await click('[data-edit="delete"]');
+assert.equal(editor.session.level.backdrop.length,skyCount-1,'and the chapter is left with none again');
 // A playtest carries it, returning keeps the mode, and leaving the mode hands
 // the gameplay objects back.
 const decorated=JSON.stringify(editor.session.level.decor);

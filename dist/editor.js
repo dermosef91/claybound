@@ -151,7 +151,7 @@ export class LevelEditor{
     const sel=this.session.selection,p=selectedObject(this.session.level,sel),box=$('editor-inspector'),scroll=box.querySelector('.editor-inspector-body')?.scrollTop||0;box.classList.toggle('collapsed',this.collapsed);
     const save=this.library.error?'Export to keep your changes':this.library.has(this.session.index)?'Saved on this device':'Original chapter · ready to shape';
     const empty=this.decorating?'A little dressing':'A little room to create';
-    const note=sel?.list===DECOR?'Scenery only':this.dressing()?`${p?.id} · scenery`:p?.id||'Selected object';
+    const note=sel?.list===BACKDROP?'Horizon · scenery only':sel?.list===DECOR?'Scenery only':this.dressing()?`${p?.id} · scenery`:p?.id||'Selected object';
     let html=`<div class="editor-inspector-head"><div><strong>${p?esc(objectLabel(p,sel.list)):empty}</strong><span>${p?esc(note):save}</span></div>${button('collapse',this.collapsed?'chevron-up':'chevron-down',this.collapsed?'Show properties':'Hide properties','editor-icon')}</div><div class="editor-inspector-body">`;
     if(!p){html+=`<p>${this.decorating?'Everything you can reach is outlined. Tap a prop to move or resize it, or a landmark to change the one its platform carries. Add places a new prop at the center of your view. None of it is a collider, a collectible or a checkpoint.':'Select an object in the world or browse the list. Move platforms with their beads, switches and enemies attached.'}</p>${button('browse','list','Browse objects')}<div class="editor-settings"><label>Snap to <select id="editor-snap">${[0,.25,.5,1].map(v=>option(v,v?`${v} units`:'Free',this.snap)).join('')}</select></label><label class="editor-check"><input id="editor-carry" type="checkbox" ${this.carry?'checked':''}>Move contents</label><label class="editor-check"><input id="editor-guide" type="checkbox" ${this.guides?'checked':''}>Show jump guide</label></div>`;}
     else if(this.dressing()){
@@ -179,6 +179,8 @@ export class LevelEditor{
       html+=`<label class="editor-field editor-wide"><span>Horizon shape</span><select data-field="kind">${shapes.map(([value,spec])=>option(value,spec.label,p.kind)).join('')}</select></label>`;
       html+=`<div class="editor-fields">${field('x','Position X',p.x)}${field('y','Height',p.y,.25,-40,160)}${field('size','Size across',backdropSize(p),.25,...size)}${field('z','Depth',p.z??BACKDROP_DEFAULT.z,.25,...depth)}${field('factor','Distance',backdropFactor(p),.01,...factor)}${field('turn','Turn (degrees)',p.turn??0,5,...turn)}${field('lean','Lean (degrees)',p.lean??0,1,...lean)}</div>`;
       html+=`<p class="editor-note">Distance 0.05 is the far sky and 0.95 is almost the playfield. It decides how fast the piece crosses the frame, and how long it stays in it.</p>`;
+      html+=`<div class="editor-nudge" aria-label="Nudge selected horizon piece">${button('left','arrow-left','Nudge left','editor-icon')}${button('up','arrow-up','Nudge up','editor-icon')}${button('down','arrow-down','Nudge down','editor-icon')}${button('right','arrow-right','Nudge right','editor-icon')}</div>`;
+      html+=`<div class="editor-object-actions">${button('duplicate','copy','Duplicate')}${button('delete','trash-2','Delete')}</div><p class="editor-save-note">${esc(save)}</p>`;
     }
     else if(sel.list===DECOR){
       const [size,depth,turn,lean]=[DECOR_BOUNDS.size,DECOR_BOUNDS.z,DECOR_BOUNDS.turn,DECOR_BOUNDS.lean];
@@ -287,10 +289,11 @@ export class LevelEditor{
         const dressed=p=>p.landmark||p.house||p.arch||p.entrance||p.rest;
         const entries=this.decorating
           ?[...(this.session.level[DECOR]||[]).map((p,index)=>({list:DECOR,index,p})),
+            ...(this.session.level[BACKDROP]||[]).map((p,index)=>({list:BACKDROP,index,p})),
             ...this.session.level.platforms.map((p,index)=>({list:'platforms',index,p})).filter(({p})=>dressed(p))]
           :[{list:'spawn',index:0,p:this.session.level.spawn},...LISTS.flatMap(list=>this.session.level[list].map((p,index)=>({list,index,p})))];
         const name=({list,index,p})=>list==='platforms'&&p.landmark?`${landmarkLabel(p.landmark,this.session.level.biome)} on ${p.id}`:`${objectLabel(p,list)} · ${p.id||index+1}`;
-        this.popover(this.decorating?'Find some scenery':'Find an object',`<label class="editor-field editor-wide"><span>Choose to select and frame</span><select id="editor-browse"><option value="">${this.decorating?'Choose a prop or a dressed platform…':'Choose an object…'}</option>${entries.map(entry=>option(`${entry.list}:${entry.index}`,`${name(entry)} · X ${entry.p.x.toFixed(1)}`,'' )).join('')}</select></label>${entries.length?'':'<p>This chapter has no decoration yet. Close this and use Add to place the first prop.</p>'}`);return;
+        this.popover(this.decorating?'Find some scenery':'Find an object',`<label class="editor-field editor-wide"><span>Choose to select and frame</span><select id="editor-browse"><option value="">${this.decorating?'Choose a prop, a horizon piece or a dressed platform…':'Choose an object…'}</option>${entries.map(entry=>option(`${entry.list}:${entry.index}`,`${name(entry)} · X ${entry.p.x.toFixed(1)}`,'' )).join('')}</select></label>${entries.length?'':'<p>This chapter has no decoration or horizon of its own yet. Close this and use Add to place the first piece.</p>'}`);return;
       }
       if(action==='more'){this.popover('Your workshop',`<div class="editor-more">${button('browse','list','Browse objects')}${button('export','download','Export level backup')}${button('import','upload','Import level backup')}${button('restore','rotate-ccw','Restore original chapter')}${button('fullscreen','expand','Fullscreen')}${button('help','circle-help','Editor controls')}</div><div class="editor-settings"><label>Snap to <select id="editor-snap">${[0,.25,.5,1].map(v=>option(v,v?`${v} units`:'Free',this.snap)).join('')}</select></label><label class="editor-check"><input id="editor-carry" type="checkbox" ${this.carry?'checked':''}>Move contents with platforms</label><label class="editor-check"><input id="editor-guide" type="checkbox" ${this.guides?'checked':''}>Show jump guide</label></div><p>Edits save automatically on this device and are used when you play. Export a backup to move them to another device.</p>`);return;}
       if(action==='export'){
@@ -320,7 +323,8 @@ export class LevelEditor{
     const sel=this.session.selection,p=selectedObject(this.session.level,sel)||this.session.level.spawn,{w,h}=this.dimensions();
     // A prop is measured across and stands on its own Y, so framing one centres
     // on the shape rather than on a deck's left edge.
-    const prop=sel?.list===DECOR,span=prop?decorSize(p):p.w||4;
+    const horizon=sel?.list===BACKDROP;
+    const prop=sel?.list===DECOR||horizon,span=horizon?backdropSize(p):sel?.list===DECOR?decorSize(p):p.w||4;
     if(fit)this.camera.viewH=clamp(Math.max((span+7)*h/w,p.kind==='wall'?p.h+7:prop?span+6:0),12,p.kind==='wall'?65:55);
     this.camera.x=p.x+(prop?0:(p.w||0)/2);this.camera.y=p.kind==='wall'?p.y-p.h/2:prop?p.y+span*.4:p.y+1;
   }
