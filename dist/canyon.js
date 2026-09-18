@@ -311,6 +311,11 @@ export function makeCanyonZip(w,s,g){
 // them, and the sheave turns with the distance run.
 export function animateCanyonZip(w,s,view){
   if(!view?.span)return;
-  view.span.position.set(s.baseX-s.x,s.baseY-s.y,0);
-  view.sheave.rotation.z=-(s.x-s.baseX)/view.sheaveRadius;
+  // Against the deck group's drawn position, not the simulated one: the frame
+  // draws the trolley between ticks (world.js), and the masts and cable must be
+  // pushed back by exactly what the deck was moved by, or the cable trembles
+  // against the world the trolley is running through.
+  const {x,y}=view.root.position;
+  view.span.position.set(s.baseX-x,s.baseY-y,0);
+  view.sheave.rotation.z=-(x-s.baseX)/view.sheaveRadius;
 }

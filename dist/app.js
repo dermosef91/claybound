@@ -463,9 +463,16 @@ function frame(now){
   // A finished chapter stops simulating and the diorama takes the canvas. The
   // level stays built behind it, so Play Again needs no reload.
   if(completionScene?.active){accum=0;completionScene.render(dt);requestAnimationFrame(frame);return;}
-  if(hitStop>0){hitStop=Math.max(0,hitStop-dt);accum=0;}else accum+=dt;
+  const held=hitStop>0;
+  if(held){hitStop=Math.max(0,hitStop-dt);accum=0;}else accum+=dt;
   while(accum>=FIXED_DT){game.tick(FIXED_DT,input);input.jumpPressed=false;input.stompPressed=false;accum-=FIXED_DT;if(hitStop>0){accum=0;break;}}
-  world.render(game,dt,menu);if(!editor?.active&&!$('hud').classList.contains('hidden'))healthHUD?.draw(game,dt);editor?.draw();hudAccum+=dt;if(hudAccum>.06){updateHUD(now);hudAccum=0;}
+  // What is left in `accum` is how far this frame falls into the next tick, so
+  // the world is drawn that far between the last two poses (camera.js
+  // `between`), a tick behind and steady. A frame held by a hit-stop — the one
+  // that starts it and the one that ends it, when nothing has ticked — and any
+  // frame the simulation is not running show the tick as it stands.
+  const alpha=held||hitStop>0||game.status!=='playing'?1:accum/FIXED_DT;
+  world.render(game,dt,menu,alpha);if(!editor?.active&&!$('hud').classList.contains('hidden'))healthHUD?.draw(game,dt);editor?.draw();hudAccum+=dt;if(hudAccum>.06){updateHUD(now);hudAccum=0;}
   requestAnimationFrame(frame);
 }
 updatePlayLabel();icons();$('menu-sound').innerHTML=icon(sound.enabled?'volume-2':'volume-x');$('menu-sound').setAttribute('aria-label',sound.enabled?'Mute sound':'Enable sound');$('menu-sound').setAttribute('aria-pressed',String(sound.enabled));icons();
