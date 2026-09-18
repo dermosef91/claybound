@@ -49,11 +49,14 @@ export function createFlowerCelebration(c,w){
 // bone lengths. Both actual hands converge on the same short flower stem.
 function reach(chain,target,weight){
   const joints=chain.slice(0,3),hand=chain[3],saved=joints.map(b=>b.quaternion.clone());
-  const origin=new THREE.Vector3(),tip=new THREE.Vector3(),goal=new THREE.Vector3(),parent=new THREE.Quaternion(),rotation=new THREE.Quaternion();
+  const origin=new THREE.Vector3(),tip=new THREE.Vector3(),goal=new THREE.Vector3(),parent=new THREE.Matrix4(),rotation=new THREE.Quaternion();
   for(let pass=0;pass<12;pass++)for(let i=2;i>=0;i--){
-    const bone=joints[i];bone.getWorldPosition(origin);hand.getWorldPosition(tip);tip.sub(origin).normalize();goal.copy(target).sub(origin).normalize();
-    rotation.setFromUnitVectors(tip,goal);bone.parent.getWorldQuaternion(parent);
-    rotation.premultiply(parent.clone().invert()).multiply(parent);bone.quaternion.premultiply(rotation);bone.updateWorldMatrix(false,true);
+    const bone=joints[i];bone.getWorldPosition(origin);hand.getWorldPosition(tip);tip.sub(origin);goal.copy(target).sub(origin);
+    // Both directions are taken into the parent's own frame through its full
+    // inverse matrix — not its quaternion, which cannot carry the reflection of
+    // a mirrored character — and the swing is solved there, as the bone's own.
+    parent.copy(bone.parent.matrixWorld).invert();tip.transformDirection(parent);goal.transformDirection(parent);
+    rotation.setFromUnitVectors(tip,goal);bone.quaternion.premultiply(rotation);bone.updateWorldMatrix(false,true);
   }
   joints.forEach((bone,i)=>bone.quaternion.slerpQuaternions(saved[i],bone.quaternion.clone(),weight));
 }

@@ -1,0 +1,96 @@
+{
+  "frames": [
+    {
+      "id": "clay",
+      "name": "right",
+      "facing": 1,
+      "viewH": 3.83
+    },
+    {
+      "id": "clay",
+      "name": "left",
+      "facing": -1,
+      "viewH": 3.83
+    },
+    {
+      "id": "clay",
+      "name": "feet",
+      "facing": 1,
+      "viewH": 1.42
+    },
+    {
+      "id": "emberleaf",
+      "name": "right",
+      "facing": 1,
+      "viewH": 5.74
+    },
+    {
+      "id": "emberleaf",
+      "name": "left",
+      "facing": -1,
+      "viewH": 5.74
+    },
+    {
+      "id": "emberleaf",
+      "name": "feet",
+      "facing": 1,
+      "viewH": 2.14
+    },
+    {
+      "id": "clay-wanderer",
+      "name": "right",
+      "facing": 1,
+      "viewH": 5.74
+    },
+    {
+      "id": "clay-wanderer",
+      "name": "left",
+      "facing": -1,
+      "viewH": 5.74
+    },
+    {
+      "id": "clay-wanderer",
+      "name": "feet",
+      "facing": 1,
+      "viewH": 2.14
+    },
+    {
+      "id": "garden-helper",
+      "name": "right",
+      "facing": 1,
+      "viewH": 5.74
+    },
+    {
+      "id": "garden-helper",
+      "name": "left",
+      "facing": -1,
+      "viewH": 5.74
+    },
+    {
+      "id": "garden-helper",
+      "name": "feet",
+      "facing": 1,
+      "viewH": 2.14
+    },
+    {
+      "id": "apprentice",
+      "name": "right",
+      "facing": 1,
+      "viewH": 4.4
+    },
+    {
+      "id": "apprentice",
+      "name": "left",
+      "facing": -1,
+      "viewH": 4.4
+    },
+    {
+      "id": "apprentice",
+      "name": "feet",
+      "facing": 1,
+      "viewH": 1.64
+    }
+  ],
+  "errors": [],
+  "requests": []
+}
