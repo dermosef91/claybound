@@ -27,7 +27,14 @@ import {fixedMaterial,lid,slot} from './dream/support.js';
 // head can turn on its own pivot, and the eyeball is found on the head's face
 // so a pupil can be set on it and slid toward the player. Every flower in the
 // chapter is a clone of those two parts under its own pivots.
-export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb',fruit:'dream-fruit.glb'};
+//
+// The Melted Parade's carnival dressing is four more: a candy-striped column
+// with a bow (the stick of its spiral-sun lollipop), a candy-cane banner post
+// (its towers and far spires), a smiling sun, and a decorative banner — a
+// swag valance with gold buttons over a hanging smiley-flower pennant. That
+// last one is cut in two at load like the flower: the swags run along the
+// hat-worm bridge's underside, the pennant hangs on its plinth.
+export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb',fruit:'dream-fruit.glb',banner:'dream-banner.glb',column:'dream-column.glb',cane:'dream-cane.glb',sun:'dream-sun.glb'};
 
 // Each planet's core orb in model space — the sphere the fruit and the leaf
 // sprouts are stuck onto — fitted over every vertex by a modal-radius
@@ -47,24 +54,58 @@ const HEAD_CUT=.62;
 // The flower's eyeball as a share of the model's height, should the fit fail.
 const EYE_RADIUS=.115;
 
-// One mesh → two geometries sharing its vertex data: triangles whose centre is
-// above the cut are the head, the rest the stem. Sharing the attributes costs
-// nothing; only the index differs.
-function splitFlower(geometry,cutY){
+// One mesh → geometries sharing its vertex data, one per name `pick` returns
+// for a triangle's centre. Sharing the attributes costs nothing; only the
+// index differs.
+function splitMesh(geometry,pick){
   const pos=geometry.attributes.position,index=geometry.index;
   const count=index?index.count:pos.count,at=i=>index?index.getX(i):i;
-  const head=[],stem=[];
+  const parts={},centre=new THREE.Vector3();
   for(let t=0;t+2<count;t+=3){
     const a=at(t),b=at(t+1),c=at(t+2);
-    ((pos.getY(a)+pos.getY(b)+pos.getY(c))/3>=cutY?head:stem).push(a,b,c);
+    centre.set((pos.getX(a)+pos.getX(b)+pos.getX(c))/3,(pos.getY(a)+pos.getY(b)+pos.getY(c))/3,(pos.getZ(a)+pos.getZ(b)+pos.getZ(c))/3);
+    (parts[pick(centre)]??=[]).push(a,b,c);
   }
-  const part=(indices,name)=>{
+  for(const [name,indices] of Object.entries(parts)){
     const g=new THREE.BufferGeometry();
     for(const key of Object.keys(geometry.attributes))g.setAttribute(key,geometry.attributes[key]);
-    g.setIndex(indices);g.computeBoundingBox();g.computeBoundingSphere();g.name=name;return g;
-  };
-  return {head:part(head,'Flower head'),stem:part(stem,'Flower stem')};
+    g.setIndex(indices);g.name=name;parts[name]=g;
+    // Three's own bounds would span every shared vertex, the other parts'
+    // included; a part's box is over the vertices its index reaches.
+    const box=new THREE.Box3();for(const i of indices)box.expandByPoint(centre.fromBufferAttribute(pos,i));
+    g.boundingBox=box;g.boundingSphere=box.getBoundingSphere(new THREE.Sphere());
+  }
+  return parts;
 }
+// The flower: triangles whose centre is above the cut are the head, the rest the stem.
+const splitFlower=(geometry,cutY)=>{
+  const {head,stem}=splitMesh(geometry,c=>c.y>=cutY?'head':'stem');
+  head.name='Flower head';stem.name='Flower stem';return {head,stem};
+};
+// The banner's pennant hangs in a column under the swags' middle button — the
+// only geometry this near the axis below the swag rail; the swags' own tails
+// hang outside it. Shares of the upload's width and height.
+const BANNER_POLE=.19,BANNER_TOP=.62;
+const splitBanner=(geometry,box,size)=>{
+  const {valance,banner}=splitMesh(geometry,c=>Math.abs(c.x-(box.min.x+box.max.x)/2)<size.x*BANNER_POLE&&c.y<box.min.y+size.y*BANNER_TOP?'banner':'valance');
+  if(!valance||!banner)throw new Error('Invalid dream model: banner');
+  valance.name='Dream valance';banner.name='Dream banner';return {valance,banner};
+};
+// The column's beaded pedestal ends this far up the upload. The parade wants
+// the stick to run on down to the ground, so the pedestal is cut away and
+// the plain stick above it is measured — its radius, and the pitch of the
+// candy stripe — for the sculpted stretch that carries it on below.
+const COLUMN_PEDESTAL=.12,COLUMN_STICK=[.15,.28];
+const splitColumn=(geometry,box,size)=>{
+  const cut=box.min.y+size.y*COLUMN_PEDESTAL,{post,pedestal}=splitMesh(geometry,c=>c.y>=cut?'post':'pedestal');
+  if(!post||!pedestal)throw new Error('Invalid dream model: column');
+  const pos=geometry.attributes.position,cx=(box.min.x+box.max.x)/2,cz=(box.min.z+box.max.z)/2;let radius=0;
+  for(let i=0;i<pos.count;i++){
+    const y=(pos.getY(i)-box.min.y)/size.y;if(y<COLUMN_STICK[0]||y>COLUMN_STICK[1])continue;
+    radius=Math.max(radius,Math.hypot(pos.getX(i)-cx,pos.getZ(i)-cz));
+  }
+  post.name='Dream column post';return {post,cut,radius};
+};
 
 // The eyeball is the head's forward bulge. Take the frontmost vertex of the
 // head band near the stem's axis as the pole, then fit a sphere through the
@@ -113,11 +154,26 @@ export function prepareDreamAsset(w,key,gltf){
   // surface relief.
   clayMaterials(gltf.scene);clayModel(w,gltf.scene);retainModel(w,gltf.scene);
   w.dreamAssets??={};const record=w.dreamAssets[key]={scene:gltf.scene,box,size,center};
-  if(key!=='flower')return;
-  // The flower's rig: its one mesh cut at the stem's top, and its eyeball found.
+  // The lollipop's column stands in the sky layer, where the pink haze would
+  // bleach its candy stripe to lilac: like the spiral sun's ribbons it takes no
+  // fog and is the one crisp thing up there. The towers and the sun keep it —
+  // their softness is the depth they are placed at.
+  if(key==='column')gltf.scene.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])m.fog=false;});
+  if(key!=='flower'&&key!=='banner'&&key!=='column')return;
   let mesh=null;gltf.scene.traverse(o=>{if(o.isMesh&&!mesh)mesh=o;});
   if(!mesh)throw new Error('Invalid dream model: '+key);
   const material=Array.isArray(mesh.material)?mesh.material[0]:mesh.material;
+  if(key==='column'){
+    const {post,cut,radius}=splitColumn(mesh.geometry,box,size);
+    w.assetGeometry.add(post);Object.assign(record,{material,post,cut,radius});return;
+  }
+  if(key==='banner'){
+    // The banner's two parts: the swag valance and the pennant under it.
+    const {valance,banner}=splitBanner(mesh.geometry,box,size);
+    w.assetGeometry.add(valance);w.assetGeometry.add(banner);
+    Object.assign(record,{material,valance,banner});return;
+  }
+  // The flower's rig: its one mesh cut at the stem's top, and its eyeball found.
   const cutY=box.min.y+size.y*HEAD_CUT,{head,stem}=splitFlower(mesh.geometry,cutY),eye=findEye(mesh.geometry,box);
   w.assetGeometry.add(head);w.assetGeometry.add(stem);
   Object.assign(record,{material,head,stem,cutY,eye});
@@ -190,6 +246,70 @@ export function dreamHat(w,parent,width){
 }
 // How tall a hat `width` across stands, foot to crown — what a stack steps by.
 export const dreamHatHeight=(w,width)=>{const a=asset(w,'hat');return width*a.size.y/a.size.x;};
+
+// --- the parade's carnival dressing ------------------------------------------------
+// A whole model under `parent`, uniformly scaled so `axis` of its box spans
+// `extent`, with the point `anchor` (shares of the box, 0..1 per axis) on the
+// parent's origin.
+function placeDream(w,key,parent,axis,extent,anchor,name){
+  const a=asset(w,key),root=new THREE.Group(),model=a.scene.clone(true),k=extent/a.size[axis];
+  root.name=name;model.name='Supplied clay '+key;
+  root.scale.setScalar(k);model.position.set(-(a.box.min.x+a.size.x*anchor[0]),-(a.box.min.y+a.size.y*anchor[1]),-(a.box.min.z+a.size.z*anchor[2]));
+  root.userData.size=a.size.clone().multiplyScalar(k);
+  root.add(model);parent.add(root);
+  return root;
+}
+// The candy column, `height` tall as uploaded, its foot on the parent's origin.
+// Its bow and smiley medallion sit COLUMN_MEDALLION of the way up: the parade
+// puts that at the spiral sun's centre, so the disc reads as the lollipop's
+// head. The upload's stick is a tenth of its height across, so at a height
+// that gives the disc a slim stick the foot would hang in mid-air: the beaded
+// pedestal is left off, and the stick runs on below the upload for `reach`
+// more units — a cream cylinder at the post's own radius with the candy stripe
+// wound on as a pink tube, in the post's colours and, like it, out of the fog.
+// The measured radius is the stripe's ridge; the stick proper is `body` of it.
+export const COLUMN_MEDALLION=.9,COLUMN_STRIPE={body:.9,turns:.53,tube:.42,inset:.8};
+class Helix extends THREE.Curve{
+  constructor(r,h,turns){super();this.r=r;this.h=h;this.turns=turns;}
+  getPoint(t,o=new THREE.Vector3()){const a=t*this.turns*Math.PI*2;return o.set(-Math.sin(a)*this.r,t*this.h,Math.cos(a)*this.r);}
+}
+export function dreamColumn(w,parent,height,{reach=0}={}){
+  const a=asset(w,'column'),root=new THREE.Group(),k=height/a.size.y,mesh=new THREE.Mesh(a.post,a.material);
+  root.name='Dream column';mesh.name='Supplied clay column';mesh.castShadow=mesh.receiveShadow=true;
+  root.scale.setScalar(k);mesh.position.set(-a.center.x,-a.box.min.y,-a.center.z);root.add(mesh);
+  root.userData.size=a.size.clone().multiplyScalar(k);root.userData.radius=a.radius*k;
+  if(reach>0){
+    // Under the root, in the upload's units so the whole lollipop moves as
+    // one: from just inside the post's open foot down `reach` of the parent's.
+    const r=a.radius,top=a.cut-a.box.min.y+r*.5,len=reach/k+top,cream=fixedMaterial(w,'dreamColumnCream',0xf1e3d3,{depth:.05,fog:false}),pink=fixedMaterial(w,'dreamColumnPink',0xf05fc4,{depth:.05,fog:false});
+    const stick=new THREE.Group();stick.name='Column stick';stick.position.y=top-len;root.add(stick);
+    w.cylinder(r*COLUMN_STRIPE.body,len,cream,stick,0,len/2,0).name='Stick';
+    const turns=len/(r*2)*COLUMN_STRIPE.turns;
+    w.mesh(new THREE.TubeGeometry(new Helix(r*COLUMN_STRIPE.inset,len,turns),Math.ceil(turns*24),r*COLUMN_STRIPE.tube,7,false),pink,stick,0,0,0).name='Candy stripe';
+    stick.traverse(o=>{if(o.isMesh)o.castShadow=false;});
+  }
+  parent.add(root);
+  return root;
+}
+// The candy-cane banner post, `height` tall, foot on the origin.
+export const dreamCane=(w,parent,height)=>placeDream(w,'cane',parent,'y',height,[.5,0,.5],'Dream cane');
+// The smiling sun, `width` across, centred on the origin.
+export const dreamSun=(w,parent,width)=>placeDream(w,'sun',parent,'x',width,[.5,.5,.5],'Dream sun');
+// One of the banner's parts as a mesh of its own, sharing the upload's material.
+function bannerPart(w,part,parent,axis,extent,anchor,name){
+  const a=asset(w,'banner'),geometry=a[part],box=geometry.boundingBox,size=box.getSize(new THREE.Vector3());
+  const root=new THREE.Group(),mesh=new THREE.Mesh(geometry,a.material),k=extent/size[axis];
+  root.name=name;mesh.name='Supplied clay '+part;mesh.castShadow=mesh.receiveShadow=true;
+  root.scale.setScalar(k);mesh.position.set(-(box.min.x+size.x*anchor[0]),-(box.min.y+size.y*anchor[1]),-(box.min.z+size.z*anchor[2]));
+  root.userData.size=size.multiplyScalar(k);
+  root.add(mesh);parent.add(root);
+  return root;
+}
+// The swag valance, `width` across, its rail's top edge on the origin and its
+// swags hanging below; laid end to end, the buttons meet at the joins.
+export const dreamValance=(w,parent,width)=>bannerPart(w,'valance',parent,'x',width,[.5,1,.5],'Dream valance');
+// The smiley pennant, `width` across, hung from the origin.
+export const dreamBanner=(w,parent,width)=>bannerPart(w,'banner',parent,'x',width,[.5,1,.5],'Dream banner');
 
 // A vertex-accurate box of a placed skinned model, in `frame`'s own space:
 // the skin is evaluated on the CPU, which is why this is for placement and
