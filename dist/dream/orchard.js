@@ -8,14 +8,14 @@ import {deck,slot,rand,fixedMaterial,lathe,drip} from './support.js';
 // Section 3 — The Upside-Down Orchard (visual module).
 // ONE idea: the orchard grows down. A canopy of supplied sculptures spans
 // the top of the world, and its harvest hangs under it — crimson apples,
-// green pears and small bunches on dark stems and cream strings, each through
+// green pears and small bunches on cocoa stems and cream strings, each through
 // a tuft of leaves, more leaves pushing out from under every piece; saucers
 // and the crumbling iced apples hang from it on biscuit-cream ropes knotted
 // with an apple; the ground is a pair of clay planets hanging over open sky
 // and floating islands under thick lime icing, their rounded mint bodies
 // pressed with bubblegum, raspberry, teal, lime and lavender-white lobes; and
 // the great tree grows the wrong way — roots waving in the sky, a dented
-// cream trunk hanging, thick boughs snaking out of its foot, the supplied
+// ivory trunk hanging, tapered boughs sweeping out of its foot, the supplied
 // iced-apple sculpture for a crown at the bottom. The palette's four colours
 // — mint (main), raspberry (secondary), lavender (backdrop), lemon (accent) —
 // carry the shapes; the fruit adds the colours it cannot reach: apple red,
@@ -63,8 +63,10 @@ function group(parent,name,x=0,y=0,z=0){const g=new THREE.Group();g.name=name;g.
 // orange the apples must stay clear of.
 const appleRed=w=>fixedMaterial(w,'orchardApple',0xd9382f,{depth:.05});
 const appleDeep=w=>fixedMaterial(w,'orchardAppleDeep',0xa8262a,{depth:.05});
-// A yellow-gold, never orange (the hood), for the patch on an apple's cheek.
-const appleGold=w=>fixedMaterial(w,'orchardAppleGold',0xeab141,{depth:.05});
+// Apricot for the patch on an apple's cheek: between the coins' gold (which
+// the old yellow-gold matched exactly) and the hood's orange, so a patch
+// reads as fruit beside a coin and never as a coin on the apple.
+const appleGold=w=>fixedMaterial(w,'orchardAppleGold',0xf29a3a,{depth:.05});
 // The icing: a half-step deeper and greener than the coins and the lemon
 // drip, still the island's brightest plane; no deeper than 0xbfd03c or it
 // closes on the pear.
@@ -75,25 +77,37 @@ const lime=w=>fixedMaterial(w,'orchardLime',0xc9d946,{depth:.06});
 const pearGreen=w=>fixedMaterial(w,'orchardPear',0x9dc63c,{depth:.05});
 const leafGreen=w=>fixedMaterial(w,'orchardLeaf',0x3a9236,{depth:.04});
 const leafPale=w=>fixedMaterial(w,'orchardLeafLight',0x62b247,{depth:.04});
-const stemBrown=w=>fixedMaterial(w,'orchardStem',0x5e4034,{depth:.03});
-// The islands' pressings: bubblegum (lighter than the palette's raspberry),
-// the planets' teal, and a clay-shaded lavender-white for the pale lobe (the
-// 'back' slot's emissive copy made it a flat pasted disc).
-const pink=w=>fixedMaterial(w,'orchardPink',0xf07dbd,{depth:.06});
+// Cocoa, never near-black: the thin stems were the only black marks in a
+// pastel scene. A milk-chocolate base still lands a thin cylinder well darker
+// than the cream strings, so 'dark stem = fruit, cream rope + knot = footing'
+// holds; keep it warm-red in hue and no lighter than this.
+const stemBrown=w=>fixedMaterial(w,'orchardStem',0x96633f,{depth:.04});
+// The islands' pressings: hot bubblegum (a step lighter and less saturated
+// than the palette's raspberry — a paler pink rendered the same hue and value
+// as the arcs behind every island), the planets' teal, and a clay-shaded
+// near-white with a whisper of lavender for the pale lobe (a lavender base
+// rendered as a shadow of the pillars; the 'back' slot's emissive copy made
+// it a flat pasted disc).
+const pink=w=>fixedMaterial(w,'orchardPink',0xf4609f,{depth:.06});
 const teal=w=>fixedMaterial(w,'orchardTeal',0x3a9bb3,{depth:.06});
-const lobeWhite=w=>fixedMaterial(w,'orchardLobe',0xbfb3ea,{depth:.07});
+const lobeWhite=w=>fixedMaterial(w,'orchardLobe',0xece6ea,{depth:.07});
 // The freckle on the crumbling apples' cheek: warm enough not to read as a
 // pale drip tip beside the lime tongues, lighter than the hood's orange.
 const peach=w=>fixedMaterial(w,'orchardPeach',0xf0a878,{depth:.05});
-// Warm biscuit cream with shading, so the trunk and cords do not bleach to
-// flat white against the lavender pillars.
+// Warm biscuit cream with shading for the strings, ropes and stalks, so the
+// cords do not bleach to flat white against the lavender pillars; the great
+// tree's trunk, boughs and roots take a lighter warm ivory — at the trunk's
+// size the biscuit rendered as khaki putty no lighter than the pillars.
 const branch=w=>fixedMaterial(w,'orchardBranch',0xd6b98c,{depth:.09});
+const barkCream=w=>fixedMaterial(w,'orchardBark',0xe6cfa3,{depth:.06});
 // The .42 layer's pink fog washes a colour out; the mounds' fruit start
 // saturated, held dark (a lighter value lands on salmon) and pushed in hue —
 // pure red, yellow-lime, a raspberry the pillars' pink band cannot swallow.
 const appleFar=w=>fixedMaterial(w,'orchardAppleFar',0xb01c26,{depth:.05});
 const raspberryFar=w=>fixedMaterial(w,'orchardRaspberryFar',0xa31f5c,{depth:.06});
 const limeFar=w=>fixedMaterial(w,'orchardLimeFar',0x9cc02c,{depth:.06});
+// One apricot-gold per pile, held dark and orange-leaning so the fog does not turn it salmon.
+const goldFar=w=>fixedMaterial(w,'orchardGoldFar',0xcf8a1c,{depth:.05});
 const leafFar=w=>fixedMaterial(w,'orchardLeafFar',0x2b6b2a,{depth:.04});
 
 // --- leaves and fruit -------------------------------------------------------------------
@@ -151,32 +165,35 @@ function fruitPear(w,parent,x,y,z,size,seed,{leaves=2}={}){
   for(let i=0;i<leaves;i++)leaf(w,g,0,size*.2,size*.12,size*.9,(i%2?-1:1)*(1+rand(seed+i)*.4),{pale:i%2===1,twist:(rand(seed+7)-.5)*.6});
   return g;
 }
-// A bunch: three small berries — apple red, raspberry, gold, the lowest a
-// size smaller — packed under one stem, a leaf over them. The origin is the
+// A bunch: three small berries — apple red, raspberry and, lowest and a size
+// smaller, the planets' teal (a gold one hanging free in the coins' band read
+// as a coin) — packed under one stem, a leaf over them. The origin is the
 // stem's top.
 function fruitBunch(w,parent,x,y,z,r,seed){
   const g=group(parent,'Fruit bunch',x,y,z);
-  const mats=[appleRed(w),slot(w,'top'),appleGold(w)];
+  const mats=[appleRed(w),slot(w,'top'),teal(w)];
   [[-.5,-.6],[.5,-.7],[0,-1.25]].forEach(([bx,by],i)=>{const k=i===2?.45:.55;w.ball(r*k,r*k*.95,r*k,mats[i],g,bx*r,by*r,(i-1)*r*.12).name='Bunch ball';});
   stem(w,g,0,-r*.3,0,0,stemBrown(w),r*.14);
   leaf(w,g,0,-r*.15,r*.2,r*.9,1.1+rand(seed)*.4,{twist:(rand(seed+3)-.5)*.5});
   return g;
 }
 // A pile of fruit for the mounds in the .42 layer: three to six balls packed
-// tight within `size` — a ring of four (two reds, a raspberry, a lime, all
-// pre-saturated against the layer's pink fog) and any more heaped in the
-// ring's dip — with dark leaves lying out sideways from its flanks, tips a
-// little up, so the pile stays squat (about 1.45×size tall over its origin)
-// and reads as fruit lying on a hill, not a plant growing out of it.
+// tight within `size` — a ring of four (a red, a raspberry, a lime and, at
+// the front-low spot, an apricot-gold, all pre-saturated against the layer's
+// pink fog) and any more heaped in the ring's dip — with dark leaves lying
+// out sideways from its flanks, tips a little up, so the pile stays squat
+// (about 1.45×size tall over its origin) and reads as fruit lying on a hill,
+// not a plant growing out of it. The leaf is drawn a little larger than the
+// balls, so a pile at distant scale still shows one legible leaf.
 function fruitCluster(w,parent,x,y,z,size,seed,{count=3,leaves=2}={}){
   const g=group(parent,'Fruit cluster',x,y,z);
-  const mats=[appleFar(w),raspberryFar(w),limeFar(w),appleFar(w)];
+  const mats=[appleFar(w),raspberryFar(w),limeFar(w),goldFar(w)];
   for(let i=0;i<count;i++){
     const r=size*(.38+rand(seed+i+20)*.14),a=(i/4)*Math.PI*2+rand(seed+i)*.6,d=size*.4;
     if(i<4)w.ball(r,r*.95,r,mats[i%4],g,Math.cos(a)*d,Math.sin(a)*d*.35,Math.sin(a)*d*.4).name='Cluster ball';
     else w.ball(r,r*.95,r,mats[i%4],g,(rand(seed+i)-.5)*size*.3,size*.45,0).name='Cluster ball';
   }
-  for(let i=0;i<leaves;i++)leaf(w,g,(i%2?.4:-.4)*size,size*.3,size*.35,size*.5,(i%2?-1:1)*(1.05+rand(seed+i+60)*.3),{mat:leafFar(w)});
+  for(let i=0;i<leaves;i++)leaf(w,g,(i%2?.4:-.4)*size,size*.3,size*.35,size*.62,(i%2?-1:1)*(1.05+rand(seed+i+60)*.3),{mat:leafFar(w)});
   return g;
 }
 // The fruit under the canopy. Which kind hangs at a spot, how far it drops
@@ -311,35 +328,42 @@ function island(w,s,g){
     for(const [cx,cy,cz,rx,ry,rz] of mass){const u=(x-cx)/rx,v=(y-cy)/ry,q=1-u*u-v*v;if(q>=.15)z=Math.max(z,cz+rz*Math.sqrt(q));}
     return z>-Infinity?z:null;
   };
-  // The four lobes: the pink one wraps the box's end and bulges past the deck
-  // end (pulled in where another deck abuts), top under the lip; the low
-  // three stack down the right flank, each seated a little into the surface
-  // under it — lime on the belly, lavender-white at its lower edge, teal on
-  // the taper's flank.
+  // The four lobes: the pink one — a wide flat wad whose outer end droops off
+  // the deck's corner — wraps the box's end and bulges past the deck end
+  // (pulled in where another deck abuts), top under the lip; the low three
+  // stack down the right flank, each seated into the surface under it — lime
+  // on the belly, lavender-white at its lower edge, teal on the taper's flank.
+  // Every pressing here and below gets its own lean, squash and sink from its
+  // seed (distinct offsets per loop), so the islands read thumbed into the
+  // clay rather than glued on; the cheeks, belly and faceZ() stay as they are.
   const edgeX=mid+e*(W/2-(abuts(e)?.95:.35));
-  w.ball(.75,.64,.45,pink(w),g,edgeX,-1.55,.95).name='Pressed lobe';
-  for(const [mat,r,ky,x,y,z0] of [[lime(w),.85,.8,W*.8,-2.55,.7],[lobeWhite(w),.7,.8,W*.8,-3.75,.5],[teal(w),.45,.85,W*.7,squat?-4.35:-4.6,.4]]){
-    const z=faceZ(x,y);w.ball(r,r*ky,r*.6,mat,g,x,y,z===null?z0:z-r*.15).name='Pressed lobe';
+  const edge=w.ball(.88,.52,.5,pink(w),g,edgeX,-1.55,.95);edge.rotation.z=-e*.3;edge.name='Pressed lobe';
+  for(const [i,[mat,r,ky,x,y,z0]] of [[lime(w),.85,.8,W*.8,-2.55,.7],[lobeWhite(w),.7,.8,W*.8,-3.75,.5],[teal(w),.45,.85,W*.7,squat?-4.35:-4.6,.4]].entries()){
+    const z=faceZ(x,y),m=w.ball(r,r*ky,r*.6,mat,g,x,y,z===null?z0:z-r*(.1+rand(seed+i*5+46)*.25));m.name='Pressed lobe';
+    m.rotation.set((rand(seed+i*5+45)-.5)*.3,0,(rand(seed+i*5+44)-.5)*1.0);m.scale.x*=.85+rand(seed+i*5+47)*.35;m.scale.y*=.8+rand(seed+i*5+48)*.35;
   }
   // Three medium bumps on the box face — raspberry, teal, bubblegum in an
   // order drawn per deck — with their tops under the lip's lowest swell and
   // off the tongues: each starts in its third of the width and steps
   // sideways until it is .7 clear of every run and .9 of the last bump, so
-  // the pressing shows between the pour instead of under it.
+  // the pressing shows between the pour instead of under it. Each is pressed
+  // to its own depth — one nearly whole, one half-buried.
   const bumps=[slot(w,'top'),teal(w),pink(w)],shift=Math.floor(rand(seed+23)*3),placed=[];
   for(let i=0;i<3;i++){
     const r=.38+rand(i*17+seed+8)*.14,x0=1.0+(i+.5)/3*(W-2)+(rand(i*11+seed+5)-.5)*.7,y=-(1.05+r*.85)-rand(i*13+seed+2)*.35;
     const free=x=>x>=1.0&&x<=W-1.0&&runs.every(o=>Math.abs(o-x)>=.7)&&placed.every(o=>Math.abs(o-x)>=.9);
     const x=[0,.2,-.2,.4,-.4,.6,-.6,.8,-.8,1,-1,1.2,-1.2].map(o=>x0+o).find(free)??x0;placed.push(x);
-    w.ball(r,r*.85,r*.55,bumps[(i+shift)%3],g,x,y,1.4).name='Pressed bump';
+    const m=w.ball(r,r*.85,r*.55,bumps[(i+shift)%3],g,x,y,1.4-r*(.05+rand(i*5+seed+56)*.3));m.name='Pressed bump';
+    m.rotation.set((rand(i*5+seed+55)-.5)*.3,0,(rand(i*5+seed+54)-.5)*1.0);m.scale.x*=.85+rand(i*5+seed+57)*.35;m.scale.y*=.8+rand(i*5+seed+58)*.35;
   }
-  // Four small dots, each resting on the front of whatever is under it —
-  // the box face, a cheek or the belly's curve — never sunk; one that lands
-  // off every surface, or behind the foreground mass, is skipped.
+  // Four small dots pressed flat onto whatever is under them — the box face,
+  // a cheek or the belly's curve — discs, not marbles; one that lands off
+  // every surface, or behind the foreground mass, is skipped.
   const dots=[pink(w),slot(w,'top'),teal(w),lime(w)];
   for(let i=0;i<4;i++){
     const r=.14+rand(i*7+seed+32)*.1,x=.9+rand(i*7+seed+30)*(W-1.8),y=-1.0-rand(i*7+seed+31)*2.3,z=faceZ(x,y);
-    if(z!==null&&!(y<-2&&x<W*.68))w.ball(r,r*.9,r*.8,dots[i],g,x,y,z+r*.25).name='Pressed dot';
+    if(z===null||(y<-2&&x<W*.68))continue;
+    const m=w.ball(r,r*.9,r*.45,dots[i],g,x,y,z+r*.08);m.name='Pressed dot';m.rotation.z=(rand(i*5+seed+64)-.5)*.8;m.scale.x*=.85+rand(i*5+seed+67)*.35;
   }
   // Leaves rooted inside the body, tips down and outward, leaning back from
   // the walk: one out of the edge lobe's outer flank; one from the far cheek
@@ -419,14 +443,21 @@ function saucer(w,s,g,section){
     const lip=w.mesh(new THREE.TorusGeometry(W/2+.1,.13,8,40),slot(w,'top'),g,mid,-.1,0);lip.rotation.x=Math.PI/2;lip.name='Saucer lip';
     w.box(W-.4,.36,1.9,slot(w,'accent'),g,mid,-.18,0,.16).name='Saucer cushion';
   }
-  // A leaf hangs down and outward under each side of the rim, behind the
-  // walk, tips below the rim so the landing edge stays crisp; siblings of the
-  // bowl, riding its swing and bob — but not on a side with another deck a
-  // head's reach under it (the perch's right end over saucer-2), where it
-  // would hang beside a player standing there.
-  const under=side=>{const ex=(s.baseX??s.x)+(side>0?W:0);return (w.currentLevel?.platforms??[]).some(o=>o!==s&&o.y<s.y&&s.y-o.y<3&&(o.baseX??o.x)<ex+.8&&(o.baseX??o.x)+o.w>ex-.8);};
-  if(!under(-1))leaf(w,g,-.1,-.45,-.9,.6,Math.PI-.75,{twist:.2,tilt:.3}).name='Saucer leaf';
-  if(!under(1))leaf(w,g,W+.1,-.5,-.9,.55,Math.PI+.7,{pale:true,twist:-.2,tilt:.3}).name='Saucer leaf';
+  // Leaves hang down and outward under the rim, behind the walk, tips below
+  // the rim so the landing edge stays crisp; siblings of the bowl, riding its
+  // swing and bob — but never on a side with another deck a head's reach
+  // under it (the perch's right end over saucer-2, root-1's over the first
+  // crumble) or the formable mass's pulled reach (the pillar under the
+  // hanging saucer's approach), where one would hang beside a player standing
+  // there or across the line they jump. How many hang, and which side, is
+  // drawn per bowl from its section-local x, so a row of them is not one
+  // ornament stamped five times; a lone leaf grows a little.
+  const under=side=>{const ex=(s.baseX??s.x)+(side>0?W:0);return (w.currentLevel?.platforms??[]).some(o=>{if(o===s||o.kind==='wall')return false;const top=o.y+(o.shape?5.2:0),pad=o.shape?1.5:0,ox=o.baseX??o.x;return top<s.y&&s.y-top<3&&ox-pad<ex+1.2&&ox+o.w+pad>ex-1.2;});};
+  const lx=((s.baseX??s.x)-section.x)*.53,free=[-1,1].filter(side=>!under(side)),k=rand(lx+5),sides=free.length<2?free:k<.35?[-1]:k<.7?[1]:free;
+  for(const side of sides){
+    const lone=sides.length===1,size=lone?(side<0?.72:.68):(side<0?.6:.5),jit=(rand(lx+6)-.5)*.24;
+    leaf(w,g,side<0?-.1:W+.1,side<0?-.45:-.5,-.9,size,Math.PI+side*.72+jit,{pale:(k>.5)===(side>0),twist:-side*.2,tilt:.3}).name='Saucer leaf';
+  }
   return hangFrom(w,s,g,{root:g,ropes:[],bounce:0},section);
 }
 
@@ -434,59 +465,99 @@ function saucer(w,s,g,section){
 // A crumbling deck is an iced apple on the same cream rope and knot as the
 // saucers, as the reference hangs its walkable apples from cream boughs: the
 // shipped fracture (so the collapse animation is untouched) as lime tiles
-// over apple red, a lime skirt pouring off the tiles' underside onto the red
-// body with three flat tongues running down its flank, a peach freckle on
-// the open cheek between the runs and a pale leaf hanging down from the rim. Everything is a child
-// of the deck's group, so the whole apple goes when it breaks and grows back
-// with the deck.
+// over a ROUND apple — a red ball about twice as tall as the tiles are wide,
+// its outline bulging past their ends — a lime dome of icing cresting its
+// shoulder from under the tiles and pouring down each flank of the
+// silhouette, three flat tongues lying on the curve of the cheek, two peach
+// freckles on the bare red between them, and a pale leaf hanging steeply
+// from the rim on the side AWAY from the next footing in the chain, so no
+// tip points at a landing corner. Everything is a child of the deck's group,
+// so the whole apple goes when it breaks and grows back with the deck.
 function appleDeck(w,s,g,section){
   g.name='Orchard apple · '+s.id;
   const fracture=createCrumble(w,s,g);
   for(const piece of fracture.pieces)piece.mesh.material=w.mat[piece.grain?appleRed(w):lime(w)];
-  const W=s.w,mid=W/2;
-  w.ball(W/2+.15,1.0,1.0,appleRed(w),g,mid,-1.0,0).name='Apple body';
-  w.ball(W/2+.2,.3,1.15,lime(w),g,mid,-.62,0).name='Icing skirt';
-  for(const [ox,r,h,i] of [[-.55,.28,.9,0],[.6,.24,.6,1],[-1.0,.2,.45,0]]){
-    const x=mid+ox,d=drip(w,g,x,-.7,.86,r,h,lime(w),i);d.scale.set(r*1.1,h,r*.6);d.name='Icing drip';
-    w.ball(r*.8,r*.7,r*.55,lime(w),g,x,-.7-h+r*.7,.86).name='Drip bead';
-  }
-  // The freckle sits on bare red between the two long runs, low on the cheek
-  // where both have narrowed, never on a tongue's tip.
-  w.ball(.22,.19,.1,peach(w),g,mid+.05,-1.35,.95).name='Apple freckle';
-  leaf(w,g,mid+W/2-.1,-.55,-.5,.55,-2.1,{pale:true,tilt:.3}).name='Apple leaf';
+  const W=s.w,mid=W/2,seed=(s.baseX??s.x)*.61;
+  w.ball(W/2+.2,1.35,1.15,appleRed(w),g,mid,-1.35,0).name='Apple body';
+  w.ball(W/2+.22,.45,1.15,lime(w),g,mid,-.72,0).name='Icing skirt';
+  // A tongue hung from (x,y,z), flattened in depth, its bead centred .7r
+  // above the tip; `back` leans it about x so the tip follows the body's curve.
+  const tongue=(x,y,z,r,h,i,back=0)=>{
+    const d=drip(w,g,x,y,z,r,h,lime(w),i);d.scale.set(r*1.1,h,r*.6);d.rotation.x=back;d.name='Icing drip';
+    const k=h-r*.7;w.ball(r*.8,r*.7,r*.55,lime(w),g,x,y-k,z-k*back).name='Drip bead';
+  };
+  for(const [ox,r,h,i,z] of [[-.6,.32,1.3,0,1.0],[.65,.28,.95,1,.98],[-1.05,.24,.7,0,.75]])tongue(mid+ox,-.85,z,r,h,i,.12);
+  // One run down each side of the outline, off the skirt's rim, as icingCap runs off its end faces.
+  for(const side of [-1,1])tongue(mid+side*(W/2+.08),-.78,.25,.26,.75+rand(seed+side)*.2,side>0?0:1);
+  // Two freckles on bare red: between the two long runs, and low on the right cheek.
+  w.ball(.3,.26,.13,peach(w),g,mid+.15,-1.75,1.05).name='Apple freckle';
+  w.ball(.18,.16,.1,peach(w),g,mid+.9,-2.15,.6).name='Apple freckle';
+  // The leaf roots just outside the skirt's rim (the round body swallows
+  // anything rooted inside its outline) and hangs steeply down and out.
+  const next=(w.currentLevel?.platforms??[]).some(o=>o!==s&&Math.abs(o.y-s.y)<1.5&&o.x>=s.x+W&&o.x<=s.x+W+2.5),side=next?-1:1;
+  leaf(w,g,mid+side*(W/2+.1),-.5,.1,.55,-side*2.7,{pale:side>0,twist:side*.2,tilt:.3}).name='Apple leaf';
   return hangFrom(w,s,g,{root:g,ropes:[],bounce:0,fracture},section);
 }
 
 // --- the great inverted tree ----------------------------------------------------------
 // The trunk wall hangs from the canopy, wide where it meets it and narrowing
-// to its foot with a waist and a swell on the way — one cream silhouette of a
-// tree the wrong way up, dented like the rest of the clay — two thick boughs
-// snaking out of the foot's flanks from a knuckle each, dipping and lifting
-// in a gentle S to pass just over the outer fruit and end in a rounded tip
-// past its shoulder, and the crown gathered under them: the supplied fruit
-// sculpture — an iced apple with its own leaves — hung by its stem at four
-// sizes, each turned a little from its own seed, or, where the model is not
-// loaded, iced apples built from clay; pale leaves between. Its roots reach
-// up through the canopy into the sky, each on a pivot that animate() sways,
-// tipped with a raspberry bud. CROWN is [x from the trunk's centre, top y,
-// z, width] per fruit: the stems vanish into the trunk's foot and the boughs
-// (the outer two run through a bough's centreline .05 over the stem's top, a
-// step behind the fruit's plane so the apple hangs in front), and every
-// fruit hangs behind the walk plane.
+// to its foot with a waist and a swell on the way — one warm-ivory silhouette
+// of a tree the wrong way up, dented like the rest of the clay — two thick
+// boughs sweeping down and out of the foot's flanks, each from the knot where
+// it was pressed onto the foot, tapering the whole way to a small rolled tip
+// past the outer fruit's shoulder, dressed with a few leaves and a raspberry
+// berry, and the crown gathered under them: the supplied fruit sculpture — an
+// iced apple with its own leaves — hung by its stem at four sizes, each
+// turned a little from its own seed, or, where the model is not loaded, iced
+// apples built from clay; pale leaves between. Its roots reach up through the
+// canopy into the sky, each on a pivot that animate() sways, tipped with a
+// raspberry bud. CROWN is [x from the trunk's centre, top y, z, width] per
+// fruit: the stems vanish into the trunk's foot and the boughs (the outer two
+// run through a bough's centreline .05 over the stem's top, a step behind the
+// fruit's plane so the apple hangs in front; the middle one's icing is just
+// kissed by the bough passing over it), and every fruit hangs behind the
+// walk plane.
 const CROWN=[[-2.4,-6.3,-1.6,2.8],[0,-5.8,-2.3,3.2],[2.5,-6.2,-1.5,2.6],[1.0,-4.8,-2.9,2.2]];
 const TRUNK=h=>[[0,-h-.2],[.85,-h-.15],[1.0,-h*.8],[.9,-h*.55],[1.08,-h*.36],[.97,-h*.16],[1.25,.1],[1.5,.4],[0,.45]].map(([x,y])=>new THREE.Vector2(x,y));
+// A bough's tube, tapered ring by ring: TubeGeometry lays 17 rings of 9
+// vertices with ring i centred on the curve at i/16, so each ring is scaled
+// about its centre from 1.15 at the foot to .6 at the tip (r .37 → .19).
+// Keyed into the clay cache — sculptClay caches by geometry object, so an
+// inline tube would be re-sculpted on every stream-in.
+function boughGeometry(w,key,curve){
+  return clayShape(w,key,()=>{
+    const tube=new THREE.TubeGeometry(curve,16,.32,8,false),p=tube.attributes.position,c=new THREE.Vector3();
+    for(let i=0;i<=16;i++){
+      curve.getPointAt(i/16,c);const k=1.15-.55*(i/16);
+      for(let j=0;j<=8;j++){const v=i*9+j;p.setXYZ(v,c.x+(p.getX(v)-c.x)*k,c.y+(p.getY(v)-c.y)*k,c.z+(p.getZ(v)-c.z)*k);}
+    }
+    return sculptClay(w,tube,{amplitude:.06});
+  });
+}
 function greatTree(w,s,g,view){
   g.name='Orchard great tree';
-  const bark=branch(w),bud=slot(w,'top');
+  const bark=barkCream(w),bud=slot(w,'top');
   const mid=s.w/2,h=s.h??6;
   const trunk=clayShape(w,'orchard-trunk:'+h.toFixed(2),()=>sculptClay(w,new THREE.LatheGeometry(TRUNK(h),24),{amplitude:.1,subdivide:true,maxEdge:.7}));
   w.mesh(trunk,bark,g,mid,0,0).name='Great trunk';
   for(const [side,[cx,cy,cz]] of [[-1,CROWN[0]],[1,CROWN[2]]]){
-    const from=new THREE.Vector3(mid,-h+.3,-.6),to=new THREE.Vector3(mid+cx,cy+.05,cz-.15),d=to.clone().sub(from);
-    const pts=[from,from.clone().addScaledVector(d,.3).add(new THREE.Vector3(0,-.3,0)),from.clone().addScaledVector(d,.68).add(new THREE.Vector3(0,.12,0)),to,to.clone().add(new THREE.Vector3(side*.7,-.15,0))];
-    w.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),16,.27,8,false),bark,g).name='Great bough';
-    w.ball(.3,.26,.3,bark,g,pts[4].x,pts[4].y,pts[4].z).name='Bough tip';
-    w.ball(.42,.34,.4,bark,g,mid+side*.8,-h+.18,-.5).name='Bough knuckle';
+    // One sweep down and out from inside the foot — no level stretch at the
+    // pillar's height — so over the middle fruit the tube's underside only
+    // kisses its icing.
+    const from=new THREE.Vector3(mid,-h+.9,-.6),to=new THREE.Vector3(mid+cx,cy+.05,cz-.15),d=to.clone().sub(from);
+    const pts=[from,from.clone().addScaledVector(d,.3).add(new THREE.Vector3(0,-.15,0)),from.clone().addScaledVector(d,.68),to,to.clone().add(new THREE.Vector3(side*.7,-.2,0))];
+    const curve=new THREE.CatmullRomCurve3(pts);
+    w.mesh(boughGeometry(w,'orchard-bough:'+(side<0?'L':'R')+':'+h.toFixed(2),curve),bark,g).name='Great bough';
+    w.ball(.22,.19,.22,bark,g,pts[4].x,pts[4].y,pts[4].z).name='Bough tip';
+    w.ball(.5,.4,.48,bark,g,mid+side*.8,-h+.75,-.5).name='Bough knuckle';
+    // Two leaves hanging down-outward and one standing up-outward along the
+    // bough, behind the walk plane, and a raspberry berry stuck under its middle.
+    for(const [t,size,rise,pale] of [[.42,.85,false,false],[.6,.6,true,true],[.78,.75,false,true]]){
+      const p=curve.getPointAt(t);
+      leaf(w,g,p.x+side*.1,p.y+(rise?.1:-.22),p.z+.15,size,rise?-side*1.2:Math.PI+side*(.55+rand(side*7+t*10)*.3),{pale,twist:(rand(side*9+t*10)-.5)*.6,tilt:rise?-.2:.25}).name='Bough leaf';
+    }
+    const b=curve.getPointAt(.5);
+    w.ball(.16,.15,.16,bud,g,b.x,b.y-.34,b.z+.18).name='Bough berry';
   }
   const sculpted=!!w.dreamAssets?.fruit;
   for(const [x,y,z,width] of CROWN){
@@ -593,11 +664,13 @@ export default {
     // perch's 30–32.4, and off the prop boundaries 4+12.4n, where a value
     // would draw twice. 23.0 and 25.2 are a staggered pair on the second
     // dome's shoulder — a string and a pear, the pear the only one the dome
-    // stretch draws (the first's is turned by the drip at 13); 61.4 and 68.6
-    // have no headroom and come out as tufts or empty groups, which keeps
-    // the chain's props populated. Nothing under 2.6 of a dome's crown, and
-    // nothing over the spawn.
-    const apples=[7.4,10.2,15.8,18.4,23.0,25.2,35.6,37.6,41.6,43.6,50.4,53.8,61.4,68.6,74.0];
+    // stretch draws (the first's is turned by the drip at 13); 39.6 is the
+    // string that comes down over orchard-mid between the flag and the
+    // spawn, over its coin (41.6, with no headroom over the blob, is gone);
+    // 61.4 and 68.6 have no headroom and come out as tufts or empty groups,
+    // which keeps the chain's props populated. Nothing under 2.6 of a dome's
+    // crown, and nothing over the spawn.
+    const apples=[7.4,10.2,15.8,18.4,23.0,25.2,35.6,37.6,39.6,43.6,50.4,53.8,61.4,68.6,74.0];
     for(let i=0;i<6;i++){
       const localX=4+i*12.4+6.2;
       list.push({key:'canopy-'+i,x:x0+localX,w:15,y:0,z:-2.2,make(w,parent){
@@ -650,8 +723,11 @@ export default {
   },
   // Far scenery: the pink bullseye centred behind the great tree, and five
   // lavender mounds in the middle distance, each with a tight pile of red,
-  // raspberry and lime half sunk into its crown and a smaller one on a
-  // shoulder: the harvest lying about in the hills. The .42 layer follows the
+  // raspberry, lime and one gold half sunk into its crown and a smaller one
+  // on a shoulder: the harvest lying about in the hills. The piles are drawn
+  // at distant scale — a ball about a third of a canopy apple on screen, the
+  // reference's ratio — so the hills layer behind the play plane instead of
+  // heaping fruit at the islands' feet. The .42 layer follows the
   // camera at .836 and drifts at .42 of it, so a pile keeps almost the same
   // place in the frame from every deck and what matters is what stands in
   // front of it; MOUND_Y sets each mound where its pile shows in the lower
@@ -687,9 +763,9 @@ export default {
       w.ball(rx,ry,3,slot(w,'back'),g,0,0,0).name='Mound';
       w.ball(2.6,1.7,2.4,slot(w,'back2'),g,-rx*.6,-.6,-.3).name='Mound shoulder';
       w.ball(2.2,1.5,2.2,slot(w,'back2'),g,rx*.62,-.8,-.2).name='Mound shoulder';
-      fruitCluster(w,g,(rand(i+65)-.5)*1.5,ry-.3,2.1,i===1?1.3:1.5,i*5,{count:4+Math.round(rand(i+63)*2),leaves:i<2?2:1});
+      fruitCluster(w,g,(rand(i+65)-.5)*1.5,ry-.3,2.1,i===0?1.1:i===1?.9:1.0,i*5,{count:4+Math.round(rand(i+63)*2),leaves:i<2?2:1});
       // The first mound's shoulder would peek out beside the entry island's taper: it goes bare.
-      if(i)fruitCluster(w,g,(rand(i+66)<.5?-1:1)*rx*.6,.9,2.5,.8,i*5+3,{count:3,leaves:0});
+      if(i)fruitCluster(w,g,(rand(i+66)<.5?-1:1)*rx*.6,.9,2.5,.55,i*5+3,{count:3,leaves:0});
     }
   },
   // Roots wave in the sky; the swinging saucer's rope stays pointed at the canopy.
