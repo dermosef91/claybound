@@ -29,16 +29,22 @@ import knot from './knot.js';
 //   quietBackdrop: true        the module paints a whole sky of its own: the
 //                              chapter's placeholder blobs and columns sink
 //                              while the player is in the section.
-//   foreground(w,g,variant,section)  the near scenery in front of a stone
-//                              deck (depth-scenery.js): build into g (the
-//                              deck's line is ≈ y +2.1 above g) and return
-//                              true; it fades when it would cover the player.
 //   props(section,L)           → [{key,x,w?,y?,z?,make(w,parent,section)}]:
 //                              scenery streamed by WORLD x like decoration;
 //                              `parent` is a group already at (x,y,z) under
 //                              levelRoot. Keys are prefixed dream:<key>: for you.
 //   animate(w,game,dt,section,ctx)  per frame while the player is within 40 of
 //                              the section; ctx = {playerX,time,reducedMotion}.
+//   foreground(w,g,variant,s,section)  the side scenery depth-scenery.js
+//                              stands in front of a stone deck `s` (g is at
+//                              the deck's y − 2.1, drawn with fake
+//                              perspective, never a collider): build into g
+//                              and return true, or decline for the chapter's
+//                              pastel mound. Fixed colours (support.js
+//                              fixedMaterial) fade when the part would cover
+//                              the player, a deck, a hazard or a bead; palette
+//                              slots cannot, so keep those under y 1.6 — they
+//                              must never cover the route.
 //
 // Every hook is optional. A module with none of them gets the chapter's
 // default look: rolled slabs, the shared placeholder backdrop, no props.
