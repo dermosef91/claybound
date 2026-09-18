@@ -4,13 +4,25 @@
       "id": "apprentice",
       "name": "run",
       "off": 11,
-      "on": 2
+      "on": 2,
+      "squashOff": 0,
+      "squashOn": 0
     },
     {
       "id": "apprentice",
       "name": "idle",
       "off": 11,
-      "on": 2
+      "on": 2,
+      "squashOff": 0,
+      "squashOn": 0
+    },
+    {
+      "id": "apprentice",
+      "name": "land",
+      "off": 11,
+      "on": 11,
+      "squashOff": 0.001,
+      "squashOn": 0.001
     }
   ],
   "errors": [],

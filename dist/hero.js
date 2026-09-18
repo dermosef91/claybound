@@ -20,6 +20,8 @@ const LOOPING=new Set(['idle','walk','run','victory']);
 // hurt still arrive as velocity; the stiffer spring shortens their reach, so
 // their impulses carry a matching scale and keep the stretch they always had.
 const IMPACT_K=620,IMPACT_DAMP=18,IMPACT_LIMIT=.46,IMPACT_GAIN=.45,IMPULSE=1.115;
+// The longest step the impact spring is integrated with: the simulation's tick.
+const SPRING_DT=1/120;
 // Clay keeps its volume, so a body squashed thinner spreads wider by about the
 // same amount: 1/sqrt(1-q) over this range is within a thousandth of 1+.55q.
 const IMPACT_SPREAD=.55;
@@ -260,7 +262,14 @@ export function animateHero(w,game,dt){
     c.mixer.update(step);
     if(!paused)boilPuppet(c.asset,w.puppetClock);
     // A small foot-anchored response complements, rather than distorts, the rig.
-    c.springV+=(-IMPACT_K*c.spring-IMPACT_DAMP*c.springV)*step;c.spring+=c.springV*step;c.spring=clamp(c.spring,-IMPACT_LIMIT,IMPACT_LIMIT);
+    // The spring is stiff enough that one Euler step of a twelfth of a second
+    // — a stop-motion exposure — rings it against its clamp for good, so it
+    // is walked in the simulation's own ticks however long the frame held.
+    for(let left=step;left>0;left-=SPRING_DT){
+      const h=Math.min(left,SPRING_DT);
+      c.springV+=(-IMPACT_K*c.spring-IMPACT_DAMP*c.springV)*h;c.spring+=c.springV*h;
+    }
+    c.spring=clamp(c.spring,-IMPACT_LIMIT,IMPACT_LIMIT);
     const strength=w.reducedMotion?.25:1,windup=p.stompWindup>0?.07:0;
     const squash=(c.spring*IMPACT_GAIN+windup)*strength;
     c.body.scale.set(1+squash*IMPACT_SPREAD,1-squash,1+squash*IMPACT_SPREAD);

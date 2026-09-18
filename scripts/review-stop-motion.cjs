@@ -30,36 +30,50 @@ review(async({page,url,errors,requests})=>{
   const results=[];
   for(const id of cast){
     await page.evaluate(async id=>{await playtest.world.setCharacter(id);},id);
-    for(const [name,input] of [['run',{right:true}],['idle',{}]]){
-      const cuts=await page.evaluate(([input,FRAMES,TILE,CROP,label])=>{
+    // run and idle: every frame, so the holds and cuts can be counted. land: one
+    // tile per exposure after a drop, so the squash is seen settling (it once
+    // rang against its clamp for ever under the long step).
+    for(const [name,input,every,drop] of [['run',{right:true},1,false],['idle',{},1,false],['land',{},5,true]]){
+      const cuts=await page.evaluate(([input,FRAMES,TILE,CROP,label,every,drop])=>{
         const w=playtest.world,g=playtest.game,sheet=document.getElementById('sheet'),ctx=sheet.getContext('2d');
         sheet.width=FRAMES*TILE.w;sheet.height=2*TILE.h+24;ctx.fillStyle='#222';ctx.fillRect(0,0,sheet.width,sheet.height);
-        const cuts=[];
+        const cuts=[],squash=[];
         for(const [row,on] of [[0,false],[1,true]]){
           // The same start each time: stood at the spawn, half a second settled.
           Object.assign(g.player,{x:g.level.spawn.x+.5,y:g.level.spawn.y,vx:0,vy:0,facing:1,groundId:'start'});
           w.stopMotion=on;w.time=0;w.syncVisible(g.level,g.player.x,true);
           for(let i=0;i<30;i++){for(let k=0;k<2;k++)g.tick(1/120,input);w.render(g,1/60);}
-          let moved=0,last=null;
-          for(let i=0;i<FRAMES;i++){
+          if(drop){
+            // Fall from a little over two units and catch the frame that lands.
+            Object.assign(g.player,{y:g.level.spawn.y+2.2,vy:0,groundId:null});
+            while(!g.player.groundId){for(let k=0;k<2;k++)g.tick(1/120,input);w.render(g,1/60);}
+          }
+          let moved=0,last=null,worst=0;
+          for(let i=0;i<FRAMES*every;i++){
             for(let k=0;k<2;k++)g.tick(1/120,input);
             w.setEditorCamera({x:g.player.x,y:g.player.y+.55,viewH:4.4});
             w.render(g,1/60);
+            if(i>=FRAMES*every/2)worst=Math.max(worst,Math.abs(w.character.spring));
+            if(i%every)continue;
             const q=w.character.asset.getObjectByName('LeftArm').quaternion.toArray().join();if(last!==null&&q!==last)moved++;last=q;
-            const c=w.renderer.domElement,sx=(c.width-CROP.w)/2,sy=(c.height-CROP.h)/2;
-            ctx.drawImage(c,sx,sy,CROP.w,CROP.h,i*TILE.w,row*TILE.h+24,TILE.w,TILE.h);
-            ctx.strokeStyle='#111';ctx.strokeRect(i*TILE.w+.5,row*TILE.h+24.5,TILE.w-1,TILE.h-1);
+            const tile=i/every,c=w.renderer.domElement,sx=(c.width-CROP.w)/2,sy=(c.height-CROP.h)/2;
+            ctx.drawImage(c,sx,sy,CROP.w,CROP.h,tile*TILE.w,row*TILE.h+24,TILE.w,TILE.h);
+            ctx.strokeStyle='#111';ctx.strokeRect(tile*TILE.w+.5,row*TILE.h+24.5,TILE.w-1,TILE.h-1);
           }
-          cuts.push(moved);
+          cuts.push(moved);squash.push(+worst.toFixed(3));
         }
         ctx.fillStyle='#eee';ctx.font='13px sans-serif';
-        ctx.fillText(`${label}: ${FRAMES} consecutive frames at 60 fps — top: stop motion off (${cuts[0]} pose changes), bottom: on (${cuts[1]} cuts)`,8,16);
-        return cuts;
-      },[input,FRAMES,TILE,CROP,`${id} ${name}`]);
+        ctx.fillText(every===1
+          ?`${label}: ${FRAMES} consecutive frames at 60 fps — top: stop motion off (${cuts[0]} pose changes), bottom: on (${cuts[1]} cuts)`
+          :`${label}: ${FRAMES} exposures (every ${every}th frame) after a landing — top: off, bottom: on; worst squash in the second half ${squash[0]} / ${squash[1]}`,8,16);
+        return {cuts,squash};
+      },[input,FRAMES,TILE,CROP,`${id} ${name}`,every,drop]);
       await page.locator('#sheet').screenshot({path:path.join(out,`${id}-${name}.png`)});
-      results.push({id,name,off:cuts[0],on:cuts[1]});
-      assert.equal(cuts[0],FRAMES-1,`${id} ${name}: off, every frame moves`);
-      assert(cuts[1]>=1&&cuts[1]<=3,`${id} ${name}: on, a couple of cuts in a fifth of a second (${cuts[1]})`);
+      results.push({id,name,off:cuts.cuts[0],on:cuts.cuts[1],squashOff:cuts.squash[0],squashOn:cuts.squash[1]});
+      if(every===1){
+        assert.equal(cuts.cuts[0],FRAMES-1,`${id} ${name}: off, every frame moves`);
+        assert(cuts.cuts[1]>=1&&cuts.cuts[1]<=3,`${id} ${name}: on, a couple of cuts in a fifth of a second (${cuts.cuts[1]})`);
+      }else assert(cuts.squash[1]<.02,`${id} ${name}: the landing squash has settled half a second on, not ${cuts.squash[1]}`);
     }
     // Two consecutive exposures, close on the chest, for the boil.
     for(const [k,name] of [['a'],['b']].map((v,k)=>[k,v[0]])){

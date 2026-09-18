@@ -65,5 +65,23 @@ import {Game} from '../dist/simulation.js';
   // A puppet that never boiled has nothing to put back, and says so cheaply.
   const plain=new THREE.Group();plain.add(new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshStandardMaterial()));
   boilPuppet(plain,w.puppetClock);assert(!plain.userData.boiled);
+
+  // A landing squashes the body on a spring. Stepped, that spring is fed a
+  // twelfth of a second at a time, which is past what its stiffness can take
+  // in one Euler step: left alone it rang against its clamp for ever, and the
+  // puppet shivered after every jump. It has to settle the way it does at sixty.
+  // Peak squash over each fifth of a second, for three seconds after a landing.
+  const settle=(on,frames)=>{
+    w.stopMotion=on;heroEvent(c,{type:'land',impact:12});
+    const peaks=[];let peak=0;
+    for(let i=0;i<frames;i++){frame(1/60);peak=Math.max(peak,Math.abs(c.spring));if(i%12===11){peaks.push(peak);peak=0;}}
+    return peaks;
+  };
+  const smooth=settle(false,180),stepped=settle(true,180);
+  assert(smooth[0]>.1&&smooth.at(-1)<.005,'at sixty the landing squash rings and dies within three seconds');
+  assert(stepped[0]>.05,'stepped, the landing still squashes');
+  assert(stepped.at(-1)<.005,`stepped, the squash dies away too, not ${stepped.at(-1).toFixed(3)} after three seconds`);
+  for(let i=1;i<stepped.length;i++)assert(stepped[i]<=Math.max(stepped[i-1],.03)+1e-9,'and never grows back');
+  w.stopMotion=false;
 }
 console.log('PASS stop motion: the clock holds four frames and spends the fifth, the hero cuts pose, blends and skin together while its feet keep moving, and off is exactly what it was');
