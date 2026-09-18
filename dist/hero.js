@@ -114,7 +114,10 @@ export function attachHero(w,gltf,motion,animation,choice=CHARACTERS[0]){
   const rootScale=hips.parent.getWorldScale(new THREE.Vector3()).y;
   const standing=choice.height||MODEL_HEIGHT;c.build=standing/MODEL_HEIGHT;
   const scale=standing/height,model=new THREE.Group();model.name='Normalized custom character';
-  model.scale.setScalar(scale);model.position.set(0,-bounds.min.y*scale,-motion.anchor[2]*rootScale*scale);
+  // A character that reads better from its other side is mirrored across its
+  // own sagittal plane: the rig, its clips and the joints the game reaches for
+  // all come along, and the renderer turns the winding with the determinant.
+  model.scale.set(choice.mirror?-scale:scale,scale,scale);model.position.set(0,-bounds.min.y*scale,-motion.anchor[2]*rootScale*scale);
   model.add(gltf.scene);c.facing.add(model);c.model=model;c.asset=gltf.scene;c.hips=hips;c.choice=choice;
   const maxAnisotropy=Math.min(4,w.renderer?.capabilities.getMaxAnisotropy()||4);
   gltf.scene.traverse(o=>{

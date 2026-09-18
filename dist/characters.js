@@ -24,7 +24,10 @@
 // that relief is pressed. Unset, a character takes the shallow press every
 // imported model gets (.025); the terrain is pressed to .075. The apprentice's
 // paint is darker and busier than the others', which swallowed the shallow
-// press, so it asks for one nearer the ground it stands on.
+// press, so it asks for one nearer the ground it stands on. `mirror` turns a
+// character over across its own sagittal plane. The game is played facing
+// right, and the apprentice's hair is swept to the side that then faces the
+// camera, hiding its face; mirrored, the clear profile is the one on show.
 const STANDING=1.78;
 
 export const CHARACTERS=[
@@ -51,7 +54,7 @@ export const CHARACTERS=[
   {
     id:'apprentice',name:'Clay apprentice',note:'Terracotta and cream, capped.',
     model:'apprentice.glb',motion:'apprentice-motion.json',animation:'apprentice-animation.json',
-    height:STANDING*1.15,orangeSource:0,clayDepth:.06
+    height:STANDING*1.15,orangeSource:0,clayDepth:.06,mirror:true
   }
 ];
 

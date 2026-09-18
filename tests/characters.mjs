@@ -48,6 +48,10 @@ for(const choice of CHARACTERS){
     assert.equal(material.userData.clayDepth,choice.clayDepth,`${choice.id}: relief depth as declared`);
   }});
   if(choice.clayDepth)assert(choice.clayDepth>.025&&choice.clayDepth<=.075,`${choice.id}: a declared press sits between the model default and the terrain`);
+  // A mirrored character is turned over on the normalized group alone, so the
+  // group the game drives and the facing it turns are untouched.
+  assert.equal(Math.sign(c.model.scale.x),choice.mirror?-1:1,`${choice.id}: mirrored as declared`);
+  assert(c.model.scale.y>0&&c.model.scale.z>0&&Math.abs(c.model.scale.x)===c.model.scale.y,`${choice.id}: the mirror is a reflection, not a squash`);
 
   const bounds=()=>{c.root.updateMatrixWorld(true);return new THREE.Box3().setFromObject(c.model,true);};
   // Framing, shadow, reach and the motes that circle the head are all expressed
@@ -100,6 +104,10 @@ for(const choice of CHARACTERS){
   });
   assert(wrists[0].distanceTo(wrists[1])<.26*c.build,`${choice.id}: both hands hold the same flower`);
   for(const wrist of wrists)assert(wrist.y>1.25*c.build&&wrist.z>.2*c.build,`${choice.id}: hands lift in front of the hood`);
+  // The arms are solved in world space; on a mirrored rig that has to go
+  // through the parent's full transform, or the hands wander off the stem.
+  const stem=new THREE.Vector3(0,1.48,.38).multiplyScalar(c.build);
+  for(const wrist of wrists)assert(wrist.distanceTo(stem)<.3*c.build,`${choice.id}: a hand reaches the stem, ${wrist.distanceTo(stem).toFixed(2)} away`);
 
   // Walking and running are what a player sees most; both must blend from rest.
   game.flowerCelebration=null;game.start(0);heroEvent(c,{type:'respawn'});
