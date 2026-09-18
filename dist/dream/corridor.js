@@ -5,7 +5,7 @@ import {dreamEyeball} from '../dream-assets.js';
 // Section 4 — The Breathing Corridor, after its painting: a tunnel built
 // entirely of thick WAVY stripes of soft clay — vermilion, red, magenta,
 // plum — stacked like layered Play-Doh with rounded lips. A heavy striped
-// ceiling runs the length of the corridor with big cream eyes set into its
+// ceiling runs the length of the corridor with big fleshy eyes set into its
 // stripes and soft drips hanging from it; the decks are striped slabs whose
 // layers undulate along the face; the pits are filled with soft pink and red
 // cones; behind everything a pink haze with dim mauve columns and arches.
