@@ -52,6 +52,15 @@ const AIMS={
   LeftUpLeg:'LeftLeg',LeftLeg:'LeftFoot',
   RightUpLeg:'RightLeg',RightLeg:'RightFoot'
 };
+// Nor does the ankle inherit the shin's swing the way a hand inherits the
+// forearm's. A hand has to: the arms rest forty degrees apart on the two rigs,
+// and a hand left out of that swing would kink at the wrist. The shins rest
+// only a few degrees apart, but every one of those degrees would land on the
+// foot as a tilt away from the floor it was modelled flat on — six on the
+// Mixamo rigs, twelve on the apprentice's, whose boots then stood on their
+// heels with the toes in the air. A foot carries the original's rotation away
+// from rest and nothing else, so a foot that rests flat stays flat.
+const FLAT=new Set(['LeftFoot','LeftToeBase','RightFoot','RightToeBase']);
 // Every joint above is anatomy a humanoid rig has to have. The crown is not: it
 // is a marker some exporters leave above the head and others end without, so a
 // rig may arrive without one and the head is then aimed like any other tip.
@@ -110,7 +119,7 @@ for(const {from,source,joint} of pairs){
   const at=AIMS[from]&&carried(AIMS[from])?AIMS[from]:null;
   const swing=at
     ?new THREE.Quaternion().setFromUnitVectors(aim(source,bone(donor.scene,at)),aim(joint,bone(target.scene,JOINTS[at])))
-    :inherit(swings,joint);
+    :FLAT.has(from)?new THREE.Quaternion():inherit(swings,joint);
   swings.set(joint,swing);
   frame.set(joint,rest.get(source).clone().invert().multiply(swing.clone().invert()).multiply(rest.get(joint)));
 }

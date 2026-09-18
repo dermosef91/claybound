@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import * as THREE from '../dist/lib/three.module.js';
 import {attachClay} from './load-clay.mjs';
-import {clayBox,clayMaterial,sculptClay} from '../dist/clay.js';
+import {clayBox,clayMaterial,clayModel,sculptClay} from '../dist/clay.js';
 
 const w={mat:{terrain:new THREE.MeshStandardMaterial({color:0x315e96})}};
 await attachClay(w);const c=w.clay;
@@ -59,4 +59,23 @@ for(const hasNormal of [false,true]){
   assert(fragment.includes('clayData.r * bumpScale'));assert.equal(shader.uniforms.clayPeriod.value,2.8);
   assert(hasNormal===!!material.normalMap,'keep authored normal maps when layering relief');
 }
-console.log('PASS clay ball provenance and unmirrored relief, real surface relief, safe collision margins, geometry reuse and both material shader paths');
+
+// An imported model takes the shallow press unless one of its materials asks
+// for its own depth, the way the Clay apprentice does. The ask has to hold
+// however the loads land: installed by the model's own clayModel call, or by
+// the ball's re-application over a model that arrived first.
+{
+  const root=new THREE.Group(),plain=new THREE.MeshStandardMaterial(),deep=new THREE.MeshStandardMaterial();
+  deep.userData.clayDepth=.06;
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(),plain),new THREE.Mesh(new THREE.BoxGeometry(),deep));
+  clayModel(w,root);
+  assert.equal(plain.bumpScale,.025*.48,'an imported material without an ask takes the model default');
+  assert.equal(deep.bumpScale,.06*.48,'a material that asks for a depth is pressed to it');
+  assert.equal(deep.userData.clay.requestedDepth,.06);assert.equal(deep.bumpMap,w.clay.detail,'the deeper press is still the ball relief');
+  clayModel(w,root);
+  assert.equal(deep.bumpScale,.06*.48,'re-applying the relief keeps the declared depth');
+  clayModel(w,root,{background:true});
+  assert.equal(plain.bumpScale,.035*.48,'background depth still applies to materials without an ask');
+  assert.equal(deep.bumpScale,.06*.48,'a declared depth outranks the background depth too');
+}
+console.log('PASS clay ball provenance and unmirrored relief, real surface relief, safe collision margins, geometry reuse, both material shader paths and declared model depths');
