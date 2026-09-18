@@ -266,13 +266,17 @@ function animateMouldView(mesh,s){
 }
 
 // The marble: a bead-gold ball that sits on the surface where the rule has it
-// and turns as it rolls.
+// and turns as it rolls. Or, where the station asks for a rock, a boulder in
+// the chapter's own clay: the same ball, bigger, the colour of the ground it
+// came off, and a little flattened so it reads as stone rather than a bead.
 const MARBLE_GOLD=0xe4b04a;
 function createMarbleView(w,s,root){
-  const m=s.marble;
-  const material=clayMaterial(w,new THREE.MeshStandardMaterial({color:MARBLE_GOLD,roughness:.38,metalness:.12,emissive:MARBLE_GOLD,emissiveIntensity:.08}),.04);
-  const mesh=new THREE.Mesh(new THREE.SphereGeometry(m.r,28,20),material);
-  mesh.name='Marble · '+s.id;mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
+  const m=s.marble,rock=s.marbleLook==='rock';
+  const colour=rock?(w.mat.terrain?.color?.getHex()??0xe64e1e):MARBLE_GOLD;
+  const material=clayMaterial(w,new THREE.MeshStandardMaterial({color:colour,roughness:rock?.62:.38,metalness:rock?0:.12,emissive:colour,emissiveIntensity:rock?.03:.08}),rock?.09:.04);
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(m.r,rock?22:28,rock?16:20),material);
+  if(rock){mesh.scale.set(1,.93,.96);mesh.rotation.y=.4;}
+  mesh.name=(rock?'Boulder · ':'Marble · ')+s.id;mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
   animateMarbleView(mesh,s);return mesh;
 }
 // The socket the marble is bound for is marked so the goal reads from the far
@@ -297,7 +301,10 @@ function animateSocketView(ring,s,dt){
 }
 function animateMarbleView(mesh,s){
   const m=s.marble,f=s.form;if(!m||!f)return;
-  mesh.position.set(m.x,-(s.h||0)+formHeight(f,m.x)+m.r,0);
+  // Over the edge it is placed by the world, read back into the root that
+  // stands at the mass's own corner.
+  if(m.spilled&&Number.isFinite(m.wx))mesh.position.set(m.wx-s.x,m.wy-s.y,0);
+  else mesh.position.set(m.x,-(s.h||0)+formHeight(f,m.x)+m.r,0);
   mesh.rotation.z=-m.spin;
 }
 

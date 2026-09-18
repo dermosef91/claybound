@@ -41,14 +41,15 @@ console.log('PASS removed foreground huts and middle scenery, retained rooftop c
 // and both windwells. The actual formations must reach the default framebuffer
 // together with gameplay, and the previous composite must stay hidden.
 // Where to stand is read off the chapter's own landmarks rather than written
-// down, so a reprofiled canyon is still sampled at its basin and both of its
-// windwells instead of quietly skipping them.
+// down, so a reprofiled canyon is still sampled at its basin and every one of
+// its windwells — the two on the climb and the Boulder Drop's mill — instead
+// of quietly skipping them.
 const centre=s=>s.x+s.w/2;
 const sampled=(()=>{
   const g=new Game();g.start(0);
   const mills=g.level.platforms.filter(s=>s.landmark==='windmill');
   const basin=g.level.platforms.find(s=>s.landmark==='sandwheel');
-  assert.equal(mills.length,2,'the canyon raises two windwells');assert(basin,'and one eroded basin');
+  assert.equal(mills.length,3,'the canyon raises three windwells');assert(basin,'and one eroded basin');
   return [g.level.spawn.x+2.5,centre(basin),...mills.map(centre),centre(g.level.platforms.find(s=>s.goal))];
 })();
 for(const x of sampled){

@@ -5,7 +5,7 @@ import {CHARACTERS} from '../dist/characters.js';
 
 const level=LEVELS[0];
 const saved={best:{0:{version:level.layoutVersion,stamps:2,coins:6}},runs:{0:{version:level.layoutVersion,stamps:[0,0,999],coins:[0,1,2,3,4,5,6,7]}},customBest:{},customRuns:{}};
-assert.deepEqual(chapterCollections(level,0,saved),{stamps:2,coins:8,stampTotal:3,coinTotal:level.coins.length});
+assert.deepEqual(chapterCollections(level,0,saved),{stamps:2,coins:8,stampTotal:4,coinTotal:level.coins.length});
 saved.best[0].version='older-layout';assert.equal(chapterCollections(level,0,saved).stamps,1);
 saved.runs[0].version='older-layout';assert.equal(chapterCollections(level,0,saved).stamps,0);
 saved.customBest[0]={version:level.layoutVersion,stamps:3,coins:100000};

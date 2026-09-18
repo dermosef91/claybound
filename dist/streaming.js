@@ -97,7 +97,10 @@ export function syncStream(w,L,center,force=false){
   const arch=greatArchLayout(L);
   if(L.boss&&near(L.boss.left,L.boss.right-L.boss.left))add('boss:mother-puff',()=>{w.motherView=createMotherPuff(w,L.boss);return w.motherView.root;},()=>{w.motherView=null;},L.boss.left);
   if(arch&&near(arch.left,arch.width))addScenery('scenery:great-arch',()=>buildGreatArch(w,arch),()=>{},arch.left);
-  for(const s of L.platforms)if(near(s.baseX??s.x,s.w,Math.max(Math.abs(s.moveX||0),s.travel||0)))add('p:'+s.id,()=>{
+  // A mass whose rock has gone over its edge reaches as far as the rock lies:
+  // the boulder is drawn with the clay it came off, so the clay stays in.
+  const reach=s=>s.marble?.spilled&&Number.isFinite(s.marble.wx)?Math.max(0,s.marble.wx+s.marble.r-(s.x+s.w),s.x-(s.marble.wx-s.marble.r)):0;
+  for(const s of L.platforms)if(near(s.baseX??s.x,s.w,Math.max(Math.abs(s.moveX||0),s.travel||0,reach(s))))add('p:'+s.id,()=>{
     const v=w.makePlatform(s);v.guides=(L.guides||[]).filter(guide=>guide.platformId===s.id).map(guide=>guideView(w,guide,s,v));
     for(const guide of v.guides)guide.visible=!s.broken&&s.active!==false;
     w.platforms.set(s.id,v);return v.root;
