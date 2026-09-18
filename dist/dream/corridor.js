@@ -1,6 +1,7 @@
 import * as THREE from '../lib/three.module.js';
 import {deck,sectionDecks,slot,rand} from './support.js';
 import {clayMaterial,clayShape,sculptClay} from '../clay.js';
+import {dreamCavern} from '../dream-assets.js';
 // Section 4 — The Breathing Corridor, after its painting: a tunnel built
 // entirely of thick WAVY stripes of soft clay — vermilion, red, magenta,
 // plum — stacked like layered Play-Doh with rounded lips. A heavy striped
@@ -282,6 +283,10 @@ function animateMolars(w,game,dt){
 
 export default {
   key:'corridor',
+  // The cavern walls below are a whole backdrop of their own, so the chapter's
+  // placeholder blobs and columns sink away while the player is in here —
+  // their mauve masonry read straight through the tunnel before.
+  quietBackdrop:true,
   // Stone decks: striped slabs instead of the chapter's rolled slab.
   dress(w,s,g){return stripedDeck(w,s,g);},
   // Breathing walls (pillars, throat, teeth): striped bodies posed by the
@@ -355,9 +360,40 @@ export default {
     (L.crushers||[]).filter(c=>c.x>=left&&c.x<right).forEach((c,i)=>list.push({key:'molar-'+i,x:c.x,w:3,y:0,z:0,make(w,parent){molar(w,parent,c,under(c.x)+.25);}}));
     return list;
   },
-  // Far scenery: the pink haze of the palette with dim mauve columns and
-  // arches at two depths — the painting's deep organic tunnel receding.
+  // Far scenery: the supplied cavern wall, repeated at two depths, standing in
+  // for the chapter's placeholder columns — the painting's backdrop is a deep
+  // organic tunnel receding, not masonry. Copies are laid so they overlap by
+  // about a third, each turned a little and every other one mirrored, so a
+  // single slab reads as one continuous wall of flesh rather than a row.
+  //
+  // The near rank is the wall the corridor is cut through; the far rank is
+  // bigger, dimmer and set low, so the gap between them reads as depth. Both
+  // are lit by the scene and take its fog, which is what pales them toward the
+  // palette's pink the further back they stand.
   backdrop(w,L,section,layers){
+    const near=layers.at(.45),far=layers.at(.22);
+    if(!w.dreamAssets?.cavern)return this.placeholderBackdrop(w,L,section,layers);
+    // Near rank: 26 across on a 21-unit pitch and alternately high and low.
+    // The pitch is wider than it needs to be on purpose — the ragged gaps the
+    // copies leave are the point, because the pale sky behind them is what
+    // reads as a lit tunnel mouth. Covering the frame edge to edge was the
+    // first thing tried and it flattened the whole backdrop into wallpaper.
+    for(let i=0;i<4;i++){
+      const x=section.x-16+i*30+rand(i+50)*4,y=(i%2?2.6:6.4)+rand(i+53)*2;
+      const g=layers.place(near,x,y,-30);g.name='Cavern wall';
+      dreamCavern(w,g,52+rand(i+51)*12,{turn:(rand(i+52)-.5)*.5,flip:i%2===1});
+    }
+    // Far rank: wider, higher and offset half a pitch, so it backs the near
+    // rank's gaps without closing them — depth behind the mouths, not a lid.
+    for(let i=0;i<3;i++){
+      const x=section.x-30+i*44+rand(i+60)*6,g=layers.place(far,x,9+rand(i+63)*3,-52);
+      g.name='Cavern deep';
+      dreamCavern(w,g,84+rand(i+61)*16,{turn:(rand(i+62)-.5)*.3,flip:i%2===0});
+    }
+  },
+  // The look before the cavern was supplied, kept for a rig that builds the
+  // section without the dream models (tests/dream-sections.mjs runs one).
+  placeholderBackdrop(w,L,section,layers){
     const near=layers.at(.45),far=layers.at(.22);
     for(let i=0;i<6;i++){
       const x=section.x-12+i*16+rand(i+50)*3,h=13+rand(i+51)*4,g=layers.place(near,x,-9,-30);g.name='Haze column';
