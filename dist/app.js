@@ -20,6 +20,7 @@ import {shapedShare} from './clay-rules.js';
 import {applyUIPalette} from './palette.js';
 import {hintIcon} from './hint-icons.js';
 import {GamepadInput} from './gamepad.js';
+import {menuFocusables,moveMenuFocus,menuDirection,MenuRepeat} from './menu-controls.js';
 import {Haptics} from './haptics.js';
 import {motherQuiet,motherCorrupted} from './mother-puff-rules.js';
 import {updateMotherAtmosphere} from './mother-puff-hud.js';
@@ -215,6 +216,17 @@ async function begin(index=0,restart=false,sourceChoice,playgroundSource=null){
   prev=performance.now();hideLoading(true);
 }
 function home(){saveJourney();clearInput();resetDialog();lastResult=null;menu=true;game.status='menu';document.body.classList.add('is-menu');document.body.dataset.biome='desert';show('menu',true);['hud','dialog','hint','chapter-intro','touch-controls','desktop-controls','timer','error'].forEach(id=>show(id,false));hideLoading();game.load(0);game.status='menu';titleScene?.show();$('fade').classList.remove('active');updatePlayLabel();icons();$('play').focus();}
+// The menu the keys and the pad steer right now: a dialog over everything,
+// else the error screen, else the title while it is live — never gameplay.
+const menuRoot=()=>!$('dialog').classList.contains('hidden')?$('dialog'):!$('error').classList.contains('hidden')?$('error'):menu&&!$('menu').inert&&!$('menu').classList.contains('hidden')?$('menu'):null;
+// Focus moved by script shows no ring on a pad, and the browsers disagree
+// about it after a key, so the body says when a menu is being steered and the
+// stylesheet draws the cursor from that. A pointer press takes it away again.
+const menuKeys=on=>document.body.classList.toggle('menu-keys',on);
+// Escape, B and Start back out of whatever is up: a dialog closes where it is
+// allowed to (the completion diorama is not), and otherwise the game pauses.
+// The error screen is left alone so nothing resumes behind it.
+function backOut(){if(!$('error').classList.contains('hidden'))return;if(!$('dialog').classList.contains('hidden')){if(game.status==='paused'||menu||(game.status==='complete'&&dialogOrigin!=='complete'))closeDialog();}else pause();}
 function openDialog(html,origin=menu?'menu':'game'){
   if(!$('dialog').contains(document.activeElement))lastFocus=document.activeElement;
   dialogOrigin=origin;clearInput();if(game.status==='playing')game.pause();
@@ -222,7 +234,11 @@ function openDialog(html,origin=menu?'menu':'game'){
   show('hint',false);show('touch-controls',false);show('chapter-intro',false);$('dialog-content').innerHTML=html;show('dialog',true);icons();
   const heading=$('dialog-content').querySelector('h2');if(heading)heading.id='dialog-title';
   $('dialog').scrollTop=0;$('dialog-content').scrollTop=0;
-  dialogFocusTimer=setTimeout(()=>$('dialog-content').querySelector('button')?.focus({preventScroll:true}),0);
+  // The cursor starts on the first real choice, not on the X in the corner.
+  // The completion diorama comes up without the steering mark: its first
+  // frame is the composed stage, and the ring arrives with the first press.
+  if(origin==='complete')menuKeys(false);
+  dialogFocusTimer=setTimeout(()=>{const f=menuFocusables($('dialog-content'));(f.find(el=>!el.classList.contains('dialog-close'))||f[0])?.focus({preventScroll:true});},0);
 }
 function closeDialog(){if(!menu&&game.status==='complete'&&lastResult){result(lastResult);return;}show('dialog',false);resetDialog();if(!menu&&game.status==='paused'){game.resume();show('touch-controls',true);}(lastFocus?.isConnected?lastFocus:$(menu?'play':'pause')).focus();clearInput();}
 function pause(){
@@ -242,7 +258,7 @@ function chapters(){
 }
 const labMarkup=()=>`<button class="chapter-choice playground-choice" data-action="playground"><span>${icon('pencil-ruler')}</span><div><strong>${clayLab.short}</strong><small>${clayLab.label}</small></div>${icon('arrow-up-right')}</button>`;
 function help(){
-  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run. A controller's left stick or d-pad steers too.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them. On a controller, A or Y.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms. On a controller, B, X or a trigger.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Violet clay can be shaped</strong><span>Tap or drag it, hold E, or stomp it — violet clay breathes when you are beside it and stretches into ramps, stairs and bridges. R softens it back.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
+  openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run. A controller's left stick or d-pad steers too.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them. On a controller, A or Y.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms. On a controller, B, X or a trigger.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Violet clay can be shaped</strong><span>Tap or drag it, hold E, or stomp it — violet clay breathes when you are beside it and stretches into ramps, stairs and bridges. R softens it back.</span></div></div><div class="control-row">${hintIcon('menu')}<div><strong>Arrows or W / A / S / D steer the menus</strong><span>Enter or Space chooses, Escape backs out. On a controller: d-pad or stick, A to choose, B to go back.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
 }
 function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active,{music:saved.music,effects:saved.effects,rumble:saved.rumble,characters:CHARACTERS,character:saved.character,charactersUnlocked:saved.charactersUnlocked}));}
 // The cast is not part of the game a first-time player meets, so the picker is
@@ -338,7 +354,7 @@ async function openEditor(){saveJourney();clearInput();sound.unlock();if(!await 
 $('open-editor').addEventListener('click',openEditor);$('return-editor').addEventListener('click',()=>{clearInput();editor.returnToEditor();});
 function toggleSound(){sound.unlock();sound.enabled=!sound.enabled;saved.sound=sound.enabled;persist();$('menu-sound').innerHTML=icon(sound.enabled?'volume-2':'volume-x');$('menu-sound').setAttribute('aria-label',sound.enabled?'Mute sound':'Enable sound');$('menu-sound').setAttribute('aria-pressed',String(sound.enabled));icons();}
 // Title music can unlock before a WebGL scene exists, including in its dialogs.
-window.addEventListener('pointerdown',()=>sound.unlock(),{passive:true});
+window.addEventListener('pointerdown',()=>{sound.unlock();menuKeys(false);},{passive:true});
 window.addEventListener('keydown',e=>{if(!e.repeat&&!e.metaKey&&!e.ctrlKey&&!e.altKey)sound.unlock();});
 $('play').addEventListener('click',()=>begin(saved.last));$('chapters').addEventListener('click',chapters);$('howto').addEventListener('click',help);$('pause').addEventListener('click',pause);$('menu-sound').addEventListener('click',toggleSound);
 $('settings').addEventListener('click',settings);$('error-home').addEventListener('click',home);
@@ -374,10 +390,17 @@ function syncInput(){
 window.addEventListener('keydown',e=>{
   if(editor?.active)return;
   if(e.code==='KeyF'){e.preventDefault();if(!e.repeat){sound.unlock();fullscreenTransition=performance.now()+1000;fullscreen.toggle();}return;}
-  if(e.code==='Tab'&&!$('dialog').classList.contains('hidden')){
-    const f=[...$('dialog').querySelectorAll('button:not(:disabled)')];if(!f.length)return;const i=f.indexOf(document.activeElement);if(e.shiftKey&&i<=0){e.preventDefault();f.at(-1).focus();}else if(!e.shiftKey&&i===f.length-1){e.preventDefault();f[0].focus();}return;
+  const root=menuRoot();
+  if(e.code==='Tab'&&root===$('dialog')){
+    const f=menuFocusables(root);if(!f.length)return;const i=f.indexOf(document.activeElement);menuKeys(true);
+    if(e.shiftKey&&i<=0){e.preventDefault();f.at(-1).focus();}else if(!e.shiftKey&&i===f.length-1){e.preventDefault();f[0].focus();}return;
   }
-  if(e.code==='Escape'||e.code==='KeyP'){e.preventDefault();if(!e.repeat){if(!$('dialog').classList.contains('hidden')){if(game.status==='paused'||menu||(game.status==='complete'&&dialogOrigin!=='complete'))closeDialog();}else pause();}return;}
+  if(e.code==='Escape'||e.code==='KeyP'){e.preventDefault();if(!e.repeat)backOut();return;}
+  // A menu takes the arrows (and W/A/S/D) before the game can see them: while
+  // one is up the game is paused or not started, and ↑/↓ are also the jump and
+  // stomp keys, so this sits ahead of the gameplay gate below. Held keys repeat.
+  const direction=root&&menuDirection(e.code,document.activeElement,{modifier:e.metaKey||e.ctrlKey||e.altKey});
+  if(direction){e.preventDefault();moveMenuFocus(root,direction);menuKeys(true);return;}
   if(![...leftKeys,...rightKeys,...jumpKeys,...stompKeys].includes(e.code))return;
   if(menu&&e.code==='Space'&&$('dialog').classList.contains('hidden')){if(e.target.closest?.('button'))return;e.preventDefault();if(!e.repeat)begin(saved.last);return;}
   if(game.status!=='playing')return;e.preventDefault();sound.unlock();
@@ -429,22 +452,31 @@ const hintDuration=text=>Math.min(16000,Math.max(6500,2500+String(text||'').spli
 // A controller drives the same axis-and-edges input the touch stick produces.
 // Keyboard keeps priority: a stick resting slightly off centre must never fight
 // a held key, so the pad only steers while nothing is pressed.
+const padMenu=new MenuRepeat({delay:180,interval:90});
 function readGamepad(){
   if(editor?.active){if(padSteer||padHeld){padSteer=0;padHeld=false;syncInput();}return;}
   const pad=pads.poll();
   if(!pad.connected){if(padSteer||padHeld){padSteer=0;padHeld=false;syncInput();}return;}
-  if(menu){
-    // On the title both Start and the jump button do the obvious thing.
-    if((pad.jumpPressed||pad.pausePressed)&&$('dialog').classList.contains('hidden')){sound.unlock();begin(saved.last);}
+  const root=menuRoot();
+  if(root){
+    // A menu is up: the d-pad and stick walk its controls, A presses the one
+    // under the cursor, B and Start back out the way Escape does. Down on the
+    // d-pad is also a stomp button, which is why nothing here reads stomp.
     if(padSteer||padHeld){padSteer=0;padHeld=false;syncInput();}
+    const direction=padMenu.step(pad.direction,performance.now());
+    if(direction){sound.unlock();moveMenuFocus(root,direction);menuKeys(true);}
+    if(pad.jumpPressed){
+      sound.unlock();const active=document.activeElement;
+      if(active&&active!==root&&root.contains(active)){menuKeys(true);active.click();}
+      else if(root===$('menu'))begin(saved.last);        // the title's old shortcut: A with nothing under the cursor plays
+      else {moveMenuFocus(root,'down');menuKeys(true);}  // put the cursor down before pressing anything
+    }
+    if(pad.pausePressed){sound.unlock();if(root===$('menu'))begin(saved.last);else backOut();}
+    else if(pad.backPressed&&root===$('dialog')){sound.unlock();backOut();}
     return;
   }
-  if(pad.pausePressed){
-    sound.unlock();
-    if(!$('dialog').classList.contains('hidden')){if(game.status==='paused'||game.status==='complete')closeDialog();}
-    else pause();
-    return;
-  }
+  padMenu.step(null,0);
+  if(pad.pausePressed){sound.unlock();pause();return;}
   if(game.status!=='playing'){if(padSteer||padHeld){padSteer=0;padHeld=false;syncInput();}return;}
   if(pad.jumpPressed||pad.stompPressed||pad.axis)sound.unlock();
   if(pad.jumpPressed)input.jumpPressed=true;

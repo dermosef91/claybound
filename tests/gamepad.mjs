@@ -1,7 +1,7 @@
 // Controller reading and device feedback, with only the browser's gamepad and
 // vibration devices emulated.
 import assert from 'node:assert/strict';
-import {GamepadInput, Haptics, PULSES, stickAxis, padAxis, DEAD_ZONE} from './gamepad-imports.mjs';
+import {GamepadInput, Haptics, PULSES, stickAxis, padAxis, padDirection, DEAD_ZONE} from './gamepad-imports.mjs';
 
 const pad = (overrides = {}) => ({
   connected: true,
@@ -38,7 +38,7 @@ console.log('PASS stick dead zone, response curve, clamping and d-pad precedence
 // --- edges are reported once ---------------------------------------------
 let pads = [];
 const input = new GamepadInput({getGamepads: () => pads});
-assert.deepEqual(input.poll(), {connected: false, axis: 0, jumpHeld: false, jumpPressed: false, stompPressed: false, pausePressed: false});
+assert.deepEqual(input.poll(), {connected: false, axis: 0, jumpHeld: false, jumpPressed: false, stompPressed: false, pausePressed: false, backPressed: false, direction: null});
 
 pads = [press(pad(), 0)];
 let state = input.poll();
@@ -67,6 +67,20 @@ assert.equal(new GamepadInput(undefined).poll().connected, false);
 // Disconnected entries and null slots are skipped, the way browsers report them.
 assert.equal(new GamepadInput({getGamepads: () => [null, pad({connected: false})]}).poll().connected, false);
 console.log('PASS button mapping, one-shot edges, analog triggers and missing/failing gamepad APIs');
+
+// --- menu steering ---------------------------------------------------------
+assert.equal(padDirection(pad()), null, 'a resting pad steers no menu');
+for (const [index, dir] of [[12, 'up'], [13, 'down'], [14, 'left'], [15, 'right']]) assert.equal(padDirection(press(pad(), index)), dir);
+assert.equal(padDirection(pad({axes: [0, .9]})), 'down', 'a pushed stick steers a menu');
+assert.equal(padDirection(pad({axes: [-.9, 0]})), 'left');
+assert.equal(padDirection(pad({axes: [.9, DEAD_ZONE - .01]})), 'right', 'a resting axis does not');
+assert.equal(padDirection(press(pad(), 13, 15)), 'down', 'a diagonal favours the list direction');
+const steering = new GamepadInput({getGamepads: () => [press(pad(), 1)]});
+const first = steering.poll();
+assert(first.backPressed && first.stompPressed, 'B is back in a menu and a stomp in play');
+assert(!steering.poll().backPressed, 'a held B is not a new back');
+assert.equal(new GamepadInput({getGamepads: () => [press(pad(), 13)]}).poll().direction, 'down', 'poll carries the menu direction');
+console.log('PASS d-pad and stick as menu directions, B as back');
 
 // --- rumble ---------------------------------------------------------------
 const played = [];
