@@ -40,9 +40,14 @@ for(const choice of CHARACTERS){
     `${choice.id}: the full state vocabulary is present`);
 
   // Only the original is pulled toward the game's orange; the supplied
-  // characters were painted in clay colours already and keep their own.
-  c.asset.traverse(o=>{if(o.isMesh)for(const material of Array.isArray(o.material)?o.material:[o.material])
-    assert.equal(material.userData.clayOrangeSource,choice.orangeSource,`${choice.id}: colour adjustment as declared`);});
+  // characters were painted in clay colours already and keep their own. A
+  // character that asks for a deeper clay press carries that on the material
+  // too, where the relief reads it whichever of rig and ball loads first.
+  c.asset.traverse(o=>{if(o.isMesh)for(const material of Array.isArray(o.material)?o.material:[o.material]){
+    assert.equal(material.userData.clayOrangeSource,choice.orangeSource,`${choice.id}: colour adjustment as declared`);
+    assert.equal(material.userData.clayDepth,choice.clayDepth,`${choice.id}: relief depth as declared`);
+  }});
+  if(choice.clayDepth)assert(choice.clayDepth>.025&&choice.clayDepth<=.075,`${choice.id}: a declared press sits between the model default and the terrain`);
 
   const bounds=()=>{c.root.updateMatrixWorld(true);return new THREE.Box3().setFromObject(c.model,true);};
   // Framing, shadow, reach and the motes that circle the head are all expressed

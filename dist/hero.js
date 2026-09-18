@@ -123,8 +123,10 @@ export function attachHero(w,gltf,motion,animation,choice=CHARACTERS[0]){
     // One skinned mesh: avoid stale rest-pose bounds culling a jump or turn.
     o.frustumCulled=false;
     for(const material of Array.isArray(o.material)?o.material:[o.material]){
-      // Keep the supplied surface detail while matching its orange pigment.
+      // Keep the supplied surface detail while matching its orange pigment, and
+      // press the clay relief as deep as the character declares.
       material.userData.clayOrangeSource=choice.orangeSource;
+      if(choice.clayDepth)material.userData.clayDepth=choice.clayDepth;
       material.roughness=.94;material.metalness=0;material.emissiveIntensity=0;
       if('specularIntensity' in material)material.specularIntensity=.22;
       if(material.map)material.map.anisotropy=maxAnisotropy;

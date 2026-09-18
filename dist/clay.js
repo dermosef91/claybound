@@ -87,9 +87,14 @@ normal = clayPerturbNormal(-vViewPosition, normal, clayData.r * bumpScale, faceD
   material.customProgramCacheKey=()=> 'ball-clay-relief-v3'+(material.userData.clayOrangeSource?'-orange-v1':'');material.needsUpdate=true;return material;
 }
 
+// Imported models take a shallow press by default, since their own maps carry
+// most of the surface. A material may ask for a deeper one through
+// `userData.clayDepth`, the way it declares its orange in `clayOrangeSource`:
+// an annotation rather than an argument, so it holds through both the model's
+// own install and the re-application above when the ball arrives after it.
 export function clayModel(w,root,{background=false}={}){
   if(!w.clay)return;
-  root.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])clayMaterial(w,m,background?.035:.025);});
+  root.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])clayMaterial(w,m,m.userData.clayDepth??(background?.035:.025));});
 }
 
 // Sculpted shapes are kept so a repeated block costs nothing to build again.
