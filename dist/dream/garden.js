@@ -2,7 +2,7 @@ import * as THREE from '../lib/three.module.js';
 import {sectionDecks,deck,lean,slot,rand,fixedMaterial,cone,drip,leaf,stem,rim,lid,attached} from './support.js';
 import {clayShape,sculptClay} from '../clay.js';
 import {createCrumble} from '../crumble.js';
-import {dreamFlower} from '../dream-assets.js';
+import {dreamFlower,dreamArch} from '../dream-assets.js';
 // Section 1 — The Crooked Garden, after its two paintings. ONE idea: it looks
 // like any other chapter — terracotta clay under green frosting that has run
 // over the lips, pink-capped mushrooms, a blue sky with pink swirls, a pink
@@ -347,6 +347,14 @@ const archGeometry=w=>clayShape(w,'garden-arch',()=>{
 });
 function crookedArch(w,parent){
   const g=group(parent,'Garden crooked arch');
+  // The supplied gate, where it has loaded: shifted so its off-centre opening
+  // stands on the arch's x, its flower's eye watching like every other
+  // flower's (the head is part of the arch, so only the pupil and lid move).
+  if(w.dreamAssets?.arch){
+    const arch=dreamArch(w,g,{height:4.4});arch.root.position.x=-.6;
+    watch(w,{gaze:arch.gaze,lid:arch.lid,pupil:arch.pupil,seed:77});
+    return g;
+  }
   const rock=w.mesh(archGeometry(w),'back',g,0,0,0);rock.rotation.z=-.045;rock.name='Arch rock';
   for(const [x,y,rx,ry] of [[-2.2,3.05,.9,.32],[-.9,3.28,1,.3],[.6,3.26,1.05,.31],[2.1,3.02,.85,.3]])w.ball(rx,ry,.95,'top',g,x,y,.1).name='Arch moss';
   for(const [x,y,h,i] of [[-2.55,2.7,.9,0],[2.5,2.55,.7,1],[-1.05,3.0,1.2,0],[1.5,2.95,.6,1]])drip(w,g,x,y,.78,.2,h,'top',i);

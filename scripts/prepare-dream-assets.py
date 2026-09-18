@@ -50,7 +50,12 @@ assets={
  'dream-hat.glb':'hat.glb',
  'dream-sculpture.glb':'colorful+abstract+sculpture+3d+model.glb',
  'dream-caterpillar.glb':'caterpillar.glb',
- 'dream-giraffe.glb':'giraffe.glb'
+ 'dream-giraffe.glb':'giraffe.glb',
+ # The Crooked Garden's gate: a clay arch with a watching flower grown up one
+ # leg, supplied without a pupil (dist/dream-assets.js fits the eyeball and
+ # sets one on it at load, as for the flower). Uploaded to ~/Downloads:
+ #   python3 scripts/prepare-dream-assets.py ~/Downloads
+ 'dream-arch.glb':'Meshy_AI_Clay_Garden_Arch_0917232650_texture.glb'
 }
 def locate(source):
  """The upload, in the given directory or its parent; None when it is not in this upload."""
@@ -60,8 +65,9 @@ def locate(source):
 # Models shipped from a decimated copy rather than the upload's own geometry.
 decimated={'dream-hat.glb':Path(sys.argv[2]) if len(sys.argv)>2 else None}
 adaptation={'dream-hat.glb':'glTF Transform 4.4.1 weld + simplify ratio=.025 error=.01; metallic-roughness map dropped'}
-# Models whose metallic-roughness map is left out of the shipped file.
-matte={'dream-hat.glb'}
+# Models whose metallic-roughness map is left out of the shipped file (the
+# arch's, like the hat's, paints a gloss the matte clay world does not have).
+matte={'dream-hat.glb','dream-arch.glb'}
 SLOTS=['baseColorTexture','metallicRoughnessTexture','normalTexture','occlusionTexture','emissiveTexture']
 def pad(b,value=b'\0'):return b+value*((-len(b))%4)
 def digest(b):return hashlib.sha256(b).hexdigest()

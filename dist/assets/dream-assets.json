@@ -194,5 +194,30 @@
     ],
     "geometryUnchanged": true,
     "joints": 40
+  },
+  "dream-arch.glb": {
+    "source": "Meshy_AI_Clay_Garden_Arch_0917232650_texture.glb",
+    "sourceSha256": "679a3818e987da17aa3840770d34dcda416f1036068bd1d32af12e736ca5ace0",
+    "shippedSha256": "c17c0a91e5c28c4e602cd2e6fa45a69474d5316432268e2a5dbf920b5f7fe399",
+    "sourceBytes": 13157776,
+    "shippedBytes": 1264840,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 20444,
+    "geometryBufferSha256": [
+      "2bf7a454e110d60a6d08d1712a2adf7bfbfa43696cf1007aa17f1ce63dda7d0b",
+      "b3249db8c4118045feac96137373c3e640b61c16a0e2fdfce3b5b3d098d81c93",
+      "272cc104680e6882aa349be75e520d34c4aef0dfabbe5bdeacaa0b8453f586d2",
+      "c5aee0d4c987fdfe0196a8f21d73a64006469a6a1df8111112e54e594a714b50"
+    ],
+    "geometryUnchanged": true
   }
 }
