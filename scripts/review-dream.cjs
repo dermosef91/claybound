@@ -15,7 +15,8 @@
 //
 // Env: LEVEL (chapter index, default 4) · SECTION (a dream section key) ·
 // SPOTS (comma list of names from the table below, or a JSON array of
-// {name,x,y,ground?,cameraX?,cameraY?,ticks?})
+// {name,x,y,ground?,cameraX?,cameraY?,ticks?,shaped?}; `shaped` lists clay
+// stations, by id or {id,amount}, to capture already worked)
 // · OUT (default /Users/moritzgrassy/.claude/jobs/b6712500/tmp/shots) · PORT
 // (default 5197) · ROOT (checkout holding dist/, default this script's
 // checkout) · WIDTH/HEIGHT · CHROME_PATH (Chrome binary, default the
