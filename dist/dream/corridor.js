@@ -1,7 +1,7 @@
 import * as THREE from '../lib/three.module.js';
 import {deck,sectionDecks,slot,rand} from './support.js';
 import {clayMaterial,clayShape,sculptClay} from '../clay.js';
-import {dreamEyeball} from '../dream-assets.js';
+import {dreamEyeball,dreamCavern} from '../dream-assets.js';
 // Section 4 — The Breathing Corridor, after its painting: a tunnel built
 // entirely of thick WAVY stripes of soft clay — vermilion, red, magenta,
 // plum — stacked like layered Play-Doh with rounded lips. A heavy striped
@@ -237,8 +237,14 @@ function profile(points){
 // beads, meeting the throat's top at 7 and clearing the molars over floor-2.
 // The mass sits behind the walk line, so a full jump's head may overlap it
 // in the picture without ever meeting it.
+//
+// Over the windpipe it climbs with the ribs and levels off at 11 — the
+// squeeze's top — so that ceiling reads as a fold of this one coming down
+// rather than a block hung in the air, then swoops shut over the exit the way
+// it opens at the entry.
 function layout(L){
-  const ids=['entry','pillar-1','pillar-2','pillar-3','floor-1','throat','plug','floor-2','tooth-1','tooth-2','exit'];
+  const ids=['entry','pillar-1','pillar-2','pillar-3','floor-1','throat','plug','floor-2','tooth-1','tooth-2',
+    'floor-3','rib-1','rib-2','rib-3','rib-4','shelf','squeeze','exit'];
   const d={};for(const id of ids)if(!(d[id]=deck(L,'corridor-'+id)))return null;
   const right=s=>s.x+s.w;
   const under=profile([
@@ -246,7 +252,10 @@ function layout(L){
     [d['pillar-1'].x+1,5.5],[d['pillar-2'].x-.6,6.15],[right(d['pillar-2'])+.6,6.15],[d['pillar-3'].x+1.2,5.4],
     [d['floor-1'].x+2,4.9],[d['floor-1'].x+5.5,5],[right(d['floor-1']),6.3],[d.throat.x,7.05],[right(d.throat),7.05],
     [d['floor-2'].x,6.55],[right(d['floor-2']),6.55],[d['tooth-1'].x,6.45],[right(d['tooth-2']),6.45],
-    [d.exit.x+1.5,5.5],[right(d.exit),4.6],[right(d.exit)+1.5,4.4]
+    [d['floor-3'].x,6.5],[right(d['floor-3']),7.2],
+    [d['rib-1'].x+1.1,8.2],[d['rib-2'].x+1.1,9.2],[d['rib-3'].x+1.1,10.2],[d['rib-4'].x+1.1,10.9],
+    [d.squeeze.x,11],[right(d.squeeze),11],[right(d.shelf),9],
+    [d.exit.x+2,6.2],[right(d.exit),4.8],[right(d.exit)+1.5,4.5]
   ]);
   return {d,under,left:d.entry.x,right:right(d.exit)};
 }
@@ -344,6 +353,10 @@ function animateMolars(w,game,dt){
 
 export default {
   key:'corridor',
+  // The cavern walls below are a whole backdrop of their own, so the chapter's
+  // placeholder blobs and columns sink away while the player is in here —
+  // their mauve masonry read straight through the tunnel before.
+  quietBackdrop:true,
   // Stone decks: striped slabs instead of the chapter's rolled slab.
   dress(w,s,g){return stripedDeck(w,s,g);},
   // Breathing walls (pillars, throat, teeth): striped bodies posed by the
@@ -401,8 +414,15 @@ export default {
       at(d['pillar-1'].x+1.9,1.05,2,.68);
       at(d['pillar-3'].x-.3,1.05,4,.62);
       at(d['tooth-1'].x+2.1,1.05,6,.62);
+      // Three more up the windpipe, the last one right over the squeeze, so
+      // the ceiling that shuts on you is the one watching you wait.
+      at(d['floor-3'].x+3.4,1,7,.6);
+      at(d['rib-2'].x+1.1,1.1,8,.66);
+      at(d.squeeze.x+1.7,1.15,9,.7);
       const drips=[[d.entry.x+.4,.8,2.2,R],[d.entry.x+6.6,.5,1.2,T],[d['pillar-2'].x-1.3,.5,1.3,P],[d['pillar-3'].x-1.6,.44,.95,R],
         [d['floor-1'].x+1.2,.6,1.3,T],[d['floor-1'].x+7,.5,1.4,R],[d['floor-2'].x+1.9,.55,1.5,P],[d['tooth-1'].x-.8,.42,1.1,R],
+        [d['floor-3'].x+1.1,.5,1.3,R],[d['rib-1'].x+.4,.46,1.1,T],[d['rib-3'].x-.9,.5,1.25,P],[d['rib-4'].x+1.8,.44,1,R],
+        [rgt(d.shelf)-.6,.55,1.45,T],
         [d.exit.x+1.2,.52,1.4,T],[rgt(d.exit)+.2,.74,2,R]];
       drips.forEach(([x,r,h,m],i)=>drip(w,g,x,under(x)+.15,.95,r,h,m,i));
     }});
@@ -410,9 +430,54 @@ export default {
     (L.crushers||[]).filter(c=>c.x>=left&&c.x<right).forEach((c,i)=>list.push({key:'molar-'+i,x:c.x,w:3,y:0,z:0,make(w,parent){molar(w,parent,c,under(c.x)+.25);}}));
     return list;
   },
-  // Far scenery: the pink haze of the palette with dim mauve columns and
-  // arches at two depths — the painting's deep organic tunnel receding.
+  // Far scenery: the supplied cavern wall, repeated at two depths, standing in
+  // for the chapter's placeholder columns — the painting's backdrop is a deep
+  // organic tunnel receding, not masonry. Copies are laid so they overlap by
+  // about a third, each turned a little and every other one mirrored, so a
+  // single slab reads as one continuous wall of flesh rather than a row.
+  //
+  // The near rank is the wall the corridor is cut through; the far rank is
+  // bigger, dimmer and set low, so the gap between them reads as depth. Both
+  // are lit by the scene and take its fog, which is what pales them toward the
+  // palette's pink the further back they stand.
   backdrop(w,L,section,layers){
+    const near=layers.at(.45),far=layers.at(.22);
+    if(!w.dreamAssets?.cavern)return this.placeholderBackdrop(w,L,section,layers);
+    // Near rank: four slabs about 52 across, alternately high and low. They
+    // are spaced wider than they need to be on purpose — the ragged gaps the
+    // copies leave are the point, because the pale sky behind them is what
+    // reads as a lit tunnel mouth. Covering the frame edge to edge was the
+    // first thing tried and it flattened the whole backdrop into wallpaper.
+    //
+    // Both ranks stop short of the corridor's exit. They ran 25 units past it
+    // at first, and the Colour River then opened on this crimson wall instead
+    // of its own pillars and pink hills — a section's backdrop belongs to its
+    // section, and the river brings a whole sky of its own.
+    const last=section.x+section.length;
+    for(let i=0;i<4;i++){
+      const x=Math.min(section.x-16+i*26+rand(i+50)*4,last-30),y=(i%2?2.6:6.4)+rand(i+53)*2;
+      const g=layers.place(near,x,y,-30);g.name='Cavern wall';
+      dreamCavern(w,g,52+rand(i+51)*12,{turn:(rand(i+52)-.5)*.5,flip:i%2===1});
+    }
+    // Far rank: higher and set back, backing the near rank's gaps without
+    // closing them — depth behind the mouths, not a lid.
+    //
+    // These are small on purpose. A parallax item sits at factor*(worldX −
+    // cameraX) on screen, so at .22 it only leaves frame once the camera is
+    // (halfWidth + halfView)/.22 away: the 84-wide slabs tried first were
+    // still filling the sky 200 units later, painting this crimson over the
+    // Colour River's own pillars and pink hills. Kept near 24 across, they
+    // fade out roughly where the corridor does.
+    for(let i=0;i<5;i++){
+      const x=Math.min(section.x-14+i*20+rand(i+60)*4,last-16);
+      const g=layers.place(far,x,7+rand(i+63)*3,-52);
+      g.name='Cavern deep';
+      dreamCavern(w,g,22+rand(i+61)*6,{turn:(rand(i+62)-.5)*.3,flip:i%2===0});
+    }
+  },
+  // The look before the cavern was supplied, kept for a rig that builds the
+  // section without the dream models (tests/dream-sections.mjs runs one).
+  placeholderBackdrop(w,L,section,layers){
     const near=layers.at(.45),far=layers.at(.22);
     for(let i=0;i<6;i++){
       const x=section.x-12+i*16+rand(i+50)*3,h=13+rand(i+51)*4,g=layers.place(near,x,-9,-30);g.name='Haze column';

@@ -33,12 +33,17 @@ import {fixedMaterial,lid,slot} from './dream/support.js';
 // (its towers and far spires), a smiling sun, and a decorative banner — a
 // swag valance with gold buttons over a hanging smiley-flower pennant. That
 // last one is cut in two at load like the flower: the swags run along the
-// hat-worm bridge's underside, the pennant hangs on its plinth.
+// hat-worm bridge's underside, the pennant hangs on its plinth. Those four are
+// still loaded although the parade is shelved out of the chapter (SHELVED in
+// dist/routes/dream.js): the section keeps its own harness and its own tests,
+// and splicing it back should not also mean re-shipping its models.
 //
-// The Breathing Corridor's eye is the odd one out: its pupil is painted into
-// the colour map rather than set on it here, so nothing about it is rigged and
-// the ball itself turns to look. EYEBALL below holds what that needs.
-export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb',fruit:'dream-fruit.glb',banner:'dream-banner.glb',column:'dream-column.glb',cane:'dream-cane.glb',sun:'dream-sun.glb',arch:'dream-arch.glb',eyeball:'dream-eyeball.glb'};
+// The cavern is the Breathing Corridor's backdrop wall, repeated across its
+// parallax rather than placed once. The corridor's eye is the odd one out:
+// its pupil is painted into the colour map rather than set on it here, so
+// nothing about it is rigged and the ball itself turns to look. EYEBALL below
+// holds what that needs.
+export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb',fruit:'dream-fruit.glb',banner:'dream-banner.glb',column:'dream-column.glb',cane:'dream-cane.glb',sun:'dream-sun.glb',arch:'dream-arch.glb',cavern:'dream-cavern.glb',eyeball:'dream-eyeball.glb'};
 
 // Each planet's core orb in model space — the sphere the fruit and the leaf
 // sprouts are stuck onto — fitted over every vertex by a modal-radius
@@ -195,6 +200,32 @@ export function prepareDreamAsset(w,key,gltf){
   // Every model keeps the colours it was painted in and takes only the clay
   // surface relief.
   clayMaterials(gltf.scene);clayModel(w,gltf.scene);retainModel(w,gltf.scene);
+  // The cavern is the only model that is scenery rather than a thing in the
+  // world: it stands thirty units back, repeated, behind everything the player
+  // touches. Three changes keep it there instead of competing with the clay in
+  // front of it — single-sided faces, because the upload is doubleSided and its
+  // lit interior read as dark holes through the gaps between copies; no normal
+  // map, because relief that reads at arm's length is noise at this distance;
+  // and a soft pink tint over a little emissive, which holds the wall lighter
+  // than the clay in front of it. That last one is atmospheric perspective and
+  // it is the whole trick: tinted to the saturation the painting's backdrop
+  // has, the wall sat at the same value as the platforms and the level read
+  // flat, so it is deliberately paler than the reference it is matching.
+  // The materials are the shared ones the loader retained, so this is done
+  // once and every copy takes it.
+  if(key==='cavern'){
+    // Smooth the shading first. Halving the upload's triangles left flat-shaded
+    // facets, and a wall of them read as broken crystal where the painting has
+    // soft folds of flesh; averaged vertex normals shade the same triangles as
+    // curves. The silhouette stays faceted, which distance and fog hide.
+    gltf.scene.traverse(o=>{if(o.isMesh){o.geometry.deleteAttribute('normal');o.geometry.computeVertexNormals();}});
+    for(const m of materialsOf(gltf.scene)){
+      m.side=THREE.FrontSide;
+      m.normalMap=null;m.flatShading=false;
+      m.color.set(0xcd6480);m.emissive=new THREE.Color(0xb05a74);m.emissiveIntensity=.38;
+      m.needsUpdate=true;
+    }
+  }
   w.dreamAssets??={};const record=w.dreamAssets[key]={scene:gltf.scene,box,size,center};
   // The lollipop's column stands in the sky layer, where the pink haze would
   // bleach its candy stripe to lilac: like the spiral sun's ribbons it takes no
@@ -241,6 +272,12 @@ export async function loadDreamAssets(w,onProgress){
   }
   await w.dreamLoading;onProgress?.(1);
 }
+// Every distinct material under `root`, single or multi-material.
+const materialsOf=root=>{
+  const seen=new Set();
+  root.traverse(o=>{if(o.isMesh)for(const m of[o.material].flat())if(m)seen.add(m);});
+  return seen;
+};
 const asset=(w,key)=>{
   const a=w.dreamAssets?.[key];if(!a)throw new Error('Load the dream models before dressing the dream.');
   return a;
@@ -293,6 +330,21 @@ export function dreamHat(w,parent,width){
   const a=asset(w,'hat'),root=new THREE.Group(),model=a.scene.clone(true);
   root.name='Dream hat';model.name='Supplied clay hat';
   root.scale.setScalar(width/a.size.x);model.position.set(-a.center.x,-a.box.min.y,-a.center.z);
+  root.add(model);parent.add(root);
+  return root;
+}
+// A slab of the Breathing Corridor's cavern under `parent`, `width` across and
+// centred on the parent's origin, so a backdrop can lay several overlapping
+// without arithmetic. `turn` spins it about z and `flip` mirrors it in x: one
+// upload repeated seven times across a section would otherwise read as one
+// shape stamped out in a row. Returns the root; `userData.size` is the scaled
+// bounding box, for a caller that wants to lay copies edge to edge.
+export function dreamCavern(w,parent,width,{turn=0,flip=false}={}){
+  const a=asset(w,'cavern'),root=new THREE.Group(),model=a.scene.clone(true),k=width/a.size.x;
+  root.name='Dream cavern';model.name='Supplied cavern wall';
+  root.scale.set(flip?-k:k,k,k);root.rotation.z=turn;
+  model.position.copy(a.center).negate();
+  root.userData.size=a.size.clone().multiplyScalar(k);
   root.add(model);parent.add(root);
   return root;
 }
