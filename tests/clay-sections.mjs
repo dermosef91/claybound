@@ -120,7 +120,12 @@ function highestFrom(level,id){
 
 const SECTIONS=[
   // One formable mass spans the whole pocket, so its bypass is dock to landing.
-  {level:0,station:'canyon-pocket',bypass:{from:'pocket-dock',to:'pocket-landing',mode:'jump'},form:true},
+  // Since layout 11 the dock stands over the clay's rest surface, so the mass
+  // is stepped onto rather than walked into — `rideable`, like the kiln's
+  // tower. Standing on the clump is not a way across: the pit between its
+  // towers is too deep to hop out of, so the clay still has to be worked,
+  // which is what the bypass check below holds it to.
+  {level:0,station:'canyon-pocket',bypass:{from:'pocket-dock',to:'pocket-landing',mode:'jump'},rideable:true,form:true},
   {level:1,station:'weave-bough',bypass:{from:'gap-brink',to:'weave-perch',mode:'jump'},form:true},
   {level:1,station:'weave-mound',bypass:{from:'weave-spring',to:'canopy-nest',mode:'jump'},form:true},
   // The tower is the one piece meant to be stood on while it is still tall.
@@ -272,11 +277,15 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
   const SAND=LEVELS[0].platforms.find(q=>q.id==='pocket-floor').y;
   const DOCK=LEVELS[0].platforms.find(q=>q.id==='pocket-dock').x;
   const END=(q=>q.x+q.w)(LEVELS[0].platforms.find(q=>q.id==='pocket-landing'));
+  const LAND=LEVELS[0].platforms.find(q=>q.id==='pocket-landing').x;
 
 
   // Unworked, the pocket is a wall: twelve seconds of walking and hopping from
   // the dock never leave it.
-  {const {g,p}=boot();const r=landing(g);assert(r.startsWith('stuck')&&p.x<MASS,`the clump keeps the dock shut (${r})`);assert.equal(g.deaths,0);}
+  // Unworked, the pocket is not a way through. The dock stands over the clay,
+  // so the clump can be stepped onto — what it cannot do is carry anyone
+  // across: the pit between its towers is deeper than a hop out of it.
+  {const {g,p}=boot();const r=landing(g);assert(r.startsWith('stuck')&&p.x<LAND,`the clump carries nobody across (${r})`);assert.equal(g.deaths,0);}
   // 1. The authored solution: lean the spire into a bridge, slump the lump
   //    into a ramp, and the pocket is a walk with a hop at each end.
   {const {g,station,mass}=boot();solveFormStation(station,massOf(g,station),{dt});
@@ -331,7 +340,12 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
      const aheadX=Math.max(mass.x,Math.min(mass.x+mass.w,p.x+FORM.stepReach)),rise=surfaceAt(mass,aheadX)-p.y,atWall=p.x>landingLedge.x-.6;
      let input;
      if(atWall&&landingLedge.y-p.y<2.4){input={moveAxis:1,jumpPressed:hopTimer<=0&&!!p.groundId,jumpHeld:true};if(input.jumpPressed)hopTimer=60;}
-     else if(atWall||(p.x+FORM.stepReach>=mass.x-.3&&(rise>FORM.step||rise<-.05))){input={moveAxis:0,shapeHeld:true};p.facing=1;heldE++;}
+     // A way down is only worth raising while the landing is still above:
+     // from the lump's crest the descent towards it is the way on.
+     else if(atWall||(p.x+FORM.stepReach>=mass.x-.3&&(rise>FORM.step||(rise<-.05&&p.y<landingLedge.y)))){input={moveAxis:0,shapeHeld:true};p.facing=1;heldE++;}
+     // The dock stands a fifth of a unit under the clay: too tall to step onto,
+     // nothing to work, so the way on is a hop, which is what a player does.
+     else if(p.groundId!==mass.id&&rise>.14){input={moveAxis:1,jumpPressed:hopTimer<=0&&!!p.groundId,jumpHeld:true};if(input.jumpPressed)hopTimer=60;}
      else input={moveAxis:1};
      hopTimer--;g.tick(dt,input);t+=dt;
    }
@@ -420,9 +434,16 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
   {const {g,station,mass,p}=boot();
    for(let k=0;k<8;k++)stroke(g,mass,{x:MASS+.3,lift:1,dx:0,dy:-6,t:1});
    assert(mass.form.h[0]<.05&&surfaceAt(mass,MASS+.5)<SAND+.2,`the dock end is scraped to the sand (${surfaceAt(mass,MASS+.5).toFixed(2)})`);
-   for(let i=0;i<1/dt;i++)g.tick(dt,{moveAxis:1});
+   // From the raised dock this is a fall rather than a walk, and it carries
+   // clear over the scraped strip onto the clay beyond it.
+   for(let i=0;i<3/dt;i++)g.tick(dt,{moveAxis:1});
    assert(p.groundId===mass.id&&p.x>MASS+1.2&&!g.deaths,`walking off the dock carries the player past the bare strip onto clay (${p.x.toFixed(2)}, ${p.groundId})`);
    const kept=Float64Array.from(mass.form.h);
+   // The clay pressed out of the strip piles up between the pit and the dock,
+   // so the way back to the bare footing is over that mound rather than along
+   // the floor: the walker is set beside the strip and walks onto it.
+   const beside=MASS+2.2;
+   Object.assign(p,{x:beside,y:surfaceAt(mass,beside),vx:0,vy:0,groundId:mass.id,coyote:.13});g.tick(dt,{});
    for(let i=0;i<3/dt&&!g.deaths;i++)g.tick(dt,{moveAxis:-1});
    assert.equal(g.deaths,1,'walking back onto the bare sand kills');
    for(let i=0;i<70;i++)g.tick(dt,{});

@@ -1,5 +1,5 @@
 import * as THREE from '../lib/three.module.js';
-import {sectionDecks,deck,lean,slot,rand,fixedMaterial,cone,drip,lid,attached} from './support.js';
+import {sectionDecks,deck,lean,slot,rand,fixedMaterial,cone,drip,lid,attached,Spiral,spiralDisc,dreamCloud} from './support.js';
 import {clayShape,sculptClay} from '../clay.js';
 import {createCrumble} from '../crumble.js';
 import {dreamFlower} from '../dream-assets.js';
@@ -40,7 +40,7 @@ const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
 // shader allows, a soft sheen rather than gloss.
 const slime=w=>fixedMaterial(w,'gardenSlime',0xef4f9c,{roughness:.4,depth:.03});
 const slimeLight=w=>fixedMaterial(w,'gardenSlimeLight',0xf78ac0,{roughness:.4,depth:.03});
-const cloud=w=>fixedMaterial(w,'gardenCloud',0xf2a9c6,{depth:.05});
+const cloud=dreamCloud;
 const peach=w=>fixedMaterial(w,'gardenPeach',0xf6b48f,{depth:.05});
 const falls=w=>fixedMaterial(w,'gardenFalls',0x8fd0f4,{roughness:.4,depth:.03});
 const petal=w=>fixedMaterial(w,'dreamPetal',0xe8598a,{depth:.06});
@@ -91,15 +91,10 @@ class Sine extends THREE.Curve{
   constructor(length,amp,waves){super();this.length=length;this.amp=amp;this.waves=waves;}
   getPoint(t,o=new THREE.Vector3()){return o.set(t*this.length,Math.sin(t*Math.PI*2*this.waves)*this.amp,0);}
 }
-class Spiral extends THREE.Curve{
-  constructor(r0,r1,turns){super();this.r0=r0;this.r1=r1;this.turns=turns;}
-  getPoint(t,o=new THREE.Vector3()){const a=t*this.turns*Math.PI*2,r=this.r0+(this.r1-this.r0)*t;return o.set(Math.cos(a)*r,Math.sin(a)*r,0);}
-}
 class Helix extends THREE.Curve{
   constructor(r,height,turns){super();this.r=r;this.height=height;this.turns=turns;}
   getPoint(t,o=new THREE.Vector3()){const a=t*this.turns*Math.PI*2,r=this.r*(1-t*.55);return o.set(Math.cos(a)*r,t*this.height,Math.sin(a)*r);}
 }
-const spiralDisc=w=>clayShape(w,'garden-spiral-disc',()=>sculptClay(w,new THREE.TubeGeometry(new Spiral(.12,1,2.6),72,.13,7,false),{amplitude:.02}));
 const tendril=w=>clayShape(w,'garden-tendril',()=>sculptClay(w,new THREE.TubeGeometry(new Helix(.42,1.6,2.2),40,.09,6,false),{amplitude:.02}));
 const streak=w=>clayShape(w,'garden-streak',()=>sculptClay(w,new THREE.TubeGeometry(new Sine(14,1.1,1.25),48,.6,7,false),{amplitude:.03}));
 const coil=w=>clayShape(w,'garden-coil',()=>sculptClay(w,new THREE.TubeGeometry(new Spiral(.6,4.2,1.75),96,.62,8,false),{amplitude:.03}));
@@ -424,13 +419,16 @@ export default {
       const s=w.mesh(streak(w),cloud(w),g,0,0,0);s.scale.set(len,.36,.3);s.rotation.z=tilt;s.name='Sky swirl streak';
     }
     for(const [dx,y,size] of [[2,4,1.1],[30,6,.9],[46,4.6,1]])puffCloud(w,layers.place(sky,x0+dx,y,-38),size);
+    // The post-arch sky is the garden's: its pieces retire once the player
+    // has crossed into the Folding Path, which paints its own.
+    const until={until:x0+section.length};
     for(const [i,[dx,y,size]] of [[96,7.2,.7],[110,5.6,.55],[124,8.2,.75]].entries()){
-      const g=layers.place(mid,x0+dx,y,-34);
+      const g=layers.place(mid,x0+dx,y,-34,until);
       const c=w.mesh(coil(w),i%2?peach(w):cloud(w),g,0,0,0);c.scale.set(size,size*.72,.4);c.name='Sky coil';
       w.dreamSwirls?.push({mesh:c,speed:(i%2?-1:1)*.14});
     }
-    for(const [dx,y,width] of [[102,3.4,3.4],[118,4.6,2.8]])island(w,layers.place(mid,x0+dx,y,-30),width);
-    for(const [dx,height,cap] of [[94,5.4,1.9],[112,6.4,2.2]])farMushroom(w,layers.place(mid,x0+dx,-3.5,-31),height,cap,'terrain','terrain2','gold');
+    for(const [dx,y,width] of [[102,3.4,3.4],[118,4.6,2.8]])island(w,layers.place(mid,x0+dx,y,-30,until),width);
+    for(const [dx,height,cap] of [[94,5.4,1.9],[112,6.4,2.2]])farMushroom(w,layers.place(mid,x0+dx,-3.5,-31,until),height,cap,'terrain','terrain2','gold');
   },
 
   // Every eye aims its pupil at the player and blinks; the flowers turn their

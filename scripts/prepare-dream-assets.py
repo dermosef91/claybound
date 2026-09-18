@@ -50,7 +50,8 @@ assets={
  'dream-hat.glb':'hat.glb',
  'dream-sculpture.glb':'colorful+abstract+sculpture+3d+model.glb',
  'dream-caterpillar.glb':'caterpillar.glb',
- 'dream-giraffe.glb':'giraffe.glb'
+ 'dream-giraffe.glb':'giraffe.glb',
+ 'dream-fruit.glb':'3d+fruit+sculpture.glb'
 }
 def locate(source):
  """The upload, in the given directory or its parent; None when it is not in this upload."""
