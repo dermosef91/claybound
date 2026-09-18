@@ -12,6 +12,7 @@ import {chapterCollections,settingsMarkup,characterMarkup} from './title-menu.js
 import clayLab from './routes/clay-lab.js';
 import {CHARACTERS,characterChoice} from './characters.js';
 import {TitleScene} from './title-scene.js';
+import {CompletionScene} from './completion-scene.js';
 import {loadTitleAssets} from './title-assets.js';
 import {ShapingControls} from './shaping-controls.js';
 import {visitStation} from './shaping.js';
@@ -69,7 +70,7 @@ const clearInput=()=>{shapingControls?.clear();pressed.clear();touchPointers.cle
 // the keyboard never went anywhere: dropping a held E or D here stopped the
 // clay and the player dead until the player thought to release and press again.
 const clearPointerInput=()=>{shapingControls?.release();touchPointers.clear();joystick?.reset();document.querySelectorAll('.pressed').forEach(e=>e.classList.remove('pressed'));syncInput();};
-let world,game,editor,healthHUD,titleScene,worldError,worldRequested=false,assetsReady=false,worldLoading=null,menu=true,introUntil=0,hintKey='',hintUntil=0,dismissed=new Set(),toastTimer,dialogOrigin='menu',lastFocus=null,lastResult=null,hitStop=0,fullscreenTransition=0,chapterRequest=0,dialogFocusTimer,completionTimer,loadingRevealTimer;
+let world,game,editor,healthHUD,titleScene,completionScene,worldError,worldRequested=false,assetsReady=false,worldLoading=null,menu=true,introUntil=0,hintKey='',hintUntil=0,dismissed=new Set(),toastTimer,dialogOrigin='menu',lastFocus=null,lastResult=null,hitStop=0,fullscreenTransition=0,chapterRequest=0,dialogFocusTimer,completionTimer,loadingRevealTimer;
 function toast(text){$('toast').textContent=text;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),2100);}
 function onEvent(e){
   if(e.type==='press-impact'&&world&&Math.abs(world.cameraX-e.x)>world.viewW*.8)return;
@@ -166,7 +167,7 @@ const fullscreen=new Fullscreen({
   onUnavailable(){toast('Fullscreen is unavailable here. Open the game in your browser.');}
 });
 
-function resetDialog(){clearTimeout(dialogFocusTimer);clearTimeout(completionTimer);document.body.classList.remove('is-complete');$('dialog').classList.remove('is-completion');$('hud').inert=false;$('menu').inert=false;}
+function resetDialog(){clearTimeout(dialogFocusTimer);clearTimeout(completionTimer);document.body.classList.remove('is-complete');document.body.classList.remove('has-completion-diorama');completionScene?.hide();$('dialog').classList.remove('is-completion');$('hud').inert=false;$('menu').inert=false;}
 function showPlaying(){titleScene?.hide();menu=false;resetDialog();lastResult=null;document.body.classList.remove('is-menu');show('menu',false);show('hud',true);show('touch-controls',true);show('desktop-controls',false);show('dialog',false);}
 async function begin(index=0,restart=false,sourceChoice,playgroundSource=null){
   saveJourney();
@@ -307,6 +308,20 @@ $('dialog-content').addEventListener('input',e=>{
 });
 function result(e){
   lastResult=e;document.body.classList.add('is-complete');
+  // The chapter's diorama takes the place of the pre-rendered plate. If it
+  // cannot be built — no WebGL, or a chapter whose models never arrived — the
+  // plate is still in the markup underneath and simply stays visible.
+  // Built on the first chapter anyone finishes rather than at startup: it is a
+  // whole scene, a sky and a set of material clones, and nothing needs any of
+  // it until this screen is on.
+  let diorama=false;
+  try{
+    if(world?.character?.loaded){
+      completionScene??=new CompletionScene(world);
+      completionScene.build(game.level.biome);completionScene.show();diorama=true;
+    }
+  }catch(err){console.warn('The completion diorama could not be built; showing the painted plate instead.',err);completionScene?.hide();}
+  document.body.classList.toggle('has-completion-diorama',diorama);
   openDialog(completionMarkup(e,game.level,lastShown()+1),'complete');
 }
 editor=new LevelEditor({world,game,levels:LEVELS,library:drafts,chapterShown:shown,
@@ -445,6 +460,9 @@ function frame(now){
   readGamepad();
   if(!assetsReady||document.hidden){accum=0;requestAnimationFrame(frame);return;}
   if(menu){accum=0;titleScene?.render(dt);requestAnimationFrame(frame);return;}
+  // A finished chapter stops simulating and the diorama takes the canvas. The
+  // level stays built behind it, so Play Again needs no reload.
+  if(completionScene?.active){accum=0;completionScene.render(dt);requestAnimationFrame(frame);return;}
   if(hitStop>0){hitStop=Math.max(0,hitStop-dt);accum=0;}else accum+=dt;
   while(accum>=FIXED_DT){game.tick(FIXED_DT,input);input.jumpPressed=false;input.stompPressed=false;accum-=FIXED_DT;if(hitStop>0){accum=0;break;}}
   world.render(game,dt,menu);if(!editor?.active&&!$('hud').classList.contains('hidden'))healthHUD?.draw(game,dt);editor?.draw();hudAccum+=dt;if(hudAccum>.06){updateHUD(now);hudAccum=0;}

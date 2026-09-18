@@ -5,6 +5,18 @@
 
 /* The completion is a whole scene, rather than a card inside the pause menu. */
 #dialog.is-completion{display:block;padding:0;background:#28384c;backdrop-filter:none;overscroll-behavior:contain}
+
+/* When the chapter's diorama is live it is drawn on the game's own canvas,
+   behind this overlay, so everything that used to stand in for a scene — the
+   dialog's flat fill, the scene's fill and the painted plate itself — gets out
+   of the way. The plate stays in the markup: if the diorama cannot be built,
+   this class is never set and the poster shows exactly as before. */
+body.has-completion-diorama #dialog.is-completion,
+body.has-completion-diorama .completion-scene{background:transparent}
+body.has-completion-diorama .completion-background{display:none}
+/* A little more scrim than the plate needed. A diorama has real highlights in
+   it, and the wordmark has to stay readable over a sunlit arch. */
+body.has-completion-diorama .completion-shade{background:linear-gradient(100deg,#162336b0 0%,#16233675 38%,#1623361a 62%,#16233600 100%)}
 #dialog.is-completion #dialog-content{width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:0;border:0;border-radius:0;background:none;color:#fff2d7;box-shadow:none;overflow:visible;font-family:"Clay Sans",Arial,sans-serif}
 .completion-scene{--reward-size:clamp(66px,10.5vh,108px);--result-cream:#fff2d7;--result-orange:var(--clay-orange);position:relative;isolation:isolate;width:100%;min-height:100%;overflow:hidden;background:#28384c;animation:completion-reveal .55s ease-out both}
 .completion-background,.completion-shade{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:-2}

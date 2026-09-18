@@ -1,0 +1,237 @@
+import * as THREE from './lib/three.module.js';
+import {applyEnvironment} from './environments.js';
+import {clayMaterial} from './clay.js';
+import {animateHero,heroEvent} from './hero.js';
+import {DIORAMAS} from './completion-dioramas.js';
+
+// The level-complete screen is a diorama, not a plate of art: the finished
+// chapter rebuilt as a small object you could pick up, lit from one side and
+// set against its own sky. It borrows the game's renderer, its clay and the
+// chapter's own supplied models, but nothing else about it is the playfield —
+// the camera is a real perspective lens rather than the game's orthographic
+// side-on box, and every piece is placed and turned in three dimensions
+// instead of standing on one plane facing front.
+//
+// Composition is fixed by the screen it shares: the chapter number, the
+// wordmark, the three results and the buttons all sit down the left, so the
+// hero, the goal gate and the landmark behind them are framed right of centre
+// (the same 65%/66% focal point the pre-rendered plates were cropped to).
+
+// A dome rather than a flat plate, because a perspective camera can see the
+// sky's curve. The gradient runs zenith → horizon with a haze that gathers
+// around the sun, and the sun itself is a soft disc with a wide bloom, so a
+// chapter can be finished at any hour of its own day.
+const SKY_VERTEX=`varying vec3 vWorld;
+void main(){vWorld=(modelMatrix*vec4(position,1.0)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const SKY_FRAGMENT=`uniform vec3 zenith;uniform vec3 horizon;uniform vec3 haze;uniform vec3 sunDirection;
+uniform float sunSize;uniform float sunPower;uniform float hazeHeight;
+varying vec3 vWorld;
+void main(){
+  vec3 dir=normalize(vWorld-cameraPosition);
+  // Curve the band toward the horizon so the gradient's interest sits where
+  // the landmark meets the sky rather than overhead, out of frame.
+  float height=clamp(dir.y*hazeHeight+.08,0.0,1.0);
+  vec3 color=mix(horizon,zenith,pow(height,.72));
+  float toSun=max(dot(dir,normalize(sunDirection)),0.0);
+  color=mix(color,haze,pow(toSun,3.2)*.62*(1.0-height*.55));
+  color+=haze*pow(toSun,sunSize)*sunPower;
+  gl_FragColor=vec4(color,1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
+
+export class CompletionScene{
+  constructor(world){
+    this.world=world;this.time=0;this.active=false;this.key=null;this.built=new Map();
+    // Object.create keeps World's builders — box, ball, cylinder, mesh, rope,
+    // flag — while every cache they write to is this scene's own, so a diorama
+    // never hands the running chapter a mesh or a material it did not make.
+    const w=this.view=Object.create(world);
+    w.scene=new THREE.Scene();
+    w.scene.background=new THREE.Color('#8fb6d8');
+    w.scene.fog=new THREE.Fog('#a8cae0',40,150);
+    w.clay=world.clay?{...world.clay,boxes:new Map(),sculpted:new WeakMap(),bytes:0}:null;
+    w.assetGeometry=new Set(world.assetGeometry);w.assetMaterials=new Set(world.assetMaterials);
+    w.mat={};
+    for(const [name,base]of Object.entries(world.mat)){
+      const m=base.clone();delete m.userData.clay;clayMaterial(w,m);w.mat[name]=m;
+    }
+    w.hemi=new THREE.HemisphereLight();w.sun=new THREE.DirectionalLight();w.fill=new THREE.DirectionalLight();
+    // The cave's four roaming fixtures belong to the playfield. A diorama
+    // lights itself, so the slots stay empty and no material pays for them.
+    w.torchLights=[];
+    w.sun.castShadow=true;w.sun.shadow.mapSize.set(2048,2048);
+    w.sun.shadow.bias=-.00025;w.sun.shadow.normalBias=.035;w.sun.shadow.radius=4;
+    w.scene.add(w.hemi,w.sun,w.sun.target,w.fill);
+    // A back light the playfield has no use for. Side-on, a rim light would
+    // only graze the front faces; in a diorama it is what lifts the hero and
+    // the gate off the landmark behind them.
+    w.rim=new THREE.DirectionalLight(0xffffff,0);w.scene.add(w.rim);
+    w.flags=[];w.particles=[];
+    w.fxRoot=new THREE.Group();w.scene.add(w.fxRoot);
+
+    this.sky=new THREE.Mesh(new THREE.SphereGeometry(1,48,32),new THREE.ShaderMaterial({
+      side:THREE.BackSide,depthWrite:false,fog:false,toneMapped:false,
+      uniforms:{zenith:{value:new THREE.Color()},horizon:{value:new THREE.Color()},haze:{value:new THREE.Color()},
+        sunDirection:{value:new THREE.Vector3(1,.4,1)},sunSize:{value:220},sunPower:{value:.5},hazeHeight:{value:1.35}},
+      vertexShader:SKY_VERTEX,fragmentShader:SKY_FRAGMENT
+    }));
+    this.sky.name='Diorama sky';this.sky.scale.setScalar(300);this.sky.frustumCulled=false;w.scene.add(this.sky);
+
+    // The hero's own animation writes its world position from the simulated
+    // player, and always at the playfield's depth. Standing it anywhere else
+    // in a diorama therefore means carrying it: the mount holds the real
+    // placement and cancels that fixed depth, and the rig moves inside it.
+    this.heroMount=new THREE.Group();this.heroMount.name='Diorama footing';w.scene.add(this.heroMount);
+    this.camera=new THREE.PerspectiveCamera(34,16/9,.35,520);
+    this.game={status:'menu',respawnTimer:0,flowerCelebration:null,
+      player:{x:0,y:0,vx:0,vy:0,facing:1,groundId:'diorama',invuln:0,stunTime:0,stomping:false,stompWindup:0,skidding:false},
+      level:{boss:null,platforms:[{id:'diorama',kind:'stone',x:-6,y:0,w:12,active:true}]}};
+    this.width=0;this.height=0;
+  }
+
+  // Each chapter's diorama is built once and kept. Its models are the ones the
+  // chapter already streamed, so building costs geometry and nothing else, and
+  // a player who replays a chapter gets the scene back immediately.
+  build(biome){
+    const key=DIORAMAS[biome]?biome:'desert';
+    if(this.key===key)return;
+    this.key=key;
+    for(const [name,entry]of this.built)entry.root.visible=name===key;
+    if(this.built.has(key)){this.apply(this.built.get(key));return;}
+    const w=this.view,spec=DIORAMAS[key];
+    applyEnvironment(w,{biome:spec.biome});
+    // applyEnvironment leaves the playfield's fixtures and parallax bookkeeping
+    // behind it; a diorama keeps none of that, and its lights are its own.
+    w.torches=[];w.parallax=[];w.ambient=[];w.water=null;w.flags=[];
+    const root=new THREE.Group();root.name=`Completion diorama · ${key}`;w.scene.add(root);
+    const entry={root,spec,lights:[],flags:[],bell:null,spin:[]};
+    w.bell=null;
+    spec.build(w,root,{
+      // A diorama's own lamp: placed in three dimensions, kept with the scene
+      // and never handed to the chapter's roaming fixtures.
+      light:(color,intensity,distance,x,y,z)=>{
+        const l=new THREE.PointLight(color,intensity,distance);l.position.set(x,y,z);root.add(l);entry.lights.push(l);return l;
+      },
+      // Anything a diorama wants to keep turning: a windmill's sails, a
+      // gondola's slow sway, a planet on its axis.
+      spin:(object,speed,axis='y',amplitude=0)=>{entry.spin.push({object,speed,axis,amplitude,base:object.rotation[axis]});return object;}
+    });
+    entry.flags=w.flags.slice();entry.bell=w.bell||null;
+    this.built.set(key,entry);
+    this.apply(entry);
+  }
+
+  // Re-seat the shared rig — lights, sky, camera, hero footing — on the
+  // chapter whose diorama is showing, so a cached scene comes back identical.
+  apply(entry){
+    const w=this.view,spec=entry.spec,l=spec.light;
+    applyEnvironment(w,{biome:spec.biome});
+    w.torches=[];w.parallax=[];w.ambient=[];w.water=null;
+    w.hemi.color.set(l.sky);w.hemi.groundColor.set(l.ground);w.hemi.intensity=l.ambient;
+    w.sun.color.set(l.sunColor);w.sun.intensity=l.sunPower;
+    w.sun.position.set(...l.sun);w.sun.target.position.set(...(l.sunTarget||spec.camera.target));
+    const reach=l.shadow||16;
+    Object.assign(w.sun.shadow.camera,{left:-reach,right:reach,top:reach,bottom:-reach,near:.5,far:reach*6});
+    w.sun.shadow.camera.updateProjectionMatrix();
+    w.fill.color.set(l.fill);w.fill.intensity=l.fillPower;w.fill.position.set(...(l.fillFrom||[-9,7,12]));
+    w.rim.color.set(l.rim||l.sunColor);w.rim.intensity=l.rimPower||0;w.rim.position.set(...(l.rimFrom||[6,5,-12]));
+    const sky=this.sky.material.uniforms;
+    sky.zenith.value.set(l.zenith);sky.horizon.value.set(l.horizon);sky.haze.value.set(l.haze);
+    sky.sunDirection.value.set(...(l.sunDirection||l.sun)).normalize();
+    sky.sunSize.value=l.sunSize??220;sky.sunPower.value=l.sunGlow??.5;sky.hazeHeight.value=l.hazeHeight??1.35;
+    w.scene.background.set(l.horizon);
+    w.scene.fog.color.set(l.fog||l.horizon);w.scene.fog.near=l.fogNear??40;w.scene.fog.far=l.fogFar??150;
+    const hero=spec.hero;
+    this.heroMount.position.set(hero.x,hero.y,hero.z-.48);
+    this.heroMount.rotation.set(hero.tilt||0,0,hero.roll||0);
+    this.heroScale=hero.scale??1;this.heroYaw=hero.yaw??0;
+    this.width=0;this.resize(this.lastWidth||1280,this.lastHeight||720);
+  }
+
+  // The frame is the one thing a diorama cannot compose for itself: it has to
+  // survive a phone held upright and a desktop window three times as wide.
+  //
+  // Putting the subject off-centre by moving the camera would swing the whole
+  // scene past it. An asymmetric frustum moves the framing instead: the lens
+  // renders a wider, taller frame than the canvas shows and the canvas takes
+  // its top-left corner, which lands what the camera is aimed at at a chosen
+  // fraction across and down — the 65%/66% the plates were cropped to. The
+  // field of view is then divided back out, so the subject is off to one side
+  // at the size it would have been in the middle.
+  resize(width,height){
+    this.lastWidth=width;this.lastHeight=height;
+    if(this.width===width&&this.height===height)return;
+    this.width=width;this.height=height;
+    const spec=DIORAMAS[this.key];if(!spec)return;
+    const aspect=width/height,portrait=aspect<1,squat=!portrait&&height<=850;
+    const view=portrait?spec.portrait||spec.camera:spec.camera;
+    const focus=view.focus||(portrait?[.5,.44]:squat?[.72,.6]:[.655,.605]);
+    const camera=this.camera;
+    camera.position.set(...view.position);camera.lookAt(...view.target);
+    camera.aspect=aspect;
+    const frameW=width*2*focus[0],frameH=height*2*focus[1];
+    camera.fov=THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(view.fov)/2)*frameH/height));
+    camera.setViewOffset(frameW,frameH,0,0,width,height);
+    camera.updateProjectionMatrix();
+    this.baseQuaternion=camera.quaternion.clone();
+    this.basePosition=camera.position.clone();
+  }
+
+  show(){
+    if(this.active)return;this.active=true;this.time=0;
+    const c=this.world.character;
+    this.heroMount.add(c.root);
+    heroEvent(c,{type:'respawn'});
+    // The bell has just been rung. Let it come to rest rather than hanging
+    // dead still in a scene that is otherwise about having finished.
+    this.ring=1;
+  }
+  hide(){
+    if(!this.active)return;this.active=false;
+    const c=this.world.character;
+    this.world.scene.add(c.root);
+    c.root.rotation.y=0;c.root.scale.setScalar(1);
+    heroEvent(c,{type:'respawn'});
+  }
+
+  update(dt){
+    const w=this.view,entry=this.built.get(this.key);
+    const step=this.world.reducedMotion?0:Math.min(dt,.05);
+    this.time+=step;w.time=this.time;w.reducedMotion=this.world.reducedMotion;
+    animateHero(w,this.game,step);
+    const c=w.character;
+    c.root.rotation.y=this.heroYaw;c.root.scale.setScalar(this.heroScale);
+    c.root.visible=true;c.shadow.visible=false;
+    if(!entry)return;
+    for(const s of entry.spin){
+      if(s.amplitude)s.object.rotation[s.axis]=s.base+Math.sin(this.time*s.speed)*s.amplitude;
+      else s.object.rotation[s.axis]=s.base+this.time*s.speed;
+    }
+    // Clay bunting does not flap; it settles. A slow, shallow roll per pennant
+    // keeps the gate alive without turning a solid material into cloth.
+    for(const [i,flag]of entry.flags.entries())flag.rotation.y=(flag.userData.baseYaw??=flag.rotation.y)+Math.sin(this.time*.9+i*1.3)*.055;
+    if(entry.bell){
+      this.ring=Math.max(0,this.ring-step*.55);
+      entry.bell.rotation.z=Math.sin(this.time*5.2)*.14*this.ring*this.ring;
+    }
+    // A very slight drift, under a degree, so the scene reads as a held object
+    // and not a photograph. Reduced motion keeps it perfectly still.
+    if(this.baseQuaternion){
+      const drift=this.world.reducedMotion?0:1;
+      this.camera.quaternion.copy(this.baseQuaternion);
+      this.camera.rotateY(Math.sin(this.time*.17)*.0055*drift);
+      this.camera.rotateX(Math.sin(this.time*.13+1.1)*.0035*drift);
+      this.camera.position.copy(this.basePosition);
+      this.camera.position.y+=Math.sin(this.time*.21)*.035*drift;
+    }
+  }
+
+  render(dt){
+    if(!this.active||!this.key)return;
+    const rect=this.world.canvas.getBoundingClientRect();
+    this.resize(Math.max(1,Math.round(rect.width)),Math.max(1,Math.round(rect.height)));
+    this.update(dt);
+    this.world.renderer.render(this.view.scene,this.camera);
+  }
+}
