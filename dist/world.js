@@ -387,6 +387,10 @@ export class World {
   event(e) {
     if(e.type==='press-impact'&&Math.abs(this.cameraX-e.x)>this.viewW*.8)return;
     heroEvent(this.character,e);
+    // Before the first build() there is nothing to paint on: the environment's
+    // palette slots — dust, accent — only exist once a chapter has been built.
+    // The rig has heard the event; the effects wait for a chapter.
+    if(!this.currentLevel)return;
     if(e.type==='checkpoint')raiseCheckpoint(this,e);
     else if(e.type==='mother-open')this.addTrauma(.48);
     else if(e.type==='mother-hit'||e.type==='mother-collapse'){this.burst(e.x,e.y,'gold',20,1.3);this.addTrauma(.52);}
