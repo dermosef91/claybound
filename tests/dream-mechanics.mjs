@@ -370,7 +370,7 @@ check('the editor accepts every new kind, creature, trigger and station field wi
   // A backup written before trigger zones existed still imports, and the
   // canyon's canonical hash — the one tests/editor.mjs holds — is unchanged.
   const old=structuredClone(source);delete old.triggers;assert.deepEqual(validateDraft(old,LEVELS[0]).triggers,[]);
-  assert.equal(validateDraft(LEVELS[0],LEVELS[0]).layoutVersion,'editor-11-15255ug');
+  assert.equal(validateDraft(LEVELS[0],LEVELS[0]).layoutVersion,'editor-11-mxufqh');
   assert.notEqual(validateDraft(source,LEVELS[0]).layoutVersion,validateDraft(old,LEVELS[0]).layoutVersion,'a zone the chapter carries revises the layout');
   // Placing each through a session runs under the simulation.
   const memory=new Map(),storage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)},library=new DraftLibrary(LEVELS,storage),s=new DraftSession(library,0);

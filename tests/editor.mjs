@@ -11,7 +11,7 @@ const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
 {
  const canonical=validateDraft(LEVELS[0],LEVELS[0]);
  assert.equal(LEVELS[0].layoutVersion,11);assert(!LEVELS[0].custom);
- assert.equal(canonical.layoutVersion,'editor-11-15255ug','canonical canyon matches the approved editor export');
+ assert.equal(canonical.layoutVersion,'editor-11-mxufqh','canonical canyon matches the approved editor export');
  // The pocket's formable mass survives the round trip as data: its rule, its
  // clump and its solution, bounded, and no other rule is ever let in.
  const pocket=canonical.shaping.find(s=>s.id==='canyon-pocket'),authored=LEVELS[0].shaping.find(s=>s.id==='canyon-pocket');
@@ -95,7 +95,9 @@ console.log('PASS physics jump guides, import boundaries, quota fallback, old-la
 // Decoration is edited like everything else and played like nothing at all.
 {
  const canonical=validateDraft(LEVELS[0],LEVELS[0]).layoutVersion,s=new DraftSession(library,0),start=LEVELS[0].platforms[0];
- assert.deepEqual(s.level.decor,[],'a chapter with no decoration starts with an empty list, not a missing one');
+ assert.deepEqual(s.level.decor,[{kind:'purple-arch',x:110,y:.6,size:20,z:-16}],'the canyon hands its authored arch to the workshop as an ordinary placement');
+ assert.deepEqual(validateDraft(LEVELS[1],LEVELS[1]).decor,[],'a chapter with no decoration gets an empty list, not a missing one');
+ const authored=s.level.decor.length;
  for(const kind of Object.keys(DECOR_KINDS)){
   s.add(`decor:${kind}`,60,9);const prop=selectedObject(s.level,s.selection);
   assert.equal(prop.kind,kind);assert.equal(prop.size,DECOR_KINDS[kind].size);assert.equal(prop.z,DECOR_KINDS[kind].z);
@@ -111,7 +113,7 @@ console.log('PASS physics jump guides, import boundaries, quota fallback, old-la
  assert.notEqual(s.level.layoutVersion,canonical,'moved decoration revises the layout version');
  // Nothing about it reaches the simulation: no collider, no collectible, no id.
  const game=new Game();game.start(0,library.get(0));
- assert.equal(game.level.decor.length,1);
+ assert.equal(game.level.decor.length,authored+1);
  assert.deepEqual(game.level.platforms.map(p=>p.id),LEVELS[0].platforms.map(p=>p.id));
  assert.equal(game.level.coins.length,LEVELS[0].coins.length);assert.equal(game.level.hazards.length,LEVELS[0].hazards.length);
  for(let n=0;n<40;n++)game.tick(FIXED_DT,{moveAxis:1});
@@ -119,7 +121,10 @@ console.log('PASS physics jump guides, import boundaries, quota fallback, old-la
  assert.deepEqual(library.read(library.export(0,s.level),0).decor,s.level.decor);
  s.undo();assert.equal(s.level.decor[at].x,start.x+2);s.redo();assert.equal(s.level.decor[at].x,start.x+6);
  const legacy=JSON.parse(library.export(0,s.level));delete legacy.level.decor;
- assert.deepEqual(library.read(JSON.stringify(legacy),0).decor,[],'a backup written before this list existed still imports');
+ // Every list a backup leaves out falls back to the shipped chapter's, so a
+ // file written before this one existed imports and keeps the canyon's own
+ // arch rather than quietly stripping the scenery the chapter ships with.
+ assert.deepEqual(library.read(JSON.stringify(legacy),0).decor,LEVELS[0].decor,'a backup written before this list existed still imports, with the chapter\'s own scenery');
  for(const bad of [{kind:'unknown-prop'},{kind:'boulder',size:900},{kind:'boulder',z:40},{kind:'boulder',turn:900},{kind:'boulder',lean:400},{size:2}]){
   const file=JSON.parse(library.export(0,s.level));file.level.decor=[{x:10,y:2,...bad}];
   assert.throws(()=>library.read(JSON.stringify(file),0),/decor|Decoration/);
