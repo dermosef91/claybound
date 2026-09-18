@@ -9,8 +9,9 @@ import {fixedMaterial,lid,slot} from './dream/support.js';
 // Upside-Down Orchard's two clay planets, which stand in for the dome islands'
 // spheres, its two frosted saucer bowls, which hang from the canopy on the
 // orchard's ropes, the abstract sculpture whose hung pieces ARE that canopy,
-// the Melted Parade's clay hat, stacked five high on the hat-worm's plinth,
-// the caterpillar that is the parade's float, and the parade's giraffe.
+// the iced-apple fruit sculpture hung four times as the great inverted tree's
+// crown, the Melted Parade's clay hat, stacked five high on the hat-worm's
+// plinth, the caterpillar that is the parade's float, and the parade's giraffe.
 // Loaded once per World, kept across level rebuilds, cloned per placement —
 // the same shape as the forest's and the canyon's sets; the two creatures are
 // skinned, so they clone through SkeletonUtils. The collision never comes from
@@ -26,7 +27,7 @@ import {fixedMaterial,lid,slot} from './dream/support.js';
 // head can turn on its own pivot, and the eyeball is found on the head's face
 // so a pupil can be set on it and slid toward the player. Every flower in the
 // chapter is a clone of those two parts under its own pivots.
-export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb'};
+export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb',fruit:'dream-fruit.glb'};
 
 // Each planet's core orb in model space — the sphere the fruit and the leaf
 // sprouts are stuck onto — fitted over every vertex by a modal-radius
@@ -161,6 +162,17 @@ export function dreamSculpture(w,key,parent,width){
   const a=asset(w,key),root=new THREE.Group(),model=a.scene.clone(true),k=width/a.size.x;
   root.name='Dream sculpture '+key;model.name='Supplied clay sculpture';
   root.scale.setScalar(k);model.position.copy(a.center).negate();root.userData.size=a.size.clone().multiplyScalar(k);
+  root.add(model);parent.add(root);
+  return root;
+}
+// The fruit sculpture under `parent`, `width` across, hung by its top: the
+// box's top face is on the parent's origin and the fruit hangs below it —
+// the great inverted tree's crown, gathered under the trunk's foot.
+// root.userData.size is the placed box, in the parent's units.
+export function dreamFruit(w,parent,width){
+  const a=asset(w,'fruit'),root=new THREE.Group(),model=a.scene.clone(true),k=width/a.size.x;
+  root.name='Dream fruit';model.name='Supplied clay fruit';
+  root.scale.setScalar(k);model.position.set(-a.center.x,-a.box.max.y,-a.center.z);root.userData.size=a.size.clone().multiplyScalar(k);
   root.add(model);parent.add(root);
   return root;
 }
