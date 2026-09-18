@@ -34,7 +34,7 @@ import {fixedMaterial,lid,slot} from './dream/support.js';
 // swag valance with gold buttons over a hanging smiley-flower pennant. That
 // last one is cut in two at load like the flower: the swags run along the
 // hat-worm bridge's underside, the pennant hangs on its plinth.
-export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb',fruit:'dream-fruit.glb',banner:'dream-banner.glb',column:'dream-column.glb',cane:'dream-cane.glb',sun:'dream-sun.glb'};
+export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb',fruit:'dream-fruit.glb',banner:'dream-banner.glb',column:'dream-column.glb',cane:'dream-cane.glb',sun:'dream-sun.glb',arch:'dream-arch.glb'};
 
 // Each planet's core orb in model space — the sphere the fruit and the leaf
 // sprouts are stuck onto — fitted over every vertex by a modal-radius
@@ -107,39 +107,58 @@ const splitColumn=(geometry,box,size)=>{
   post.name='Dream column post';return {post,cut,radius};
 };
 
-// The eyeball is the head's forward bulge. Take the frontmost vertex of the
-// head band near the stem's axis as the pole, then fit a sphere through the
-// cap around it (least squares on x²+y²+z² = 2cx·x + 2cy·y + 2cz·z + k). A
-// fit that is not a plausible eyeball falls back to a sphere of the expected
-// radius resting behind the pole.
-function findEye(geometry,box){
-  const pos=geometry.attributes.position,h=box.max.y-box.min.y,cx=(box.min.x+box.max.x)/2;
+// The frontmost vertex within `spanX` of x and `spanY` of y (and above
+// `minY`): the pole of a forward bulge.
+function frontmost(pos,{x,y=0,spanX,spanY=Infinity,minY=-Infinity}){
   let pole=null;
   for(let i=0;i<pos.count;i++){
-    const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
-    if(y<box.min.y+h*HEAD_CUT||Math.abs(x-cx)>h*.08)continue;
-    if(!pole||z>pole.z)pole={x,y,z};
+    const px=pos.getX(i),py=pos.getY(i),pz=pos.getZ(i);
+    if(py<minY||Math.abs(px-x)>spanX||Math.abs(py-y)>spanY)continue;
+    if(!pole||pz>pole.z)pole={x:px,y:py,z:pz};
   }
-  const fallback=()=>({centre:new THREE.Vector3(pole.x,pole.y,pole.z-h*EYE_RADIUS),radius:h*EYE_RADIUS});
+  return pole;
+}
+// A sphere fitted through the cap of vertices around `pole` — within `span`
+// of it in x and y and no deeper than `depth` behind it — by least squares on
+// x²+y²+z² = 2cx·x + 2cy·y + 2cz·z + k. Null when the cap is too small or the
+// radius is not within [rMin, rMax], so the caller can fall back.
+function fitCap(pos,pole,span,depth,rMin,rMax){
   const A=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],b=[0,0,0,0];let n=0;
   for(let i=0;i<pos.count;i++){
     const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
-    if(z<pole.z-h*.06||Math.abs(x-pole.x)>h*.11||Math.abs(y-pole.y)>h*.11)continue;
+    if(z<pole.z-depth||Math.abs(x-pole.x)>span||Math.abs(y-pole.y)>span)continue;
     const r=[2*x,2*y,2*z,1],t=x*x+y*y+z*z;n++;
     for(let p=0;p<4;p++){b[p]+=r[p]*t;for(let q=0;q<4;q++)A[p][q]+=r[p]*r[q];}
   }
-  if(n<12)return fallback();
+  if(n<12)return null;
   for(let i=0;i<4;i++){
     let m=i;for(let k=i+1;k<4;k++)if(Math.abs(A[k][i])>Math.abs(A[m][i]))m=k;
     [A[i],A[m]]=[A[m],A[i]];[b[i],b[m]]=[b[m],b[i]];
-    if(Math.abs(A[i][i])<1e-12)return fallback();
+    if(Math.abs(A[i][i])<1e-12)return null;
     for(let k=i+1;k<4;k++){const f=A[k][i]/A[i][i];for(let j=i;j<4;j++)A[k][j]-=f*A[i][j];b[k]-=f*b[i];}
   }
   const v=[0,0,0,0];
   for(let i=3;i>=0;i--){let s=b[i];for(let j=i+1;j<4;j++)s-=A[i][j]*v[j];v[i]=s/A[i][i];}
   const centre=new THREE.Vector3(v[0],v[1],v[2]),radius=Math.sqrt(Math.max(0,v[3]+centre.lengthSq()));
-  if(!Number.isFinite(radius)||radius<h*.07||radius>h*.16)return fallback();
+  if(!Number.isFinite(radius)||radius<rMin||radius>rMax)return null;
   return {centre,radius};
+}
+// The flower's eyeball is the head's forward bulge. Take the frontmost vertex
+// of the head band near the stem's axis as the pole, then fit a sphere
+// through the cap around it. A fit that is not a plausible eyeball falls back
+// to a sphere of the expected radius resting behind the pole.
+function findEye(geometry,box){
+  const pos=geometry.attributes.position,h=box.max.y-box.min.y,cx=(box.min.x+box.max.x)/2;
+  const pole=frontmost(pos,{x:cx,spanX:h*.08,minY:box.min.y+h*HEAD_CUT});
+  return fitCap(pos,pole,h*.11,h*.06,h*.07,h*.16)??{centre:new THREE.Vector3(pole.x,pole.y,pole.z-h*EYE_RADIUS),radius:h*EYE_RADIUS};
+}
+// The arch's flower has its eyeball where the upload put it — read off the
+// placed model, in the upload's own units — and the fit is seeded there: the
+// frontmost vertex around the seed is the eyeball's pole.
+const ARCH_EYE={x:-.6,y:.41,span:.16,radius:.12};
+function findArchEye(geometry){
+  const pos=geometry.attributes.position,pole=frontmost(pos,{x:ARCH_EYE.x,y:ARCH_EYE.y,spanX:ARCH_EYE.span,spanY:ARCH_EYE.span});
+  return fitCap(pos,pole,.13,.09,.07,.2)??{centre:new THREE.Vector3(pole.x,pole.y,pole.z-ARCH_EYE.radius),radius:ARCH_EYE.radius};
 }
 
 export function prepareDreamAsset(w,key,gltf){
@@ -159,6 +178,11 @@ export function prepareDreamAsset(w,key,gltf){
   // fog and is the one crisp thing up there. The towers and the sun keep it —
   // their softness is the depth they are placed at.
   if(key==='column')gltf.scene.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])m.fog=false;});
+  if(key==='arch'){
+    let mesh=null;gltf.scene.traverse(o=>{if(o.isMesh&&!mesh)mesh=o;});
+    if(!mesh)throw new Error('Invalid dream model: '+key);
+    record.eye=findArchEye(mesh.geometry);return;
+  }
   if(key!=='flower'&&key!=='banner'&&key!=='column')return;
   let mesh=null;gltf.scene.traverse(o=>{if(o.isMesh&&!mesh)mesh=o;});
   if(!mesh)throw new Error('Invalid dream model: '+key);
@@ -246,6 +270,25 @@ export function dreamHat(w,parent,width){
 }
 // How tall a hat `width` across stands, foot to crown — what a stack steps by.
 export const dreamHatHeight=(w,width)=>{const a=asset(w,'hat');return width*a.size.y/a.size.x;};
+// The garden's gate under `parent`, `height` tall from its foot — on the
+// parent's origin plane — to the top of the flower grown up its leg, centred
+// on the model's own middle (the opening is off-centre; the caller shifts it).
+// Returns, besides the root, the same eye parts a watching flower has —
+// `gaze` (a group at the eyeball's centre carrying the pupil), `pupil`, `lid`
+// — set on the eyeball the upload left blank, so the garden can register it
+// with the flowers' watch(). The head is part of the arch, so it cannot turn.
+export function dreamArch(w,parent,{height}){
+  const a=asset(w,'arch'),root=new THREE.Group(),model=a.scene.clone(true),s=height/a.size.y;
+  root.name='Dream arch';model.name='Supplied clay arch';
+  root.scale.setScalar(s);model.position.set(-a.center.x,-a.box.min.y,-a.center.z);
+  root.add(model);parent.add(root);
+  const R=a.eye.radius,eye=new THREE.Vector3().copy(a.eye.centre).add(model.position);
+  const gaze=new THREE.Group();gaze.name='Arch flower gaze';gaze.position.copy(eye);root.add(gaze);
+  const r=R*.34,pupil=w.ball(r,r,r*.6,pupilMaterial(w),gaze,0,0,R*.9);pupil.name='Flower pupil';
+  w.ball(r*.28,r*.28,r*.16,'cream',gaze,-r*.38,r*.4,R*.9+r*.5).name='Flower glint';
+  const shut=w.mesh(lid(w),petalMaterial(w),root,eye.x,eye.y,eye.z);shut.scale.setScalar(R*1.07);shut.rotation.x=-Math.PI/2;shut.name='Flower lid';
+  return {root,model,scale:s,size:a.size.clone().multiplyScalar(s),gaze,pupil,lid:shut,eye:{radius:R*s}};
+}
 
 // --- the parade's carnival dressing ------------------------------------------------
 // A whole model under `parent`, uniformly scaled so `axis` of its box spans

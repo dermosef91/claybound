@@ -97,9 +97,14 @@ function sectionSpots(key){
   return [spot('entry',sec.x+4),spot('middle',sec.x+sec.length/2),spot('exit',sec.x+sec.length-4)];
 }
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
+// The port must be this run's own: two reviews on one port would pass the
+// health check against each other's server and judge the wrong checkout with
+// only app.js patched in, so a child that dies before answering is an error.
 async function serve(){
  const server=spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1','--directory',path.join(root,'dist')],{stdio:'ignore'});
+ let exited=false;server.on('exit',()=>{exited=true;});
  for(let i=0;i<100;i++){
+  if(exited)throw new Error('static server exited before answering on '+port+' — is another server on that port? (set PORT)');
   const ok=await new Promise(resolve=>{const req=http.get({host:'127.0.0.1',port,path:'/index.html'},res=>{res.resume();resolve(res.statusCode===200);});req.on('error',()=>resolve(false));});
   if(ok)return server;await wait(100);
  }
