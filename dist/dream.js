@@ -210,10 +210,21 @@ export function dreamBlendAt(entries,x,snap=false){
   return {index:c,t,from,to};
 }
 const scratch=new THREE.Color();
+// A palette entry may also colour the key and fill lights (`sun`, `fill`),
+// set the key's strength (`sunPower`) and the fog's reach (`fogNear`,
+// `fogFar`); an entry that leaves them out reads the chapter's defaults (the
+// theme's lights, environments.js's dream fog), so a section wanting warmer
+// light or a clearer distance declares only that.
+const LIGHT_KEYS=['sun','fill'];
+const DEFAULTS={...THEME_DREAM,fogNear:30,fogFar:98};
+const lightOf=(entry,k)=>entry[k]??DEFAULTS[k];
+const lerpOf=(b,k)=>{const a=lightOf(b.from,k),c=lightOf(b.to,k);return a+(c-a)*b.t;};
 // The blended palette as colours, into `out` ({main,...} of THREE.Color).
 export function dreamPaletteAt(palettes,x,out,snap=false){
   const b=dreamBlendAt(palettes,x,snap);if(!b)return null;
   for(const k of PALETTE_KEYS)out[k].set(b.from[k]).lerp(scratch.set(b.to[k]),b.t);
+  for(const k of LIGHT_KEYS)if(out[k])out[k].set(lightOf(b.from,k)).lerp(scratch.set(lightOf(b.to,k)),b.t);
+  out.sunPower=lerpOf(b,'sunPower');out.fogNear=lerpOf(b,'fogNear');out.fogFar=lerpOf(b,'fogFar');
   return b;
 }
 // One palette → the shared theme materials, lights, sky and fog. Six authored
@@ -221,6 +232,9 @@ export function dreamPaletteAt(palettes,x,out,snap=false){
 // section author only ever chooses six.
 export function applyDreamPalette(w,pal){
   const m=w.mat;
+  if(pal.sun&&w.sun){w.sun.color.copy(pal.sun);if(pal.sunPower)w.sun.intensity=pal.sunPower;}
+  if(pal.fill&&w.fill)w.fill.color.copy(pal.fill);
+  if(pal.fogNear&&w.scene.fog){w.scene.fog.near=pal.fogNear;w.scene.fog.far=pal.fogFar;}
   m.terrain.color.copy(pal.main);m.terrain2.color.copy(pal.main).multiplyScalar(.78);
   m.top.color.copy(pal.secondary);m.foliage.color.copy(pal.secondary);
   m.bark.color.copy(pal.secondary).multiplyScalar(.7);m.vine.color.copy(pal.secondary).multiplyScalar(.7);
@@ -232,7 +246,7 @@ export function applyDreamPalette(w,pal){
   w.scene.background.copy(pal.sky);w.scene.fog.color.copy(pal.fog);
 }
 function paletteStep(w,L,x){
-  const pal=w.dreamPalette??=Object.fromEntries(PALETTE_KEYS.map(k=>[k,new THREE.Color()]));
+  const pal=w.dreamPalette??=Object.fromEntries([...PALETTE_KEYS,...LIGHT_KEYS].map(k=>[k,new THREE.Color()]));
   const b=dreamPaletteAt(L.palettes,x,pal,w.reducedMotion);if(!b)return;
   // Colours are written only when the blend moved: thirteen material uniforms
   // and two lights a frame is cheap, but doing nothing is cheaper.
@@ -294,6 +308,17 @@ function placeholderStep(w,L,x,dt){
   w.dreamPlaceholderK=w.reducedMotion?target:k+(target-k)*(1-Math.exp(-dt*2.5));
   for(const g of groups){g.scale.y=Math.max(.001,w.dreamPlaceholderK);g.visible=w.dreamPlaceholderK>.01;}
 }
+// A section whose distance is meant to read out of focus declares
+// `softBackdrop:<radius>` (texels of the reduced backdrop pass, the scale of
+// citadel-depth.js's table). The radius eases between sections so the far
+// scenery blurs and sharpens over a second rather than flipping at a border;
+// renderCitadelDepth reads it and takes the two-pass path while it is above
+// nothing.
+function softBackdropStep(w,L,x,dt){
+  const target=dreamVisual(dreamSectionAt(L,x)?.key)?.softBackdrop||0;
+  const k=w.dreamSoftBackdrop??target;
+  w.dreamSoftBackdrop=w.reducedMotion?target:k+(target-k)*(1-Math.exp(-dt*2.5));
+}
 
 // --- per frame ---------------------------------------------------------------
 // Section modules' animate() runs for every section the player is within 40
@@ -307,6 +332,7 @@ export function animateDream(w,game,dt){
   cameraStep(w,L,x,dt);
   leanStep(w,x,dt);
   placeholderStep(w,L,x,dt);
+  softBackdropStep(w,L,x,dt);
   if(!w.reducedMotion)for(const s of w.dreamSwirls||[])s.mesh.rotation.z+=dt*s.speed;
   animateDreamViews(w,game,dt);
   ctx.playerX=x;ctx.time=game.time;ctx.reducedMotion=!!w.reducedMotion;

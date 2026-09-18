@@ -457,11 +457,18 @@ export default {
     // columns and blobs stay as the shared base — nothing else is added, so
     // the distance stays lilac and quiet behind the statues.
     const sky=layers.at(.12),sun=layers.place(sky,section.x+46,6.5,-36);sun.name='Spiral sun';
+    const disc=new THREE.Group();disc.name='Spiral sun disc';sun.add(disc);
     for(const [k,mat] of [[0,lemon(w)],[1,bubblegumGlow(w)]]){
       const pts=[];for(let i=0;i<=90;i++){const a=i/90*Math.PI*2*2.4+(k?Math.PI:0),r=.5+i/90*3.6;pts.push(new THREE.Vector3(Math.cos(a)*r,Math.sin(a)*r,0));}
-      const ribbon=w.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),140,.36,6,false),mat,sun,0,0,0);ribbon.name=k?'Sun ribbon bubblegum':'Sun ribbon lemon';
+      const ribbon=w.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),140,.36,6,false),mat,disc,0,0,0);ribbon.name=k?'Sun ribbon bubblegum':'Sun ribbon lemon';
     }
-    register(w,sun,(game,dt,ctx)=>{if(!ctx.reducedMotion)sun.rotation.z-=dt*.05;});
+    // At the sky layer's rate the sun would trail into the next section's
+    // top-left corner for its whole length, so it counts as part of the
+    // placeholder sky: a section with a sky of its own (quietBackdrop) sinks
+    // it with the blobs and columns, from the first frame, and it rises again
+    // past that section's end.
+    w.dreamPlaceholder?.push(sun);
+    register(w,disc,(game,dt,ctx)=>{if(!ctx.reducedMotion)disc.rotation.z-=dt*.05;});
   },
   animate(w,game,dt,section,ctx){
     const list=w.paradeAnim;if(!list?.length)return;

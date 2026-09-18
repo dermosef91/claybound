@@ -7,7 +7,11 @@ export function renderCitadelDepth(w){
   // Draw canyon and cavern scenery together with the playfield. The offscreen
   // blur/composite path can disappear on mobile, leaving only the clear color.
   // These environments already use depth-separated meshes and distance fog.
-  if(w.biome==='desert'||w.biome==='cave'||w.biome==='dream'){
+  // The dream draws single-pass too, except in a section that asks for its
+  // distance out of focus (dream.js eases w.dreamSoftBackdrop toward the
+  // section's `softBackdrop` radius; below a twentieth of a texel it is off).
+  const dreamSoft=w.biome==='dream'?(w.dreamSoftBackdrop||0):0;
+  if(w.biome==='desert'||w.biome==='cave'||(w.biome==='dream'&&dreamSoft<.05)){
     if(w.biome==='cave')cullCaveCells(w);
     if(w.citadelDepth)w.citadelDepth.quad.visible=false;
     w.backRoot.visible=true;w.renderer.setRenderTarget(null);
@@ -42,7 +46,7 @@ export function renderCitadelDepth(w){
   w.renderer.getDrawingBufferSize(size);
   const width=Math.max(1,Math.round(size.x*.6)),height=Math.max(1,Math.round(size.y*.6));
   if(target.width!==width||target.height!==height)target.setSize(width,height);
-  const softness={desert:1.65,forest:2.2,cave:.8,citadel:.7}[w.biome]||.7;material.uniforms.texel.value.set(softness/width,softness/height);
+  const softness=w.biome==='dream'?dreamSoft:({desert:1.65,forest:2.2,cave:.8,citadel:.7}[w.biome]||.7);material.uniforms.texel.value.set(softness/width,softness/height);
   const hidden=[w.levelRoot,w.fxRoot,w.character.root,w.character.shadow,w.depthRoot].filter(Boolean),visibility=hidden.map(o=>o.visible);
   hidden.forEach(o=>o.visible=false);quad.visible=false;
   const updateShadows=w.renderer.shadowMap.autoUpdate;w.renderer.shadowMap.autoUpdate=false;
