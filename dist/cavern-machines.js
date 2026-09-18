@@ -98,5 +98,6 @@ export function wallBox(s){
   return null;
 }
 
-export const solidDepth=s=>s.kind==='wall'?(s.h??4):s.kind==='gate'?(s.h||10):11;
+// A block that is pushed is only as deep as it is tall: it sits on a deck.
+export const solidDepth=s=>s.kind==='wall'?(s.h??4):s.kind==='gate'?(s.h||10):s.push?(s.h??2):11;
 export const solidWall=s=>s.active!==false&&!s.broken&&['stone','gate','wall'].includes(s.kind);

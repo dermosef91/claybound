@@ -42,7 +42,7 @@ import {checkpointFlag,raiseCheckpoint,animateCheckpoints} from './checkpoints.j
 import {createCavernMachine,animateCavernMachine} from './cavern-machine-views.js';
 import {syncShots} from './spitter.js';
 import {loadCityLaundry} from './city-laundry.js';
-import {createClayView,updateClayView,animateClayView} from './shaping-views.js';
+import {createClayView,updateClayView,animateClayView,pushChipMaterial} from './shaping-views.js';
 import {dentable,kickDent,stepDent,applyDent} from './clay-feel.js';
 import {CLAY_PALETTE} from './palette.js';
 import {createGoal} from './goal.js';
@@ -250,7 +250,9 @@ export class World {
     // dream-views.js) are offered every platform first — a tinted station's
     // clay included; whatever they decline is built by the branches below.
     if(this.biome==='dream'){const v=dreamPlatformView(this,s,g);if(v)return v;}
-    if(s.shape)return createClayView(this,s,g);
+    // A block that is pushed wears the lump it will be once seated: the same
+    // violet lattice as the mass, standing on its own heightfield.
+    if(s.shape||s.push&&s.form)return createClayView(this,s,g);
     if(s.kind==='bridge'){
       const view=makeRopeBridge(this,s,g);
       if(s.checkpoint)this.flag(s.checkpoint-s.x,.08+bridgeOffset(s,s.checkpoint-s.x),g,.83,s.id);
@@ -419,7 +421,16 @@ export class World {
       clayFragments(this,e.x,e.y+.1,e.w,30,1.9,false,{material:Math.random()<.5?wood.grain:wood.wood,size:2.6});
       this.burst(e.x,e.y,'orange',23,2);
     }
-    else if(e.type==='crumble-collapse')clayFragments(this,e.x,e.y,e.w,24,1.1,true);
+    // A rotten corner going is a whole chunk's worth of grey chips, more of
+    // them the deeper it was, and a stomp that brings it down shakes the frame.
+    else if(e.type==='crumble-collapse'){clayFragments(this,e.x,e.y-(e.rot?(e.h||1)/2:0),e.w,e.rot?24+Math.round((e.h||1)*10):24,e.rot?1.5:1.1,true);if(e.stomped)this.addTrauma(.4);}
+    // The plug reacting with the rot: it goes to pieces in its own dark clay,
+    // and comes back on the dock in a puff.
+    else if(e.type==='push-shatter'){clayFragments(this,e.x,e.y,e.w,26,1.3,false,{material:pushChipMaterial(this),size:1.3});this.burst(e.x,e.y,'dust',10,.8);this.addTrauma(.25);}
+    else if(e.type==='push-respawn')this.burst(e.x,e.y,'dust',8,.6);
+    else if(e.type==='push-locked'){this.burst(e.x,e.y,'dust',12,1);this.addTrauma(.3);}
+    // The corner mended: a bright burst where the cast has just flashed.
+    else if(e.type==='activate'&&this.currentLevel?.shaping?.some(t=>t.fix&&t.channel===e.channel))this.burst(e.x,e.y+.6,'gold',32,1.8);
     else if(e.type==='press-impact'){clayFragments(this,e.x,e.y,e.w+1,14,.85);if(Math.abs(this.cameraX-e.x)<this.viewW*.6)this.addTrauma(.45);}
     else if(e.type==='shot-pop'||e.type==='spitter-fire')this.burst(e.x,e.y,'gold',e.type==='shot-pop'?5:3,.4);
     else if(e.type==='spore-leap'||e.type==='spore-land')this.burst(e.x,e.y,'dust',6,.4);
@@ -531,7 +542,10 @@ export class World {
     this.sun.position.set(this.cameraX-10,this.cameraY+18,12);this.sun.target.position.set(this.cameraX,this.cameraY-2,0);
     animateHero(this,game,heroDt);
     for(const s of L.platforms){
-      const view=this.platforms.get(s.id);if(!view)continue;view.root.position.set(s.x,s.y,0);view.root.visible=!s.broken;
+      // A broken deck is gone from view — except a rotten one, whose pieces are
+      // still falling; a hidden one is a plug not yet seated, or seated and
+      // stood down for the mass in its place.
+      const view=this.platforms.get(s.id);if(!view)continue;view.root.position.set(s.x,s.y,0);view.root.visible=(!s.broken||!!s.rot)&&!s.hidden;
       for(const rope of view.ropes||[]){const anchor=rope.userData.ceiling;if(anchor)rope.scale.y=Math.max(.1,anchor.y-s.y-(anchor.offset??.25))/anchor.rest;}
       for(const guide of view.guides||[])guide.visible=!s.broken&&s.active!==false;
       updateClayView(view,s);

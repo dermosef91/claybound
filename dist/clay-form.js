@@ -443,6 +443,29 @@ export function mouldClump(f,target){
   const top=s/f.n-f.depth;
   return [[0,top],[1,top]];
 }
+// An authored clump made to hold exactly the mould's volume: a lump dropped
+// into a gap it is meant to fill has every bit of the fill in it and nothing
+// over. The knots are raised or lowered together until the legalised shape
+// holds the target's volume, then the legal profile is nudged uniformly so the
+// two agree to the bit — a cast that snaps to the mould keeps the volume the
+// mass has promised. Returns the form itself, since the last nudge is exact
+// only on the profile, not on knots.
+export function mouldFit(f,knots,target){
+  let list=(Array.isArray(knots)&&knots.length?knots:[[0,0],[1,0]]).map(([u,t])=>[u,t]),m=null;
+  const want=total(target,f.n);
+  for(let pass=0;pass<6;pass++){
+    m=createForm(f.w,f.depth,list,{free:f.free,pace:f.pace});
+    const d=(want-total(m.rest,m.n))/m.n;
+    if(Math.abs(d)<1e-7)break;
+    list=list.map(([u,t])=>[u,t+d]);
+  }
+  const d=(want-total(m.rest,m.n))/m.n;
+  for(let i=0;i<m.n;i++)m.rest[i]=clamp(m.rest[i]+d,m.floor,FORM.maxHeight);
+  m.h.set(m.rest);m.prev.set(m.rest);m.volume=total(m.rest,m.n)*m.dx;
+  let peak=0;for(let i=0;i<m.n;i++)peak=Math.max(peak,m.rest[i]);
+  m.ref=Math.max(1,m.depth,peak);
+  return m;
+}
 // How well the surface matches the mould, from 0 to 1: the mean gap between
 // the clay and the target, read as a share between `MOULD.good` (a cast) and
 // `MOULD.bad` (not started). A hand can settle a surface to within a fifth of

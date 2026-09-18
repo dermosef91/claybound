@@ -30,10 +30,19 @@ export function crumbleMaterials(w){
     material.color.setHex(color);material.roughness=.98;material.metalness=0;material.vertexColors=name!=='crumbleChip';
   }
 }
+// A ledge is a cap of fragments over one broken underside. A deck given a
+// height — the rotten corner of a bench — is that cap over as many undersides
+// as fill it, so a whole chunk goes to pieces when it goes.
+function crumbleLayers(h){
+  const layers=[[0,2,.39,0,'crumbleGrey'],[1,1,.30,-.43,'crumbleLower']];
+  if(!(h>.9))return layers;
+  for(let top=-.85;top>-h+.12;top-=.42)layers.push([layers.length,1,Math.min(.42,top+h-.02),top,layers.length%2?'crumbleLower':'crumbleGrey']);
+  return layers;
+}
 export function createCrumble(w,s,root){
   root.name='Porous grey crumbling ledge';crumbleMaterials(w);
   const pieces=[],seed=s.x*3+s.y*11;
-  for(const [layer,rows,depth,top,mat]of [[0,2,.39,0,'crumbleGrey'],[1,1,.30,-.43,'crumbleLower']]){
+  for(const [layer,rows,depth,top,mat]of crumbleLayers(s.h)){
     for(const [i,poly]of cells(s.w,rows,seed+layer*41).entries()){
       const cx=poly.reduce((a,b)=>a+b[0],0)/poly.length,cz=poly.reduce((a,b)=>a+b[1],0)/poly.length;
       const outline=poly.map(([x,z])=>{
@@ -42,7 +51,7 @@ export function createCrumble(w,s,root){
       });
       // Each fragment's pores are seeded from the deck's own position, so the
       // same deck rebuilds to the same stone every time it streams back in.
-      const geo=clayShape(w,`crumble:${seed.toFixed(3)}:${layer}:${i}`,()=>porousClay(w,outline,depth,seed+i*137+layer*51,layer===1));
+      const geo=clayShape(w,`crumble:${seed.toFixed(3)}:${layer}:${i}`,()=>porousClay(w,outline,depth,seed+i*137+layer*51,layer>=1));
       const mesh=w.mesh(geo,mat,root,cx,top,cz);
       mesh.name=layer?'Porous broken grey underside':'Pitted grey clay cap';
       pieces.push({mesh,rest:mesh.position.clone(),seed:i+layer*37,layer});
@@ -78,7 +87,8 @@ export function clayFragments(w,x,y,width,count=18,power=1,porous=false,{materia
 export function animateCrumble(w,view,s,dt){
   const fracture=view.fracture;if(!fracture)return;
   const delay=s.delay||.62,progress=s.active?clamp(s.timer/delay):1,age=Math.max(0,s.timer-delay);
-  view.root.visible=!s.broken&&(s.active||age<.85);
+  // A rotten deck is broken the moment it goes, and its pieces still fall.
+  view.root.visible=(!s.broken||!!s.rot)&&(s.active||age<.85);
   // An untouched deck holds every fragment at its rest pose. Once the pieces
   // are there, rewriting the same transforms each frame changes nothing.
   const settled=s.active&&progress<=0;

@@ -1,5 +1,6 @@
-// Screenshots of the five puzzle benches at the end of the Clay Lab, at rest
-// and mid-solve, through the real app against a dev server on 5174:
+// Screenshots of the puzzle benches at the end of the Clay Lab — the five on
+// the formable mass and the plug that mends a rotten corner — at rest and
+// mid-solve, through the real app against a dev server on 5174:
 //   npm run dev -- --host 127.0.0.1 --port 5174 --strictPort
 //   node scripts/review-lab-puzzles.cjs
 // Writes docs/clay-lab-puzzles/*.png and fails on any page error.
@@ -16,10 +17,10 @@ review(async({page,url,errors,requests:badRequests})=>{
  try{await page.waitForFunction(()=>window.playtest?.game.level.playground&&document.getElementById('loading').classList.contains('hidden'),null,{timeout:60000});}
  catch(e){await page.screenshot({path:out+'/debug-load.png'});console.error('LOADSTATE',await page.evaluate(()=>({playground:window.playtest?.game?.level?.playground,status:window.playtest?.game?.status,loading:document.getElementById('loading').className,text:document.body.innerText.slice(0,300)})));throw e;}
  await page.evaluate(()=>{playtest.manual=true;playtest.draw();});
- // The picker, with ten entries; choosing one resumes the game at it.
+ // The picker, with eleven entries; choosing one resumes the game at it.
  await page.keyboard.press('Escape');await page.locator('[data-action="stations"]').click();
  await page.screenshot({path:out+'/station-picker.png'});
- const count=await page.locator('[data-station]').count();assert.equal(count,10,'ten stations in the picker');
+ const count=await page.locator('[data-station]').count();assert.equal(count,11,'eleven stations in the picker');
  await page.locator('[data-station="dig"]').click();
  await page.waitForFunction(()=>!document.querySelector('.dialog-close'),null,{timeout:10000}).catch(()=>{});
  await page.evaluate(()=>{playtest.step(1);playtest.draw();});
@@ -64,6 +65,23 @@ review(async({page,url,errors,requests:badRequests})=>{
  await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='marble');st.ball.x=18;st.ball.vx=0;pt.step(400);});
  await goTo('marble',null);await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='marble');st.ball.x=18;st.ball.vx=0;pt.step(400);const lift=g.level.platforms.find(q=>q.id==='marble-lift');Object.assign(g.player,{x:344.5,y:lift.y+.02,vx:0,vy:0,groundId:null});pt.step(20);});
  await shot('10-marble-home');
+ // 11 · fix the structure: the rot standing and the block on the dock; the
+ // block half onto the rot, blackening; the gap stomped open and outlined;
+ // the block seated as the lump; and the corner mended.
+ await goTo('fix',null);
+ await form((mod,marble,g,pt)=>{Object.assign(g.player,{x:359.6,y:0,vx:0,vy:0,groundId:null});pt.step(12);});
+ await shot('11-fix-rot');
+ await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='fix'),block=st.fix.blockPlatform,s=g.level.platforms.find(q=>q.id==='fix-mass');block.x=s.x-block.w+.55;block.prevX=block.x;Object.assign(g.player,{x:block.x-.6,y:0,vx:0,vy:0,groundId:null});pt.step(34);});
+ await shot('11-fix-dissolve');
+ await goTo('fix',null);
+ await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='fix'),rot=st.fix.rotPlatform;Object.assign(g.player,{x:rot.x+rot.w/2,y:rot.y+2.5,vx:0,vy:-24,groundId:null,stomping:true});pt.step(6);pt.step(70);Object.assign(g.player,{x:rot.x-1.2,y:0,vx:0,vy:0,groundId:null});pt.step(12);});
+ await shot('11-fix-open');
+ await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='fix'),block=st.fix.blockPlatform,s=g.level.platforms.find(q=>q.id==='fix-mass');block.x=s.x-.5;block.prevX=block.x;Object.assign(g.player,{x:block.x-.6,y:0,vx:0,vy:0,groundId:null});pt.step(80);});
+ await shot('11-fix-seated');
+ await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='fix'),s=g.level.platforms.find(q=>q.id==='fix-mass');s.form.h.set(st.cast);s.form.version++;pt.step(30);});
+ await shot('11-fix-flash');
+ await form((mod,marble,g,pt)=>{const s=g.level.platforms.find(q=>q.id==='fix-mass');pt.step(200);Object.assign(playtest.game.player,{x:s.x+s.w-.4,y:s.y+.02,vx:0,vy:0,groundId:null});pt.step(12);});
+ await shot('11-fix-healed');
  assert.deepEqual(badRequests,[],'no failed requests');
  assert.deepEqual(errors,[],'no page errors');
  console.log('PASS wrote',fs.readdirSync(out).length,'screenshots to',out);
