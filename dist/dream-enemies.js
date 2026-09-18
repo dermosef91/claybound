@@ -1,6 +1,7 @@
 import * as THREE from './lib/three.module.js';
 import {applyFlatten} from './clay-feel.js';
 import {BLINKER,DRIP} from './dream-enemy-rules.js';
+import {puppetStep,heldSample,boilPuppet} from './stop-motion.js';
 
 // The Soft Dream's creatures, sculpted in code from the world's clay
 // primitives — no model to load. The blinker and the drip take the theme's
@@ -35,7 +36,7 @@ function hatwormMaterial(w,key,index=0){
 
 export function createDreamEnemyView(w,e){
   const root=new THREE.Group();root.name=`${NAMES[e.kind]||'Dream creature'} ${e.id}`;root.position.set(e.x,e.y,.35);w.levelRoot.add(root);
-  const view={kind:e.kind,root,id:e.id,loaded:true,deathTime:0,time:e.id*.37,turn:e.dir>0?0:Math.PI,face:e.face??e.dir??-1,grow:1,drip:null,parts:{},reducedMotion:!!w.reducedMotion};
+  const view={kind:e.kind,root,id:e.id,loaded:true,deathTime:0,time:e.id*.37,turn:e.dir>0?0:Math.PI,face:e.face??e.dir??-1,grow:1,drip:null,parts:{},reducedMotion:!!w.reducedMotion,clock:w.puppetClock};
   if(e.kind==='hatworm')buildHatworm(w,view);
   else if(e.kind==='blinker')buildBlinker(w,view);
   else if(e.kind==='drip')buildDrip(w,view);
@@ -133,7 +134,7 @@ function animateDrip(view,e,step){
 }
 
 export function animateDreamEnemy(view,e,dt,status){
-  const step=status==='playing'?Math.min(dt,.05):0;view.time+=step;
+  const step=status==='playing'?puppetStep(view.clock,dt):0;view.time+=step;
   const root=view.root;root.position.set(e.x,e.y,.35);
   if(!e.alive){
     // Pressed flat where it was hit, like every other creature; the shatter
@@ -148,8 +149,12 @@ export function animateDreamEnemy(view,e,dt,status){
     return pose;
   }
   view.deathTime=0;root.visible=true;root.scale.setScalar(1);
-  if(view.kind==='hatworm')animateHatworm(view,e,step);
-  else if(view.kind==='blinker')animateBlinker(view,e,step);
-  else if(view.kind==='drip')animateDrip(view,e,step);
+  // Under stop motion the pose reads the creature as it was at the last
+  // exposure; where it is, and whether it lives, are read live above.
+  const s=heldSample(view.clock,view,step,()=>({...e}));
+  if(view.kind==='hatworm')animateHatworm(view,s,step);
+  else if(view.kind==='blinker')animateBlinker(view,s,step);
+  else if(view.kind==='drip')animateDrip(view,s,step);
+  boilPuppet(root,view.clock);
   return null;
 }

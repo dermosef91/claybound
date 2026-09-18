@@ -3,6 +3,7 @@ import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel} from './clay.js';
 import {DRIFTER} from './drifter-rules.js';
 import {applyFlatten} from './clay-feel.js';
+import {puppetStep,heldSample,boilPuppet} from './stop-motion.js';
 
 export async function loadDrifters(w,onProgress){
   if(w.drifterAsset){onProgress?.(1);return;}
@@ -33,7 +34,7 @@ export function createDrifterView(w,e){
   const grains=Array.from({length:5},(_,i)=>{
     const m=w.ball(.052,.066,.048,i%2?'cream':'orangeLight',root);m.name='Drifting clay grain';m.castShadow=false;return m;
   });
-  const view={kind:'drifter',root,pose,grains,id:e.id,turn:0,trail:e.dir,loaded:false,deathTime:0,reducedMotion:!!w.reducedMotion};
+  const view={kind:'drifter',root,pose,grains,id:e.id,turn:0,trail:e.dir,loaded:false,deathTime:0,reducedMotion:!!w.reducedMotion,clock:w.puppetClock};
   if(w.drifterAsset)attachDrifter(w,view);animateDrifter(view,e,0,'editing');return view;
 }
 function attachDrifter(w,view){
@@ -43,7 +44,7 @@ function attachDrifter(w,view){
   view.model=model;view.support=support;view.loaded=true;
 }
 export function animateDrifter(view,e,dt,status){
-  const step=status==='playing'?Math.min(dt,.05):0,t=e.animationTime??e.phase??0;
+  const step=status==='playing'?puppetStep(view.clock,dt):0;
   view.root.position.set(e.x,e.y,.35);
   if(!e.alive){
     // Pressed flat about its centre like every other creature. The root is
@@ -63,10 +64,13 @@ export function animateDrifter(view,e,dt,status){
   view.deathTime=0;view.root.visible=true;view.root.scale.setScalar(1);
   for(const m of view.grains)m.visible=true;
   if(!view.loaded)return;
-  const direction=Math.abs(e.vx)>.08?Math.sign(e.vx):e.dir;
+  // Under stop motion the roll, the hover and the bump read the creature as it
+  // was at the last exposure; where it is, and whether it lives, are live above.
+  const s=heldSample(view.clock,view,step,()=>({...e})),t=s.animationTime??s.phase??0;
+  const direction=Math.abs(s.vx)>.08?Math.sign(s.vx):s.dir;
   view.turn+=(direction*.28-view.turn)*(1-Math.exp(-step*5.5));
   view.trail+=(direction-view.trail)*(1-Math.exp(-step*5.5));
-  const air=e.airBlend??1,angle=e.rollAngle||0,pulse=air*Math.sin(t*2.3)*.025,bump=air*Math.min(1,(e.bump||0)/.22);
+  const air=s.airBlend??1,angle=s.rollAngle||0,pulse=air*Math.sin(t*2.3)*.025,bump=air*Math.min(1,(s.bump||0)/.22);
   view.pose.rotation.set(air*Math.sin(t*1.5)*.035,air*(view.turn+Math.sin(t*.9)*.055),angle+air*(-view.turn*.22+Math.sin(t*1.9)*.055));
   view.pose.scale.set(1+pulse+bump*.11,1-pulse-bump*.14,1+pulse*.6+bump*.06);
   const u=((angle/(Math.PI*2)%1)+1)%1*view.support.length,i=Math.floor(u),f=u-i;
@@ -74,8 +78,9 @@ export function animateDrifter(view,e,dt,status){
   view.pose.position.y=(1-air)*(depth-DRIFTER.groundRadius);
   for(let i=0;i<view.grains.length;i++){
     const u=((t*.65+i/view.grains.length)%1+1)%1,m=view.grains[i];
-    m.position.set(-view.trail*(.55+u*(.65+Math.min(.3,Math.abs(e.windX||0)*.025))),air*(-.18+Math.sin(t*2+i*1.7)*.2)+(1-air)*(-.55+Math.sin(t*3+i)*.035)+u*.1,.02+Math.sin(i*2.1)*.24);
+    m.position.set(-view.trail*(.55+u*(.65+Math.min(.3,Math.abs(s.windX||0)*.025))),air*(-.18+Math.sin(t*2+i*1.7)*.2)+(1-air)*(-.55+Math.sin(t*3+i)*.035)+u*.1,.02+Math.sin(i*2.1)*.24);
     const size=Math.sin(u*Math.PI)*(.7+i*.07)*(.7+air*.3);
     m.rotation.set(t+i,t*.7+i,0);m.scale.set(.052*size,.066*size,.048*size);
   }
+  boilPuppet(view.root,view.clock);
 }

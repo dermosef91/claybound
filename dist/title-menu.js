@@ -59,7 +59,7 @@ export function settingsMarkup(soundEnabled,fullscreenActive,{music=.55,effects=
     <div class="title-settings">
       <button class="title-setting" data-action="settings-sound" role="switch" aria-checked="${soundEnabled}" aria-label="Game sound">${icon(soundEnabled?'volume-2':'volume-x')}<span>Sound</span><strong>${soundEnabled?'On':'Off'}</strong></button>
       <button class="title-setting" data-action="settings-rumble" role="switch" aria-checked="${rumble}" aria-label="Vibration and controller rumble">${icon('move-vertical')}<span>Rumble</span><strong>${rumble?'On':'Off'}</strong></button>
-      <button class="title-setting" data-action="settings-stopmotion" role="switch" aria-checked="${stopMotion}" aria-label="Stop-motion animation, twelve poses a second">${icon('camera')}<span>Stop motion</span><strong>${stopMotion?'On':'Off'}</strong></button>
+      <button class="title-setting" data-action="settings-stopmotion" role="switch" aria-checked="${stopMotion}" aria-label="Stop-motion animation, eight poses a second">${icon('camera')}<span>Stop motion</span><strong>${stopMotion?'On':'Off'}</strong></button>
       <button class="title-setting" data-action="fullscreen" data-fullscreen="label" aria-pressed="${fullscreenActive}">${icon(fullscreenActive?'minimize':'expand')}<span>${fullscreenActive?'Exit fullscreen':'Fullscreen'}</span></button>
       <button class="title-setting" data-action="help">${icon('gamepad-2')}<span>How to play</span></button>
       <button class="title-setting" data-action="editor">${icon('pencil-ruler')}<span>Level editor</span></button>

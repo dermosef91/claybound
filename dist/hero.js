@@ -262,7 +262,7 @@ export function animateHero(w,game,dt){
     c.mixer.update(step);
     if(!paused)boilPuppet(c.asset,w.puppetClock);
     // A small foot-anchored response complements, rather than distorts, the rig.
-    // The spring is stiff enough that one Euler step of a twelfth of a second
+    // The spring is stiff enough that one Euler step of an eighth of a second
     // — a stop-motion exposure — rings it against its clamp for good, so it
     // is walked in the simulation's own ticks however long the frame held.
     for(let left=step;left>0;left-=SPRING_DT){

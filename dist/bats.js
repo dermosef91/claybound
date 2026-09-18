@@ -2,7 +2,7 @@ import * as THREE from './lib/three.module.js';
 import {clone} from './lib/SkeletonUtils.js';
 import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel} from './clay.js';
-import {puppetStep} from './stop-motion.js';
+import {puppetStep,boilPuppet} from './stop-motion.js';
 import {BAT} from './enemy-rules.js';
 import {createBatEcho,animateBatEcho,batLookVector} from './bat-echo.js';
 import {applyFlatten} from './clay-feel.js';
@@ -61,7 +61,7 @@ export function animateBat(view,e,dt,status){
     view.actions.Fly.setEffectiveTimeScale(state==='retreat'?1.35:1);
     view.actions.Swoop.setEffectiveTimeScale(diving?view.actions.Swoop.getClip().duration/(e.diveDuration||.5):1);
     animateBatEcho(view.echo,e,status);
-    view.mixer.update(step);
+    view.mixer.update(step);boilPuppet(view.root,view.clock);
     view.root.rotation.set(0,0,0);
     if(state==='retreat'||charging||diving){
       batLookVector(e,view.look);

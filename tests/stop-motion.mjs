@@ -1,11 +1,11 @@
-// Stop motion is shot on twos: with the setting on, every puppet's pose holds
-// for a twelfth of a second and then cuts, together, to the next; the world it
+// Stop motion is shot on threes: with the setting on, every puppet's pose holds
+// for an eighth of a second and then cuts, together, to the next; the world it
 // stands in keeps moving at sixty. Off, nothing changes — the clock hands each
 // frame's dt straight through, so the game the player had is the game they keep.
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import * as THREE from '../dist/lib/three.module.js';
-import {STOP_MOTION_FPS,createPuppetClock,tickPuppets,puppetStep,boilPuppet,BOIL} from '../dist/stop-motion.js';
+import {STOP_MOTION_FPS,createPuppetClock,tickPuppets,puppetStep,heldSample,boilPuppet,BOIL} from '../dist/stop-motion.js';
 import {createHero,attachHero,animateHero,heroEvent} from '../dist/hero.js';
 import {CHARACTERS} from '../dist/characters.js';
 import {readGLB} from './load-player.mjs';
@@ -20,16 +20,24 @@ import {Game} from '../dist/simulation.js';
   assert.equal(puppetStep(c,.4),.05,'off, a hitch is clamped the way every animator clamps it');
   assert.equal(puppetStep(undefined,1/60),1/60,'an animator with no clock at all behaves as before');
   w.stopMotion=true;
-  const advanced=[];
-  for(let i=0;i<12;i++){c=tickPuppets(w,1/60);advanced.push(puppetStep(c,1/60));}
-  assert.deepEqual(advanced.slice(0,4),[0,0,0,0],'four frames hold');
-  assert(Math.abs(advanced[4]-5/60)<1e-9,'the fifth frame spends the whole twelfth');
-  assert.deepEqual(advanced.slice(5,9),[0,0,0,0]);assert(advanced[9]>0,'and the tenth the next');
-  assert.equal(c.frame,2,'two exposures in twelve frames at sixty');
-  assert(Math.abs(advanced.reduce((a,b)=>a+b,0)+c.held-12/60)<1e-9,'no time is lost: what is held is spent or still held');
-  assert(Math.abs(1/STOP_MOTION_FPS-1/12)<1e-12);
+  // At sixty, an eighth of a second is seven frames held and the eighth spent.
+  const per=Math.ceil(60/STOP_MOTION_FPS),advanced=[];
+  assert.equal(STOP_MOTION_FPS,8,'shot on threes: eight poses a second');
+  for(let i=0;i<2*per;i++){c=tickPuppets(w,1/60);advanced.push(puppetStep(c,1/60));}
+  assert.deepEqual(advanced.slice(0,per-1),Array(per-1).fill(0),`${per-1} frames hold`);
+  assert(Math.abs(advanced[per-1]-per/60)<1e-9,`the ${per}th frame spends the whole eighth`);
+  assert.deepEqual(advanced.slice(per,2*per-1),Array(per-1).fill(0));assert(advanced[2*per-1]>0,'and the next exposure follows in turn');
+  assert.equal(c.frame,2,`two exposures in ${2*per} frames at sixty`);
+  assert(Math.abs(advanced.reduce((a,b)=>a+b,0)+c.held-2*per/60)<1e-9,'no time is lost: what is held is spent or still held');
   c=tickPuppets(w,0);assert.equal(c.step,0);assert(!c.stepped,'a paused frame exposes nothing');
   w.stopMotion=false;c=tickPuppets(w,1/60);assert(!c.on);assert.equal(c.held,0,'turning it off drops the held time');
+  // A pose that reads the simulation reads it as it stood at the last exposure.
+  const view={},live={angle:0},on={on:true},off={on:false};
+  assert.equal(heldSample(on,view,1/60,()=>({...live})).angle,0);
+  live.angle=1;assert.equal(heldSample(on,view,0,()=>({...live})).angle,0,'held: the old reading');
+  assert.equal(heldSample(on,view,1/8,()=>({...live})).angle,1,'exposed: the fresh one');
+  live.angle=2;assert.equal(heldSample(off,view,0,()=>({...live})).angle,2,'off the clock even a paused frame reads live — a pause is not a hold');
+  assert.equal(heldSample(undefined,view,0,()=>({...live})).angle,2,'and so does a view with no clock at all');
 }
 
 // The hero on the clock: its pose, blends and skin hold and cut together, and
@@ -56,7 +64,7 @@ import {Game} from '../dist/simulation.js';
   assert(c.root.position.x>x0,'but the puppet still moves with the game');
   let cuts=0,last=pose();
   for(let i=0;i<24;i++){frame(1/60,{right:true});const now=pose();if(now.some((v,k)=>v!==last[k]))cuts++;last=now;}
-  assert(cuts>=4&&cuts<=5,`twenty-four frames at sixty cut ${cuts} times, about twice a fifth of a second`);
+  assert(cuts>=2&&cuts<=4,`twenty-four frames at sixty cut ${cuts} times, about three`);
   assert(offsets.every(o=>o.length()>0&&o.length()<BOIL*2),'each exposure boils the prints by a hair, never further');
   // Off again: the pose eases every frame and the prints go back where they were.
   w.stopMotion=false;frame(1/60,{right:true});
@@ -66,8 +74,8 @@ import {Game} from '../dist/simulation.js';
   const plain=new THREE.Group();plain.add(new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshStandardMaterial()));
   boilPuppet(plain,w.puppetClock);assert(!plain.userData.boiled);
 
-  // A landing squashes the body on a spring. Stepped, that spring is fed a
-  // twelfth of a second at a time, which is past what its stiffness can take
+  // A landing squashes the body on a spring. Stepped, that spring is fed an
+  // eighth of a second at a time, which is past what its stiffness can take
   // in one Euler step: left alone it rang against its clamp for ever, and the
   // puppet shivered after every jump. It has to settle the way it does at sixty.
   // Peak squash over each fifth of a second, for three seconds after a landing.
@@ -84,4 +92,23 @@ import {Game} from '../dist/simulation.js';
   for(let i=1;i<stepped.length;i++)assert(stepped[i]<=Math.max(stepped[i-1],.03)+1e-9,'and never grows back');
   w.stopMotion=false;
 }
-console.log('PASS stop motion: the clock holds four frames and spends the fifth, the hero cuts pose, blends and skin together while its feet keep moving, and off is exactly what it was');
+// A creature on the clock: a pose that reads the simulation directly — the
+// spitter's wind-up follows its state timer — holds between exposures and cuts
+// with everyone else, while where it stands is read live every frame.
+{
+  const {attachSpitter}=await import('./load-spitter.mjs');
+  const {createSpitterView,animateSpitter}=await import('../dist/spitter.js');
+  const w={mat:{},levelRoot:new THREE.Group(),fxRoot:new THREE.Group(),stopMotion:true,puppetClock:createPuppetClock()};await attachSpitter(w);
+  const e={id:1,x:2,y:3,dir:-1,alive:true,aiState:'charge',stateTime:0};
+  const v=createSpitterView(w,e);
+  const frame=dt=>{e.stateTime+=dt;e.x+=dt*.2;tickPuppets(w,dt);animateSpitter(v,e,dt,'playing');};
+  const head=()=>v.head.quaternion.toArray().map(q=>+q.toFixed(6));
+  frame(1/60);const wound=head(),x=v.root.position.x;
+  for(let i=0;i<5;i++)frame(1/60);
+  assert.deepEqual(head(),wound,'the wind-up holds through the held frames although the state timer ran on');
+  assert(v.root.position.x>x,'while the creature itself keeps moving');
+  for(let i=0;i<3;i++)frame(1/60);
+  assert.notDeepEqual(head(),wound,'and cuts to the wound-up pose on the exposure');
+  w.stopMotion=false;frame(1/60);const a=head();frame(1/60);assert.notDeepEqual(head(),a,'off, the wind-up eases every frame');
+}
+console.log('PASS stop motion: the clock holds seven frames and spends the eighth, the hero cuts pose, blends and skin together while its feet keep moving, a landing settles, a creature holds its wind-up, and off is exactly what it was');
