@@ -102,7 +102,14 @@ export class Game {
       if(mass){if(this.checkpoint.x>mass.x+mass.w)solveFormStation(station,mass,{dt:FIXED_DT});}
       else {station.target=1;station.amount=1;station.announced=true;}
     }
-    updateShaping(this,0,{});
+    // Settling the stations replays what the player already did, so it
+    // announces nothing: a rebuilt cast that reads as done latches its channel
+    // here just as a saved latch is set below, without the burst and chime the
+    // finish had the first time. The world has not built the chapter yet
+    // either — app restores before it builds — so a burst thrown now would
+    // reach for a palette slot that does not exist and take the load down.
+    const emit=this.onEvent;this.onEvent=()=>{};
+    try{updateShaping(this,0,{});}finally{this.onEvent=emit;}
     // Only channels something in the level can latch for good are taken from
     // a save: seals, latching switches, weighed beams, the dream's trigger
     // zones and the stations that open a channel once they are worked.

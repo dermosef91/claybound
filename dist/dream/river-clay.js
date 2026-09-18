@@ -74,7 +74,7 @@ function swap(source,anchor,text){
 // two tints the skin needs are derived from it.
 export function riverClay(w,name,hex){
   if(w.mat[name])return name;
-  const m=new THREE.MeshStandardMaterial({color:hex,roughness:.16,metalness:0,emissive:hex,emissiveIntensity:.04});m.name=name;
+  const m=new THREE.MeshStandardMaterial({color:hex,roughness:.14,metalness:0,emissive:hex,emissiveIntensity:.07});m.name=name;
   // Without the clay surface (never in the game; the world is ready before a
   // chapter builds) the stream falls back to the plain gloss it used to be.
   if(w.clay){clayMaterial(w,m,.02);riverSkin(m,hex);}
@@ -87,10 +87,10 @@ function riverSkin(m,hex){
   const c=new THREE.Color(hex),peak=Math.max(c.r,c.g,c.b,1e-4);
   // The turned-away tone: the colour at full saturation, a little lifted and
   // darkened — light bouncing inside a thick liquid rather than the sky's grey.
-  const deep=c.clone().multiplyScalar(1/peak).lerp(WHITE,.35).multiplyScalar(.72);
+  const deep=c.clone().multiplyScalar(1/peak).lerp(WHITE,.35).multiplyScalar(.8);
   // The wet glaze: a pale version of the colour, standing in for the
   // environment reflection the scene has no map for.
-  const sheen=c.clone().lerp(WHITE,.65).multiplyScalar(.9);
+  const sheen=c.clone().lerp(WHITE,.72).multiplyScalar(.95);
   const compile=m.onBeforeCompile,key=m.customProgramCacheKey;
   m.onBeforeCompile=(shader,renderer)=>{
     compile.call(m,shader,renderer);
@@ -114,8 +114,8 @@ float riverFlowing = step(0.001, vRiverFlow.z), riverA = vRiverFlow.y * PI2;
 vec3 riverP = mix(vClayPosition * 1.3 + vec3(riverTime * 0.12, 0.0, 0.0),
                   vec3((vRiverFlow.x - riverTime * vRiverFlow.z) * 0.35, cos(riverA) * 0.9, sin(riverA) * 0.9), riverFlowing);
 vec3 riverN = mix(normalize(vClayNormal), vec3(0.0, cos(riverA), sin(riverA)), riverFlowing);
-float riverStreak = riverStreaks(riverP), riverWet = smoothstep(0.42, 0.7, riverStreak);
-diffuseColor.rgb *= mix(riverDeep, vec3(1.06), 0.4 + 0.6 * riverStreak);
+float riverStreak = riverStreaks(riverP), riverWet = smoothstep(0.32, 0.66, riverStreak);
+diffuseColor.rgb *= mix(riverDeep, vec3(1.06), 0.55 + 0.45 * riverStreak);
 // The height the lighting sees: the wave itself, the streaks as ridges along
 // a stream (they break the highlight into glints that run with the flow), a
 // fine ripple hurrying along with the flow, and on a still surface a
@@ -127,22 +127,27 @@ float riverRipple = riverWave(vRiverFlow, riverTime, normalize(vClayNormal)) + r
     // meant to. Glossier than the old plain gloss everywhere, glossier still
     // where a wet streak runs.
     f=swap(f,'roughnessFactor = clamp(roughnessFactor * clayData.g, 0.52, 0.98);',
-      'roughnessFactor = clamp(mix(roughnessFactor * mix(1.0, clayData.g, 0.35) + 0.06, roughnessFactor - 0.06, riverWet), 0.08, 0.6);');
+      'roughnessFactor = clamp(mix(roughnessFactor * mix(1.0, clayData.g, 0.3) + 0.05, roughnessFactor - 0.07, riverWet), 0.05, 0.5);');
     f=swap(f,'clayData.r * bumpScale, faceDirection','clayData.r * bumpScale + riverRipple, faceDirection');
     f=swap(f,'#include <lights_fragment_end>',`#include <lights_fragment_end>
 // Light inside the liquid keeps its underside a deep, saturated tone rather
-// than the sky's grey; the glaze sits on the rims and, faintly, on top.
+// than the sky's grey; the glaze sits on the rims and, faintly, on top, and
+// where the surface both faces up and turns toward the light it catches a
+// white wet highlight — the one thing a shine needs that the lights alone
+// do not give a rope this thin.
 vec3 riverUp = transformNormalByInverseViewMatrix(geometryNormal, viewMatrix);
 reflectedLight.indirectDiffuse *= mix(riverDeep, vec3(1.0), smoothstep(-0.8, 0.6, riverUp.y));
 float riverRim = pow(1.0 - saturate(dot(geometryNormal, geometryViewDir)), 3.0);
-totalEmissiveRadiance += riverSheen * (riverRim * 0.3 + smoothstep(0.35, 1.0, riverUp.y) * 0.06 * (0.6 + 0.4 * riverWet));
+totalEmissiveRadiance += riverSheen * (riverRim * 0.42 + smoothstep(0.35, 1.0, riverUp.y) * 0.05 * (0.6 + 0.4 * riverWet));
+float riverShine = pow(saturate(dot(geometryNormal, normalize(vec3(-0.35, 0.8, 0.5)))), 14.0);
+totalEmissiveRadiance += vec3(0.9, 0.88, 0.85) * riverShine * (0.16 + 0.2 * riverWet);
 // The magic clay's glitter, thinner, riding the flow.
 float riverPixel = max(length(dFdx(riverP)), length(dFdy(riverP)));
 float riverSparkle = magicSpots(riverP.xy + vec2(32.7, 20.9), 0.35, 0.59);
 if (riverSparkle > 0.0) totalEmissiveRadiance += magicGlitter(riverP, riverN, riverPixel) * riverSparkle * 0.3;`);
     shader.fragmentShader=f;
   };
-  m.customProgramCacheKey=()=>key.call(m)+'-river-v1';m.needsUpdate=true;
+  m.customProgramCacheKey=()=>key.call(m)+'-river-v2';m.needsUpdate=true;
   return m;
 }
 

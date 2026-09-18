@@ -166,6 +166,6 @@ export default {
   ],
   // Plum bodies under lime frosting, a pink-lilac haze, hot pink accents: the
   // reference's candy cliffs. The workable clay keeps its own blue-violet.
-  palettes:[{x:0,main:'#9a48b0',secondary:'#cbe24f',backdrop:'#dcb3ef',accent:'#ff5fae',sky:'#c8a9ea',fog:'#f4c4de'}],
+  palettes:[{x:0,main:'#9a48b0',secondary:'#cbe24f',backdrop:'#dcb3ef',accent:'#ff5fae',sky:'#b39ce8',fog:'#ecc9ea'}],
   camera:[],guides:[]
 };
