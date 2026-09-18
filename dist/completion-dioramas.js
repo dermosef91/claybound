@@ -108,21 +108,31 @@ export const DIORAMAS={
     },
     camera:VIEW,portrait:VIEW_PORTRAIT,hero:HERO,
     build(w,front,back,{spin}){
-      stage(w,front,{});
+      stage(w,front,{width:20.6,x:6.7});
       gate(w,front);
       // Cacti: one tall to the hero's left, two at the right edge.
       canyonModel(w,'cactus',front,-1.9,-.05,-.5,2,.35);
       canyonModel(w,'cactus',front,7,-.05,-1.4,2.2,-.4);
       canyonModel(w,'cactus',front,8.1,-.05,.1,1.4,.7);
       const potSeat=new THREE.Group();potSeat.position.set(5.75,0,.35);front.add(potSeat);w.pot(potSeat,0,-.06,.34);
-      stones(w,front,'terrain',[[-1,.3,.26],[-.4,.1,.16],[5.2,-.3,.24],[5.9,.15,.15],[-5.6,-.5,.34],[1.6,-2.6,.2],[7.2,-2.4,.28],[-3.8,-1.9,.22],[2.6,-3.8,.3]]);
+      stones(w,front,'terrain',[[-1,.3,.26],[-.4,.1,.16],[5.2,-.3,.24],[5.9,.15,.15],[-2.9,-.5,.3],[1.6,-2.6,.2],[7.2,-2.4,.28],[-3.1,-1.9,.22],[2.6,-3.8,.3]]);
 
       // The middle distance, out of focus: the banner on its own ledge, the
       // arch behind the buttons, and a mesa either side.
-      const ledge=new THREE.Group();ledge.position.set(-7.4,-2.6,-10.5);front.add(ledge);
-      w.box(7,4,5,'terrain',ledge,0,-1,0,.5);w.box(6.4,.6,4.6,'top',ledge,.1,1.1,.1,.3);
-      canyonModel(w,'tent',ledge,-.2,1.35,.4,2.9,.08);
-      canyonModel(w,'cactus',ledge,2.6,1.3,1.2,.9,.4);
+      // The caravan's banner on an outcrop of its own, left of the plateau's
+      // corner and a step lower, its posts standing on it in full. Behind the
+      // stage its feet were swallowed by the stage's top and it read as
+      // standing behind the platform.
+      const ledge=new THREE.Group();ledge.position.set(-6.3,-.75,-3.4);front.add(ledge);
+      w.box(5.2,.7,4.8,'top',ledge,0,-.35,0,.3);
+      w.box(5,3.6,4.6,'terrain',ledge,0,-2.5,0,.4);
+      w.box(4.6,.5,4.7,'terrain2',ledge,.2,-1.6,.15,.18);w.box(3.8,.45,4.7,'terrain2',ledge,-.3,-3.1,.15,.18);
+      w.ball(1.2,.9,1.1,'terrain',ledge,-2.9,-3.6,.6);
+      canyonModel(w,'tent',ledge,.1,-.02,.5,2.8,.08);
+      canyonModel(w,'cactus',ledge,2,-.02,1.4,.8,.4);
+      stones(w,ledge,'terrain',[[-1.7,1.3,.24],[1.6,-1.4,.2],[-2.2,-.6,.28]]);
+      // Rubble in the gap between the outcrop and the plateau.
+      w.ball(.7,.5,.7,'terrain',front,-3.75,-1.1,-2,).rotation.y=.4;
       // The arch, behind the buttons, big enough that its opening is the
       // first thing in the country to read.
       canyonModel(w,'arch',back,-1.6,-5.2,-20,10,.1);
