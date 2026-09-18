@@ -23,7 +23,7 @@ import {createHash} from 'node:crypto';
 import * as THREE from '../dist/lib/three.module.js';
 import {Game} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
-import {MODULES,soloSection} from '../dist/routes/dream.js';
+import {MODULES,SHELVED,soloSection} from '../dist/routes/dream.js';
 import {World} from '../dist/world.js';
 import {createHero,attachHero} from '../dist/hero.js';
 import {createCaveLights} from '../dist/cave-lighting.js';
@@ -298,7 +298,7 @@ console.log('PASS the dome spin turns the supplied planet');
 // bridge's back exactly where the sculpted hats went; the model survives
 // streaming, and a rig without it gets the sculpted hats back.
 {
-  const parade=MODULES.find(m=>m.key==='parade'),L=soloSection(parade),g=new Game();g.start(INDEX,L);
+  const parade=[...MODULES,...SHELVED].find(m=>m.key==='parade'),L=soloSection(parade),g=new Game();g.start(INDEX,L);
   const worm=g.level.platforms.find(p=>p.id==='parade-worm');assert(worm?.shape?.from,'the solo parade has the hat-worm');
   const cx=worm.shape.from.x+worm.shape.from.w/2,top=worm.shape.from.y,bridgeTop=worm.shape.to.y;
   const station=g.level.shaping.find(s=>s.id==='parade-worm');assert(station,'and its pull station');
@@ -429,7 +429,7 @@ console.log('PASS the dome spin turns the supplied planet');
 // The hatworm on the back is the supplied caterpillar in three supplied
 // hats, walks on the bones, dies flat, and rides along (hidden) when it leaves.
 {
-  const parade=MODULES.find(m=>m.key==='parade'),L=soloSection(parade),g=new Game();g.start(INDEX,L);
+  const parade=[...MODULES,...SHELVED].find(m=>m.key==='parade'),L=soloSection(parade),g=new Game();g.start(INDEX,L);
   const platform=id=>{const s=g.level.platforms.find(p=>p.id===id);assert(s,id+' is in the solo parade');return s;};
   const knee=platform('parade-knee'),back=platform('parade-back'),neck=platform('parade-neck'),headDeck=platform('parade-head');
   const station=g.level.shaping.find(st=>st.id==='parade-worm');

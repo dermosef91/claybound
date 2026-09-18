@@ -166,8 +166,14 @@ function profile(points){
 // beads, meeting the throat's top at 7 and clearing the molars over floor-2.
 // The mass sits behind the walk line, so a full jump's head may overlap it
 // in the picture without ever meeting it.
+//
+// Over the windpipe it climbs with the ribs and levels off at 11 — the
+// squeeze's top — so that ceiling reads as a fold of this one coming down
+// rather than a block hung in the air, then swoops shut over the exit the way
+// it opens at the entry.
 function layout(L){
-  const ids=['entry','pillar-1','pillar-2','pillar-3','floor-1','throat','plug','floor-2','tooth-1','tooth-2','exit'];
+  const ids=['entry','pillar-1','pillar-2','pillar-3','floor-1','throat','plug','floor-2','tooth-1','tooth-2',
+    'floor-3','rib-1','rib-2','rib-3','rib-4','shelf','squeeze','exit'];
   const d={};for(const id of ids)if(!(d[id]=deck(L,'corridor-'+id)))return null;
   const right=s=>s.x+s.w;
   const under=profile([
@@ -175,7 +181,10 @@ function layout(L){
     [d['pillar-1'].x+1,5.5],[d['pillar-2'].x-.6,6.15],[right(d['pillar-2'])+.6,6.15],[d['pillar-3'].x+1.2,5.4],
     [d['floor-1'].x+2,4.9],[d['floor-1'].x+5.5,5],[right(d['floor-1']),6.3],[d.throat.x,7.05],[right(d.throat),7.05],
     [d['floor-2'].x,6.55],[right(d['floor-2']),6.55],[d['tooth-1'].x,6.45],[right(d['tooth-2']),6.45],
-    [d.exit.x+1.5,5.5],[right(d.exit),4.6],[right(d.exit)+1.5,4.4]
+    [d['floor-3'].x,6.5],[right(d['floor-3']),7.2],
+    [d['rib-1'].x+1.1,8.2],[d['rib-2'].x+1.1,9.2],[d['rib-3'].x+1.1,10.2],[d['rib-4'].x+1.1,10.9],
+    [d.squeeze.x,11],[right(d.squeeze),11],[right(d.shelf),9],
+    [d.exit.x+2,6.2],[right(d.exit),4.8],[right(d.exit)+1.5,4.5]
   ]);
   return {d,under,left:d.entry.x,right:right(d.exit)};
 }
@@ -330,8 +339,15 @@ export default {
       at(d['pillar-1'].x+1.9,1.05,2,.68);
       at(d['pillar-3'].x-.3,1.05,4,.62);
       at(d['tooth-1'].x+2.1,1.05,6,.62);
+      // Three more up the windpipe, the last one right over the squeeze, so
+      // the ceiling that shuts on you is the one watching you wait.
+      at(d['floor-3'].x+3.4,1,7,.6);
+      at(d['rib-2'].x+1.1,1.1,8,.66);
+      at(d.squeeze.x+1.7,1.15,9,.7);
       const drips=[[d.entry.x+.4,.8,2.2,R],[d.entry.x+6.6,.5,1.2,T],[d['pillar-2'].x-1.3,.5,1.3,P],[d['pillar-3'].x-1.6,.44,.95,R],
         [d['floor-1'].x+1.2,.6,1.3,T],[d['floor-1'].x+7,.5,1.4,R],[d['floor-2'].x+1.9,.55,1.5,P],[d['tooth-1'].x-.8,.42,1.1,R],
+        [d['floor-3'].x+1.1,.5,1.3,R],[d['rib-1'].x+.4,.46,1.1,T],[d['rib-3'].x-.9,.5,1.25,P],[d['rib-4'].x+1.8,.44,1,R],
+        [rgt(d.shelf)-.6,.55,1.45,T],
         [d.exit.x+1.2,.52,1.4,T],[rgt(d.exit)+.2,.74,2,R]];
       drips.forEach(([x,r,h,m],i)=>drip(w,g,x,under(x)+.15,.95,r,h,m,i));
     }});

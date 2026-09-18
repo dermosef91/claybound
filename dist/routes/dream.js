@@ -17,13 +17,23 @@ import knot from './dream-sections/knot.js';
 // Sections 7 and 8 were skipped by design; splicing one in later is a new
 // module in this list and nothing else moves by hand.
 //
+// Section 5, the Melted Parade, was lifted back out the same way: it is still
+// authored, still tested and still on disk, it is simply not in MODULES, and
+// the Breathing Corridor was grown into the gap it left.
+//
 // The same assembly, applied to ONE module, is `soloSection`: a start deck, the
 // section, and a plain goal deck after its exit — the mini chapter
 // tests/dream-sections.mjs and scripts/review-dream.cjs work on while a
 // section is being authored. Both attach `dreamSections` (plain data:
 // {key,name,x,length} per section) so the renderer can find which section
 // module owns a platform by its x.
-export const MODULES=[garden,folding,orchard,corridor,parade,river,room,knot];
+export const MODULES=[garden,folding,orchard,corridor,river,room,knot];
+// Authored and tested, but not in the chapter. Putting `parade` back between
+// `corridor` and `river` above is the whole splice; nothing else moves. The
+// solo harnesses (tests/dream-sections.mjs, tests/dream-models.mjs,
+// scripts/fit-dream-creatures.mjs) look a module up in MODULES and SHELVED
+// together, so a shelved section keeps its own checks.
+export const SHELVED=[parade];
 const FIRST=-8;
 
 // Where each module's local 0 lands: end to end from `first`.
@@ -78,7 +88,10 @@ function assemble(parts,table,{spawn,name,short,label,intro}){
     // in place of the roll), which moves every later section by 35. (2 and 3
     // are skipped: the save tests use them as the stale layout a checkpoint
     // must refuse to resume into.)
-    layoutVersion:4,
+    // 5: the Melted Parade lifted out and the Breathing Corridor grown from 55
+    // to 83 in its place, which moves the river, the room and the knot 47 left
+    // and shortens the chapter from 714 to 667.
+    layoutVersion:5,
     // Still being built: the chapter list keeps it behind ß, like the Clay Lab,
     // and the Hanging Quarter stays the last chapter anyone is led to. Hidden
     // chapters have to be the last entries of LEVELS: the app walks back from
