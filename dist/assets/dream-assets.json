@@ -194,5 +194,89 @@
     ],
     "geometryUnchanged": true,
     "joints": 40
+  },
+  "dream-banner.glb": {
+    "source": "decorative banner 3d model.glb",
+    "sourceSha256": "2471d53224410b9c6295b36f1033d48b2163624674027c5141e40e2f74a8ad95",
+    "shippedSha256": "2a5d9938434ce5d26d3d521b49b1a63a331a0a18f561046ff28595d7ee066ef1",
+    "sourceBytes": 1281752,
+    "shippedBytes": 681180,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 9896,
+    "geometryBufferSha256": [
+      "80c705568e6f9391f4fe64fe17acf71a63d0726f82b71e104a1464b3c49fdcf7",
+      "2d9e58ecde1527757716eb7be47bfa126d8081d2d473d511473b1768ef36c67f",
+      "4871ff23bcd5f71b0e65c6e53d89e81c03d7617a8bad229fcefea76ba83173bb",
+      "0a62672aa3eb8d139c393203f47d8199eb8157c82850cec2315c4f8fccb1afaa"
+    ],
+    "geometryUnchanged": true
+  },
+  "dream-column.glb": {
+    "source": "decorative+candy+column+3d+model.glb",
+    "sourceSha256": "4a10ceea0cace3af1a4225f697dffebc63d8cdb3cbf00a4a32d87ed8f77f8e27",
+    "shippedSha256": "0c8b34b9caaa258d9a23d05e9e3964b0df04beab9c28a9ca46325da324b044e4",
+    "sourceBytes": 1444112,
+    "shippedBytes": 801572,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 10372,
+    "geometryBufferSha256": [
+      "a5b6769d125750f8c6989984326e338b129dc9bbd20f08f7fdaf8f6e34365f16",
+      "a003d0cff62e647c63a22b91595b54526df640b1cdacfc49361c3efe3fb705af",
+      "2d123d4d2836fba50764f4ac1bd1eca0d39a429cee8d56f76731e82dde1b8fa3",
+      "26ebe66abc61033dacb271e30f3b177498b23f8db28b00be8a5166eaf54a6a92"
+    ],
+    "geometryUnchanged": true
+  },
+  "dream-cane.glb": {
+    "source": "whimsical+candy+cane+3d+model.glb",
+    "sourceSha256": "5e4bac54e9dbf89140c42eb967d72827e7e054f8dfc7383f5dbf675664eef63f",
+    "shippedSha256": "9bd7d68ca6e703a6a288627a00ef176c07ffdff2d0712bd34b787de305a8240d",
+    "sourceBytes": 1450636,
+    "shippedBytes": 794624,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 9671,
+    "geometryBufferSha256": [
+      "9eeecc290be94c70fac6c423dc8aea11e9991ddcd003fc90e2d5d4b8d0d4a3a5",
+      "4f292b6adcd44357ab05b7f646d42cf6b443e20c7731377f49f6db2c57b98db9",
+      "9bf518bac813d2796b173c9ffe3ea2bb755d93a49753e3e251918e248e544089",
+      "0a01d84da1ff89978b83948ae2ee80b047f5bc082e769c68e5d3b1dff665c351"
+    ],
+    "geometryUnchanged": true
+  },
+  "dream-sun.glb": {
+    "source": "smiley+sun+3d+model.glb",
+    "sourceSha256": "332c7986ab511e06be3b1de406aaf7fc13b4541e4fda86357050b7e8e047cee7",
+    "shippedSha256": "96d659a1619556b45ffb36781625dd95c047883f2b1ae8a9bbb0cabe7256fe37",
+    "sourceBytes": 941060,
+    "shippedBytes": 527516,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 10200,
+    "geometryBufferSha256": [
+      "66f9badd834c42354a34ffe328f5b5a6f07fb4101a4deff83504d0bc46e222d9",
+      "49eea01c9ca8ec812382d6f44049788a9bf3bc66e00d3d53e449ebce8a1ac97c",
+      "167064538c184a5cdcf7ecea924d173b7b0d3570981060fabfafde909e3c3f8d",
+      "90804c5ca5b5fa548f0a971ed3b591b2a9d01a63ff5ff6549c319462e72c7ffc"
+    ],
+    "geometryUnchanged": true
   }
 }

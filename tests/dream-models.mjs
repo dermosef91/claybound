@@ -29,8 +29,9 @@ import {createHero,attachHero} from '../dist/hero.js';
 import {createCaveLights} from '../dist/cave-lighting.js';
 import {animateDreamViews} from '../dist/dream-views.js';
 import {animateDream} from '../dist/dream.js';
-import {HAT_WIDTHS,HAT_NEST,GIRAFFE_WITHERS,GIRAFFE_LEAVE} from '../dist/dream/parade.js';
-import {DREAM_FILES,PLANET_ORBS,dreamPlanet,dreamSaucer,dreamSculpture,dreamHat,dreamHatHeight,dreamCaterpillar,dreamGiraffe,skinnedBox} from '../dist/dream-assets.js';
+import paradeVisual,{HAT_WIDTHS,HAT_NEST,GIRAFFE_WITHERS,GIRAFFE_LEAVE,VALANCE_TILES} from '../dist/dream/parade.js';
+import {DREAM_FILES,PLANET_ORBS,dreamPlanet,dreamSaucer,dreamSculpture,dreamHat,dreamHatHeight,dreamCaterpillar,dreamGiraffe,skinnedBox,dreamColumn,dreamCane,dreamSun,dreamValance,dreamBanner,COLUMN_MEDALLION} from '../dist/dream-assets.js';
+import {updateShaping} from '../dist/shaping.js';
 import {CATERPILLAR_RIG,CATERPILLAR_HEAD,GIRAFFE_BONES,GIRAFFE_POSE} from '../dist/dream-rigs.js';
 import {HATWORM_COLOURS} from '../dist/dream-enemies.js';
 import {animateEnemy,releaseEnemyView} from '../dist/enemies.js';
@@ -105,7 +106,7 @@ assert.equal(manifest['dream-giraffe.glb'].joints,40,'the giraffe ships its fort
 assert(!manifest['dream-hat.glb'].geometryUnchanged&&/simplify/.test(manifest['dream-hat.glb'].adaptation),'the hat ships decimated');
 assert(manifest['dream-hat.glb'].triangles<=12000,`the hat stays light (${manifest['dream-hat.glb'].triangles} triangles)`);
 assert.equal(manifest['dream-hat.glb'].textures.length,2,'the hat ships its colour and normal maps only');
-console.log('PASS the eight dream models match their manifest: fingerprints, sizes, 1024 textures, triangle counts, retained resources; the hat is the decimated, matte copy; the two creatures are skinned');
+console.log(`PASS the ${Object.keys(DREAM_FILES).length} dream models match their manifest: fingerprints, sizes, 1024 textures, triangle counts, retained resources; the hat is the decimated, matte copy; the two creatures are skinned`);
 
 // --- 2. each planet's core orb is where the constants say ---------------------------------
 for(const [key,orb]of Object.entries(PLANET_ORBS)){
@@ -546,4 +547,58 @@ console.log('PASS the dome spin turns the supplied planet');
   assert(w.platforms.get('parade-back').root.getObjectByName('Supplied clay giraffe')&&w.platforms.get('parade-caterpillar').root.getObjectByName('Supplied clay caterpillar'),'restored, the supplied giraffe and caterpillar return');
   assert.equal(sharedDisposals,0,'rebuilding disposes nothing shared');
   console.log(`PASS the caterpillar lift is the supplied caterpillar: back along the ride's top (${body.map(d=>d.toFixed(2)).join('/')}), head ${(rideBox.max.y-lift.y).toFixed(2)} above it, walking only while the lift moves, sculpted again without the models`);
+}
+
+// --- 11. the parade's carnival dressing ------------------------------------------------------
+// The four supplied dressings: the banner is cut at load into its swag valance
+// and its pennant, each part reaching every triangle once with a box of its
+// own; the column loses its pedestal and is measured for the stick that runs
+// on below; each placement is sized by the asked dimension with its anchor on
+// the origin. On the solo parade the hat-worm bridge wears the valance along
+// its live underside — gathered under the coil, full across the pulled bridge
+// — the plinth hangs the pennant, the spiral sun stands on the column with the
+// medallion at its centre, and the sky holds the towers, spires and the sun.
+{
+  const a=bare.dreamAssets.banner,total=firstMesh(a.scene).geometry.index.count;
+  assert.equal(a.valance.index.count+a.banner.index.count,total,'the valance and the pennant share out every triangle of the banner');
+  const vb=a.valance.boundingBox,bb=a.banner.boundingBox;
+  assert(bb.max.x-bb.min.x<a.size.x*.4&&vb.max.x-vb.min.x>a.size.x*.95,'the pennant is the narrow part, the valance spans the width');
+  assert(bb.min.y<a.box.min.y+1e-6&&vb.max.y>a.box.max.y-1e-6&&vb.min.y>bb.min.y,'the pennant hangs to the foot, the valance holds the rail');
+  const c=bare.dreamAssets.column;
+  assert(c.post.index.count<firstMesh(c.scene).geometry.index.count&&c.post.boundingBox.min.y>c.box.min.y+c.size.y*.1,'the column\'s pedestal is cut away');
+  assert(c.radius>c.size.y*.04&&c.radius<c.size.y*.09,`the stick is measured (${(c.radius/c.size.y).toFixed(3)} of the height)`);
+  // A part's own box (not the precise walk, which would read every shared vertex of the upload).
+  const placed=(make)=>{const root=new THREE.Group();const p=make(root);root.updateMatrixWorld(true);return {p,box:new THREE.Box3().setFromObject(p)};};
+  {const {p,box}=placed(r=>dreamValance(bare,r,4.8));assert(near(box.max.x-box.min.x,4.8,1e-6)&&near(box.max.y,0,1e-6)&&near((box.min.x+box.max.x)/2,0,1e-6),'the valance is the asked width, its rail on the origin');assert.equal(p.name,'Dream valance');}
+  {const {box}=placed(r=>dreamBanner(bare,r,1.5));assert(near(box.max.x-box.min.x,1.5,1e-6)&&near(box.max.y,0,1e-6),'the pennant hangs from the origin at the asked width');}
+  {const {box}=placed(r=>dreamCane(bare,r,14));assert(near(box.max.y-box.min.y,14,1e-6)&&near(box.min.y,0,1e-6),'the cane stands 14 tall on the origin');}
+  {const {box}=placed(r=>dreamSun(bare,r,5.5));assert(near(box.max.x-box.min.x,5.5,1e-6)&&near((box.min.y+box.max.y)/2,0,1e-6),'the sun is 5.5 across, centred');}
+  {const {p,box}=placed(r=>dreamColumn(bare,r,9));assert(near(box.max.y,9,1e-6)&&box.min.y>0&&!p.getObjectByName('Column stick'),'the column alone stands to its height, footless');}
+  {const {p,box}=placed(r=>dreamColumn(w,r,9,{reach:30}));assert(box.min.y<-29&&box.min.y>-32&&p.getObjectByName('Column stick')&&p.getObjectByName('Candy stripe'),`with a reach the stick runs on below the origin (to ${box.min.y.toFixed(2)})`);}
+  console.log(`PASS the banner splits into valance and pennant, the column sheds its pedestal (stick ${(c.radius/c.size.y).toFixed(3)} of its height), and the five placements size and anchor as asked`);
+
+  const parade=MODULES.find(m=>m.key==='parade'),L=soloSection(parade),g=new Game();g.start(INDEX,L);
+  const worm=g.level.platforms.find(p=>p.id==='parade-worm'),station=g.level.shaping.find(st=>st.id==='parade-worm');
+  const cx=worm.shape.from.x+worm.shape.from.w/2;
+  w.build(g.level,INDEX,cx);w.syncVisible(g.level,cx,true);g.player.x=cx;animateDream(w,g,0);w.scene.updateMatrixWorld(true);
+  const view=w.platforms.get('parade-worm');assert(view?.clay,'the bridge keeps its shaping clay');
+  const hang=view.root.getObjectByName('Valance'),strip=hang?.getObjectByName('Valance strip');assert(hang&&strip,'the valance hangs under the bridge');
+  const tiles=[];strip.traverse(o=>{if(o.name==='Dream valance')tiles.push(o);});assert.equal(tiles.length,VALANCE_TILES,`${VALANCE_TILES} valance tiles`);
+  assert(near(hang.position.y,-worm.h,1e-9)&&near(strip.scale.x,worm.w/worm.shape.to.w,1e-9)&&strip.scale.y<.55,'coiled: the rail at the coil\'s foot, the swags gathered to its width');
+  station.amount=1;updateShaping(g,0,{});animateDream(w,g,0);w.scene.updateMatrixWorld(true);
+  assert(near(hang.position.y,-worm.h,1e-9)&&near(strip.scale.x,1,1e-9)&&near(strip.scale.y,1,1e-9),'pulled: the rail at the bridge\'s underside, the swags full across it');
+  // The clay's root is moved to the live pose by the engine each frame (animateClayView); here it stands where it was built, so the rail is read against it.
+  const full=new THREE.Box3().setFromObject(strip),lip=view.root.position.y-worm.h;
+  assert(near(full.min.x,worm.x,.05)&&near(full.max.x,worm.x+worm.w,.05)&&full.max.y<lip+.2&&full.max.y>lip-.2,'the valance spans the pulled bridge under its lip');
+  station.amount=0;updateShaping(g,0,{});
+  const plinth=w.levelRoot.getObjectByName('dream:parade:plinth');assert(plinth?.getObjectByName('Dream banner')&&plinth.getObjectByName('Plinth cap')&&!plinth.getObjectByName('Plinth band'),'the plinth hangs the pennant under a capped top');
+  const sun=w.backRoot.getObjectByName('Spiral sun');assert(sun,'the spiral sun is in the sky');
+  const column=sun.getObjectByName('Dream column'),disc=sun.getObjectByName('Spiral disc');assert(column&&disc,'the sun stands on the column');
+  assert(near(column.position.y,-9*COLUMN_MEDALLION,1e-9)&&column.getObjectByName('Column stick'),'the medallion at the disc\'s centre, the stick running down');
+  assert(sun.getObjectByName('Lollipop knob'),'the knob peeks over the disc');
+  const count=name=>{let n=0;w.backRoot.traverse(o=>{if(o.name===name)n++;});return n;};
+  assert.equal(count('Dream cane'),5,'two towers and three spires');assert.equal(count('Dream sun'),1,'one smiling sun');assert(count('Parade hill')>=6,'the parade\'s own hills');
+  assert(paradeVisual.quietBackdrop===true,'the parade sinks the placeholder sky');
+  let solid=0;w.levelRoot.traverse(o=>{if(o.isMesh&&!o.material.transparent){solid++;assert(o.material.userData.clay,`${o.name||'a mesh'} carries the clay surface`);}});
+  console.log(`PASS the solo parade dresses the bridge (${VALANCE_TILES} tiles gathered under the coil, full when pulled), hangs the pennant on the plinth, stands the spiral sun on the column and fills the sky with 5 canes and the sun; ${solid} solid surfaces all clay`);
 }
