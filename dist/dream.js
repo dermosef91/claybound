@@ -169,7 +169,7 @@ export function dreamLayers(w){
 // and animateDream sinks these three layers into the ground while the player
 // is in that section (they rise again over a second or so past its end).
 export function buildDreamBackdrop(w,L){
-  w.dreamLeaners=[];w.dreamSwirls=[];w.dreamPlaceholderK=null;w.dreamRetiring=[];w.dreamSoftBackdrop=null;
+  w.dreamLeaners=[];w.dreamSwirls=[];w.dreamPlaceholderK=null;w.dreamRetiring=[];w.dreamSoftness=0;
   dreamSky(w);
   const far=group(w.backRoot,'Dream far blobs'),mid=group(w.backRoot,'Dream near blobs'),sky=group(w.backRoot,'Dream sky swirls');
   w.dreamPlaceholder=[far,mid,sky];
@@ -370,17 +370,6 @@ function retireStep(w,x,dt){
     e.group.scale.setScalar(Math.max(.001,e.k));e.group.visible=e.k>.01;
   }
 }
-// A section whose distance is meant to read out of focus declares
-// `softBackdrop:<radius>` (texels of the reduced backdrop pass, the scale of
-// citadel-depth.js's table). The radius eases between sections so the far
-// scenery blurs and sharpens over a second rather than flipping at a border;
-// renderCitadelDepth reads it and takes the two-pass path while it is above
-// nothing.
-function softBackdropStep(w,L,x,dt){
-  const target=dreamVisual(dreamSectionAt(L,x)?.key)?.softBackdrop||0;
-  const k=w.dreamSoftBackdrop??target;
-  w.dreamSoftBackdrop=w.reducedMotion?target:k+(target-k)*(1-Math.exp(-dt*2.5));
-}
 
 // --- per frame ---------------------------------------------------------------
 // Section modules' animate() runs for every section the player is within 40
@@ -396,7 +385,16 @@ export function animateDream(w,game,dt){
   leanStep(w,x,dt);
   placeholderStep(w,L,x,dt);
   retireStep(w,x,dt);
-  softBackdropStep(w,L,x,dt);
+  // A section that asks for a soft backdrop (`softBackdrop: <texel radius>`)
+  // has its far scenery drawn through citadel-depth.js's blur; the others
+  // keep the single pass. The radius eases between sections so the distance
+  // blurs and sharpens over a second rather than flipping at a border
+  // (citadel-depth.js treats anything under a twentieth of a texel as off).
+  {
+    const target=dreamVisual(dreamSectionAt(L,x)?.key)?.softBackdrop??0,k=w.dreamSoftness??target;
+    const next=w.reducedMotion?target:k+(target-k)*(1-Math.exp(-dt*2.5));
+    w.dreamSoftness=next<.05?0:next;
+  }
   if(!w.reducedMotion)for(const s of w.dreamSwirls||[])s.mesh.rotation.z+=dt*s.speed;
   animateDreamViews(w,game,dt);
   ctx.playerX=x;ctx.time=game.time;ctx.reducedMotion=!!w.reducedMotion;

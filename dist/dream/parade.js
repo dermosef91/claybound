@@ -544,12 +544,13 @@ export default {
     // With the models loaded it is a lollipop: the candy column stands under
     // it with its bow and smiley medallion at the disc's centre, in front of
     // the ribbons, and a pink knob of clay peeks over the disc's top. Only the
-    // disc turns. At their layers' rates the sun, towers, bunting, spires,
-    // balloons and hills would trail into the Colour River's frame — which has
-    // a sky of its own — so every piece retires once the player has left the
-    // parade (layers.place's `until`) and rises again on the way back.
-    const retire={until:x0+section.length};
-    const sun=layers.place(sky,x0+46,6.5,-36,retire);sun.name='Spiral sun';
+    // disc turns.
+    // Everything up here is placed `until` the section's end: at the slow
+    // layers' rates the sun, towers and bunting would otherwise trail into the
+    // Colour River's frame for that whole section, and the river brings a sky
+    // of its own.
+    const until=x0+section.length+2;
+    const sun=layers.place(sky,x0+46,6.5,-36,{until});sun.name='Spiral sun';
     const disc=group(sun,'Spiral disc',0,0,dressed?-1.8:0);
     for(const [k,mat] of [[0,lemon(w)],[1,bubblegumGlow(w)]]){
       const pts=[];for(let i=0;i<=90;i++){const a=i/90*Math.PI*2*2.4+(k?Math.PI:0),r=.5+i/90*3.6;pts.push(new THREE.Vector3(Math.cos(a)*r,Math.sin(a)*r,0));}
@@ -563,26 +564,26 @@ export default {
     // Lilac hills along the whole section, in the palette's own backdrop
     // colours — what the placeholder's blobs gave, now the parade's to keep.
     for(let i=0;i<8;i++){
-      const g=layers.place(far,x0-40+i*25,-1.5,-50,retire);g.name='Parade hill';
+      const g=layers.place(far,x0-40+i*25,-1.5,-50,{until});g.name='Parade hill';
       w.ball(7+rand(i+70)*4,3.5+rand(i+71)*1.5,4,i%2?'back':'back2',g,0,0,0);
     }
     if(!dressed)return;
     // The smiling sun, high and to the left, soft in the haze.
-    dreamSun(w,layers.place(haze,x0-42,6.2,-30,retire),5.5);
+    dreamSun(w,layers.place(haze,x0-42,6.2,-30,{until}),5.5);
     // Two banner towers at the edges of the bridge's frame, with two strings of
     // bunting slung between them — merged, so each string is a handful of
     // draws — and three more posts far off as the carnival's spires. The
     // strings hang low enough to clear the bridge's hats.
     const towers=[[2,14],[68,14]];
-    for(const [dx,h] of towers){const g=layers.place(mid,x0+dx,-4,-18,retire);g.name='Banner tower';dreamCane(w,g,h);}
-    const strings=layers.place(mid,x0+35,0,-18,retire),half=(towers[1][0]-towers[0][0])/2*.3;strings.name='Tower bunting';
+    for(const [dx,h] of towers){const g=layers.place(mid,x0+dx,-4,-18,{until});g.name='Banner tower';dreamCane(w,g,h);}
+    const strings=layers.place(mid,x0+35,0,-18,{until}),half=(towers[1][0]-towers[0][0])/2*.3;strings.name='Tower bunting';
     bunting(w,strings,[-half,2.4,0],[half,2.4,0],14,0,{size:1.6,sag:.1});
     bunting(w,strings,[-half,4.2,0],[half,.6,0],12,2,{size:1.5,sag:.07});
     bakeStatic(w,strings);
-    for(const [dx,h] of [[-20,5],[14,5.5],[80,5]]){const g=layers.place(far,x0+dx,-3,-46,retire);g.name='Far spire';dreamCane(w,g,h);}
+    for(const [dx,h] of [[-20,5],[14,5.5],[80,5]]){const g=layers.place(far,x0+dx,-3,-46,{until});g.name='Far spire';dreamCane(w,g,h);}
     // Balloons drifting high over the parade, bobbing a little.
     for(const [i,[dx,y]] of [[8,9],[40,11],[52,10],[70,12]].entries()){
-      const g=layers.place(drift,x0+dx,y,-30,retire);g.name='Balloon';
+      const g=layers.place(drift,x0+dx,y,-30,{until});g.name='Balloon';
       const b=group(g,'Balloon body');
       w.ball(.5,.6,.5,[carnival.pink,carnival.lemon,carnival.purple][i%3](w),b,0,0,0).name='Balloon skin';
       w.ball(.1,.08,.1,carnival.cream(w),b,0,-.62,0).name='Balloon knot';
