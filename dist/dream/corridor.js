@@ -373,22 +373,36 @@ export default {
   backdrop(w,L,section,layers){
     const near=layers.at(.45),far=layers.at(.22);
     if(!w.dreamAssets?.cavern)return this.placeholderBackdrop(w,L,section,layers);
-    // Near rank: 26 across on a 21-unit pitch and alternately high and low.
-    // The pitch is wider than it needs to be on purpose — the ragged gaps the
+    // Near rank: four slabs about 52 across, alternately high and low. They
+    // are spaced wider than they need to be on purpose — the ragged gaps the
     // copies leave are the point, because the pale sky behind them is what
     // reads as a lit tunnel mouth. Covering the frame edge to edge was the
     // first thing tried and it flattened the whole backdrop into wallpaper.
+    //
+    // Both ranks stop short of the corridor's exit. They ran 25 units past it
+    // at first, and the Colour River then opened on this crimson wall instead
+    // of its own pillars and pink hills — a section's backdrop belongs to its
+    // section, and the river brings a whole sky of its own.
+    const last=section.x+section.length;
     for(let i=0;i<4;i++){
-      const x=section.x-16+i*30+rand(i+50)*4,y=(i%2?2.6:6.4)+rand(i+53)*2;
+      const x=Math.min(section.x-16+i*26+rand(i+50)*4,last-30),y=(i%2?2.6:6.4)+rand(i+53)*2;
       const g=layers.place(near,x,y,-30);g.name='Cavern wall';
       dreamCavern(w,g,52+rand(i+51)*12,{turn:(rand(i+52)-.5)*.5,flip:i%2===1});
     }
-    // Far rank: wider, higher and offset half a pitch, so it backs the near
-    // rank's gaps without closing them — depth behind the mouths, not a lid.
-    for(let i=0;i<3;i++){
-      const x=section.x-30+i*44+rand(i+60)*6,g=layers.place(far,x,9+rand(i+63)*3,-52);
+    // Far rank: higher and set back, backing the near rank's gaps without
+    // closing them — depth behind the mouths, not a lid.
+    //
+    // These are small on purpose. A parallax item sits at factor*(worldX −
+    // cameraX) on screen, so at .22 it only leaves frame once the camera is
+    // (halfWidth + halfView)/.22 away: the 84-wide slabs tried first were
+    // still filling the sky 200 units later, painting this crimson over the
+    // Colour River's own pillars and pink hills. Kept near 24 across, they
+    // fade out roughly where the corridor does.
+    for(let i=0;i<5;i++){
+      const x=Math.min(section.x-14+i*20+rand(i+60)*4,last-16);
+      const g=layers.place(far,x,7+rand(i+63)*3,-52);
       g.name='Cavern deep';
-      dreamCavern(w,g,84+rand(i+61)*16,{turn:(rand(i+62)-.5)*.3,flip:i%2===0});
+      dreamCavern(w,g,22+rand(i+61)*6,{turn:(rand(i+62)-.5)*.3,flip:i%2===0});
     }
   },
   // The look before the cavern was supplied, kept for a rig that builds the

@@ -601,7 +601,7 @@ console.log('PASS the dome spin turns the supplied planet');
   {const {p,box}=placed(r=>dreamColumn(w,r,9,{reach:30}));assert(box.min.y<-29&&box.min.y>-32&&p.getObjectByName('Column stick')&&p.getObjectByName('Candy stripe'),`with a reach the stick runs on below the origin (to ${box.min.y.toFixed(2)})`);}
   console.log(`PASS the banner splits into valance and pennant, the column sheds its pedestal (stick ${(c.radius/c.size.y).toFixed(3)} of its height), and the five placements size and anchor as asked`);
 
-  const parade=MODULES.find(m=>m.key==='parade'),L=soloSection(parade),g=new Game();g.start(INDEX,L);
+  const parade=[...MODULES,...SHELVED].find(m=>m.key==='parade'),L=soloSection(parade),g=new Game();g.start(INDEX,L);
   const worm=g.level.platforms.find(p=>p.id==='parade-worm'),station=g.level.shaping.find(st=>st.id==='parade-worm');
   const cx=worm.shape.from.x+worm.shape.from.w/2;
   w.build(g.level,INDEX,cx);w.syncVisible(g.level,cx,true);g.player.x=cx;animateDream(w,g,0);w.scene.updateMatrixWorld(true);
