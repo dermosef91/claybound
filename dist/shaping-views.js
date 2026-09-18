@@ -3,6 +3,7 @@ import {rampProfile} from './shaping.js';
 import {clayMaterial} from './clay.js';
 import {GIVE,giveDepth} from './clay-give.js';
 import {FORM,formHeight} from './clay-form.js';
+import {biteOutline,biteSeed} from './rot-shape.js';
 // Keep vertices across the broad faces, so curved collision profiles also
 // curve between the corners. Corner-only rounded boxes leave a flat centre.
 function roundedGrid(radius){
@@ -337,8 +338,12 @@ function animateHealView(view,s){
   clay.flash.visible=f>0;clay.flash.material.opacity=.92*f;
   if(heal>=HEAL_FLASH*.5){
     if(!clay.patch){
+      // The whole bite the rot ate, ragged wall and all, filled with the
+      // bench's clay and capped like the bench beside it.
       clay.patch=new THREE.Group();clay.patch.name='Mended corner';view.root.add(clay.patch);
-      w.box(s.w+.02,H+.1,D-.18,'terrain',clay.patch,s.w/2,-H/2-.05,-.035,.2);
+      const outline=biteOutline(s.w,H,biteSeed(s)),shape=new THREE.Shape(outline.map(([x,y])=>new THREE.Vector2(x,y))),depth=D-.16;
+      const body=w.mesh(new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelThickness:.05,bevelSize:.05,bevelSegments:2}),'terrain',clay.patch,0,0,-depth/2);
+      body.name='Mended clay';
       w.box(s.w+.06,.55,D+.01,'top',clay.patch,s.w/2,-.22,0,.19);
     }
     clay.patch.visible=true;mesh.visible=false;

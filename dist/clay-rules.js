@@ -12,7 +12,7 @@ import {clampShape} from './shaping.js';
 import {GIVE,createGive,pressGive,kickGive,holdUnder,stepGive,giveDepth,giveVelocity,giveShare} from './clay-give.js';
 import {FORM,MOULD,createForm,resetForm,formHeight,formShare,pullForm,pressForm,pokeForm,sagForm,stepForm,beginForm,easeForm,mouldProfile,mouldClump,mouldFit,formMatch} from './clay-form.js';
 import {createMarble,resetMarble,stepMarble,stepRockFall} from './clay-marble.js';
-import {initPush,resetPush,stepPush} from './clay-push.js';
+import {PUSH,initPush,resetPush,stepPush} from './clay-push.js';
 import {wallBox} from './cavern-machines.js';
 // The fixed tick, the same as simulation.js's FIXED_DT; named here so the
 // solver below needs nothing from the simulation.
@@ -315,6 +315,9 @@ export function applyRule(game,station,dt,{near=false}={}){
     // lump it was seated as.
     if(station.fix){
       if(station.done&&!station.sealed)sealFix(station,s,f);
+      // A seated lump settling into its bulge passes near the mould on the
+      // way; the outline reads the bulge it is settling into, not the pass.
+      if(station.fix.phase==='settling')s.mouldMatch=Math.min(share,station.fix.match0??share);
       share=fixShare(station,share);
     }
     station.open=Math.min(1,Math.max(0,station.open+(station.done?dt:-dt)*CHASE));
@@ -342,10 +345,11 @@ function initFix(station,s,L){
   // The mass keeps its view — its outline is drawn from it — and hides only
   // its body while it is dormant; `active` alone takes its collision away.
   s.active=false;s.outline=true;s.fixPhase='rot';s.heal=0;s.sealed=false;
-  // The block wears the same lump: its own heightfield, never worked, so it
+  // The block wears a lump of its own — squared off, if the station says so —
+  // holding the gap's volume exactly: its own heightfield, never worked, so it
   // stands, walks and draws as the very clay that will fill the gap.
   const block=fix.blockPlatform;
-  if(block){block.form=mouldFit(s.form,station.clump,station.cast);block.clayRole='mass';initPush(block);}
+  if(block){block.form=mouldFit(s.form,fix.blockClump||station.clump,station.cast);block.clayRole='mass';initPush(block);}
 }
 // Whether the station's clay takes work right now: a plain form always, a plug
 // only while it is seated and uncast.
@@ -369,13 +373,23 @@ function stepFix(game,station,s,dt){
       else if(t==='lock'){station.kneadPending=true;game.event('push-lock',at);}
       else if(t==='locked'){
         // The plug is seated: from here the mass stands in the block's place,
-        // as the lump the block was, and takes hands, boots and stomps.
-        fix.phase='shaping';s.active=true;resetForm(s.form);
+        // as the very lump the block was, and settles — a lump squeezed into a
+        // hole bulges — into its own clump before it takes hands, boots and stomps.
+        fix.phase='settling';fix.settleT=0;s.active=true;resetForm(s.form);
+        fix.seatFrom=Float64Array.from(block.form?block.form.rest:s.form.rest);
+        s.form.h.set(fix.seatFrom);s.form.prev.set(fix.seatFrom);s.form.version++;
         station.kneadPending=true;
         game.event('push-locked',{...at,y:s.y});
         game.event('land',{x:s.x+s.w/2,y:s.y,strong:true,impact:8,platformId:s.id});
       }
     }
+  }
+  if(fix.phase==='settling'){
+    const f=s.form,from=fix.seatFrom,u=Math.min(1,(fix.settleT+=dt)/PUSH.settle),k=u*u*(3-2*u);
+    // Between two legal shapes of one volume every step of the way is legal too.
+    for(let i=0;i<f.n;i++)f.h[i]=from[i]+(f.rest[i]-from[i])*k;
+    f.version++;
+    if(u>=1){f.h.set(f.rest);fix.phase='shaping';station.kneadPending=true;}
   }
   s.fixPhase=fix.phase;
   return fix.phase==='shaping';
@@ -391,7 +405,7 @@ function sealFix(station,s,f){
 function fixShare(station,match){
   const phase=station.fix.phase;
   if(phase==='rot')return 0;
-  if(phase==='open')return .2;
+  if(phase==='open'||phase==='settling')return .2;
   const m0=station.fix.match0??0,k=Math.min(1,Math.max(0,(match-m0)/Math.max(1e-6,1-m0)));
   return .2+.79*k;
 }

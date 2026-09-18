@@ -76,7 +76,7 @@ review(async({page,url,errors,requests:badRequests})=>{
  await goTo('fix',null);
  await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='fix'),rot=st.fix.rotPlatform;Object.assign(g.player,{x:rot.x+rot.w/2,y:rot.y+2.5,vx:0,vy:-24,groundId:null,stomping:true});pt.step(6);pt.step(70);Object.assign(g.player,{x:rot.x-1.2,y:0,vx:0,vy:0,groundId:null});pt.step(12);});
  await shot('11-fix-open');
- await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='fix'),block=st.fix.blockPlatform,s=g.level.platforms.find(q=>q.id==='fix-mass');block.x=s.x-.5;block.prevX=block.x;Object.assign(g.player,{x:block.x-.6,y:0,vx:0,vy:0,groundId:null});pt.step(80);});
+ await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='fix'),block=st.fix.blockPlatform,s=g.level.platforms.find(q=>q.id==='fix-mass');block.x=s.x-.5;block.prevX=block.x;Object.assign(g.player,{x:block.x-.6,y:0,vx:0,vy:0,groundId:null});pt.step(170);});
  await shot('11-fix-seated');
  await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='fix'),s=g.level.platforms.find(q=>q.id==='fix-mass');s.form.h.set(st.cast);s.form.version++;pt.step(30);});
  await shot('11-fix-flash');

@@ -16,9 +16,10 @@ export const PUSH=Object.freeze({
   // Seconds the reaction takes, seconds it is gone, and how long the pop of
   // its return is read.
   dissolve:.5,gone:.8,pop:.35,
-  // The share of its footprint over the open gap that drops it in, and how
-  // long the drop takes.
-  lock:.7,drop:.3,
+  // The share of its footprint over the open gap that drops it in, how long
+  // the drop takes, and how long the seated lump takes to settle into the
+  // bulge a lump squeezed into a hole makes.
+  lock:.7,drop:.3,settle:.7,
 });
 
 export const overlap=(ax,aw,bx,bw)=>Math.max(0,Math.min(ax+aw,bx+bw)-Math.max(ax,bx));
@@ -36,7 +37,11 @@ export function resetPush(s){s.x=s.baseX;s.y=s.baseY;s.prevX=s.x;s.prevY=s.y;ini
 // sweep runs into the block's face, the block goes ahead by up to `speed·dt`,
 // and no further than the first wall in its way; the player is then resolved
 // against the moved face by the passes that follow. Returns how far it went.
+// `pushContact` is left on the block: the way the walker leant on it this
+// tick, +1 from the left, -1 from the right, 0 for not at all — a lean against
+// a block a wall has stopped is still a push, to the walker's shoulders.
 export function resolvePush(s,p,{prevX,radius,height,dt,walls=[]}){
+  s.pushContact=0;
   if(s.active===false||s.pushPhase!=='free')return 0;
   const base=s.y-s.h;
   if(!(p.y<s.y-.12&&p.y+height>base+.12))return 0;
@@ -45,6 +50,7 @@ export function resolvePush(s,p,{prevX,radius,height,dt,walls=[]}){
   if(prevX<=left&&p.x>left)want=p.x-left;
   else if(prevX>=right&&p.x<right)want=p.x-right;
   else return 0;
+  s.pushContact=Math.sign(want);
   let dx=Math.sign(want)*Math.min(Math.abs(want),PUSH.speed*dt);
   for(const b of walls){
     if(!(b.top>base+1e-6&&b.bottom<s.y-1e-6))continue;

@@ -135,16 +135,19 @@ const platforms=[
   // and cast, it is the corner again, stone, and the jump is on. Pushed onto
   // the rot while it still stands, the block reacts with it, dissolves, and
   // comes back to the dock. The pit is real: the corner is the only way over.
-  // The block is a lump the player can hop onto — its crest is under a jump —
-  // so it can be got behind from either side; its stop is the wall at the
-  // dock's end. The gap is a step and a half deep: shallow enough that a jump
-  // from its floor never reaches the far bench, deep enough to be a fall.
-  bench('fix-dock',350,12,0,{checkpoint:352}),
+  // The block is a squared-off lump the player can hop onto — its top is under
+  // a jump — so it can be got behind from either side; its stop is the wall at
+  // the dock's end. The gap is a good step deeper than the player is tall,
+  // shallow enough to jump out of, too deep for a jump from its floor to reach
+  // the far bench. The dock's last column is its own piece, carved around the
+  // bite the rot has eaten into it (`carve` names the rot).
+  bench('fix-dock',350,9.6,0,{checkpoint:352}),
   p('fix-stop',350,.5,.9,'wall',{h:.9}),
-  p('fix-block',354,3.2,1.5,'stone',{push:true,h:1.5}),
-  bench('fix-floor',362,3.2,-1.5),
-  p('fix-rot',362,3.2,0,'crumble',{h:1.5,rot:true,delay:.12}),
-  part('fix-mass',{x:362,w:3.2,y:0,h:1.5},{x:362,w:3.2,y:0,h:1.5},{station:'fix',clayRole:'mass'}),
+  p('fix-block',354,3.2,2.3,'stone',{push:true,h:2.3}),
+  bench('fix-corner',359.6,2.4,0,{carve:'fix-rot'}),
+  bench('fix-floor',362,3.2,-2.3),
+  p('fix-rot',362,3.2,0,'crumble',{h:2.3,rot:true,delay:.12}),
+  part('fix-mass',{x:362,w:3.2,y:0,h:2.3},{x:362,w:3.2,y:0,h:2.3},{station:'fix',clayRole:'mass'}),
   bench('fix-exit',371.2,8.8,0,{checkpoint:374}),
 
   // The bell sits on the bench, so a lap of the lab ends like a chapter does.
@@ -220,13 +223,14 @@ const shaping=[
    marble:{x:2.4,socket:[17,19]},channel:'marble-home',message:'The marble is home · the lift is running',
    hint:'The marble sits in the near hollow; its socket is the ringed hollow at the far end. Only the clay moves it: pull the ground up under it and lean it, hold E behind it, or stomp just ahead so it rolls into your crater. Seat it and the lift starts running. Volume is kept; it slumps back when left. R resets the marble too.'},
   // The plug: the mass is the gap the rot leaves, dormant until the block has
-  // dropped in, and then the block's rounded silhouette as a clump — fitted to
-  // hold exactly the gap's volume, so shaped flat to the mould it is the
-  // corner, and nothing is left over. `fix` names the rot, the block and the
-  // gap's floor; the mould is the flat top the corner had.
+  // dropped in. The block wears `blockClump`, a squared-off lump; seated, it
+  // settles into `clump`, the bulge a lump squeezed into a hole makes — both
+  // fitted to hold exactly the gap's volume, so shaped flat to the mould it is
+  // the corner, and nothing is left over. `fix` names the rot, the block and
+  // the gap's floor; the mould is the flat top the corner had.
   {id:'fix',rule:'form',icon:'stairs',name:'Fix the structure',verb:'Stomp, push, cast',gesture:'down',
    parts:['fix-mass'],x:350,end:380,spawn:{x:352,y:0,groundId:'fix-dock'},relax:false,
-   fix:{rot:'fix-rot',block:'fix-block',floor:'fix-floor'},
+   fix:{rot:'fix-rot',block:'fix-block',floor:'fix-floor',blockClump:[[0,-.5],[.11,.1],[.89,.1],[1,-.5]]},
    mould:[[0,0],[1,0]],clump:[[0,-1.8],[.2,.1],[.4,.7],[.6,.7],[.8,.1],[1,-1.8]],
    channel:'fix-repaired',message:'Repaired · the corner holds',
    hint:'The grey corner is rotten: it drops whoever stands on it. Stomp it once to clear it; the pale line is the missing piece. Walk into the purple block to push it over the gap; seated there, shape it to the line — drag, hold E, stomp — and the corner mends. Pushed onto the rot it dissolves, and comes back. R resets all of it.'},

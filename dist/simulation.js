@@ -367,6 +367,9 @@ export class Game {
     // A block that is pushed: a grounded walk that runs into its face carries
     // it ahead by a walk's third, as far as the first wall in its way. The
     // passes below then set the walker against the face where it now stands.
+    // `pushing` is the way the walker leans on a block this tick, for the
+    // character's pose: pushing right, pushing left, or not at all.
+    p.pushing=0;
     if(oldGround&&!p.stomping)for(const s of L.platforms)if(s.push&&s.active!==false){
       const walls=[];
       for(const q of L.platforms){
@@ -375,6 +378,7 @@ export class Game {
         if(solidWall(q)&&!q.push)walls.push({x:q.x,w:q.w,top:q.y,bottom:q.y-solidDepth(q)});
       }
       resolvePush(s,p,{prevX,radius:RULES.radius,height:RULES.height,dt,walls});
+      if(s.pushContact)p.pushing=s.pushContact;
     }
     // Wall blocks occupy their full rectangle. Resolve horizontal travel
     // against the previous height, then stop rising heads at the underside.
