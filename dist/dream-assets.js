@@ -319,8 +319,9 @@ export function dreamArch(w,parent,{height}){
 }
 // The corridor's eyeball under `parent`, `radius` across its fitted sphere,
 // that sphere's centre on the parent's origin. Returns {root,gaze}: `gaze` is
-// a group on that centre whose +z is the direction the painted pupil looks, so
-// turning it aims the eye and nothing inside it needs touching. Unlike every
+// a group on that centre, so turning it aims the eye and nothing inside it
+// needs touching — the painted pupil leaves along its +z, give or take the
+// 4.6° EYEBALL notes the bake left it off the model's own axis. Unlike every
 // other eye in the chapter the pupil is not a mesh — it is in the colour map —
 // which is why this hands back no `pupil` and no `lid`: the socket the corridor
 // builds round it does the blinking.
