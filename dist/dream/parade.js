@@ -544,8 +544,10 @@ export default {
     // With the models loaded it is a lollipop: the candy column stands under
     // it with its bow and smiley medallion at the disc's centre, in front of
     // the ribbons, and a pink knob of clay peeks over the disc's top. Only the
-    // disc turns.
-    const sun=layers.place(sky,x0+46,6.5,-36);sun.name='Spiral sun';
+    // disc turns. At the sky layer's rate the sun would trail into the Colour
+    // River's frame for its whole length, so it retires once the player has
+    // left the parade (layers.place's `until`) and rises again on the way back.
+    const sun=layers.place(sky,x0+46,6.5,-36,{until:x0+section.length});sun.name='Spiral sun';
     const disc=group(sun,'Spiral disc',0,0,dressed?-1.8:0);
     for(const [k,mat] of [[0,lemon(w)],[1,bubblegumGlow(w)]]){
       const pts=[];for(let i=0;i<=90;i++){const a=i/90*Math.PI*2*2.4+(k?Math.PI:0),r=.5+i/90*3.6;pts.push(new THREE.Vector3(Math.cos(a)*r,Math.sin(a)*r,0));}

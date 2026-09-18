@@ -69,6 +69,11 @@ const SPOTS={
  'parade-stack':{x:367,y:8.2,ground:'parade-head',cameraX:369.3,cameraY:13.5,ticks:120},
  'parade-pulled':{x:367,y:8.2,ground:'parade-head',ticks:120,shaped:['parade-worm']},
  'river':{x:416,y:0,ground:'river-entry',ticks:120},
+ // The two frames the river's look is judged on (docs/river-look/reference-*):
+ // over the first yellow river with the entry aqueduct behind, and in the blue
+ // loop at the top of the yellow ribbon beside the crossing's flag.
+ 'river-a':{x:426.5,y:.4,ground:'river-yellow-1',cameraX:427,cameraY:3.6,ticks:120},
+ 'river-b':{x:470.3,y:12.4,cameraX:473,cameraY:9.6,ticks:120},
  'room':{x:496,y:0,ground:'room-entry',ticks:120},
  'knot':{x:616,y:0,ground:'knot-entry',ticks:120},
  'knot-climb':{x:652,y:4,ground:'knot-ledge-b',ticks:120},
@@ -175,7 +180,7 @@ async function serve(){
     playtest.draw(0);
     let lights=0,transparent=0,meshes=0;
     w.scene.traverse(o=>{if(o.isLight&&o.visible&&o.intensity>0)lights++;if(o.isMesh&&o.visible&&o.material?.transparent)transparent++;if(o.isMesh)meshes++;});
-    const palette=w.dreamPalette?Object.fromEntries(Object.entries(w.dreamPalette).map(([k,c])=>[k,'#'+c.getHexString()])):null;
+    const palette=w.dreamPalette?Object.fromEntries(Object.entries(w.dreamPalette).map(([k,c])=>[k,c?.isColor?'#'+c.getHexString():c])):null;
     const creatures=spot.creatures?g.level.enemies.filter(e=>Math.abs(e.x-spot.x)<30).map(e=>`${e.kind}@${e.x.toFixed(1)},${e.y}${e.alive?'':' dead'}${w.enemyViews?.get(e.id)?.model?' model':''}`):undefined;
     return {spot:spot.name,x:spot.x,cameraX:w.cameraX,cameraY:w.cameraY,viewW:w.viewW,viewH:w.viewH,roll:w.dreamRoll||0,palette,calls,triangles,geometries:info.memory.geometries,textures:info.memory.textures,programs:info.programs.length,frameMs:frames[30],frameMsP90:frames[54],lights,transparentMeshes:transparent,sceneMeshes:meshes,creatures};
    },spot);
