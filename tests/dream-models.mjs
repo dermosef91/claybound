@@ -30,7 +30,8 @@ import {createCaveLights} from '../dist/cave-lighting.js';
 import {animateDreamViews} from '../dist/dream-views.js';
 import {animateDream} from '../dist/dream.js';
 import paradeVisual,{HAT_WIDTHS,HAT_NEST,GIRAFFE_WITHERS,GIRAFFE_LEAVE,VALANCE_TILES} from '../dist/dream/parade.js';
-import {DREAM_FILES,PLANET_ORBS,dreamPlanet,dreamSaucer,dreamSculpture,dreamHat,dreamHatHeight,dreamCaterpillar,dreamGiraffe,skinnedBox,dreamColumn,dreamCane,dreamSun,dreamValance,dreamBanner,COLUMN_MEDALLION} from '../dist/dream-assets.js';
+import {DREAM_FILES,PLANET_ORBS,EYEBALL,dreamPlanet,dreamSaucer,dreamSculpture,dreamHat,dreamHatHeight,dreamCaterpillar,dreamGiraffe,skinnedBox,dreamColumn,dreamCane,dreamSun,dreamValance,dreamBanner,dreamEyeball,COLUMN_MEDALLION} from '../dist/dream-assets.js';
+import {SOCKET,GAZE} from '../dist/dream/corridor.js';
 import {updateShaping} from '../dist/shaping.js';
 import {CATERPILLAR_RIG,CATERPILLAR_HEAD,GIRAFFE_BONES,GIRAFFE_POSE} from '../dist/dream-rigs.js';
 import {HATWORM_COLOURS} from '../dist/dream-enemies.js';
@@ -90,7 +91,14 @@ for(const [key,file]of Object.entries(DREAM_FILES)){
     if(!o.isMesh)return;meshes++;triangles+=(o.geometry.index?.count??o.geometry.attributes.position.count)/3;
     assert(o.material.map,file+' keeps its colour map');assert(o.castShadow&&o.receiveShadow);
     assert(bare.assetGeometry.has(o.geometry)&&bare.assetMaterials.has(o.material),'retained across level rebuilds');
-    if(key==='hat')assert(!o.material.roughnessMap&&!o.material.metalnessMap,'the hat has no roughness map to make it the one glossy prop');
+    // The three models whose metallic-roughness map was left out of the
+    // shipped file: a roughness map multiplies the roughness clayMaterials has
+    // just pinned, so shipping one would make that model the one glossy prop.
+    if(key==='hat'||key==='arch'||key==='eyeball')assert(!o.material.roughnessMap&&!o.material.metalnessMap,file+' has no roughness map to make it the one glossy prop');
+    // The eyeball is a closed ball pressed into clay; its inside is never the
+    // near face, and drawing it would let the dark cap the bake mirrored onto
+    // its back show through any hairline at the socket's rim.
+    if(key==='eyeball')assert.equal(o.material.side,THREE.FrontSide,'the eyeball draws front faces only');
     // The two creatures are skinned — the giraffe as it arrived, the
     // caterpillar by dream-rigs.js at load — and never frustum-culled.
     assert.equal(!!o.isSkinnedMesh,key==='caterpillar'||key==='giraffe',file+(o.isSkinnedMesh?' is skinned':' is a plain mesh'));
@@ -119,6 +127,31 @@ for(const [key,orb]of Object.entries(PLANET_ORBS)){
   assert(pts.some(p=>p.distanceTo(seed)>orb.radius*1.25),key+' has sprouts beyond the orb');
 }
 console.log('PASS both planets\' core orbs re-fit from the shipped vertices to within 1% of PLANET_ORBS');
+
+// --- 2b. the corridor's eyeball is the sphere EYEBALL says it is ---------------------------
+// No modal-radius trick and no sprouts to reject here: the upload IS a ball,
+// and that is the point — the corridor turns it to aim a pupil painted on it,
+// so a re-export that dented it would swing the silhouette about as it looked
+// around. A plain fit over every vertex, with the worst residual held under 5%.
+{
+  const pts=vertices(bare.dreamAssets.eyeball.scene),fit=fitSphere(pts);
+  const want=new THREE.Vector3(...EYEBALL.centre);
+  assert(fit.center.distanceTo(want)<EYEBALL.radius*.01,`the eyeball's fitted centre ${fit.center.toArray().map(v=>v.toFixed(4))} is where EYEBALL says (${EYEBALL.centre})`);
+  assert(near(fit.radius,EYEBALL.radius,EYEBALL.radius*.01),`the eyeball's fitted radius ${fit.radius.toFixed(4)} is EYEBALL's ${EYEBALL.radius}`);
+  let worst=0;for(const p of pts)worst=Math.max(worst,Math.abs(p.distanceTo(fit.center)-fit.radius));
+  assert(worst<EYEBALL.radius*.05,`the eyeball is a ball to turn, not a lump (worst residual ${worst.toFixed(4)})`);
+  // The painted pupil cannot be re-measured here — that needs the colour JPEG
+  // decoded, which Node will not do unaided — so what is pinned instead is the
+  // two maps that shipped and the cone the corridor turns the ball inside. The
+  // bake mirrored a second dark cap of about 22° onto the ball's back, so it
+  // reaches the silhouette at 90° − 22° = 68° of turn: widen GAZE past that in
+  // some later visual pass and a black disc slides onto the ball's edge, which
+  // is exactly the failure nobody catches by eye.
+  assert.equal(manifest['dream-eyeball.glb'].textures.length,2,'the eyeball ships its colour and normal maps only');
+  const cone=Math.atan(Math.hypot(GAZE.x,GAZE.y))*180/Math.PI;
+  assert(cone<68,`the corridor turns the ball ${cone.toFixed(1)}° at most, inside the 68° that would bring the bake's mirrored back cap into view`);
+  console.log(`PASS the corridor's eyeball re-fits to r ${fit.radius.toFixed(4)} within 1% of EYEBALL, worst residual ${(worst/fit.radius*100).toFixed(1)}%; the gaze cone is ${cone.toFixed(1)}° of the 68° the mirrored back cap allows`);
+}
 
 // --- 3. placements: clones share resources, the orb sits on the origin, the bowl top on the plane, the sculpture's box on the origin
 {
@@ -625,4 +658,83 @@ console.log('PASS the dome spin turns the supplied planet');
   assert(paradeVisual.quietBackdrop===true,'the parade sinks the placeholder sky');
   let solid=0;w.levelRoot.traverse(o=>{if(o.isMesh&&!o.material.transparent){solid++;assert(o.material.userData.clay,`${o.name||'a mesh'} carries the clay surface`);}});
   console.log(`PASS the solo parade dresses the bridge (${VALANCE_TILES} tiles gathered under the coil, full when pulled), hangs the pennant on the plinth, stands the spiral sun on the column and fills the sky with 5 canes and the sun; ${solid} solid surfaces all clay`);
+}
+
+// --- 12. the Breathing Corridor's eyes ------------------------------------------------------
+// The supplied eyeball set into a socket of rolled folds. What matters, and
+// what no still frame proves on its own, is the ORDER in depth: the two lips
+// have to pass IN FRONT of the ball, or the eye goes back to being a sphere
+// stuck on a flat wall, which is the defect this replaced. So the lips are
+// measured against the ball's own front pole, at rest and shut, and the blink
+// is driven through the real animate hook rather than posed by hand.
+//
+// Everything is measured on a thin slab of x about the socket's middle: a lip
+// sweeps on across the stripes either side of the eye, where the opening has
+// closed and the two bands butt, so a bounding box over a whole lip says
+// nothing about the aperture it leaves over the ball.
+{
+  const corridor=MODULES.find(m=>m.key==='corridor'),L=soloSection(corridor),g=new Game();g.start(INDEX,L);
+  const entry=g.level.platforms.find(p=>p.id==='corridor-entry');assert(entry,'the solo corridor has its entry deck');
+  const cx=entry.x+6;
+  w.reducedMotion=false;w.build(g.level,INDEX,cx);w.syncVisible(g.level,cx,true);
+  g.player.x=cx;g.time=0;animateDream(w,g,0);w.scene.updateMatrixWorld(true);
+  const eyes=[];w.levelRoot.traverse(o=>{if(o.name==='Corridor eye')eyes.push(o);});
+  assert(eyes.length>=1,"at least one eye is streamed in at the corridor's mouth");
+  // Every eye is the supplied ball in its socket, and nothing of the cream ball
+  // and flat disc it replaced is left.
+  for(const e of eyes){
+    assert(e.getObjectByName('Supplied clay eyeball'),'the eye is the supplied model');
+    assert(!e.getObjectByName('Eyeball')&&!e.getObjectByName('Pupil'),'the sculpted ball and its pupil disc are gone');
+    for(const part of ['Eye socket','Eye brow','Eye lid upper','Eye lid lower'])assert(e.getObjectByName(part),part+' is in the socket');
+  }
+  const eye=eyes.sort((a,b)=>Math.abs(a.getWorldPosition(new THREE.Vector3()).x-cx)-Math.abs(b.getWorldPosition(new THREE.Vector3()).x-cx))[0];
+  const middle=eye.getWorldPosition(new THREE.Vector3()).x;
+  // min/max y and the frontmost z of a named part, over the vertices lying
+  // within `slab` of the socket's middle in x.
+  const at=(name,slab=.12)=>{
+    const o=eye.getObjectByName(name);assert(o,name+' is in the socket');
+    const v=new THREE.Vector3();let lo=Infinity,hi=-Infinity,front=-Infinity;
+    o.updateMatrixWorld(true);
+    o.traverse(m=>{
+      if(!m.isMesh)return;const pos=m.geometry.attributes.position;
+      for(let i=0;i<pos.count;i++){
+        v.fromBufferAttribute(pos,i).applyMatrix4(m.matrixWorld);
+        if(Math.abs(v.x-middle)>slab)continue;
+        lo=Math.min(lo,v.y);hi=Math.max(hi,v.y);front=Math.max(front,v.z);
+      }
+    });
+    assert(Number.isFinite(lo),name+" has geometry over the socket's middle");
+    return {lo,hi,front};
+  };
+  const ball=at('Supplied clay eyeball'),r=(ball.hi-ball.lo)/2;
+  const upper=at('Eye lid upper'),lower=at('Eye lid lower');
+  assert(upper.front>ball.front&&lower.front>ball.front,
+    `both lips stand in front of the ball's front pole (upper ${upper.front.toFixed(2)}, lower ${lower.front.toFixed(2)} against ${ball.front.toFixed(2)})`);
+  // w.mesh sculpts a fresh ribbon by up to .06 world units, so the margin has
+  // to be comfortably more than that or the sculpt could open a crack between
+  // a lip and the ball.
+  assert(Math.min(upper.front,lower.front)-ball.front>.12,
+    `and by more than the clay sculpt's own wander (${(Math.min(upper.front,lower.front)-ball.front).toFixed(2)})`);
+  // The lips really cut across the ball: what shows between their inner edges
+  // is an almond well short of the ball's full height.
+  const aperture=upper.lo-lower.hi;
+  assert(aperture>0&&aperture<2*r*.95,`the socket shows an almond, not the whole ball (${aperture.toFixed(2)} of ${(2*r).toFixed(2)})`);
+  // The blink, through animate(): somewhere in the cycle the lips must meet,
+  // and at that moment they must still be in front of the ball, or a shut eye
+  // would show the ball through its own lids.
+  const lids=[eye.getObjectByName('Eye lid upper'),eye.getObjectByName('Eye lid lower')];
+  let shut=Infinity,covered=0;
+  for(let i=0;i<900;i++){
+    g.time+=1/60;animateDream(w,g,1/60);w.scene.updateMatrixWorld(true);
+    const u=at('Eye lid upper'),d=at('Eye lid lower'),gap=u.lo-d.hi;
+    if(gap<shut){shut=gap;covered=Math.min(u.front,d.front)-at('Supplied clay eyeball').front;}
+  }
+  assert(shut<=0,`the blink closes the socket (tightest gap ${shut.toFixed(2)})`);
+  assert(covered>0,`and a shut lid is still in front of the ball, so a closed eye is covered (${covered.toFixed(2)})`);
+  // Reduced motion: the ball looks straight ahead and the lips stay open.
+  w.reducedMotion=true;g.time+=1/60;animateDream(w,g,1/60);w.scene.updateMatrixWorld(true);
+  assert(eye.getObjectByName('Eyeball gaze').quaternion.angleTo(new THREE.Quaternion())<1e-6,'reduced motion holds the ball straight ahead');
+  assert(lids.every(l=>Math.abs(l.position.y)<1e-9),'and holds the lips open');
+  w.reducedMotion=false;
+  console.log(`PASS the corridor's ${eyes.length} streamed eyes are the supplied ball in a socket of folds: both lips ${(Math.min(upper.front,lower.front)-ball.front).toFixed(2)} in front of its front pole, an almond of ${aperture.toFixed(2)} of the ball's ${(2*r).toFixed(2)} showing, the blink closing to ${shut.toFixed(2)} still covered, reduced motion still`);
 }
