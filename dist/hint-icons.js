@@ -41,6 +41,8 @@ const ICONS={
   river:`<path d="M3 8.8q3-2.6 6 0t6 0 6 0"/><path d="M3 13.6q3-2.6 6 0t6 0 6 0"/><path d="M6.6 19h10.4"/><path d="M14.4 16.4l2.6 2.6-2.6 2.6"/>`,
   knot:`<path d="M12 4.4c-4.1 0-6.8 3.3-4.7 6.3 1.7 2.4 5.8 2.3 7.4 4.9 1.8 3-.9 5.9-4.3 5.7"/><path d="M12 4.4c4.1 0 6.8 3.3 4.7 6.3-1.7 2.4-5.8 2.3-7.4 4.9-1.8 3 .9 5.9 4.3 5.7"/>`,
   eye:`<path d="M2.6 12q9.4-9.6 18.8 0-9.4 9.6-18.8 0Z"/><circle cx="12" cy="12" r="3.3" ${solid}/>`,
+  // Steering the menus: a d-pad cross with a thumb in the middle.
+  menu:`<circle cx="12" cy="12" r="1.7" ${solid}/><path d="M12 3.4v5"/><path d="M9.6 5.8 12 3.4 14.4 5.8"/><path d="M12 20.6v-5"/><path d="M9.6 18.2 12 20.6 14.4 18.2"/><path d="M3.4 12h5"/><path d="M5.8 9.6 3.4 12 5.8 14.4"/><path d="M20.6 12h-5"/><path d="M18.2 9.6 20.6 12 18.2 14.4"/>`,
   // Goal, and the fallback for a hint that names no icon.
   bell:`<path d="M12 3.4a5.6 5.6 0 0 0-5.6 5.6c0 4.7-1.9 6.6-1.9 6.6h15s-1.9-1.9-1.9-6.6A5.6 5.6 0 0 0 12 3.4Z"/><path d="M10 18.2a2.1 2.1 0 0 0 4 0"/>`,
   spark:`<path d="M12 3.2 14.1 9.9 20.8 12 14.1 14.1 12 20.8 9.9 14.1 3.2 12 9.9 9.9Z"/>`

@@ -1,0 +1,24 @@
+{
+  "frames": [
+    {
+      "id": "apprentice",
+      "name": "right",
+      "facing": 1,
+      "viewH": 4.4
+    },
+    {
+      "id": "apprentice",
+      "name": "left",
+      "facing": -1,
+      "viewH": 4.4
+    },
+    {
+      "id": "apprentice",
+      "name": "feet",
+      "facing": 1,
+      "viewH": 1.64
+    }
+  ],
+  "errors": [],
+  "requests": []
+}

@@ -30,6 +30,14 @@
 }
 #game-shell button:is(.title-button,.primary,.secondary,.completion-button,.chapter-choice,.title-setting,.editor-primary,.editor-add,.touch-button):focus-visible {outline:3px solid #fff7e2;outline-offset:5px;}
 #game-shell button.completion-primary:focus-visible {outline:none;}
+/* A pad moves focus by script, which no browser counts as :focus-visible, and
+   the browsers disagree about script focus after a key. So while a menu is
+   being steered by keys or pad the body says so and the ring follows focus in
+   the menus only; a pointer press clears it, so a mouse sees nothing change.
+   The completion diorama opens without it (see openDialog) so its first frame
+   matches the target renders; the first press brings the cursor up. */
+body.menu-keys #game-shell :is(#dialog,#menu,#error) :is(button,input[type="range"]):focus {outline:3px solid #fff7e2;outline-offset:5px;}
+body.menu-keys #game-shell #dialog input[type="range"]:focus {outline-offset:4px;border-radius:999px;}
 @media(hover:hover) {
   #game-shell button:is(.title-button,.primary,.secondary,.completion-button,.chapter-choice,.title-setting,.editor-primary,.editor-add):hover:not(:disabled) {filter:brightness(1.06);transform:translateY(-1px);}
 }

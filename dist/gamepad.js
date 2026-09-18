@@ -11,6 +11,9 @@ export const BUTTONS = Object.freeze({
   jump: [0, 3],
   stomp: [1, 2, 7, 13],
   pause: [9, 8],
+  back: [1],          // B/circle: back in a menu, still a stomp in play
+  up: [12],
+  down: [13],
   left: [14],
   right: [15],
 });
@@ -29,6 +32,15 @@ const anyPressed = (pad, indices) => indices.some(index => pressed(pad, index));
 export function padAxis(pad) {
   const digital = Number(anyPressed(pad, BUTTONS.right)) - Number(anyPressed(pad, BUTTONS.left));
   return digital || stickAxis(pad.axes?.[0]);
+}
+
+// Which way a menu cursor should step: the d-pad first, then a stick pushed
+// past the dead zone. On a diagonal the vertical wins, since the menus are
+// mostly lists. Returns 'up' | 'down' | 'left' | 'right' | null.
+export function padDirection(pad) {
+  const y = Number(anyPressed(pad, BUTTONS.down)) - Number(anyPressed(pad, BUTTONS.up)) || Math.sign(stickAxis(pad.axes?.[1]));
+  const x = Number(anyPressed(pad, BUTTONS.right)) - Number(anyPressed(pad, BUTTONS.left)) || Math.sign(stickAxis(pad.axes?.[0]));
+  return y ? (y > 0 ? 'down' : 'up') : x ? (x > 0 ? 'right' : 'left') : null;
 }
 
 export class GamepadInput {
@@ -50,9 +62,10 @@ export class GamepadInput {
     const pads = this.pads();
     this.pad = pads[0] || null;
     const down = new Set();
-    let axis = 0;
+    let axis = 0, direction = null;
     for (const pad of pads) {
       axis = axis || padAxis(pad);
+      direction = direction || padDirection(pad);
       for (const [name, indices] of Object.entries(BUTTONS)) if (anyPressed(pad, indices)) down.add(name);
     }
     const edge = name => down.has(name) && !this.held.has(name);
@@ -63,6 +76,10 @@ export class GamepadInput {
       jumpPressed: edge('jump'),
       stompPressed: edge('stomp'),
       pausePressed: edge('pause'),
+      // For the menus: B as a fresh back press, and the way the cursor should
+      // step while a d-pad or stick is held (the frame loop paces the repeat).
+      backPressed: edge('back'),
+      direction,
     };
     this.held = down;
     this.axis = axis;

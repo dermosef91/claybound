@@ -1,0 +1,56 @@
+{
+  "setup": {
+    "character": "apprentice",
+    "declared": 0.06,
+    "height": 2.0469999999999997,
+    "materials": [
+      {
+        "bumpScale": 0.0288,
+        "clay": {
+          "type": "relief",
+          "period": 2.8,
+          "requestedDepth": 0.06,
+          "depth": 0.0288
+        },
+        "map": true,
+        "roughness": 0.94
+      }
+    ]
+  },
+  "frames": [
+    {
+      "name": "before",
+      "depth": 0.025
+    },
+    {
+      "name": "depth-025",
+      "depth": 0.025
+    },
+    {
+      "name": "depth-045",
+      "depth": 0.045
+    },
+    {
+      "name": "depth-060",
+      "depth": 0.06
+    },
+    {
+      "name": "depth-075",
+      "depth": 0.075
+    },
+    {
+      "name": "after",
+      "depth": 0.06
+    },
+    {
+      "name": "play-before",
+      "depth": 0.025
+    },
+    {
+      "name": "play-after",
+      "depth": 0.06
+    }
+  ],
+  "errors": [],
+  "requests": []
+}
