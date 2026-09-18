@@ -159,6 +159,9 @@ export function searchRoute(i,L,{source,flowers=FLOWERS}={}){
   if(station?.rule==='form'&&station.amount<1&&state.player.groundId){
    attempts++;const g=cloneGame(state),live=g.level.shaping.find(s=>s.id===station.id),inputs=[];
    for(const input of formSolutionInputs(g,live,{dt})){inputs.push(input);g.tick(dt,input);}
+   // A rock run is done when the rock is down, seconds after the last stroke:
+   // the pilot stands and watches it go, as a player would.
+   for(let f=0;live.ball&&live.amount<1&&f<1440;f++){const idle={moveAxis:0};inputs.push(idle);g.tick(dt,idle);}
    if(live.amount<1||g.deaths>state.deaths)return null;
    const rest=journey(g,li);return rest?{g:rest.g,parts:[inputs,...rest.parts]}:null;
   }

@@ -26,7 +26,7 @@ import {loadDreamAssets} from './dream-assets.js';
 import {loadSpitterAssets} from './spitter-asset.js';
 import {loadCavernAssets} from './cavern-asset.js';
 import {createCaveLights} from './cave-lighting.js';
-import {makeCanyonLift,makeCanyonZip,animateCanyonZip} from './canyon.js';
+import {makeCanyonLift,makeCanyonZip,animateCanyonZip,plankSpan,buildCanyonWall} from './canyon.js';
 import {greatArchLedge} from './great-arch.js';
 import {makeRopeBridge} from './rope-bridge.js';
 import {bridgeOffset} from './bridge-surface.js';
@@ -262,7 +262,9 @@ export class World {
     if(s.kind==='zip')return makeCanyonZip(this,s,g);
     if(s.kind==='balance')return balanceDeck(this,s,g);
     let ropes=[],springPad,fracture;
-    if(s.kind==='wall'){
+    if(s.kind==='wall'&&this.biome==='desert'&&!s.breathe){
+      buildCanyonWall(this,s,g);
+    } else if(s.kind==='wall'){
       const height=s.h??4;
       this.box(s.w,height,2,'terrain',g,s.w/2,-height/2,0,Math.min(.14,s.w/8,height/8));
     } else if(s.kind==='stone'){
@@ -289,6 +291,8 @@ export class World {
       forestBranch(this,s,g);
     } else if(s.kind==='break'&&this.biome==='forest'){
       forestSeal(this,s,g);
+    } else if(s.kind==='break'&&s.timber){
+      plankSpan(this,s,g);
     } else if(s.kind==='ledge'&&this.biome==='cave'){
       caveLedgeBody(this,s,g);
     } else {

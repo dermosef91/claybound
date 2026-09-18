@@ -1,4 +1,4 @@
-import {chapter,p,row,path} from '../route-authoring.js';
+import {chapter,p,row,path,makeRoom} from '../route-authoring.js';
 const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,to},...extra});
 // The chapter is built around a valley. The caravan starts on a plateau and
 // steps down off it; the sinking sandstone carries that descent to the canyon
@@ -22,13 +22,17 @@ const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,
 // crumble and a stub onto a wider bridge rather than two narrow banks. The
 // flower in the arch moved onto the crumbling steps that reach it.
 //
-// Coordinates are authored final: there is no `makeRoom` seam here, because
-// nothing is being opened up inside a finished chapter.
-const L={
-  layoutVersion:11,
+// Layout 12 opens the chapter up once after all: the Boulder Drop is a room
+// of its own between the arch's roof and the summit, so the summit, the
+// ropeway and the bell stand fifty units further on than they were authored.
+// Everything up to the arch keeps its final coordinates; the room itself is
+// authored final too, after the seam, the way the forest's Weaver's Gap is.
+const SEAM=270,GAP=50;
+const L=makeRoom({
+  layoutVersion:12,
   name:'The Sunbaked Canyon',short:'Sunbaked Canyon',label:'Riverbed & ropeway',biome:'desert',
   intro:'Down off the plateau to the clay riverbed, then up the long wall to the ropeway.',
-  sky:'#80afe0',fog:'#f1bba0',spawn:{x:1.5,y:13},end:354,previousDistance:1175,cameraY:2,
+  sky:'#80afe0',fog:'#f1bba0',spawn:{x:1.5,y:13},end:354,previousDistance:1342,cameraY:2,
   sections:[
     {x:-8,name:'The Caravan Steps',landmark:'arch'},
     {x:46,name:'The Sinking Shortcut',landmark:'sandwheel'},
@@ -127,7 +131,12 @@ const L={
     'windwell',['valve1','walk'],'wind-step','wind-crown','wind-exit','wind-gondola','rest-bank',
     'last-well',['valve2','walk'],'clay-1','sky-lift','sky2','sky-rest','sky-sand','sky-sand-copy-1',
     'clay-5',['arch-drop','walk'],['arch-entry','walk'],
-    'arch-shelf','clay-2-copy-1','arch-lift','arch-balcony','arch-roof','summit',
+    'arch-shelf','clay-2-copy-1','arch-lift','arch-balcony','arch-roof',
+    // The Boulder Drop: over the bridge to the mill, up the cracked ledges to
+    // the valve and back down, up the flank on the wind, across the pool once
+    // the boulder has gone, and down through the hole it left.
+    ['shelf-bridge','walk'],['boulder-plateau','walk'],'porous-1','porous-2','switch-perch',['valve3','walk'],['boulder-plateau','fall'],
+    'flank-1','flank-2','flank-3','boulder-mount',['boulder-pool','walk'],['cave-floor','fall'],['summit','walk'],
     ['zip-trolley','board'],['bell-roof','ride']],
   detours:[
     path(['wind-crown','wind-turn','well-flower','wind-turn','wind-crown','wind-exit']),
@@ -182,7 +191,7 @@ const L={
       touchText:'Step onto the trolley. Your weight sends it down the cable to the bell.'}
   ],
   guides:[{platformId:'wind-crown',offset:.55,dir:-1},{platformId:'arch-balcony',offset:.55,dir:-1},{platformId:'arch-balcony',offset:3.4,dir:1}]
-};
+},SEAM,GAP);
 
 // --- The Sandwright's Pocket ---------------------------------------------------
 // One mass of clay, formable the way the lab's lump is — no pose, only a surface
@@ -213,5 +222,75 @@ L.shaping.push(
 );
 L.hints.push(
   {x:92,end:118.4,icon:'knead',title:'Shape the clay',text:'Grab the violet clay and drag it. Lean the spire into a bridge, slump the lump into a ramp. Or hold E facing the clay to work it into steps; step off and press R to soften it.',touchText:'Grab the violet clay and drag it: lean the spire into a bridge, slump the lump into a ramp. Clay is ground; bare sand is not.'}
+);
+
+// --- The Boulder Drop ------------------------------------------------------------
+// The summit's cave is floored over with planks, and the only thing in the
+// chapter heavy enough to go through them is a boulder resting in a pool of
+// violet clay on the mesa above. Getting up there is the wind's business: a
+// valve at the end of two cracked ledges wakes a well over the mill, and the
+// well lifts the player up three ledges on the mesa's flank that no jump
+// reaches cold. On top, the clay is worked the way the pocket's was, except
+// that here it is the ground under the boulder that is raised and leaned
+// until the boulder rolls off the mesa's edge, drops on the planks, and opens
+// the cave. The player follows it down.
+//
+// The mesa is a stone ledge for the working stand and a wall body under the
+// pool, flush with the clay's base the way the pocket's floor is, so the pool
+// reads as clay sitting on rock. Its body stops at y44 so a jump off the valve
+// perch underneath it never meets its underside. The cave's floor begins where
+// the pillar ends, and the pillar stands beside its cliff rather than on it:
+// nothing left of the pillar stands at cave height, so the planks are the only
+// way in. A step between the pillar and the cracked ledges is the way back for
+// anyone who drops onto the planks before the boulder does.
+const B=(x,top)=>[Math.round((x-289)/20*1e6)/1e6,top];
+L.platforms.push(
+  p('shelf-bridge',269,7,33.2,'bridge'),
+  p('boulder-plateau',276,13,32.8,'stone',{checkpoint:280,landmark:'windmill',rest:true}),
+  // The valve: two cracked ledges up and a perch over the second.
+  p('porous-1',291.5,4.5,34.9,'crumble',{delay:1}),
+  p('porous-2',298.5,4.5,37,'crumble',{delay:1}),
+  p('switch-perch',292,5,39.1,'ledge'),
+  p('valve3',295.2,1.8,39.23,'switch',{channel:'wind-c',latch:true}),
+  // The flank: three ledges in the well's draught, each a jump only the wind makes.
+  p('flank-1',279,3,38.5,'ledge'),
+  p('flank-2',276,3,44,'ledge'),
+  p('flank-3',281,3,50,'ledge'),
+  // The mesa, the pool and the boulder.
+  p('boulder-mount',284,5,52,'stone'),
+  p('boulder-body',289,20,48,'wall',{h:4}),
+  part('boulder-pool',{x:289,w:20,y:52,h:4},{x:289,w:20,y:52,h:4},{station:'boulder-run',clayRole:'mass'}),
+  // The pillar, the planks it carries, and the cave under its overhang.
+  p('pillar-step',304.5,3,38.5,'ledge'),
+  p('pillar',309,3,40,'wall',{h:15.4}),
+  p('plank-floor',309,8,40,'break',{timber:true,rockOnly:true}),
+  p('cave-lip',317,2,43,'wall',{h:3}),
+  p('cave-roof',317,17,52,'wall',{h:9}),
+  p('cave-floor',312,10,34.6,'stone')
+);
+L.sections.splice(6,0,{x:SEAM,name:'The Boulder Drop',landmark:'windmill'});
+L.winds.push({id:'well-c',x:274.5,w:8,y:32.8,h:18.5,fx:0,fy:19,channel:'wind-c'});
+L.circuits.push({source:'valve3',channel:'wind-c',targets:['flank-1','flank-2'],kind:'wind'});
+L.hazards.push({x:270,w:39,y:19.75});
+L.coins.push({x:293.75,y:36.3},{x:300.75,y:38.4},...row(279.5,40,2,1),...row(276.5,45.5,2,1),{x:282.5,y:51.5},{x:286.5,y:53.4},...row(312.5,36,3,1.2));
+L.hints.push(
+  {x:270,end:284,icon:'updraft',title:'Wake the wind',text:'Cross the cracked ledges to the valve. The well below the mill will carry you up the flank.',touchText:'Cross the cracked ledges to the valve. The well below the mill will carry you up the flank.'},
+  {x:284,end:312,icon:'knead',title:'Roll the boulder',text:'Grab the violet clay and drag it: raise the ground under the boulder and lean it right. Off the edge it falls on the planks.',touchText:'Grab the violet clay and drag it: raise the ground under the boulder and lean it right. Off the edge it falls on the planks.'}
+);
+L.shaping.push(
+  {id:'boulder-run',rule:'form',free:true,relax:false,shaped:.2,icon:'wheel',name:'Drop the boulder',verb:'Raise the ground',gesture:'up',cueX:290.5,
+   parts:['boulder-pool'],x:284,end:310,spawn:{x:286.5,y:52,groundId:'boulder-mount'},
+   // A hollow at the near end with the boulder in it, a lip past it, and from
+   // the lip a chute that falls in a straight line to the open edge — knotted
+   // every unit and a half, because the rest shape is smoothed between knots
+   // and a long segment would be flat at both ends, where a slow boulder
+   // stops. Left alone the boulder sits in the hollow; raise the ground under
+   // it and it rides the mound up and rolls off it over the lip, and the chute
+   // does the rest.
+   clump:[B(289,-.1),B(291.5,-.2),B(293.5,-.7),B(295.5,.3),...[297,298.5,300,301.5,303,304.5,306,307.5,309].map((x,i)=>B(x,.1-.275*i))],
+   marble:{x:4.5,radius:1.5,look:'rock',spill:'right'},channel:'boulder-down',
+   solution:[{x:293.3,lift:0,dx:-.4,dy:3,t:1}],
+   message:'The boulder is down · the cave is open',
+   hint:'The boulder rests in a hollow. Only the clay moves it: grab the violet clay and pull the ground up under it, then lean the slope to the right. Off the edge it drops on the planks. R softens the clay.'}
 );
 export default chapter(L);

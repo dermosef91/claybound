@@ -75,6 +75,44 @@ function timberDeck(w,s,g){
   cactus(w,g,s.w-1.5,.02,1.5,-1.1,(random(s.x)-.5)*.3);
 }
 
+// A span of planks laid across a gap: the deck's boards and head beam with a
+// bearer at either end and rope lashed over both, but no posts down to rock —
+// this is a floor over a hole, and what breaks it comes from above. Boards are
+// a touch looser than a deck's, so it reads as something that could give.
+export function plankSpan(w,s,g){
+  const boards=Math.max(3,Math.round(s.w/.95)),boardW=s.w/boards;
+  for(let i=0;i<boards;i++){
+    const seed=i*11+Math.floor(s.x);
+    const board=w.box(boardW-.1,.26,3.3,i%2?'bark':'barkLight',g,(i+.5)*boardW,-.14,0,.06);
+    board.rotation.z=(random(seed)-.5)*.03;board.rotation.x=(random(seed+3)-.5)*.02;board.name='Plank';
+  }
+  w.box(s.w+.1,.24,.4,'bark',g,s.w/2,-.4,1.62,.08).name='Plank head beam';
+  for(const x of [.55,s.w-.55]){
+    w.box(.5,.42,3.4,'bark',g,x,-.5,0,.09).name='Plank bearer';
+    for(const at of [-.28,.28])w.rope([x+at,-.02,1.68],[x+at*.6,-.7,1.2],g,.045).name='Plank lashing';
+  }
+}
+
+// A solid wall body in the canyon: the same kneaded sandstone blocks the decks
+// stand on, laid in courses to fill exactly the box the simulation walks into,
+// so a pillar, an overhang or the rock under a pool of clay reads as the same
+// stone as everything else rather than as a slab.
+export function buildCanyonWall(w,s,g){
+  g.name='Canyon wall '+s.id;
+  const height=s.h??4,columns=Math.max(1,Math.ceil(s.w/2.9)),cw=s.w/columns;
+  for(let i=0;i<columns;i++){
+    const seed=Math.floor(s.x*3)+i*13,rows=[];
+    let left=height,first=Math.min(height,2.2+random(seed)*1.1);
+    rows.push(first);left-=first;
+    while(left>1e-6){const h=Math.min(left,left>4.4?3.2:left);rows.push(h);left-=h;}
+    let top=0;
+    for(let row=0;row<rows.length;row++){
+      const h=rows[row];
+      block(w,g,cw+.12,h+.12,3.35+(row%2)*.12,(i+.5)*cw,top-h/2,-.05,(i+row)%4===1?'terrain2':'terrain',seed+row*5);top-=h;
+    }
+  }
+}
+
 export function buildCanyonTerrain(w,s,g){
   g.name='Canyon cliff '+s.id;
   if(s.id==='arch-bridge-left'||s.id==='arch-bridge-right'){

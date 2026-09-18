@@ -23,10 +23,36 @@ export function solvedForm(index,id,source){
   }
   return solved.get(key);
 }
-export function applySolvedForm(g,station,source){
+function applySolvedSurface(g,station,source){
   const f=g.level.platforms.find(s=>s.id===station.parts[0]).form;
   f.h.set(solvedForm(g.index,station.id,source));f.prev.set(f.h);f.settled=false;f.version++;
   station.amount=station.target=formShare(f,station.shaped);station.announced=true;
+}
+// A rock run is worked to send its rock over the edge, and what the rock does
+// on the way down — the planks it smashes, the floor it comes to rest on — is
+// part of the shape the chapter is in afterwards. Settled once per station
+// from the solved surface, through the real game, and copied like the surface.
+const settled=new Map();
+export function settledRock(index,id,source){
+  const key=`${source?source.name+'/':''}${index}:${id}`;
+  if(!settled.has(key)){
+    const g=new Game();g.start(index,source);g.onEvent=()=>{};
+    const station=g.level.shaping.find(s=>s.id===id);
+    applySolvedSurface(g,station,source);
+    for(let k=0;k<2400&&!station.done;k++)g.tick(dt,{});
+    assert(station.done,`${id}: the solved surface sends its rock over the edge`);
+    settled.set(key,{ball:{...station.ball},broken:g.level.platforms.filter(s=>s.broken).map(s=>s.id)});
+  }
+  return settled.get(key);
+}
+export function applySolvedForm(g,station,source){
+  applySolvedSurface(g,station,source);
+  if(!station.ball?.spill)return;
+  const rock=settledRock(g.index,station.id,source);
+  Object.assign(station.ball,rock.ball);
+  for(const id of rock.broken){const s=g.level.platforms.find(q=>q.id===id);if(s)g.breakPlatform(s,s.x+s.w/2);}
+  station.done=true;station.open=1;station.amount=station.target=1;
+  if(station.channel){g.latched[station.channel]=true;g.channels[station.channel]=1;}
 }
 // `shaped` is what separates "can this be crossed" from "is the clay carrying
 // it": at shaped:false every station stays at its unworked pose, so a link that

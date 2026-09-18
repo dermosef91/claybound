@@ -11,7 +11,8 @@
 import {clampShape} from './shaping.js';
 import {GIVE,createGive,pressGive,kickGive,holdUnder,stepGive,giveDepth,giveVelocity,giveShare} from './clay-give.js';
 import {FORM,MOULD,createForm,resetForm,formHeight,formShare,pullForm,pressForm,pokeForm,sagForm,stepForm,beginForm,easeForm,mouldProfile,mouldClump,formMatch} from './clay-form.js';
-import {createMarble,resetMarble,stepMarble} from './clay-marble.js';
+import {createMarble,resetMarble,stepMarble,stepRockFall} from './clay-marble.js';
+import {wallBox} from './cavern-machines.js';
 // The fixed tick, the same as simulation.js's FIXED_DT; named here so the
 // solver below needs nothing from the simulation.
 const TICK=1/120;
@@ -50,8 +51,9 @@ export function initializeRule(station,L){
       }
       station.form=s.form=f;
       // A marble run: the ball starts where the station says, in the form's
-      // own x, and is home in the station's socket.
-      if(station.marble){station.ball=s.marble=createMarble(station.marble.x);s.socket=station.marble.socket;}
+      // own x, and is home in the station's socket — or, with an open end
+      // named, gone over it: a rock the clay is worked to drop off the mass.
+      if(station.marble){station.ball=s.marble=createMarble(station.marble.x,{radius:station.marble.radius,spill:station.marble.spill});s.socket=station.marble.socket;s.marbleLook=station.marble.look;}
     }
   }
   if(perPart(station)){
@@ -274,15 +276,19 @@ export function applyRule(game,station,dt,{near=false}={}){
       game.event('spring',{platformId:s.id,x:p.x,y:p.y});
       station.pressed=false;station.fall=p.vy;
     } else {station.pressed=on;station.fall=on?0:p.vy;}
-    if(station.ball)stepMarble(station.ball,f,dt,station.marble?.socket);
+    if(station.ball){stepMarble(station.ball,f,dt,station.marble?.socket);if(station.ball.spilled)stepSpilledRock(game,station,s,dt);}
     // What counts as progress. A mould reads how close the cast is, a marble
     // run how far the marble has come towards its socket, and everything else
     // how much clay has moved. A cast or a seated marble is done, and done
     // stays done — the clay may slump afterwards, the door it opened does not
     // close — until R. Done opens whatever channel the station names, the way
-    // a switch or a counterweight would.
+    // a switch or a counterweight would. A ball meant to go over an open end
+    // reads its progress off the clay, like any chapter mass, and is done
+    // once the rock is down — on what it smashed through, or on the floor
+    // under it — which may be seconds after the last stroke.
     let share;
     if(station.cast){share=formMatch(f,station.cast);s.mouldMatch=share;if(share>=MOULD.cast)station.done=true;}
+    else if(station.ball?.spill){share=formShare(f,station.shaped);if(station.ball.smashed||station.ball.landed)station.done=true;}
     else if(station.ball){share=marbleShare(station);if(station.ball.home)station.done=true;}
     else share=formShare(f,station.shaped);
     station.open=Math.min(1,Math.max(0,station.open+(station.done?dt:-dt)*CHASE));
@@ -300,6 +306,28 @@ function marbleShare(station){
   if(!m||!Array.isArray(socket))return 0;
   const goal=(socket[0]+socket[1])/2,span=Math.abs(m.start-goal)||1;
   return Math.min(.99,Math.max(0,1-Math.abs(m.x-goal)/span));
+}
+// A rock over the edge is the level's business: it falls in world space,
+// breaks the planks that are its for the breaking, and lands on whatever floor
+// the level put under them. The hand-off from the form's own x happens once,
+// here, because only the mass knows where it stands.
+function stepSpilledRock(game,station,s,dt){
+  const m=station.ball;
+  if(m.wx===undefined){m.wx=s.x+m.x;m.wy=s.y-s.h+m.y;m.vy=0;game.event?.('spill',{x:m.wx,y:m.wy,r:m.r,platformId:s.id});}
+  if(m.landed)return void stepRockFall(m,dt);
+  const platforms=game.level?.platforms||[];
+  const decks=[],walls=[];
+  for(const q of platforms){
+    if(q===s||q.active===false||q.broken)continue;
+    const box=wallBox(q);if(box)walls.push(box);
+    if(q.shape||q.form||q.kind==='zip'||q.kind==='lift'||q.kind==='bridge')continue;
+    decks.push({id:q.id,x:q.x,w:q.w,top:q.y,breakable:q.kind==='break'&&!!q.rockOnly});
+  }
+  for(const hit of stepRockFall(m,dt,{decks,walls})){
+    const deck=platforms.find(q=>q.id===hit.id);if(!deck)continue;
+    if(hit.breakable){m.smashed=(m.smashed||0)+1;game.breakPlatform?.(deck,m.wx,m.wy-m.r);}
+    else game.event?.('rock-land',{x:m.wx,y:m.wy-m.r,r:m.r,platformId:deck.id});
+  }
 }
 // The formable mass a station owns, built if it is not there yet.
 const massOf=(station,s)=>station.form=s.form||(s.form=createForm(s.w,s.h,station.clump,{free:!!station.free,pace:station.pace}));
@@ -412,5 +440,7 @@ export function resetFormStation(station){
   if(station.form)resetForm(station.form);
   if(station.ball)resetMarble(station.ball);
   station.grip=null;station.poke=null;station.pressed=false;station.punch=0;station.fall=0;station.stomped=false;
-  station.done=false;station.open=0;
+  // A rock that has gone over the edge is not brought back, and what it opened
+  // stays open: only the clay softens.
+  if(!station.ball?.spilled){station.done=false;station.open=0;}
 }

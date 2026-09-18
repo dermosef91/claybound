@@ -85,7 +85,7 @@ export function validateDraft(source,base){
         for(const key of ['station','clayRole'])if(item[key]!==undefined){if(!idOK(item[key]))throw new Error(`Invalid ${key}.`);clean[key]=item[key];}
       }
       for(const key of ['id','channel','releases','holdChannel','landmark','waitFor'])if(item[key]!==undefined){if(!idOK(item[key]))throw new Error(`Invalid ${key}. Use letters, numbers and hyphens.`);clean[key]=item[key];}
-      for(const key of ['goal','latch','gust','spores','arch','house','entrance','optional','recovery','rest','timber','spiked','motherArena'])if(item[key]!==undefined)clean[key]=!!item[key];
+      for(const key of ['goal','latch','gust','spores','arch','house','entrance','optional','recovery','rest','timber','spiked','rockOnly','motherArena'])if(item[key]!==undefined)clean[key]=!!item[key];
       if(list==='platforms'){
         if(!idOK(item.id)||!KINDS[item.kind])throw new Error('Every platform needs a unique ID and a supported type.');
         clean.kind=item.kind;finite(clean.w,.6,80,'Platform width');
@@ -198,6 +198,21 @@ export function validateDraft(source,base){
           station.mould=s.mould.map((k,i)=>[finite(k?.[0],0,1,`station ${s.id} mould knot ${i+1} across`),finite(k?.[1],-40,40,`station ${s.id} mould knot ${i+1} top`)]);
         }
         if(s.message!==undefined)station.message=text(s.message,'message',80);
+        // A marble on the mass: where it starts in the form's own x, how big
+        // it is, the socket it is bound for — or the open end it is to go over
+        // — and whether it is drawn as the lab's bead or the chapter's rock.
+        if(s.marble!==undefined){
+          if(!s.marble||typeof s.marble!=='object')throw new Error(`Station ${s.id} has a marble that is not an object.`);
+          const marble={x:finite(s.marble.x,0,80,`station ${s.id} marble x`)};
+          if(s.marble.radius!==undefined)marble.radius=finite(s.marble.radius,.2,4,`station ${s.id} marble radius`);
+          if(s.marble.socket!==undefined){
+            if(!Array.isArray(s.marble.socket)||s.marble.socket.length!==2)throw new Error(`Station ${s.id} needs a socket of [left, right].`);
+            marble.socket=[finite(s.marble.socket[0],0,80,'socket left'),finite(s.marble.socket[1],0,80,'socket right')];
+          }
+          if(s.marble.spill!==undefined){if(!['left','right'].includes(s.marble.spill))throw new Error(`Station ${s.id} can only spill its marble left or right.`);marble.spill=s.marble.spill;}
+          if(s.marble.look!==undefined){if(s.marble.look!=='rock')throw new Error(`Station ${s.id} names a marble look that does not exist.`);marble.look='rock';}
+          station.marble=marble;
+        }
       }
       // Where the prompt's hand cue stands, for any station that names one;
       // after the rule's own fields, so a formable mass keeps the key order

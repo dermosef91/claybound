@@ -54,9 +54,20 @@ for(const L of LEVELS)for(const station of L.shaping||[]){
     const g=new Game();g.start(index);
     const live=g.level.shaping.find(s=>s.id===station.id),f=solveFormStation(live,massOf(g,live),{dt});
     assert(Math.abs(formVolume(f)-f.volume)<1e-7,`${L.short}: ${piece.id} keeps its volume exactly when solved (${(formVolume(f)-f.volume).toExponential(2)})`);
-    assert.equal(live.amount,1);assert(live.announced);
-    assert(live.shaped>FORM.shaped*2,`${L.short}: ${station.id} asks for more than the lab's share before it reads as shaped`);
-    assert.equal(formShare(f,live.shaped*1.2),1,`${L.short}: the solution moves a fifth more clay than the station needs`);
+    // A rock run is not shaped by a share of clay moved but by its rock going
+    // over the edge: solved from the clump, the surface alone has to send it
+    // off, and the station reads as done only once the rock is down.
+    const rock=!!live.marble?.spill;
+    if(rock){
+      assert(live.amount<1,`${L.short}: ${station.id} is not shaped before its rock has gone`);
+      for(let i=0;i<2400&&!live.done;i++)g.tick(dt,{});
+      assert(live.done&&live.ball.spilled,`${L.short}: ${station.id}'s solved surface sends the rock over the edge`);
+      assert.equal(live.amount,1);
+    } else {
+      assert.equal(live.amount,1);assert(live.announced);
+      assert(live.shaped>FORM.shaped*2,`${L.short}: ${station.id} asks for more than the lab's share before it reads as shaped`);
+      assert.equal(formShare(f,live.shaped*1.2),1,`${L.short}: the solution moves a fifth more clay than the station needs`);
+    }
     // The same strokes as a player's pointer would make them, through the
     // real game with the player on the dock, come to the very same surface —
     // so the pilot's inputs and the routes sweep's cached surface agree, and
@@ -66,7 +77,7 @@ for(const L of LEVELS)for(const station of L.shaping||[]){
     Object.assign(real.player,rs.spawn,{vx:0,vy:0});real.tick(dt,{});
     assert.equal(nearbyStation(real)?.id,station.id,'the spawn is inside the stretch');
     let inputs=0;for(const input of formSolutionInputs(real,rs,{dt})){real.tick(dt,input);inputs++;}
-    for(let i=0;i<60;i++)real.tick(dt,{});
+    for(let i=0;i<(rock?2400:60)&&!(rock&&rs.done);i++)real.tick(dt,{});
     assert.equal(rs.amount,1);assert(rs.announced);assert.equal(real.deaths,0);
     const cached=solvedForm(index,station.id);let worst=0;
     for(let i=0;i<f.n;i++)worst=Math.max(worst,Math.abs(rm.form.h[i]-cached[i]),Math.abs(f.h[i]-cached[i]));
@@ -126,6 +137,10 @@ const SECTIONS=[
   // towers is too deep to hop out of, so the clay still has to be worked,
   // which is what the bypass check below holds it to.
   {level:0,station:'canyon-pocket',bypass:{from:'pocket-dock',to:'pocket-landing',mode:'jump'},rideable:true,form:true},
+  // The mesa's pool is walked onto flat; what it guards is the cave below,
+  // floored over with planks only its boulder breaks — so the bypass is the
+  // drop off the pool's edge, which lands on whole planks until it is worked.
+  {level:0,station:'boulder-run',bypass:{from:'boulder-pool',to:'cave-floor',mode:'fall'},rideable:true,form:true},
   {level:1,station:'weave-bough',bypass:{from:'gap-brink',to:'weave-perch',mode:'jump'},form:true},
   {level:1,station:'weave-mound',bypass:{from:'weave-spring',to:'canopy-nest',mode:'jump'},form:true},
   // The tower is the one piece meant to be stood on while it is still tall.
