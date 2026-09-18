@@ -135,6 +135,11 @@ const woodStepBytes=await Promise.all(WOOD_STEP.map(url=>readFile(new URL(url)))
 assert.equal(victoryBytes.subarray(0,4).toString(),'RIFF');
 assert.equal(sporeBalloonBytes.subarray(0,4).toString(),'RIFF');
 for(const bytes of [coinBytes,checkpointBytes,completeBytes,porousStepBytes,enemyHeadImpactBytes,ledgeCollapseBytes])assert.equal(bytes.subarray(0,4).toString(),'RIFF');
+assert.deepEqual([enemyHeadImpactBytes.readUInt16LE(22),enemyHeadImpactBytes.readUInt16LE(34)],[1,16],'the cue ships folded to mono like the other effects');
+// scripts/prepare-enemy-impact.py cuts the break at its own onset. The supplied
+// recording opens with 47 ms of room tone, and shipping that would be 47 ms of
+// delay on a cue that fires the instant a player lands on something.
+assert(Math.max(...Array.from({length:Math.round(enemyHeadImpactBytes.readUInt32LE(24)*.01)},(_, i)=>Math.abs(enemyHeadImpactBytes.readInt16LE(44+i*2))))>3276,'the cue starts on its attack, not on the room it was recorded in');
 const oldFetch=globalThis.fetch;
 const suppliedEffects=new Map([[FLOWER_VICTORY,victoryBytes],[SPORE_BALLOON_BURST,sporeBalloonBytes],[MOTHER_PUFF_GROWL,growlBytes],[COIN_PICKUP,coinBytes],[CHECKPOINT_FLAG,checkpointBytes],[FINISH_BELL,completeBytes],[POROUS_CLAY_STEP,porousStepBytes],[ENEMY_HEAD_IMPACT,enemyHeadImpactBytes],[LEDGE_COLLAPSE,ledgeCollapseBytes],[JUMP,jumpBytes],
   ...CLAY_STEP.map((url,i)=>[url,clayStepBytes[i]]),...WOOD_STEP.map((url,i)=>[url,woodStepBytes[i]])]);
@@ -162,12 +167,20 @@ sporeSound.effect('squish',{kind:'drifter'});assert.equal(sporeSound.ctx.buffers
 const sporeSounds=sporeSound.ctx.buffers.length;
 sporeSound.enabled=false;sporeSound.effect('break',{spore:true});assert.equal(sporeSound.ctx.buffers.length,sporeSounds,'muted spore sounds stay silent');
 const headImpactSound=new Sound();headImpactSound.unlock();await headImpactSound.enemyHeadImpactLoading;
+const impactRates=new Set();
 for(const kind of ['bat','spitter','clayling','drifter']){
   const sourceCount=headImpactSound.ctx.buffers?.length||0,oscillatorCount=headImpactSound.ctx.oscillators.length;
   headImpactSound.effect('squish',{kind});const impact=headImpactSound.ctx.buffers[sourceCount];
-  assert.equal(impact.buffer,headImpactSound.enemyHeadImpactBuffer);assert.equal(impact.output.gain.value,.36);assert(impact.started);
+  assert.equal(impact.buffer,headImpactSound.enemyHeadImpactBuffer);assert.equal(impact.output.gain.value,.46);assert(impact.started);
   assert.equal(headImpactSound.ctx.oscillators.length,oscillatorCount,`${kind} head landing uses the supplied impact instead of the synthesized cue`);
+  impactRates.add(impact.playbackRate.value);
+  assert(impact.playbackRate.value>=.94&&impact.playbackRate.value<.94+.12,`${kind} head landing is pitched within the range the other repeated cues use`);
 }
+// The break is a distinctive sound heard a few dozen times a chapter, so it is
+// pitched per kill rather than played back identically. Four kills landing on
+// one rate would mean the jitter was dropped, not that the dice repeated: the
+// odds of that are a rate quantized to nothing, which this stub does not do.
+assert(impactRates.size>1,'the head impact is pitched apart between kills');
 await headImpactSound.sporeBalloonLoading;
 headImpactSound.effect('squish',{kind:'spore'});assert.equal(headImpactSound.ctx.buffers.at(-1).buffer,headImpactSound.sporeBalloonBuffer,'the spore balloon keeps its own burst');
 console.log('PASS supplied bat, spitter, clayling and Dust Drifter head-impact cue');
