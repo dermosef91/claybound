@@ -237,7 +237,8 @@ const canopyGroups=()=>[...Array(6).keys()].map(i=>w.levelRoot.getObjectByName('
     const here=prop.getObjectByName('Orchard canopy').children.filter(c=>/^Dream sculpture /.test(c.name));
     assert.equal(here.length,2,prop.name+' hangs two sculptures');
     assert(!prop.getObjectByName('Canopy ball'),'the balls have left '+prop.name);
-    assert(prop.getObjectByName('Lemon apple'),'the apples still hang under '+prop.name);
+    assert(prop.getObjectByName('Hanging fruit'),'fruit still hangs under '+prop.name);
+    assert(prop.getObjectByName('Canopy leaf'),'and leaves push out from under '+prop.name);
     pieces.push(...here);
   }
   for(const piece of pieces){
@@ -258,7 +259,26 @@ const canopyGroups=()=>[...Array(6).keys()].map(i=>w.levelRoot.getObjectByName('
     assert(under<anchor.y&&anchor.y<above,`${id}: the rope top ${anchor.y.toFixed(2)} ends inside the canopy (${under.toFixed(2)}..${above.toFixed(2)})`);
   }
   assert(ropes>=2,'at least two streamed ropes rise under a streamed piece ('+ropes+')');
-  console.log(`PASS the canopy is the supplied sculpture, hung as modelled with subtle variety, balls gone, apples kept: ${groups.length} props, ${pieces.length} pieces, ${ropes} rope tops inside it`);
+  console.log(`PASS the canopy is the supplied sculpture, hung as modelled with subtle variety, balls gone, fruit and leaves kept: ${groups.length} props, ${pieces.length} pieces, ${ropes} rope tops inside it`);
+}
+
+// The great tree's crown: four of the supplied fruit sculpture hung by their
+// tops under the trunk's foot, behind the walk plane, wearing the clay
+// surface; the clay-built iced apples only stand in without the model.
+{
+  const s=platform('orchard-trunk'),tree=w.platforms.get('orchard-trunk');assert(tree?.root,'the great tree is streamed in around x 40');
+  const fruit=[];tree.root.traverse(o=>{if(/^Dream fruit/.test(o.name))fruit.push(o);});
+  assert.equal(fruit.length,4,'the crown is four supplied fruit');
+  assert(!tree.root.getObjectByName('Crown apple')&&!tree.root.getObjectByName('Crown ball'),'the clay crown has left the tree');
+  for(const f of fruit){
+    const box=new THREE.Box3().setFromObject(f,true),top=f.getWorldPosition(new THREE.Vector3());
+    assert(near(box.max.y,top.y,1e-6),'a fruit hangs by its top');
+    assert(box.max.y<s.y-4&&box.max.z<0,'and hangs under the trunk, behind the walk plane');
+    f.traverse(o=>{if(o.isMesh)assert(o.material.userData.clay,'the fruit wears the clay surface');});
+  }
+  assert(new Set(fruit.map(f=>f.userData.size.x.toFixed(3))).size>1&&new Set(fruit.map(f=>f.rotation.y.toFixed(3))).size>1,'the four differ in size and turn');
+  assert(tree.roots?.length===8,'the roots still wave');
+  console.log('PASS the great tree\'s crown is four supplied fruit, hung by their tops under the trunk, varied, clay surface on');
 }
 
 // Streaming out and back in keeps the shared resources and brings the models back.
@@ -276,6 +296,10 @@ assert.equal(sharedDisposals,0,'no shared geometry or material was disposed by s
   assert(w.platforms.get('orchard-saucer-1').root.getObjectByName('Saucer bowl'),'and a saucer is the sculpted bowl');
   const fallen=canopyGroups();assert(fallen.length>0,'a canopy prop is streamed in around x 14');
   for(const prop of fallen)assert(prop.getObjectByName('Canopy ball')&&!prop.getObjectByName('Supplied clay sculpture'),'and the canopy is the raspberry balls again under '+prop.name);
+  w.syncVisible(g.level,40,true);
+  const bare=w.platforms.get('orchard-trunk').root;
+  assert(bare.getObjectByName('Crown apple')&&!bare.getObjectByName('Dream fruit'),'and the great tree\'s crown is the clay iced apples');
+  w.syncVisible(g.level,14,true);
   w.dreamAssets=saved;w.refreshEditor(g.level,14);
   assert(w.platforms.get('orchard-dome-1').dream.sphere.getObjectByName('Dream planet mint'),'restored, the planet returns');
   assert(w.platforms.get('orchard-saucer-1').root.children.some(c=>/^Dream saucer /.test(c.name)));

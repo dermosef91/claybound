@@ -3,6 +3,8 @@ import {canyonModel} from './canyon-assets.js';
 import {forestModel} from './forest.js';
 import {forestUnderstory} from './forest-details.js';
 import {caveCrystals} from './cavern.js';
+import {dreamVisual} from './dream/index.js';
+import {dreamSectionAt} from './dream/support.js';
 
 const group=parent=>{const g=new THREE.Group();parent.add(g);return g;};
 // Guards already include a safety margin. Ignore grazing padded bounds so a
@@ -37,7 +39,7 @@ function mushrooms(w,g,x=0,size=1){
 function crystals(w,g,x=0,size=1){
   caveCrystals(w,g,x,0,.1,size*1.15,{light:false});
 }
-function nearScenery(w,g,variant){
+function nearScenery(w,g,variant,anchor){
   if(w.biome==='citadel'){
     terrace(w,g,3.7,'terrain');
   }else if(w.biome==='desert'){
@@ -48,9 +50,13 @@ function nearScenery(w,g,variant){
     forestUnderstory(w,g);
     forestModel(w,'hills',g,-2.0,-1.7,-.4,2.2,0);
   }else if(w.biome==='dream'){
-    // Placeholder: a rolled pastel mound with two beads, nothing that names a
-    // section. The dream's visual modules decide what really stands here.
-    w.ball(2.1,1.35,1.6,'terrain2',g,0,-.9,0);w.ball(.7,.5,.6,'accent',g,-.9,.35,.4);w.ball(.45,.32,.4,'top',g,1.1,.28,.5);
+    // The section's visual module decides what stands here (foreground(w, g,
+    // variant, section) returning true); a section without one gets a rolled
+    // pastel mound with two beads, nothing that names a section.
+    const section=dreamSectionAt(w.currentLevel,anchor.x),visual=section&&dreamVisual(section.key);
+    if(!visual?.foreground?.(w,g,variant,section)){
+      w.ball(2.1,1.35,1.6,'terrain2',g,0,-.9,0);w.ball(.7,.5,.6,'accent',g,-.9,.35,.4);w.ball(.45,.32,.4,'top',g,1.1,.28,.5);
+    }
   }else{
     terrace(w,g,3.8,'terrain2');boulder(w,g,-.82,0,-.2,1.4);boulder(w,g,.65,0,.4,.57);
     crystals(w,g,.7,1.1);crystals(w,g,-1.52,.53);
@@ -61,18 +67,20 @@ function nearScenery(w,g,variant){
 function makePart(w,parent,anchor,z,variant){
   const band='foreground';
   const root=group(parent);root.name=`${w.biome} ${band} scenery`;
-  nearScenery(w,root,variant);
+  nearScenery(w,root,variant,anchor);
   root.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(root,true),materials=new Map(),meshes=[];
   root.traverse(o=>{
     if(!o.isMesh)return;
     meshes.push(o);
-    o.castShadow=true;o.receiveShadow=true;
+    o.castShadow=!o.userData.noShadow;o.receiveShadow=true;
     // The dream's palette is written into the shared theme materials as the
     // player walks, so its side scenery keeps them: a cloned copy would stay
     // the colour the chapter opened in through every flip after the arch.
+    // A section's fixed colours (support.js fixedMaterial) are cloned like any
+    // other biome's, so the fade below has something of its own to dim.
     const adapt=base=>{
-      if(w.biome==='dream')return base;
+      if(w.biome==='dream'&&!base.userData?.fixed)return base;
       if(!materials.has(base)){
         const m=base.clone();m.onBeforeCompile=base.onBeforeCompile;m.customProgramCacheKey=base.customProgramCacheKey;
         m.color.multiplyScalar(.91);
@@ -127,7 +135,7 @@ export function animateDepthScenery(w,game,dt){
       part.root.position.set(placement.x,placement.y,placement.z);part.root.scale.setScalar(placement.scale);
       if(part.opacity===1)continue;
       part.opacity=1;
-      for(const mesh of part.meshes)mesh.castShadow=true;
+      for(const mesh of part.meshes)mesh.castShadow=!mesh.userData.noShadow;
       for(const m of part.materials){m.transparent=false;m.depthWrite=true;m.opacity=1;m.needsUpdate=true;}
     }
     return;
@@ -149,7 +157,7 @@ export function animateDepthScenery(w,game,dt){
     const target=blocked?.1:1;
     part.opacity=dt?part.opacity+(target-part.opacity)*(1-Math.exp(-dt*(blocked?22:5))):target;
     if(Math.abs(part.opacity-target)<.005)part.opacity=target;
-    for(const mesh of part.meshes)mesh.castShadow=part.opacity>.98;
+    for(const mesh of part.meshes)mesh.castShadow=part.opacity>.98&&!mesh.userData.noShadow;
     for(const m of part.materials){
       const transparent=part.opacity<1;
       if(m.transparent!==transparent){m.transparent=transparent;m.depthWrite=!transparent;m.needsUpdate=true;}

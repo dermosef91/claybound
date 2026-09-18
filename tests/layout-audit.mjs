@@ -61,7 +61,9 @@ export function auditLevel(L,index){
   }
 
   for(const h of level.hazards)for(const p of shaped){
-    if(!standable(p))continue;
+    // A deck the author sowed with spikes is supposed to be lethal: the
+    // riverbed floor is there to be seen and not landed on.
+    if(!standable(p)||p.spiked)continue;
     const overlap=Math.min(right(p),h.x+h.w)-Math.max(p.x,h.x);
     if(overlap<=.05)continue;
     const top=Math.min(p.y,surface(p));

@@ -96,6 +96,11 @@ function group(parent,name,x=0,y=0,z=0){const g=new THREE.Group();g.name=name;g.
 // the child stands at worldX when the camera is there and drifts at the
 // layer's rate as it moves. animateEnvironment reads a layer's children once,
 // so everything has to be placed at build — which is when backdrop() runs.
+// A slow layer keeps an item on screen for ≈10/factor units either side of
+// its place, so a section's last pieces linger well into the next section;
+// `{until}` names the world x past which an item retires (retireStep shrinks
+// it away over a second and hides it), for scenery that belongs to one
+// section's sky and not its neighbour's.
 export function dreamLayers(w){
   const groups=new Map();
   const at=(factor,{heightFollow}={})=>{
@@ -107,10 +112,12 @@ export function dreamLayers(w){
     }
     return groups.get(key);
   };
-  const place=(layer,worldX,y=0,z=-30)=>{
+  const place=(layer,worldX,y=0,z=-30,{until}={})=>{
     const factor=layer?.userData?.factor;
     if(factor===undefined)throw new Error('layers.place wants a group from layers.at(factor)');
-    return group(layer,'Dream backdrop item',worldX*factor,y,z);
+    const g=group(layer,'Dream backdrop item',worldX*factor,y,z);
+    if(Number.isFinite(until)){g.userData.until=until;(w.dreamRetiring??=[]).push({group:g,until,k:null});}
+    return g;
   };
   return {at,place};
 }
@@ -123,7 +130,7 @@ export function dreamLayers(w){
 // and animateDream sinks these three layers into the ground while the player
 // is in that section (they rise again over a second or so past its end).
 export function buildDreamBackdrop(w,L){
-  w.dreamLeaners=[];w.dreamSwirls=[];w.dreamPlaceholderK=null;
+  w.dreamLeaners=[];w.dreamSwirls=[];w.dreamPlaceholderK=null;w.dreamRetiring=[];
   const far=group(w.backRoot,'Dream far blobs'),mid=group(w.backRoot,'Dream near blobs'),sky=group(w.backRoot,'Dream sky swirls');
   w.dreamPlaceholder=[far,mid,sky];
   w.parallax.push({group:far,factor:.16,heightFollow:.6,repeat:150},{group:mid,factor:.38,heightFollow:.8,repeat:150},{group:sky,factor:.1,heightFollow:.5,repeat:150});
@@ -294,6 +301,17 @@ function placeholderStep(w,L,x,dt){
   w.dreamPlaceholderK=w.reducedMotion?target:k+(target-k)*(1-Math.exp(-dt*2.5));
   for(const g of groups){g.scale.y=Math.max(.001,w.dreamPlaceholderK);g.visible=w.dreamPlaceholderK>.01;}
 }
+// Backdrop items placed with `{until}` shrink away once the player is past
+// that x (and grow back if they return), starting in the state their x asks
+// for so nothing shrinks in front of a spawn.
+function retireStep(w,x,dt){
+  const list=w.dreamRetiring;if(!list?.length)return;
+  for(const e of list){
+    const target=x>e.until?0:1;
+    e.k=w.reducedMotion?target:(e.k??target)+(target-(e.k??target))*(1-Math.exp(-dt*2.5));
+    e.group.scale.setScalar(Math.max(.001,e.k));e.group.visible=e.k>.01;
+  }
+}
 
 // --- per frame ---------------------------------------------------------------
 // Section modules' animate() runs for every section the player is within 40
@@ -307,6 +325,7 @@ export function animateDream(w,game,dt){
   cameraStep(w,L,x,dt);
   leanStep(w,x,dt);
   placeholderStep(w,L,x,dt);
+  retireStep(w,x,dt);
   if(!w.reducedMotion)for(const s of w.dreamSwirls||[])s.mesh.rotation.z+=dt*s.speed;
   animateDreamViews(w,game,dt);
   ctx.playerX=x;ctx.time=game.time;ctx.reducedMotion=!!w.reducedMotion;

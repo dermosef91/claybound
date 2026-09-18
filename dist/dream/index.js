@@ -21,9 +21,18 @@ import knot from './knot.js';
 //                              are added if you left them out.
 //   backdrop(w,L,section,layers)  far scenery: layers.at(factor) is a
 //                              parallax group (no wrapping); layers.place(
-//                              group, worldX, y, z) returns a child group that
-//                              appears at worldX when the camera is there.
-//                              Shadows are switched off for you.
+//                              group, worldX, y, z, {until}) returns a child
+//                              group that appears at worldX when the camera is
+//                              there and, given `until`, retires once the
+//                              player is past that x. Shadows are switched
+//                              off for you.
+//   quietBackdrop: true        the module paints a whole sky of its own: the
+//                              chapter's placeholder blobs and columns sink
+//                              while the player is in the section.
+//   foreground(w,g,variant,section)  the near scenery in front of a stone
+//                              deck (depth-scenery.js): build into g (the
+//                              deck's line is ≈ y +2.1 above g) and return
+//                              true; it fades when it would cover the player.
 //   props(section,L)           → [{key,x,w?,y?,z?,make(w,parent,section)}]:
 //                              scenery streamed by WORLD x like decoration;
 //                              `parent` is a group already at (x,y,z) under

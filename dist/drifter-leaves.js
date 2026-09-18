@@ -1,11 +1,18 @@
 import * as THREE from './lib/three.module.js';
 
-// Small, thick, pointed clay leaves reuse the world's clay materials.
-const shape=new THREE.Shape();
-shape.moveTo(0,-.75);shape.bezierCurveTo(-.48,-.3,-.5,.35,.12,.85);
-shape.bezierCurveTo(.44,.28,.38,-.38,0,-.75);
-const geometry=new THREE.ExtrudeGeometry(shape,{depth:.12,bevelEnabled:true,bevelSize:.065,bevelThickness:.065,bevelSegments:2,steps:1,curveSegments:5});
-geometry.translate(0,0,-.06);
+// Small, thick, pointed clay leaves reuse the world's clay materials. The
+// outline is the one leaf shape the game has (base at the origin's foot,
+// -.75; tip up and a little right at .85), so scenery that wants a leaf —
+// the orchard's canopy and fruit — builds its own copy with leafGeometry()
+// and keeps it in the clay cache; this module's own copy feeds the burst.
+export const leafShape=new THREE.Shape();
+leafShape.moveTo(0,-.75);leafShape.bezierCurveTo(-.48,-.3,-.5,.35,.12,.85);
+leafShape.bezierCurveTo(.44,.28,.38,-.38,0,-.75);
+export function leafGeometry(){
+  const g=new THREE.ExtrudeGeometry(leafShape,{depth:.12,bevelEnabled:true,bevelSize:.065,bevelThickness:.065,bevelSegments:2,steps:1,curveSegments:5});
+  g.translate(0,0,-.06);return g;
+}
+const geometry=leafGeometry();
 
 export function burstDrifterLeaves(w,x,y){
   // Fewer than there were: the body now also breaks into clay clumps behind them.

@@ -195,6 +195,27 @@
     "geometryUnchanged": true,
     "joints": 40
   },
+  "dream-fruit.glb": {
+    "source": "3d+fruit+sculpture.glb",
+    "sourceSha256": "bd8c1a0bc490f90e3898b3d6e1688901da5960b12cb94c61fcc2fef4706be8aa",
+    "shippedSha256": "0b72ba1f40d6ad3fa9251ff26c93cd0596775220182d2cb880cf081bfe2157f8",
+    "sourceBytes": 1167128,
+    "shippedBytes": 668764,
+    "textures": [
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 10573,
+    "geometryBufferSha256": [
+      "8a6b1256045a9aeabf44092a36fe849bb575d5a463eba6f81271cfb2af598f8e",
+      "9fb2ecd9b0d559ad361e803327b3638089471e9bacedc0977aac348167511d24",
+      "5866dfc08493dcc05148293c9472cdd2bd0762fbad6b95c7e19850d4038e35f9",
+      "0c2b9c1f267c8d7ebe968663611cc36bca68df0390d9a96bc2a9b473eb3c3ce6"
+    ],
+    "geometryUnchanged": true
+  },
   "dream-banner.glb": {
     "source": "decorative banner 3d model.glb",
     "sourceSha256": "2471d53224410b9c6295b36f1033d48b2163624674027c5141e40e2f74a8ad95",

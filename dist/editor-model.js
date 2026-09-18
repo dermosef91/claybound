@@ -85,7 +85,7 @@ export function validateDraft(source,base){
         for(const key of ['station','clayRole'])if(item[key]!==undefined){if(!idOK(item[key]))throw new Error(`Invalid ${key}.`);clean[key]=item[key];}
       }
       for(const key of ['id','channel','releases','holdChannel','landmark','waitFor'])if(item[key]!==undefined){if(!idOK(item[key]))throw new Error(`Invalid ${key}. Use letters, numbers and hyphens.`);clean[key]=item[key];}
-      for(const key of ['goal','latch','gust','spores','arch','house','entrance','optional','recovery','rest','timber','motherArena'])if(item[key]!==undefined)clean[key]=!!item[key];
+      for(const key of ['goal','latch','gust','spores','arch','house','entrance','optional','recovery','rest','timber','spiked','motherArena'])if(item[key]!==undefined)clean[key]=!!item[key];
       if(list==='platforms'){
         if(!idOK(item.id)||!KINDS[item.kind])throw new Error('Every platform needs a unique ID and a supported type.');
         clean.kind=item.kind;finite(clean.w,.6,80,'Platform width');
