@@ -2,7 +2,7 @@ import {BAT} from './enemy-rules.js';
 import {DRIFTER} from './drifter-rules.js';
 import {BLINKER,DRIP,HATWORM} from './dream-enemy-rules.js';
 import {SINK,FOLD,ZIP} from './cavern-machines.js';
-import {DECOR_KINDS,DECOR_BOUNDS,DECOR_LIMIT} from './decor-kinds.js';
+import {DECOR_KINDS,DECOR_BOUNDS,DECOR_LIMIT,BACKDROP_BOUNDS,BACKDROP_LIMIT,BACKDROP_DEFAULT} from './decor-kinds.js';
 export const DRAFT_KEY='claybound-editor-v1';
 export const KINDS={stone:'Solid cliff',wall:'Wall block',ledge:'Thin ledge',bridge:'Rope bridge',lift:'Rope lift',spring:'Spring / mushroom',crumble:'Crumbling ledge',break:'Breakable seal',switch:'Switch',timed:'Switched bridge',pulse:'Pulse ledge',balance:'Counterweight',counter:'Counter lift',gate:'Relay grate',ferry:'Weight ferry',orbit:'Orbit cradle',clay:'Kneadable clay',sink:'Sinking raft',fold:'Folding deck',dome:'Dome island',zip:'Zip line'};
 // Trigger zones are the one list added since the first backups were written,
@@ -17,7 +17,15 @@ const ENEMY_KINDS=['bat','clayling','drifter','spore','spitter','hatworm','blink
 // behind a chapter's layout version — should have to know it exists. Every
 // backup written before this list existed still imports unchanged.
 export const DECOR='decor';
-export const EDIT_LISTS=[...LISTS,DECOR];
+// The horizon is the same idea one step further out: a placement names a shape
+// from the same catalogue, but joins a parallax layer instead of the play
+// plane, so it carries a `factor` and reaches depths decoration cannot. It is
+// kept as its own list rather than a flag on decoration, because the two do
+// not mean the same thing to the frame — one is drawn with the playfield, the
+// other in the pass behind it — and because a chapter's horizon should be
+// countable and bounded on its own.
+export const BACKDROP='backdrop';
+export const EDIT_LISTS=[...LISTS,DECOR,BACKDROP];
 const clone=value=>structuredClone(value);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const idOK=value=>typeof value==='string'&&/^[a-zA-Z0-9_-]{1,70}$/.test(value);
@@ -25,7 +33,7 @@ const finite=(n,a,b,label)=>{if(typeof n!=='number'||!Number.isFinite(n)||n<a||n
 const hash=text=>{let h=2166136261;for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619);return (h>>>0).toString(36);};
 
 export function repairDraft(level){
-  level.decor??=[];
+  level.decor??=[];level.backdrop??=[];
   const ids=new Set(level.platforms.map(p=>p.id));
   if(level.boss){
     const arena=level.platforms.find(p=>p.motherArena);
@@ -154,6 +162,20 @@ export function validateDraft(source,base){
       return clean;
     });
   }
+  // The horizon is held to the same terms, with one number more: `factor` is
+  // how far away the piece is, and it can never be zero, because a backdrop
+  // that does not move with its layer is a prop in the wrong list.
+  if(source[BACKDROP]!==undefined){
+    if(!Array.isArray(source[BACKDROP])||source[BACKDROP].length>BACKDROP_LIMIT)throw new Error(`Invalid backdrop list (maximum ${BACKDROP_LIMIT}).`);
+    out[BACKDROP]=source[BACKDROP].map((item,i)=>{
+      if(!item||typeof item!=='object')throw new Error(`Invalid backdrop ${i+1}.`);
+      if(!DECOR_KINDS[item.kind])throw new Error(`Backdrop ${i+1} is not a shape this game can build.`);
+      const clean={kind:item.kind,x:finite(item.x,...nums.x,`backdrop ${i+1}: x`),y:finite(item.y,...nums.y,`backdrop ${i+1}: y`)};
+      for(const [key,bounds]of Object.entries(BACKDROP_BOUNDS))if(item[key]!==undefined)clean[key]=finite(item[key],...bounds,`backdrop ${i+1}: ${key}`);
+      clean.size??=DECOR_KINDS[item.kind].size;clean.z??=BACKDROP_DEFAULT.z;clean.factor??=BACKDROP_DEFAULT.factor;
+      return clean;
+    });
+  }
   // Shaping stations are data too: ids, a gesture, the clay they own and where
   // the prompt applies. Never any behaviour, so an import stays inert. The one
   // rule a chapter carries, the formable mass, is data as well — a clump of
@@ -243,7 +265,7 @@ export function validateDraft(source,base){
   // layout version — and the checkpoints that depend on it — is unchanged by
   // this list existing. Moving scenery still revises it, because a saved
   // checkpoint is cheap to retire and a stale one is confusing.
-  const content=JSON.stringify([out.spawn,...LISTS.filter(k=>!OPTIONAL_LISTS.has(k)||out[k].length).map(k=>out[k]),out.shaping??null,...(out[DECOR].length?[out[DECOR]]:[])]);
+  const content=JSON.stringify([out.spawn,...LISTS.filter(k=>!OPTIONAL_LISTS.has(k)||out[k].length).map(k=>out[k]),out.shaping??null,...(out[DECOR].length?[out[DECOR]]:[]),...(out[BACKDROP].length?[out[BACKDROP]]:[])]);
   out.layoutVersion=`editor-${base.layoutVersion}-${hash(content)}`;
   return out;
 }
@@ -273,7 +295,7 @@ export class DraftLibrary{
 
 export const selectedObject=(level,selection)=>!selection?null:selection.list==='spawn'?level.spawn:level[selection.list]?.[selection.index];
 const ENEMY_LABELS={spitter:'Echo Spitter',spore:'Spore Puff',bat:'Flying bat',drifter:'Dust Drifter',hatworm:'Hatworm',blinker:'Blinker',drip:'Drip'};
-export const objectLabel=(obj,list)=>list===DECOR?(DECOR_KINDS[obj.kind]?.label||'Decoration'):list==='platforms'?(KINDS[obj.kind]||'Platform'):list==='enemies'&&ENEMY_LABELS[obj.kind]?ENEMY_LABELS[obj.kind]:({coins:'Clay bead',stamps:'Secret flower',hazards:'Spikes',enemies:'Clayling',winds:'Wind area',crushers:'Press',triggers:'Trigger zone',spawn:'Player start'}[list]||'Object');
+export const objectLabel=(obj,list)=>list===BACKDROP?((DECOR_KINDS[obj.kind]?.label||'Backdrop')+' on the horizon'):list===DECOR?(DECOR_KINDS[obj.kind]?.label||'Decoration'):list==='platforms'?(KINDS[obj.kind]||'Platform'):list==='enemies'&&ENEMY_LABELS[obj.kind]?ENEMY_LABELS[obj.kind]:({coins:'Clay bead',stamps:'Secret flower',hazards:'Spikes',enemies:'Clayling',winds:'Wind area',crushers:'Press',triggers:'Trigger zone',spawn:'Player start'}[list]||'Object');
 
 export class DraftSession{
   // A chapter that carries no trigger zones (or, before it was edited, no
@@ -312,6 +334,14 @@ export class DraftSession{
       const obj=selectedObject(this.level,this.selection);if(!obj)return;
       const previous=obj[field];
       if(value===null||value==='')delete obj[field];else obj[field]=value;
+      if(field==='kind'&&this.selection.list===BACKDROP){
+        // A horizon piece keeps the depth and the distance it was placed at —
+        // those belong to the layer, not to the shape — so only a width the
+        // author never touched follows the new shape.
+        const spec=DECOR_KINDS[value],old=DECOR_KINDS[previous];
+        if(spec&&(!old||obj.size===old.size))obj.size=spec.size;
+        return;
+      }
       if(field==='kind'&&this.selection.list===DECOR){
         // Trying another shape in the same spot should arrive at a sensible
         // size rather than a tiny castle. A size the author set by hand is
@@ -347,6 +377,11 @@ export class DraftSession{
         const kind=type.slice(6),spec=DECOR_KINDS[kind];
         if(!spec)throw new Error('Choose a decoration from the palette.');
         list=DECOR;obj={kind,x,y,z:spec.z,size:spec.size,turn:0};
+      }
+      else if(type.startsWith('backdrop:')){
+        const kind=type.slice(9),spec=DECOR_KINDS[kind];
+        if(!spec)throw new Error('Choose a shape from the palette.');
+        list=BACKDROP;obj={kind,x,y,z:BACKDROP_DEFAULT.z,factor:BACKDROP_DEFAULT.factor,size:spec.size,turn:0};
       }
       else if(KINDS[type]){list='platforms';obj={id:id('clay'),x:x-2,y,w:4,kind:type};if(type==='wall')Object.assign(obj,{y:y+2,h:4});if(type==='gate')Object.assign(obj,{h:10,channel:'new-circuit'});if(type==='ferry')Object.assign(obj,{travel:24,speed:3.2});if(type==='orbit')Object.assign(obj,{moveX:4,moveY:4,period:12});if(type==='lift')Object.assign(obj,{period:5,moveY:1.2});if(type==='pulse')Object.assign(obj,{period:4.8,duty:.76});if(type==='switch')Object.assign(obj,{w:1.8,channel:'new-circuit',duration:10});if(type==='timed'||type==='counter')Object.assign(obj,{channel:'new-circuit',...(type==='counter'?{rise:3}:{})});if(type==='sink')Object.assign(obj,{rate:SINK.rate,drop:SINK.drop});if(type==='zip')Object.assign(obj,{travel:ZIP.travel,drop:ZIP.drop,duration:ZIP.duration});if(type==='fold')Object.assign(obj,{channel:'new-circuit',duration:FOLD.duration,pivot:'left',from:'deck',to:'wall'});
         if(type==='clay'){

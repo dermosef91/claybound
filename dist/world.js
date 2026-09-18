@@ -17,6 +17,7 @@ import {loadClay,clayBox,clayMeshMaterial,sculptClay,clayShape} from './clay.js'
 import {loadClouds} from './clouds.js';
 import {cameraFraming,cameraTarget,cameraAnchorY,anchorDragged,VERTICAL_BIAS} from './camera.js';
 import {syncStream,disposeBranch} from './streaming.js';
+import {backdropView} from './decor.js';
 import {landmark,balanceDeck,animateWind} from './setpieces.js';
 import {createShapeHands,animateShapeHands,disposeShapeHands} from './shape-hand.js';
 import {loadCanyonAssets} from './canyon-assets.js';
@@ -317,7 +318,12 @@ export class World {
     if(s.kind==='ledge')greatArchLedge(this,s,g);
     return {root:g,ropes,bounce:0,springPad,fracture};
   }
-  buildBackground(L) { buildBackdrop(this,L); }
+  // The chapter's own horizon first, then the authored pieces on top of it, so
+  // a placement reads against the biome's skyline rather than instead of it.
+  buildBackground(L) {
+    buildBackdrop(this,L);
+    this.backdropViews=(L.backdrop||[]).map(item=>backdropView(this,item));
+  }
   build(L,index,focusX=L.spawn.x) {
     this.currentLevel=L;
     this.motherView=null;
@@ -339,7 +345,7 @@ export class World {
     // The dream's render-only state starts over with the world: no roll, no
     // zoom request, no palette written yet, and no props leaning.
     this.dreamRoll=0;this.dreamViewH=null;this.dreamPaletteKey=null;this.dreamLeaners=[];this.dreamSwirls=[];
-    this.platforms=new Map();this.enemyViews=new Map();this.coinViews=[];this.stampViews=[];this.crusherViews=[];this.decorViews=[];
+    this.platforms=new Map();this.enemyViews=new Map();this.coinViews=[];this.stampViews=[];this.crusherViews=[];this.decorViews=[];this.backdropViews=[];
     this.shotViews=new Map();
     this.buildBackground(L);
     if(this.canvas)this.resize();else{Object.assign(this,cameraFraming(1280,720,this.biome));this.baseViewH=this.viewH;}
@@ -357,7 +363,17 @@ export class World {
     for(const v of this.streamViews.values()){v.remove();disposeBranch(this,v.root);}
     this.streamViews.clear();this.streamPending=[];this.streamWanted=null;this.streamDebt=0;this.windViews.clear();this.circuitViews.clear();
     this.flags=[];this.bell=null;this.coinViews=[];this.stampViews=[];this.crusherViews=[];this.decorViews=[];
+    // The biome's own horizon and its parallax layers survive a refresh, but
+    // the authored pieces standing in them are being edited, so they are the
+    // one part of the backdrop that is rebuilt. The layers they belong to are
+    // reused, which is why the map of them is not cleared here.
+    this.clearAuthoredBackdrop();
     syncStream(this,L,center,true);
+    this.backdropViews=(L.backdrop||[]).map(item=>backdropView(this,item));
+  }
+  clearAuthoredBackdrop(){
+    for(const view of this.backdropViews||[]){view.parent?.remove(view);disposeBranch(this,view);}
+    this.backdropViews=[];
   }
   setEditorCamera(camera){this.editorCamera=camera;this.resize();}
   // The workshop's decoration mode wants the sparse foreground props on screen

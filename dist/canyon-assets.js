@@ -2,12 +2,18 @@ import * as THREE from './lib/three.module.js';
 import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel} from './clay.js';
 
-export const CANYON_FILES={arch:'canyon-arch.glb',summit:'canyon-summit.glb',cactus:'cactus.glb',tent:'canyon-tent.glb',cave:'canyon-cave.glb'};
+export const CANYON_FILES={arch:'canyon-arch.glb',summit:'canyon-summit.glb',cactus:'cactus.glb',tent:'canyon-tent.glb',cave:'canyon-cave.glb',purpleArch:'canyon-purple-arch.glb'};
 export function prepareCanyonAsset(w,key,gltf){
   gltf.scene.updateMatrixWorld(true);
   const bounds=new THREE.Box3().setFromObject(gltf.scene,true),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
   if(!(size.y>0&&size.x>0))throw new Error('Invalid canyon model: '+key);
-  const background=key==='arch'||key==='summit',orangeSource={arch:.875,summit:.820,tent:.824,cave:.82}[key]||0;
+  // The purple arch is left out of `background`: the only thing that flag still
+  // does at a decoration's depth is stretch the lowest foot downward, and this
+  // one is placed by an author who can drag it, so a base that stays where it
+  // is put beats a base that trails legs once it leaves the canyon floor.
+  // Its orange source is the measured 0.99 of its own baked albedo; the remap
+  // masks on r>=g>=b, so the violet veining passes through as supplied.
+  const background=key==='arch'||key==='summit',orangeSource={arch:.875,summit:.820,tent:.824,cave:.82,purpleArch:.99}[key]||0;
   clayMaterials(gltf.scene,{background,orangeSource});clayModel(w,gltf.scene,{background});
   // Continue the lowest foot of each formation down into the canyon. The
   // authored arch and summit stay intact above the base, instead of floating.

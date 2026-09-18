@@ -1,0 +1,27 @@
+{
+  "source": "Meshy_AI_Purple_Canyon_Arch_0918085557_texture.glb",
+  "provenance": "User-supplied Meshy model: the purple arch standing behind the Sandwright's Pocket",
+  "sourceSha256": "05e07f121295168d89ca8d9813e82103f6951b7b87d5159fed2f6df32d232d92",
+  "shippedSha256": "28cf65eb121cdf6fb07d6eba41751d4d212e6e8077f2c8a980ac171852095227",
+  "sourceBytes": 17554800,
+  "shippedBytes": 1230444,
+  "textures": [
+    [
+      1024,
+      1024
+    ],
+    [
+      1024,
+      1024
+    ]
+  ],
+  "triangles": 10317,
+  "geometryBufferSha256": [
+    "8a5de15029bd6cbbe059e7e7fd9ff7a3284017574a89e657a7f86194ef457602",
+    "fd2ea8d207444ae6729e4323659b437c9792e3cbc4912bcf43cd7adb4d68d1fb",
+    "4c67727fe053303d09a47060f2f20bfdb24e0cf6e72eb3c6a6443df6343191ae",
+    "b7d2eaa62cd772526cf8d3422a8c015aaa7424a53a76ede563f3d0312ae7a4df"
+  ],
+  "geometryUnchanged": true,
+  "adaptation": "metallic-roughness map dropped (the clay material forces metalness 0 and its own roughness); colour and normal resampled to 1024 JPEG"
+}

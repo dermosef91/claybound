@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {LEVELS} from '../dist/levels.js';
 import {Game,FIXED_DT} from '../dist/simulation.js';
-import {DraftLibrary,DraftSession,validateDraft,selectedObject,DRAFT_KEY,KINDS,LISTS} from '../dist/editor-model.js';
-import {DECOR_KINDS,DECOR_LIMIT,decorPalette,LANDMARKS,landmarkAuthority,landmarkChoices,landmarkLabel,CAVE_STORY_ROLES} from '../dist/decor-kinds.js';
+import {DraftLibrary,DraftSession,validateDraft,selectedObject,DRAFT_KEY,KINDS,LISTS,BACKDROP} from '../dist/editor-model.js';
+import {DECOR_KINDS,DECOR_LIMIT,decorPalette,BACKDROP_BOUNDS,BACKDROP_LIMIT,BACKDROP_DEFAULT,backdropWorldX,LANDMARKS,landmarkAuthority,landmarkChoices,landmarkLabel,CAVE_STORY_ROLES} from '../dist/decor-kinds.js';
 import {jumpGuide} from '../dist/editor.js';
 const memory=new Map(),storage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)};
 const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
@@ -11,7 +11,7 @@ const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
 {
  const canonical=validateDraft(LEVELS[0],LEVELS[0]);
  assert.equal(LEVELS[0].layoutVersion,12);assert(!LEVELS[0].custom);
- assert.equal(canonical.layoutVersion,'editor-12-ysehsz','canonical canyon matches the approved editor export');
+ assert.equal(canonical.layoutVersion,'editor-12-1qjonk0','canonical canyon matches the approved editor export');
  // The pocket's formable mass survives the round trip as data: its rule, its
  // clump and its solution, bounded, and no other rule is ever let in.
  const pocket=canonical.shaping.find(s=>s.id==='canyon-pocket'),authored=LEVELS[0].shaping.find(s=>s.id==='canyon-pocket');
@@ -95,7 +95,9 @@ console.log('PASS physics jump guides, import boundaries, quota fallback, old-la
 // Decoration is edited like everything else and played like nothing at all.
 {
  const canonical=validateDraft(LEVELS[0],LEVELS[0]).layoutVersion,s=new DraftSession(library,0),start=LEVELS[0].platforms[0];
- assert.deepEqual(s.level.decor,[],'a chapter with no decoration starts with an empty list, not a missing one');
+ assert.deepEqual(s.level.decor,[{kind:'purple-arch',x:110,y:3.5,size:20,z:-16}],'the canyon hands its authored arch to the workshop as an ordinary placement');
+ assert.deepEqual(validateDraft(LEVELS[1],LEVELS[1]).decor,[],'a chapter with no decoration gets an empty list, not a missing one');
+ const authored=s.level.decor.length;
  for(const kind of Object.keys(DECOR_KINDS)){
   s.add(`decor:${kind}`,60,9);const prop=selectedObject(s.level,s.selection);
   assert.equal(prop.kind,kind);assert.equal(prop.size,DECOR_KINDS[kind].size);assert.equal(prop.z,DECOR_KINDS[kind].z);
@@ -111,7 +113,7 @@ console.log('PASS physics jump guides, import boundaries, quota fallback, old-la
  assert.notEqual(s.level.layoutVersion,canonical,'moved decoration revises the layout version');
  // Nothing about it reaches the simulation: no collider, no collectible, no id.
  const game=new Game();game.start(0,library.get(0));
- assert.equal(game.level.decor.length,1);
+ assert.equal(game.level.decor.length,authored+1);
  assert.deepEqual(game.level.platforms.map(p=>p.id),LEVELS[0].platforms.map(p=>p.id));
  assert.equal(game.level.coins.length,LEVELS[0].coins.length);assert.equal(game.level.hazards.length,LEVELS[0].hazards.length);
  for(let n=0;n<40;n++)game.tick(FIXED_DT,{moveAxis:1});
@@ -119,7 +121,10 @@ console.log('PASS physics jump guides, import boundaries, quota fallback, old-la
  assert.deepEqual(library.read(library.export(0,s.level),0).decor,s.level.decor);
  s.undo();assert.equal(s.level.decor[at].x,start.x+2);s.redo();assert.equal(s.level.decor[at].x,start.x+6);
  const legacy=JSON.parse(library.export(0,s.level));delete legacy.level.decor;
- assert.deepEqual(library.read(JSON.stringify(legacy),0).decor,[],'a backup written before this list existed still imports');
+ // Every list a backup leaves out falls back to the shipped chapter's, so a
+ // file written before this one existed imports and keeps the canyon's own
+ // arch rather than quietly stripping the scenery the chapter ships with.
+ assert.deepEqual(library.read(JSON.stringify(legacy),0).decor,LEVELS[0].decor,'a backup written before this list existed still imports, with the chapter\'s own scenery');
  for(const bad of [{kind:'unknown-prop'},{kind:'boulder',size:900},{kind:'boulder',z:40},{kind:'boulder',turn:900},{kind:'boulder',lean:400},{size:2}]){
   const file=JSON.parse(library.export(0,s.level));file.level.decor=[{x:10,y:2,...bad}];
   assert.throws(()=>library.read(JSON.stringify(file),0),/decor|Decoration/);
@@ -127,6 +132,42 @@ console.log('PASS physics jump guides, import boundaries, quota fallback, old-la
  const over=JSON.parse(library.export(0,s.level));over.level.decor=Array.from({length:DECOR_LIMIT+1},()=>({kind:'boulder',x:5,y:1}));
  assert.throws(()=>library.read(JSON.stringify(over),0),/maximum/);
  library.reset(0);
+}
+// The horizon is the same bargain as decoration, one number further out.
+{
+ const canonical=validateDraft(LEVELS[0],LEVELS[0]).layoutVersion,s=new DraftSession(library,0);
+ assert.deepEqual(s.level[BACKDROP],[],'a chapter with no authored horizon gets an empty list, not a missing one');
+ s.add('backdrop:canyon-arch',180,-4);
+ const piece=selectedObject(s.level,s.selection);
+ assert.equal(s.selection.list,BACKDROP,"the palette's horizon half adds to the horizon");
+ assert.equal(piece.kind,'canyon-arch');assert.equal(piece.z,BACKDROP_DEFAULT.z);assert.equal(piece.factor,BACKDROP_DEFAULT.factor);
+ assert.equal(piece.size,DECOR_KINDS['canyon-arch'].size);
+ assert.notEqual(s.level.layoutVersion,canonical,'an authored horizon is part of the chapter, so it revises the version');
+ // Distance belongs to the layer, so swapping the shape keeps it.
+ s.startChange();s.set('factor',.18);s.commit();
+ s.startChange();s.set('kind','summit');s.commit();
+ assert.equal(s.level[BACKDROP][0].factor,.18,'a distance the author set survives a change of shape');
+ assert.equal(s.level[BACKDROP][0].size,DECOR_KINDS.summit.size,'but an untouched width follows the new shape');
+ // Where the editor will draw it, and where the frame will put it, agree.
+ assert.equal(backdropWorldX(s.level[BACKDROP][0],s.level[BACKDROP][0].x),s.level[BACKDROP][0].x);
+ // It carries nothing into the simulation, and is not a platform's to carry.
+ const game=new Game();game.start(0,library.get(0));
+ assert.equal(game.level[BACKDROP].length,1);
+ assert.deepEqual(game.level.platforms.map(p=>p.id),LEVELS[0].platforms.map(p=>p.id));
+ assert.deepEqual(library.read(library.export(0,s.level),0)[BACKDROP],s.level[BACKDROP],'the horizon round-trips through a backup');
+ // A backup written before this list existed still imports.
+ const legacy=JSON.parse(library.export(0,s.level));delete legacy.level[BACKDROP];
+ assert.deepEqual(library.read(JSON.stringify(legacy),0)[BACKDROP],LEVELS[0][BACKDROP]??[],"an older backup keeps the chapter's own horizon");
+ for(const bad of [{kind:'unknown-shape'},{kind:'summit',factor:0},{kind:'summit',factor:2},{kind:'summit',z:-90},{kind:'summit',z:4},{kind:'summit',size:900},{size:2}]){
+  const file=JSON.parse(library.export(0,s.level));file.level[BACKDROP]=[{x:10,y:2,...bad}];
+  assert.throws(()=>library.read(JSON.stringify(file),0),/backdrop|Backdrop/,JSON.stringify(bad));
+ }
+ const over=JSON.parse(library.export(0,s.level));over.level[BACKDROP]=Array.from({length:BACKDROP_LIMIT+1},()=>({kind:'summit',x:5,y:1}));
+ assert.throws(()=>library.read(JSON.stringify(over),0),/maximum/);
+ s.remove();assert.equal(s.level[BACKDROP].length,0);
+ assert.equal(s.level.layoutVersion,canonical,'placing and clearing a horizon piece leaves the layout version alone');
+ library.reset(0);
+ console.log('PASS the authored horizon: defaults, distance kept across a shape change, revision, round trip, older backups and refused placements');
 }
 // The scenery a platform already carries. A landmark is a name on a deck, and
 // the workshop must only offer to choose it where the chapter honours the name.
