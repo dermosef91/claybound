@@ -98,10 +98,10 @@ console.log('PASS all clay poses: finite geometry/normals, stable buffers, colli
   assert.equal(disposed,materials.length);assert.equal(hw.levelRoot.children.length,0);
   console.log('PASS clay gesture hands: placement, size, stroke direction, pause/reduced motion, completion fade and disposal');
 
-  // The canyon's formable pocket is one wide mass with two towers on it, so its
-  // cue says where to start: over the spire at the dock's end (station.cueX),
-  // on its crest, miming the upward grab — not floating over the sand pit in
-  // the middle of the mass, where the station's centre is.
+  // The canyon's formable pocket is one wide, level mass with a perch hanging
+  // over its middle, so its cue says where to start: under the perch
+  // (station.cueX), on the clay, miming the upward grab that pulls the pillar
+  // up — not at either end of the mass, where nothing is to be reached.
   const canyon=new Game();canyon.start(0);
   const cw=Object.create(World.prototype);cw.mat=hw.mat;cw.levelRoot=new THREE.Group();cw.reducedMotion=false;
   for(const method of ['mesh','box','ball','cylinder'])cw[method]=World.prototype[method];
@@ -111,10 +111,11 @@ console.log('PASS all clay poses: finite geometry/normals, stable buffers, colli
   for(let i=0;i<120;i++)animateShapeHands(cw,canyon,1/60,true);
   assert(view.root.visible,'the pocket shows its cue from the dock');
   assert.equal(station.gesture,'up');assert(view.gesture.rise,'and it is the rising grab');
-  assert(Math.abs(view.root.position.x-station.cueX)<1e-9,`anchored at the spire (${view.root.position.x.toFixed(2)})`);
-  assert(view.root.position.x>mass.x&&view.root.position.x<mass.x+3,'inside the spire\'s footprint');
+  assert(Math.abs(view.root.position.x-station.cueX)<1e-9,`anchored under the perch (${view.root.position.x.toFixed(2)})`);
+  const perch=canyon.level.platforms.find(p=>p.id==='pocket-perch');
+  assert(view.root.position.x>perch.x-1&&view.root.position.x<perch.x+perch.w+1,'under the perch\'s footprint');
   const crest=mass.y-mass.h+Math.max(...mass.form.h);
-  assert(view.root.position.y<=canyon.player.y+3+1e-9&&view.root.position.y>crest-4,`on the spire's face, inside the view (${view.root.position.y.toFixed(2)} for a crest at ${crest.toFixed(2)})`);
+  assert(view.root.position.y<=canyon.player.y+3+1e-9&&view.root.position.y>crest-4,`on the clay, inside the view (${view.root.position.y.toFixed(2)} for a crest at ${crest.toFixed(2)})`);
   const rise=[];for(let i=0;i<114;i++){animateShapeHands(cw,canyon,1/60,true);rise.push(view.hands[0].position.y);}
   assert(Math.max(...rise)>.6&&Math.abs(Math.max(...view.hands.map(h=>h.position.x)))<.01,'the hand travels straight up');
   disposeShapeHands(cw);

@@ -4,6 +4,7 @@ import {cloudModel} from './clouds.js';
 import {clayMaterial,clayBox,cachedClayShape,retainClayShape,positionGroups} from './clay.js';
 import {archLiftCeiling} from './great-arch.js';
 import {makeMovingPlatform,braid,movingPlatformMaterials} from './moving-platform.js';
+import {porousClay} from './porous-clay.js';
 
 const random=n=>{const f=Math.sin(n*127.1+47.7)*43758.5453;return f-Math.floor(f);};
 const group=parent=>{const g=new THREE.Group();parent.add(g);return g;};
@@ -73,6 +74,81 @@ function timberDeck(w,s,g){
     for(const at of [-.42,.42])w.rope([x+at,-.36,1.72],[x+at*.4,-.78,1.34],g,.045).name='Deck lashing';
   }
   cactus(w,g,s.w-1.5,.02,1.5,-1.1,(random(s.x)-.5)*.3);
+}
+
+// The planks' wood is the moving lifts' wood — the same colours under the same
+// clay relief — but pitted the way the crumbling ledges are, so a floor that
+// is going to give reads as one. Pores are shaded through vertex colour, which
+// the lifts' own materials do not carry, hence a pair of the canyon's own.
+function plankMaterials(w){
+  if(w.mat.plankWood)return;
+  const lift=movingPlatformMaterials(w);
+  w.assetMaterials??=new Set();
+  for(const [name,from] of [['plankWood',lift.wood],['plankGrain',lift.grain]]){
+    const m=clayMaterial(w,new THREE.MeshStandardMaterial({color:from.color.getHex(),roughness:.93,metalness:0,vertexColors:true}),.07);
+    w.assetMaterials.add(m);w.mat[name]=m;
+  }
+}
+// A span of planks laid across a gap: porous boards in the lifts' wood, a head
+// beam along the front, a bearer at either end with the lifts' twisted rope
+// lashed round it, and no posts down to rock — this is a floor over a hole,
+// and what breaks it comes from above. It sits on whatever carries its ends
+// (its bearers reach .7 below the walking plane), not into it.
+// A board's outline: a rectangle with bites taken out of its edges — a notch
+// or two along the front, one in a side — so the gaps between boards and the
+// broken teeth along them read as holes from the side, where the pores alone
+// are too fine to.
+function bittenBoard(bw,depth,seed){
+  // A half-round bite of radius r into an edge, as the points of its arc.
+  const bite=(cx,cz,r,along,into)=>Array.from({length:5},(_,k)=>{const a=Math.PI*k/4;return [cx+along[0]*Math.cos(a)*r+into[0]*Math.sin(a)*r,cz+along[1]*Math.cos(a)*r+into[1]*Math.sin(a)*r];});
+  // The front edge (z = +depth/2) is walked from +x back to -x, so its bites
+  // run the same way; the right side (x = +bw/2) is walked from -z to +z.
+  const bites=1+Math.round(random(seed+1)),front=[];
+  for(let b=0;b<bites;b++){
+    const cx=-bw/2+bw*(bites>1?.28+.44*b:.5)+(random(seed+3+b)-.5)*bw*.14,r=Math.min(bw*.3,.12+random(seed+5+b)*.09);
+    front.push(bite(cx,depth/2,r,[1,0],[0,-1]));
+  }
+  front.sort((p,q)=>q[0][0]-p[0][0]);
+  const cz=(random(seed+9)-.5)*depth*.6,side=bite(bw/2,cz,.09+random(seed+11)*.08,[0,-1],[-1,0]);
+  return [[-bw/2,-depth/2],[bw/2,-depth/2],...side,[bw/2,depth/2],...front.flat(),[-bw/2,depth/2]];
+}
+export function plankSpan(w,s,g){
+  plankMaterials(w);
+  const lift=movingPlatformMaterials(w);
+  const boards=Math.max(3,Math.round(s.w/1.05)),boardW=s.w/boards,depth=3.3;
+  for(let i=0;i<boards;i++){
+    const seed=Math.floor(s.x*7)+i*11,bw=boardW-.24;
+    const key=`plank:${bw.toFixed(3)}:${seed}`;
+    let geo=cachedClayShape(w,key);
+    if(!geo){geo=porousClay(w,bittenBoard(bw,depth,seed),.36,seed,true);geo.computeBoundingSphere();retainClayShape(w,key,geo);}
+    const board=w.mesh(geo,i%2?'plankGrain':'plankWood',g,(i+.5)*boardW,-.02,0);
+    board.rotation.y=(random(seed)-.5)*.03;board.rotation.z=(random(seed+3)-.5)*.04;board.name='Porous plank';
+  }
+  w.mesh(clayBox(w,s.w+.1,.24,.4,.08),lift.grain,g,s.w/2,-.4,1.62).name='Plank head beam';
+  for(const x of [.55,s.w-.55]){
+    w.mesh(clayBox(w,.5,.42,3.4,.09),lift.wood,g,x,-.5,0).name='Plank bearer';
+    for(const z of [1.3,-1.3])braid(w,g,x,-.72,.02,z,.55,lift).name='Plank lashing';
+  }
+}
+
+// A solid wall body in the canyon: the same kneaded sandstone blocks the decks
+// stand on, laid in courses to fill exactly the box the simulation walks into,
+// so a pillar, an overhang or the rock under a pool of clay reads as the same
+// stone as everything else rather than as a slab.
+export function buildCanyonWall(w,s,g){
+  g.name='Canyon wall '+s.id;
+  const height=s.h??4,columns=Math.max(1,Math.ceil(s.w/2.9)),cw=s.w/columns;
+  for(let i=0;i<columns;i++){
+    const seed=Math.floor(s.x*3)+i*13,rows=[];
+    let left=height,first=Math.min(height,2.2+random(seed)*1.1);
+    rows.push(first);left-=first;
+    while(left>1e-6){const h=Math.min(left,left>4.4?3.2:left);rows.push(h);left-=h;}
+    let top=0;
+    for(let row=0;row<rows.length;row++){
+      const h=rows[row];
+      block(w,g,cw+.12,h+.12,3.35+(row%2)*.12,(i+.5)*cw,top-h/2,-.05,(i+row)%4===1?'terrain2':'terrain',seed+row*5);top-=h;
+    }
+  }
 }
 
 export function buildCanyonTerrain(w,s,g){

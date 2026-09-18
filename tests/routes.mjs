@@ -23,10 +23,38 @@ export function solvedForm(index,id,source){
   }
   return solved.get(key);
 }
-export function applySolvedForm(g,station,source){
+function applySolvedSurface(g,station,source){
   const f=g.level.platforms.find(s=>s.id===station.parts[0]).form;
   f.h.set(solvedForm(g.index,station.id,source));f.prev.set(f.h);f.settled=false;f.version++;
   station.amount=station.target=formShare(f,station.shaped);station.announced=true;
+}
+// A rock run is worked to send its rock over the edge, and what the rock does
+// on the way down — the planks it smashes, the floor it comes to rest on — is
+// part of the shape the chapter is in afterwards. Settled once per station
+// from the solved surface, through the real game, and copied like the surface.
+const settled=new Map();
+export function settledRock(index,id,source){
+  const key=`${source?source.name+'/':''}${index}:${id}`;
+  if(!settled.has(key)){
+    const g=new Game();g.start(index,source);g.onEvent=()=>{};
+    const station=g.level.shaping.find(s=>s.id===id);
+    applySolvedSurface(g,station,source);
+    // Until the rock is down and the scene watching it is over, so a sweep
+    // never starts with the hands off.
+    for(let k=0;k<2400&&!(station.ball.landed&&!g.cinema);k++)g.tick(dt,{});
+    assert(station.done&&station.ball.landed&&!g.cinema,`${id}: the solved surface sends its rock over the edge`);
+    settled.set(key,{ball:{...station.ball},broken:g.level.platforms.filter(s=>s.broken).map(s=>s.id)});
+  }
+  return settled.get(key);
+}
+export function applySolvedForm(g,station,source){
+  applySolvedSurface(g,station,source);
+  if(!station.ball?.spill)return;
+  const rock=settledRock(g.index,station.id,source);
+  Object.assign(station.ball,rock.ball);
+  for(const id of rock.broken){const s=g.level.platforms.find(q=>q.id===id);if(s)g.breakPlatform(s,s.x+s.w/2);}
+  station.done=true;station.open=1;station.amount=station.target=1;
+  if(station.channel){g.latched[station.channel]=true;g.channels[station.channel]=1;}
 }
 // `shaped` is what separates "can this be crossed" from "is the clay carrying
 // it": at shaped:false every station stays at its unworked pose, so a link that
@@ -79,7 +107,7 @@ if(process.argv[1]?.endsWith('routes.mjs')){
  for(const [i,L]of LEVELS.entries()){
   // The original compact traversal retains its length; Wildwood now adds
   // a 51-unit boss clearing beyond that route.
-  assert(Math.abs(((L.boss?L.end-51:L.end)-L.spawn.x)/L.previousDistance-.3)<.005);assert.equal(L.stamps.length,[3,2,5,3,3][i]);
+  assert(Math.abs(((L.boss?L.end-51:L.end)-L.spawn.x)/L.previousDistance-.3)<.005);assert.equal(L.stamps.length,[4,2,5,3,3][i]);
   assert.equal(new Set(L.platforms.map(s=>s.id)).size,L.platforms.length);assert.equal(L.platforms.filter(s=>s.goal).length,1);
   assert(Math.abs(L.platforms.find(s=>s.goal).x+L.platforms.find(s=>s.goal).bellX-L.end)<1e-6);
   for(const link of [...L.routeLinks,...L.detours.flat(),...L.recoveries.flat()]){

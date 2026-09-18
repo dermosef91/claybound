@@ -185,7 +185,7 @@ console.log('PASS holding E works the station the player is standing at, in ever
   // Where to take hold of each mass for a short pull upward — somewhere with
   // clay under the grip and headroom above it — and where to stand on its
   // solved surface for E, with clay ahead of the boots.
-  const SPOTS={'canyon-pocket':{drag:null,stand:108},'weave-bough':{drag:199.6,stand:203},'weave-mound':{drag:223.4,stand:224}};
+  const SPOTS={'canyon-pocket':{drag:null,stand:108},'boulder-run':{drag:300,stand:299},'weave-bough':{drag:199.6,stand:203},'weave-mound':{drag:223.4,stand:224}};
   for(const {chapter,dock} of formDocks){
     const r=await rig(dock,{chapter,options:wide}),s=r.live(),mass=r.part,f=mass.form,spot=SPOTS[dock];
     assert(spot,`${dock} has a drill spot`);
@@ -219,9 +219,13 @@ console.log('PASS holding E works the station the player is standing at, in ever
       r.step(1);ticks++;
     }
     r.step(60);
+    // A rock run is shaped once its rock is down, seconds after the last
+    // stroke, and the hands are off until the scene watching it is over.
+    for(let i=0;s.marble?.spill&&(!s.done||r.game.cinema)&&i<80;i++)r.step(30);
     assert.equal(s.amount,1,`${chapter}/${dock}: the strokes shape the pocket`);assert(s.announced);
     let worst=0;for(let i=0;i<f.n;i++)worst=Math.max(worst,Math.abs(f.h[i]-solved[i]));
-    assert(worst<1e-6,`${chapter}/${dock}: ${ticks} pointer ticks make the solver's surface (max |Δh| ${worst.toExponential(2)})`);
+    // Wet clay has begun to slump in the half second since the pointer left it.
+    assert(worst<(s.pace?1e-3:1e-6),`${chapter}/${dock}: ${ticks} pointer ticks make the solver's surface (max |Δh| ${worst.toExponential(2)})`);
     // E raises a step ahead of the player, and nowhere else: from a dock
     // spawn short of the clay the step would land on rock, so nothing
     // happens — that pocket is opened by the pointer, not the key. From a
@@ -229,6 +233,9 @@ console.log('PASS holding E works the station the player is standing at, in ever
     // is the keyboard's way across. On the clay, a held E builds the step,
     // and the step stays when the key is let go, since this clay does not
     // slump back.
+    // Wet clay is still slumping from the strokes above; the clump goes back
+    // first (R from the dock), so what E does or does not do can be seen.
+    if(s.pace){r.f.key('keydown',{code:'KeyR'});r.step(2);r.f.key('keyup',{code:'KeyR'});}
     r.f.key('keydown',{code:'KeyE'});
     const before=Float64Array.from(f.h);r.step(30);
     const reaches=r.game.player.x+FORM.stepReach>mass.x-FORM.stepRadius;
@@ -243,7 +250,9 @@ console.log('PASS holding E works the station the player is standing at, in ever
     assert(surfaceAt(mass,ahead)-was>FORM.step*FORM.stepRise-.05,`${chapter}/${dock}: half a second of E on the clay raises a step ahead (${(surfaceAt(mass,ahead)-was).toFixed(2)})`);
     r.f.key('keyup',{code:'KeyE'});
     const step=surfaceAt(mass,ahead);r.step(120);
-    assert(Math.abs(surfaceAt(mass,ahead)-step)<.05,`${chapter}/${dock}: the step stays once E is let go (${(surfaceAt(mass,ahead)-step).toFixed(3)})`);
+    // Dry clay keeps the step; wet clay has already begun to let it down.
+    if(s.pace)assert(surfaceAt(mass,ahead)<step-.02,`${chapter}/${dock}: wet clay lets the step slump once E is let go (${(surfaceAt(mass,ahead)-step).toFixed(3)})`);
+    else assert(Math.abs(surfaceAt(mass,ahead)-step)<.05,`${chapter}/${dock}: the step stays once E is let go (${(surfaceAt(mass,ahead)-step).toFixed(3)})`);
     assert.equal(r.game.deaths,0);
   }
 }
