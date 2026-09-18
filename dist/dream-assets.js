@@ -65,12 +65,13 @@ function splitFlower(geometry,cutY){
   return {head:part(head,'Flower head'),stem:part(stem,'Flower stem')};
 }
 
-// The frontmost vertex within `span` of (x,y): the pole of a forward bulge.
-function frontmost(pos,x,y,span,minY=-Infinity){
+// The frontmost vertex within `spanX` of x and `spanY` of y (and above
+// `minY`): the pole of a forward bulge.
+function frontmost(pos,{x,y=0,spanX,spanY=Infinity,minY=-Infinity}){
   let pole=null;
   for(let i=0;i<pos.count;i++){
     const px=pos.getX(i),py=pos.getY(i),pz=pos.getZ(i);
-    if(py<minY||Math.abs(px-x)>span||Math.abs(py-y)>span)continue;
+    if(py<minY||Math.abs(px-x)>spanX||Math.abs(py-y)>spanY)continue;
     if(!pole||pz>pole.z)pole={x:px,y:py,z:pz};
   }
   return pole;
@@ -106,7 +107,7 @@ function fitCap(pos,pole,span,depth,rMin,rMax){
 // to a sphere of the expected radius resting behind the pole.
 function findEye(geometry,box){
   const pos=geometry.attributes.position,h=box.max.y-box.min.y,cx=(box.min.x+box.max.x)/2;
-  const pole=frontmost(pos,cx,box.max.y,h*.08,box.min.y+h*HEAD_CUT);
+  const pole=frontmost(pos,{x:cx,spanX:h*.08,minY:box.min.y+h*HEAD_CUT});
   return fitCap(pos,pole,h*.11,h*.06,h*.07,h*.16)??{centre:new THREE.Vector3(pole.x,pole.y,pole.z-h*EYE_RADIUS),radius:h*EYE_RADIUS};
 }
 // The arch's flower has its eyeball where the upload put it — read off the
@@ -114,7 +115,7 @@ function findEye(geometry,box){
 // frontmost vertex around the seed is the eyeball's pole.
 const ARCH_EYE={x:-.6,y:.41,span:.16,radius:.12};
 function findArchEye(geometry){
-  const pos=geometry.attributes.position,pole=frontmost(pos,ARCH_EYE.x,ARCH_EYE.y,ARCH_EYE.span);
+  const pos=geometry.attributes.position,pole=frontmost(pos,{x:ARCH_EYE.x,y:ARCH_EYE.y,spanX:ARCH_EYE.span,spanY:ARCH_EYE.span});
   return fitCap(pos,pole,.13,.09,.07,.2)??{centre:new THREE.Vector3(pole.x,pole.y,pole.z-ARCH_EYE.radius),radius:ARCH_EYE.radius};
 }
 

@@ -272,11 +272,19 @@ function mushroomSpring(w,s,g){
   cap(w,g,cx,-.4,s.w*.56,.4,1,capMat,dot);
   return {root:g};
 }
-// The arch's keystone: a chunky block where the two halves of the arch meet,
-// with a closed eye pressed into its face that opens once the player has
-// walked under it — the arch wakes as the world flips.
+// The crown ledge over the arch. With the supplied gate it is only a cap of
+// moss lying on the gate's crown — the gate stands so its top meets the
+// ledge's, and the moss covers the crown knob's tip — since the gate's own
+// flower does the watching. The sculpted fallback keeps its keystone: a
+// chunky block where the two halves meet, with a closed eye pressed into its
+// face that opens once the player has walked under it.
 function keystone(w,s,g){
   g.name='Garden arch keystone · '+s.id;
+  if(w.dreamAssets?.arch){
+    w.box(s.w+.1,.3,1.5,'top',g,s.w/2,-.15,-1.2,.14).name='Crown moss';
+    w.ball(.32,.2,.28,'top',g,.2,-.02,-1.3).name='Crown tuft';w.ball(.28,.18,.24,'top',g,s.w-.25,-.04,-1.1).name='Crown tuft';
+    return {root:g};
+  }
   w.box(s.w+.2,1,1.6,'back',g,s.w/2,-.5,-1.3,.3).name='Keystone';
   w.box(s.w-.4,.3,1.3,'top',g,s.w/2,-.12,-1.2,.12).name='Keystone frosting';
   clayEye(w,g,s.w/2,-.5,-.46,.34,'back',s.x*5,{wake:s.x+s.w/2+.5});
@@ -351,7 +359,7 @@ function crookedArch(w,parent){
   // stands on the arch's x, its flower's eye watching like every other
   // flower's (the head is part of the arch, so only the pupil and lid move).
   if(w.dreamAssets?.arch){
-    const arch=dreamArch(w,g,{height:4.4});arch.root.position.x=-.6;
+    const arch=dreamArch(w,g,{height:4});arch.root.position.x=-.6;
     watch(w,{gaze:arch.gaze,lid:arch.lid,pupil:arch.pupil,seed:77});
     return g;
   }
