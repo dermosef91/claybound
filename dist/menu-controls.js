@@ -8,7 +8,7 @@
 // of the order the HTML happened to be written in.
 export const MENU_KEYS=Object.freeze({ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right'});
 const VERTICAL=new Set(['up','down']);
-const isRange=el=>!!el&&el.tagName==='INPUT'&&el.getAttribute?.('type')==='range';
+const isRange=el=>!!el&&el.tagName==='INPUT'&&el.type==='range';
 const isCorner=el=>!!el?.classList?.contains('dialog-close');
 
 // The direction a key asks for, or null. A slider keeps left and right for its

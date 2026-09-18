@@ -8,8 +8,7 @@ const box=(left,top,width,height)=>({left,top,width,height});
 let focused=null;
 // Enough of a laid-out control for the module: a box, a tag, a class, focus.
 const control=(name,rect,{close=false,range=false,disabled=false}={})=>({
-  name,rect,disabled,tagName:range?'INPUT':'BUTTON',
-  getAttribute:attr=>attr==='type'&&range?'range':null,
+  name,rect,disabled,tagName:range?'INPUT':'BUTTON',type:range?'range':'submit',
   classList:{contains:cls=>close&&cls==='dialog-close'},
   getBoundingClientRect(){return this.rect;},
   focus(){focused=this;},
