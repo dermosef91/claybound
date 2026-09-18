@@ -45,15 +45,22 @@ const SPOTS={
  'orchard':{x:211,y:0,ground:'orchard-entry',ticks:120},
  'corridor':{x:286,y:0,ground:'corridor-entry',ticks:120},
  // The windpipe, the corridor's second half: the foot of the rib staircase,
- // a rib mid-climb, and the shelf waiting under the squeeze. (The corridor
- // begins at chapter x 282. The Melted Parade that used to follow it is
- // shelved out of MODULES, so the river and everything after it stand 47
- // further left than they did; its own spots went with it, and
- // `SECTION=parade` still shoots the section on its own.)
+ // a rib mid-climb, and the shelf waiting under the squeeze.
+ //
+ // The corridor begins at chapter x 282 and is 83 long. The Melted Parade that
+ // used to follow it is shelved out of MODULES, so **every spot from the river
+ // on stands 47 left of where it did** — these are re-derived from the built
+ // chapter, not shifted by eye. The parade's own spots went with it;
+ // `SECTION=parade` still shoots the section, dressing and all, on its own.
  'windpipe':{x:336,y:0,ground:'corridor-floor-3',ticks:120},
  'windpipe-ribs':{x:350.1,y:4.4,ground:'corridor-rib-3',cameraX:352,cameraY:5.4,ticks:120},
  'windpipe-squeeze':{x:356,y:6.2,ground:'corridor-shelf',ticks:120},
  'river':{x:369,y:0,ground:'river-entry',ticks:120},
+ // The two frames the river's look is judged on (docs/river-look/reference-*):
+ // over the first yellow river with the entry aqueduct behind, and in the blue
+ // loop at the top of the yellow ribbon beside the crossing's flag.
+ 'river-a':{x:379.5,y:.4,ground:'river-yellow-1',cameraX:380,cameraY:3.6,ticks:120},
+ 'river-b':{x:423.3,y:12.4,cameraX:426,cameraY:9.6,ticks:120},
  'room':{x:449,y:0,ground:'room-entry',ticks:120},
  'knot':{x:569,y:0,ground:'knot-entry',ticks:120},
  'knot-climb':{x:605,y:4,ground:'knot-ledge-b',ticks:120},
@@ -77,9 +84,14 @@ function sectionSpots(key){
   return [spot('entry',sec.x+4),spot('middle',sec.x+sec.length/2),spot('exit',sec.x+sec.length-4)];
 }
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
+// The port must be this run's own: two reviews on one port would pass the
+// health check against each other's server and judge the wrong checkout with
+// only app.js patched in, so a child that dies before answering is an error.
 async function serve(){
  const server=spawn('python3',['-m','http.server',String(port),'--bind','127.0.0.1','--directory',path.join(root,'dist')],{stdio:'ignore'});
+ let exited=false;server.on('exit',()=>{exited=true;});
  for(let i=0;i<100;i++){
+  if(exited)throw new Error('static server exited before answering on '+port+' — is another server on that port? (set PORT)');
   const ok=await new Promise(resolve=>{const req=http.get({host:'127.0.0.1',port,path:'/index.html'},res=>{res.resume();resolve(res.statusCode===200);});req.on('error',()=>resolve(false));});
   if(ok)return server;await wait(100);
  }
@@ -155,7 +167,7 @@ async function serve(){
     playtest.draw(0);
     let lights=0,transparent=0,meshes=0;
     w.scene.traverse(o=>{if(o.isLight&&o.visible&&o.intensity>0)lights++;if(o.isMesh&&o.visible&&o.material?.transparent)transparent++;if(o.isMesh)meshes++;});
-    const palette=w.dreamPalette?Object.fromEntries(Object.entries(w.dreamPalette).map(([k,c])=>[k,'#'+c.getHexString()])):null;
+    const palette=w.dreamPalette?Object.fromEntries(Object.entries(w.dreamPalette).map(([k,c])=>[k,c?.isColor?'#'+c.getHexString():c])):null;
     const creatures=spot.creatures?g.level.enemies.filter(e=>Math.abs(e.x-spot.x)<30).map(e=>`${e.kind}@${e.x.toFixed(1)},${e.y}${e.alive?'':' dead'}${w.enemyViews?.get(e.id)?.model?' model':''}`):undefined;
     return {spot:spot.name,x:spot.x,cameraX:w.cameraX,cameraY:w.cameraY,viewW:w.viewW,viewH:w.viewH,roll:w.dreamRoll||0,palette,calls,triangles,geometries:info.memory.geometries,textures:info.memory.textures,programs:info.programs.length,frameMs:frames[30],frameMsP90:frames[54],lights,transparentMeshes:transparent,sceneMeshes:meshes,creatures};
    },spot);

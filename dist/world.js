@@ -4,7 +4,7 @@ import {createHero,loadHero,detachHero,animateHero,heroEvent} from './hero.js';
 import {characterChoice} from './characters.js';
 import {applyEnvironment,buildBackdrop,buildTerrain,animateEnvironment} from './environments.js';
 import {makeCitadelLift} from './citadel.js';
-import {makeMovingPlatform} from './moving-platform.js';
+import {makeMovingPlatform,movingPlatformMaterials} from './moving-platform.js';
 import {renderCitadelDepth} from './citadel-depth.js';
 import {loadEnemies,createEnemyView,animateEnemy,releaseEnemyViews} from './enemies.js';
 import {loadCastle} from './castle.js';
@@ -26,7 +26,7 @@ import {loadDreamAssets} from './dream-assets.js';
 import {loadSpitterAssets} from './spitter-asset.js';
 import {loadCavernAssets} from './cavern-asset.js';
 import {createCaveLights} from './cave-lighting.js';
-import {makeCanyonLift,makeCanyonZip,animateCanyonZip} from './canyon.js';
+import {makeCanyonLift,makeCanyonZip,animateCanyonZip,plankSpan,buildCanyonWall} from './canyon.js';
 import {greatArchLedge} from './great-arch.js';
 import {makeRopeBridge} from './rope-bridge.js';
 import {bridgeOffset} from './bridge-surface.js';
@@ -262,7 +262,9 @@ export class World {
     if(s.kind==='zip')return makeCanyonZip(this,s,g);
     if(s.kind==='balance')return balanceDeck(this,s,g);
     let ropes=[],springPad,fracture;
-    if(s.kind==='wall'){
+    if(s.kind==='wall'&&this.biome==='desert'&&!s.breathe){
+      buildCanyonWall(this,s,g);
+    } else if(s.kind==='wall'){
       const height=s.h??4;
       this.box(s.w,height,2,'terrain',g,s.w/2,-height/2,0,Math.min(.14,s.w/8,height/8));
     } else if(s.kind==='stone'){
@@ -289,6 +291,8 @@ export class World {
       forestBranch(this,s,g);
     } else if(s.kind==='break'&&this.biome==='forest'){
       forestSeal(this,s,g);
+    } else if(s.kind==='break'&&s.timber){
+      plankSpan(this,s,g);
     } else if(s.kind==='ledge'&&this.biome==='cave'){
       caveLedgeBody(this,s,g);
     } else {
@@ -383,11 +387,22 @@ export class World {
   event(e) {
     if(e.type==='press-impact'&&Math.abs(this.cameraX-e.x)>this.viewW*.8)return;
     heroEvent(this.character,e);
+    // Before the first build() there is nothing to paint on: the environment's
+    // palette slots — dust, accent — only exist once a chapter has been built.
+    // The rig has heard the event; the effects wait for a chapter.
+    if(!this.currentLevel)return;
     if(e.type==='checkpoint')raiseCheckpoint(this,e);
     else if(e.type==='mother-open')this.addTrauma(.48);
     else if(e.type==='mother-hit'||e.type==='mother-collapse'){this.burst(e.x,e.y,'gold',20,1.3);this.addTrauma(.52);}
     else if(e.type==='mother-bounce')this.burst(e.x,e.y,'orange',10,.7);
     else if(e.type==='break'&&e.spore)burstSporePod(this,e);
+    // A plank floor going through flies apart as wood, the whole width of it,
+    // on top of the burst every break raises.
+    else if(e.type==='break'&&this.currentLevel?.platforms.find(p=>p.id===e.platformId)?.timber){
+      const wood=movingPlatformMaterials(this);
+      clayFragments(this,e.x,e.y+.1,e.w,30,1.9,false,{material:Math.random()<.5?wood.grain:wood.wood,size:2.6});
+      this.burst(e.x,e.y,'orange',23,2);
+    }
     else if(e.type==='crumble-collapse')clayFragments(this,e.x,e.y,e.w,24,1.1,true);
     else if(e.type==='press-impact'){clayFragments(this,e.x,e.y,e.w+1,14,.85);if(Math.abs(this.cameraX-e.x)<this.viewW*.6)this.addTrauma(.45);}
     else if(e.type==='shot-pop'||e.type==='spitter-fire')this.burst(e.x,e.y,'gold',e.type==='shot-pop'?5:3,.4);
@@ -472,15 +487,21 @@ export class World {
     this.cameraFace=this.cameraFace===undefined?p.facing||1:this.cameraFace+((p.facing||1)-this.cameraFace)*(1-Math.exp(-dt*2.6));
     this.cameraAnchorY=cameraAnchorY(this.cameraAnchorY,p,this.viewH,dt);
     const citadel=this.biome==='citadel';
-    const target=motherCamera(L.boss,p,this.viewW,this.viewH,this.landscape)||cameraTarget(p,this.viewW,this.viewH,this.landscape,this.cameraLook,this.cameraAnchorY,this.cameraFace);
+    // A scene the game is watching — a boulder going over its edge — takes the
+    // frame with it: the rock sits in the upper part of the view so what it is
+    // about to come down on is in the picture, and the pan is slower than the
+    // follow, so it reads as the camera turning to look rather than snapping.
+    const scene=game.cinema;
+    const target=scene?{x:scene.x+this.viewW*.04,y:scene.y-this.viewH*.16}:motherCamera(L.boss,p,this.viewW,this.viewH,this.landscape)||cameraTarget(p,this.viewW,this.viewH,this.landscape,this.cameraLook,this.cameraAnchorY,this.cameraFace);
     const targetX=menu?L.spawn.x+this.viewW*.11:target.x;
     const targetY=menu?L.spawn.y+this.viewH*VERTICAL_BIAS:target.y;
-    const cameraRate=L.boss?.state==='reveal'?2:L.boss?.state==='defeated'?3.5:6.7;
+    this.sceneReturn=scene?1.2:Math.max(0,(this.sceneReturn||0)-dt);
+    const cameraRate=scene||this.sceneReturn>0?4.4:L.boss?.state==='reveal'?2:L.boss?.state==='defeated'?3.5:6.7;
     this.cameraX+=(targetX-this.cameraX)*(1-Math.exp(-dt*cameraRate));
     // Standing, the frame settles onto the player. Airborne it is gentle,
     // because the anchor is already holding still — until a long fall drags the
     // anchor along, where it has to keep up or the landing leaves the screen.
-    const verticalRate=p.groundId?7:anchorDragged(this.cameraAnchorY,p,this.viewH)?10:4.5;
+    const verticalRate=scene?5:p.groundId?7:anchorDragged(this.cameraAnchorY,p,this.viewH)?10:4.5;
     this.cameraY+=(targetY-this.cameraY)*(1-Math.exp(-dt*verticalRate));
     }else{this.cameraX=edit.x;this.cameraY=edit.y;}
     this.trauma=Math.max(0,(this.trauma||0)-dt*TRAUMA_DECAY);this.shake=shakeAmplitude(this.trauma);

@@ -65,6 +65,10 @@ export default {
      spawn:{x:62,y:0,groundId:'river-pool-bank'},cueX:67,channel:'river-geyser',rideable:true,
      hint:'Ride the blue raft down. At the bottom, press the violet clot in the riverbed — drag it, or hold E / KNEAD — and the river bursts up under you. Ride the spout to the far bank.'}
   ],
-  palettes:[{x:0,main:'#86dcc3',secondary:'#c9b4f2',backdrop:'#b9a6e6',accent:'#ff62b0',sky:'#a99be6',fog:'#efb9d6'}],
+  // Warm key light and a pink-lavender fill: the glaze is judged by its
+  // highlights, and a bluish fill turned the yellow green. The fog reaches
+  // further than the chapter's, so the section's own hills and pillars keep
+  // their pink and their shading behind the haze (docs/river-look).
+  palettes:[{x:0,main:'#8ee0c8',secondary:'#cdb9f3',backdrop:'#b9a6e6',accent:'#ff62b0',sky:'#a99be6',fog:'#efb9d6',sun:'#fff1d6',sunPower:3.4,fill:'#e9d2ee',fogNear:38,fogFar:130}],
   camera:[],guides:[]
 };

@@ -69,6 +69,9 @@ export class Game {
     // `strands` remembers which required stations have already been heard
     // finishing, so a restore does not announce them all over again.
     this.finale=this.level.finale?{state:'waiting',time:0,strands:[]}:null;
+    // A scene the game is watching instead of the player — a rock going over
+    // its edge — as {x,y}; the camera follows it and the hands are off.
+    this.cinema=null;
     const ground=this.level.platforms.find(p=>this.level.spawn.x>=p.x&&this.level.spawn.x<=p.x+p.w&&Math.abs(p.y-this.level.spawn.y)<.2);
     this.respawnTimer=0;this.player={...this.level.spawn,vx:0,vy:0,facing:1,health:RULES.maxHealth,invuln:0,coyote:ground?.135:0,jumpBuffer:0,groundId:ground?.id??null,stomping:false,springing:false,squash:0,skidding:false,stride:0,stompWindup:0,stunTime:0,sporeGrace:0};
     this.status='playing';this.event('level',{index});
@@ -80,7 +83,14 @@ export class Game {
     if(this.latched[channel])return;
     this.latched[channel]=true;this.channels[channel]=1;this.event('activate',{channel,x,y});
   }
-  snapshot(){return {bossDefeated:this.level.boss?.state==='defeated',version:this.level.layoutVersion,index:this.index,checkpointId:this.checkpointId,activatedCheckpoints:[...this.activatedCheckpoints],elapsed:this.elapsed,deaths:this.deaths,latched:Object.keys(this.latched).filter(c=>this.latched[c]),broken:this.level.platforms.filter(s=>s.broken).map(s=>s.id),shaped:(this.level.shaping||[]).filter(s=>s.amount>.995).map(s=>s.id),coins:this.level.coins.filter(c=>c.taken).map(c=>c.id),stamps:this.level.stamps.filter(c=>c.taken).map(c=>c.id),finale:this.finale?.state??null};}
+  // A breakable deck gives way — under a stomp, or under the rock a clay
+  // puzzle drops on it — and stays given way; a seal releases what it held.
+  breakPlatform(s,x,y=s.y){
+    if(s.broken)return;
+    s.broken=true;s.active=false;this.event('break',{platformId:s.id,w:s.w,x,y:s.y,spore:this.level.biome==='forest'});
+    if(s.releases)this.activate(s.releases,x,s.y);
+  }
+  snapshot(){return {bossDefeated:this.level.boss?.state==='defeated',version:this.level.layoutVersion,index:this.index,checkpointId:this.checkpointId,activatedCheckpoints:[...this.activatedCheckpoints],elapsed:this.elapsed,deaths:this.deaths,latched:Object.keys(this.latched).filter(c=>this.latched[c]),broken:this.level.platforms.filter(s=>s.broken).map(s=>s.id),shaped:(this.level.shaping||[]).filter(s=>s.amount>.995).map(s=>s.id),rocks:(this.level.shaping||[]).filter(s=>s.ball?.spilled).map(s=>({id:s.id,x:s.ball.wx,y:s.ball.wy,landed:!!s.ball.landed,smashed:s.ball.smashed||0,groundId:s.ball.groundId||null})),coins:this.level.coins.filter(c=>c.taken).map(c=>c.id),stamps:this.level.stamps.filter(c=>c.taken).map(c=>c.id),finale:this.finale?.state??null};}
   restore(save){
     if(!save||save.version!==this.level.layoutVersion||save.index!==this.index)return false;
     const checkpoint=this.level.platforms.find(s=>s.id===save.checkpointId&&s.checkpoint);if(!checkpoint)return false;
@@ -102,7 +112,26 @@ export class Game {
       if(mass){if(this.checkpoint.x>mass.x+mass.w)solveFormStation(station,mass,{dt:FIXED_DT});}
       else {station.target=1;station.amount=1;station.announced=true;}
     }
-    updateShaping(this,0,{});
+    // A rock that went over its edge stays down where it fell: the clay above
+    // cannot reach it any more, and the planks it smashed are in `broken`.
+    for(const rock of Array.isArray(save.rocks)?save.rocks:[]){
+      const station=(this.level.shaping||[]).find(s=>s.id===rock.id),m=station?.ball;
+      if(!m||!Number.isFinite(rock.x)||!Number.isFinite(rock.y))continue;
+      Object.assign(m,{spilled:true,wx:rock.x,wy:rock.y,vx:0,vy:0,landed:!!rock.landed,smashed:rock.smashed||0,groundId:rock.groundId||null,home:false,still:0,rested:rock.landed?9:0});
+      if(m.landed||m.smashed){
+        station.done=true;station.open=1;station.amount=station.target=1;station.announced=true;
+        // Its channel is part of the rock being down, so it is latched with it.
+        if(station.channel){this.latched[station.channel]=true;this.channels[station.channel]=1;}
+      }
+    }
+    // Settling the stations replays what the player already did, so it
+    // announces nothing: a rebuilt cast that reads as done latches its channel
+    // here just as a saved latch is set below, without the burst and chime the
+    // finish had the first time. The world has not built the chapter yet
+    // either — app restores before it builds — so a burst thrown now would
+    // reach for a palette slot that does not exist and take the load down.
+    const emit=this.onEvent;this.onEvent=()=>{};
+    try{updateShaping(this,0,{});}finally{this.onEvent=emit;}
     // Only channels something in the level can latch for good are taken from
     // a save: seals, latching switches, weighed beams, the dream's trigger
     // zones and the stations that open a channel once they are worked.
@@ -206,6 +235,9 @@ export class Game {
       this.finale.time+=dt;
       if(this.finale.time>=(L.finale.duration??FINALE.duration))this.wake();
     }
+    // A scene being watched — a boulder going over the edge — is watched
+    // standing still: gravity and landing stay live, the hands are off.
+    if(this.cinema){input={};p.jumpBuffer=0;p.stomping=false;p.stompWindup=0;p.vx=0;}
     for(const c of Object.keys(this.channels))if(!this.latched[c])this.channels[c]=Math.max(0,this.channels[c]-dt);
     for(const wind of L.winds||[])wind.active=!wind.channel||this.channels[wind.channel]>0;
     for(const s of L.platforms) {
@@ -347,9 +379,8 @@ export class Game {
     const candidates=L.platforms.filter(s=>s.active&&!s.broken&&!(p.dropTimer>0&&p.dropThrough===s.id)&&!formSteepAt(s,p.x,RULES.radius)&&!domeSteepAt(s,p.x,RULES.radius)&&p.x+RULES.radius>s.x&&p.x-RULES.radius<s.x+s.w&&prevY>=surfaceAt(s,p.x,true)-(s.kind==='spring'&&oldGround ? .55 : (s.give||s.form)&&oldGround===s ? .45 : .14)&&p.y<=surfaceAt(s,p.x)+.03&&p.vy<=Math.max(0,(surfaceAt(s,p.x)-surfaceAt(s,p.x,true))/dt)).sort((a,b)=>surfaceAt(b,p.x)-surfaceAt(a,p.x));
     if(candidates.length) {
       const s=candidates[0],impact=p.vy;
-      if(s.kind==='break'&&p.stomping) {
-        s.broken=true;s.active=false;this.event('break',{platformId:s.id,w:s.w,x:p.x,y:s.y,spore:L.biome==='forest'});p.vy=-14;p.stomping=false;
-        if(s.releases)this.activate(s.releases,p.x,s.y);
+      if(s.kind==='break'&&p.stomping&&!s.rockOnly) {
+        this.breakPlatform(s,p.x,s.y);p.vy=-14;p.stomping=false;
       } else {
         if(s.shape&&p.stomping)stompClay(this,s);
         p.y=surfaceAt(s,p.x);p.vy=0;p.groundId=s.id;p.coyote=.135;p.springing=false;

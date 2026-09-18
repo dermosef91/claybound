@@ -63,13 +63,16 @@ function fragmentGeometry(w){
   }
   return w.fragmentGeometry;
 }
-export function clayFragments(w,x,y,width,count=18,power=1,porous=false){
+// `material` names the chips' clay where it is not the deck's own — the wood
+// of a plank floor going through — and `size` scales them: splinters of a
+// board are bigger than chips off a ledge.
+export function clayFragments(w,x,y,width,count=18,power=1,porous=false,{material=null,size=1}={}){
   count=Math.max(0,Math.min(w.reducedMotion?Math.min(7,count):count,110-w.particles.length));
   fragmentGeometry(w);if(porous)crumbleMaterials(w);
   for(let i=0;i<count;i++){
-    const mesh=w.mesh(w.fragmentGeometry,porous?'crumbleChip':i%3?'top':'terrain',w.fxRoot,x+(Math.random()-.5)*width,y-.15,.5+Math.random()*.45);
-    const r=.035+Math.random()*.08;mesh.scale.set(r*1.3,r*.75,r);mesh.castShadow=false;mesh.receiveShadow=false;
-    w.particles.push({kind:'clay-chip',mesh,vx:(Math.random()-.5)*3.4*power,vy:(Math.random()*2.1-.7)*power,vz:(Math.random()-.35)*1.6,spinX:Math.random()*8-4,spinZ:Math.random()*10-5,life:.65+Math.random()*.45});
+    const mesh=w.mesh(w.fragmentGeometry,material??(porous?'crumbleChip':i%3?'top':'terrain'),w.fxRoot,x+(Math.random()-.5)*width,y-.15,.5+Math.random()*.45);
+    const r=(.035+Math.random()*.08)*size;mesh.scale.set(r*1.3,r*.75,r);mesh.castShadow=false;mesh.receiveShadow=false;
+    w.particles.push({kind:'clay-chip',mesh,vx:(Math.random()-.5)*3.4*power,vy:(Math.random()*2.1-.7)*power,vz:(Math.random()-.35)*1.6,spinX:Math.random()*8-4,spinZ:Math.random()*10-5,life:(.65+Math.random()*.45)*Math.sqrt(size)});
   }
 }
 export function animateCrumble(w,view,s,dt){

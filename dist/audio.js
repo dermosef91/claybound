@@ -341,7 +341,13 @@ export class Sound {
     // One cue for a head landing on anything with a head: the bat, the
     // spitter, the clayling and the Dust Drifter are all defeated the same way
     // and now sound the same way. Only the spore balloon keeps its own.
-    if(type==='squish'&&['bat','spitter','clayling','drifter'].includes(event.kind)&&this.bufferEffect(this.enemyHeadImpactBuffer,.36))return;
+    // The recording is a block of clay breaking — the material the enemy and
+    // everything around it is made of, where the thud it replaces could have
+    // been anything. It runs a little longer than that thud did, so it is
+    // pitched either way per kill, the way the footsteps and the kneading are:
+    // a chapter is a few dozen stomps, and one crack heard identically that
+    // often stops sounding like clay and starts sounding like a sample.
+    if(type==='squish'&&['bat','spitter','clayling','drifter'].includes(event.kind)&&this.bufferEffect(this.enemyHeadImpactBuffer,.46,undefined,.94+Math.random()*.12))return;
     // Jump and land are the two sounds a player hears most — a few hundred
     // times a chapter each. Both are the supplied boot thud, and the two are
     // pitched apart so a hop is not one sound played twice within half a

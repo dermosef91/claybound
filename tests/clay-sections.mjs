@@ -54,9 +54,20 @@ for(const L of LEVELS)for(const station of L.shaping||[]){
     const g=new Game();g.start(index);
     const live=g.level.shaping.find(s=>s.id===station.id),f=solveFormStation(live,massOf(g,live),{dt});
     assert(Math.abs(formVolume(f)-f.volume)<1e-7,`${L.short}: ${piece.id} keeps its volume exactly when solved (${(formVolume(f)-f.volume).toExponential(2)})`);
-    assert.equal(live.amount,1);assert(live.announced);
-    assert(live.shaped>FORM.shaped*2,`${L.short}: ${station.id} asks for more than the lab's share before it reads as shaped`);
-    assert.equal(formShare(f,live.shaped*1.2),1,`${L.short}: the solution moves a fifth more clay than the station needs`);
+    // A rock run is not shaped by a share of clay moved but by its rock going
+    // over the edge: solved from the clump, the surface alone has to send it
+    // off, and the station reads as done only once the rock is down.
+    const rock=!!live.marble?.spill;
+    if(rock){
+      assert(live.amount<1,`${L.short}: ${station.id} is not shaped before its rock has gone`);
+      for(let i=0;i<2400&&!live.done;i++)g.tick(dt,{});
+      assert(live.done&&live.ball.spilled,`${L.short}: ${station.id}'s solved surface sends the rock over the edge`);
+      assert.equal(live.amount,1);
+    } else {
+      assert.equal(live.amount,1);assert(live.announced);
+      assert(live.shaped>FORM.shaped*2,`${L.short}: ${station.id} asks for more than the lab's share before it reads as shaped`);
+      assert.equal(formShare(f,live.shaped*1.2),1,`${L.short}: the solution moves a fifth more clay than the station needs`);
+    }
     // The same strokes as a player's pointer would make them, through the
     // real game with the player on the dock, come to the very same surface —
     // so the pilot's inputs and the routes sweep's cached surface agree, and
@@ -66,11 +77,14 @@ for(const L of LEVELS)for(const station of L.shaping||[]){
     Object.assign(real.player,rs.spawn,{vx:0,vy:0});real.tick(dt,{});
     assert.equal(nearbyStation(real)?.id,station.id,'the spawn is inside the stretch');
     let inputs=0;for(const input of formSolutionInputs(real,rs,{dt})){real.tick(dt,input);inputs++;}
-    for(let i=0;i<60;i++)real.tick(dt,{});
+    for(let i=0;i<(rock?2400:60)&&!(rock&&rs.done);i++)real.tick(dt,{});
     assert.equal(rs.amount,1);assert(rs.announced);assert.equal(real.deaths,0);
     const cached=solvedForm(index,station.id);let worst=0;
     for(let i=0;i<f.n;i++)worst=Math.max(worst,Math.abs(rm.form.h[i]-cached[i]),Math.abs(f.h[i]-cached[i]));
-    assert.equal(worst,0,`${L.short}: ${inputs} real inputs make the solved surface bitwise (max |Δh| ${worst})`);
+    // Wet clay has begun to slump in the half second since the hand left it,
+    // so it is held to the solved surface within that slump rather than bitwise.
+    if(rs.pace)assert(worst<1e-3,`${L.short}: ${inputs} real inputs make the solved surface, less half a second's slump (max |Δh| ${worst})`);
+    else assert.equal(worst,0,`${L.short}: ${inputs} real inputs make the solved surface bitwise (max |Δh| ${worst})`);
     continue;
   }
   const before=volume(piece.shape.from,piece.clayRole),after=volume(piece.shape.to,piece.clayRole);
@@ -119,13 +133,13 @@ function highestFrom(level,id){
 }
 
 const SECTIONS=[
-  // One formable mass spans the whole pocket, so its bypass is dock to landing.
-  // Since layout 11 the dock stands over the clay's rest surface, so the mass
-  // is stepped onto rather than walked into — `rideable`, like the kiln's
-  // tower. Standing on the clump is not a way across: the pit between its
-  // towers is too deep to hop out of, so the clay still has to be worked,
-  // which is what the bypass check below holds it to.
-  {level:0,station:'canyon-pocket',bypass:{from:'pocket-dock',to:'pocket-landing',mode:'jump'},rideable:true,form:true},
+  // The canyon's pocket is not here: since layout 12 it is level wet clay the
+  // riverbed is walked across, and what it gates is a flower, not the way on.
+  // Its own drill is below.
+  // The mesa's pool is walked onto flat; what it guards is the cave below,
+  // floored over with planks only its boulder breaks — so the bypass is the
+  // drop off the pool's edge, which lands on whole planks until it is worked.
+  {level:0,station:'boulder-run',bypass:{from:'boulder-pool',to:'cave-floor',mode:'fall'},rideable:true,form:true},
   {level:1,station:'weave-bough',bypass:{from:'gap-brink',to:'weave-perch',mode:'jump'},form:true},
   {level:1,station:'weave-mound',bypass:{from:'weave-spring',to:'canopy-nest',mode:'jump'},form:true},
   // The tower is the one piece meant to be stood on while it is still tall.
@@ -233,29 +247,22 @@ for(const [k,here] of SECTIONS.entries()){
 }
 console.log('PASS softening a finished piece underfoot never opens a way past the next one');
 
-// --- the pocket, walked -------------------------------------------------------------
-// Two links prove the dock reaches the clay and the clay's far end reaches the
-// landing; only a body crossing the whole mass proves the middle. So: real
-// inputs from the dock to the landing, over the solved surface and over every
-// other shape a hand might make of it instead, and never over the clump.
+// --- the pocket, walked and climbed ---------------------------------------------------
+// Since layout 12 the pocket is wet clay resting level with its dock and its
+// landing: the riverbed is a walk, and the clay is for the flower on the perch
+// over it. So: the walk unworked, the perch out of reach of a jump and of a
+// stomp off the level clay, reached off the pillar the authored stroke pulls
+// up, the pillar melting unless a hand is on it, R, the beads, the sand under
+// it all, and a resume.
 {
   const level=0,id='canyon-pocket';
   const boot=()=>{
-    const g=new Game();g.start(level);
+    const g=new Game();g.start(level);g.level.enemies=[];
     const station=g.level.shaping.find(s=>s.id===id),mass=massOf(g,station),dock=g.level.platforms.find(p=>p.id==='pocket-dock');
     Object.assign(g.player,{x:dock.checkpoint,y:dock.y,vx:0,vy:0,groundId:dock.id,coyote:.13});g.tick(dt,{});
     assert.equal(g.checkpointId,dock.id,'the dock flag is the pocket\'s checkpoint');
     return {g,station,mass,p:g.player};
   };
-  // A pointer stroke as a player makes it: down at (x, the surface there +
-  // lift), straight to (x+dx, y+dy) over t seconds, then up.
-  const stroke=(g,mass,{x,lift,dx,dy,t})=>{
-    const n=Math.round(t/dt),y0=surfaceAt(mass,x)+lift;
-    for(let i=0;i<n;i++){const u=n>1?i/(n-1):0;g.tick(dt,{moveAxis:0,shapeId:id,shapeX:x+dx*u,shapeY:y0+dy*u});}
-    g.tick(dt,{moveAxis:0});
-  };
-  // Walk towards x, and hop whenever the way is blocked — what a player does at
-  // a rise they cannot step over. Reports where it got to.
   const hopTo=(g,x,seconds=12)=>{
     const p=g.player,deaths=g.deaths;let stuck=0,last=p.x;
     for(let i=0;i<seconds/dt;i++){
@@ -270,128 +277,58 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
     return `stuck at ${p.x.toFixed(2)}, ${p.y.toFixed(2)}`;
   };
   const landing=g=>hopTo(g,g.level.platforms.find(p=>p.id==='pocket-landing').checkpoint);
-  // The drills below are points on the mass, written as offsets from its own
-  // left edge so the pocket can be moved as a block without rewriting them.
-  const MASS=LEVELS[0].platforms.find(q=>q.id==='pocket-clay').x;
-  const SAND=LEVELS[0].platforms.find(q=>q.id==='pocket-floor').y;
-  const DOCK=LEVELS[0].platforms.find(q=>q.id==='pocket-dock').x;
-  const END=(q=>q.x+q.w)(LEVELS[0].platforms.find(q=>q.id==='pocket-landing'));
-  const LAND=LEVELS[0].platforms.find(q=>q.id==='pocket-landing').x;
+  const PERCH=LEVELS[0].platforms.find(q=>q.id==='pocket-perch'),FLOWER=LEVELS[0].stamps.find(c=>c.x>PERCH.x&&c.x<PERCH.x+PERCH.w);
+  const UNDER=PERCH.x+PERCH.w/2,DOCK=LEVELS[0].platforms.find(q=>q.id==='pocket-dock').x,END=(q=>q.x+q.w)(LEVELS[0].platforms.find(q=>q.id==='pocket-landing'));
+  assert(PERCH.optional&&FLOWER,'the perch is an optional ledge with a flower over it');
+  const under=(g,mass)=>Object.assign(g.player,{x:UNDER,y:surfaceAt(mass,UNDER),vx:0,vy:0,groundId:mass.id,coyote:.13});
+  // Jump, or jump and stomp, straight up under the perch; report the feet's
+  // apex and whether the perch was landed on.
+  const leap=(g,stomp)=>{const p=g.player;let apex=p.y,landed=false;
+    for(let i=0;i<300;i++){g.tick(dt,{jumpPressed:i===0,jumpHeld:true,stompPressed:stomp&&i===15});apex=Math.max(apex,p.y);if(p.groundId==='pocket-perch'){landed=true;break;}}
+    return {apex,landed};};
 
-
-  // Unworked, the pocket is a wall: twelve seconds of walking and hopping from
-  // the dock never leave it.
-  // Unworked, the pocket is not a way through. The dock stands over the clay,
-  // so the clump can be stepped onto — what it cannot do is carry anyone
-  // across: the pit between its towers is deeper than a hop out of it.
-  {const {g,p}=boot();const r=landing(g);assert(r.startsWith('stuck')&&p.x<LAND,`the clump carries nobody across (${r})`);assert.equal(g.deaths,0);}
-  // 1. The authored solution: lean the spire into a bridge, slump the lump
-  //    into a ramp, and the pocket is a walk with a hop at each end.
-  {const {g,station,mass}=boot();solveFormStation(station,massOf(g,station),{dt});
-   const r=landing(g);assert.equal(r,'landing',`the solved pocket is crossed (${r})`);assert.equal(g.deaths,0);
-   assert(g.elapsed<8,`in good time (${g.elapsed.toFixed(1)}s)`);}
-  // 2. Squash and slump: press the spire straight down from the air instead of
-  //    leaning it, and it spreads into a mound with a bridge behind it.
-  {const {g,station,mass}=boot();
-   for(let k=0;k<3;k++)stroke(g,mass,{x:MASS+1,lift:1,dx:0,dy:-3,t:1});
-   stroke(g,mass,{x:MASS+13.7,lift:0,dx:-5.5,dy:-2.6,t:1.8});
-   assert.equal(station.amount,1,'squashing and slumping reads as shaped');
-   const r=landing(g);assert.equal(r,'landing',`a squashed spire and a slumped lump cross the pocket (${r})`);assert.equal(g.deaths,0);}
-  // 3. Lean, pillar, launch: lean the spire, walk to the lump's foot, pull the
-  //    clay up under your own feet (it carries you), then jump and stomp back
-  //    into it — the crater throws you over the lump onto the landing.
+  // Unworked, the riverbed is a walk: dock to landing without a hand on the clay.
+  {const {g,station}=boot();const r=landing(g);assert.equal(r,'landing',`the level pocket is walked across unworked (${r})`);assert.equal(g.deaths,0);
+   assert(station.amount<.5,`walking across is not shaping it (${station.amount.toFixed(2)})`);}
+  // The perch is out of reach from the level clay, by jump and by stomp.
+  {const {g,mass}=boot();under(g,mass);const j=leap(g,false);assert(!j.landed&&j.apex<PERCH.y-1,`a jump off the level clay falls short of the perch (feet to ${j.apex.toFixed(2)}, perch ${PERCH.y})`);}
+  {const {g,mass}=boot();under(g,mass);const s=leap(g,true);assert(!s.landed&&s.apex<PERCH.y-.5,`a stomp off the level clay falls short too (feet to ${s.apex.toFixed(2)})`);}
+  // The authored stroke pulls a pillar up under the perch; a jump off it lands
+  // there and the flower is taken.
   {const {g,station,mass,p}=boot();
-   stroke(g,mass,{x:MASS+1.2,lift:0,dx:6.5,dy:-3,t:1.7});
-   assert.equal(hopTo(g,MASS+9.3,6),'there','the bridge carries a walker to the lump\'s foot');
-   assert.equal(p.groundId,mass.id);
-   const before=p.y;stroke(g,mass,{x:p.x,lift:0,dx:0,dy:2.2,t:1});
-   assert(p.y>before+1.5&&p.groundId===mass.id,`a pull underfoot carries the player up (${(p.y-before).toFixed(2)})`);
-   g.tick(dt,{jumpPressed:true,jumpHeld:true});for(let i=0;i<90&&p.vy>0;i++)g.tick(dt,{jumpHeld:true});
-   g.tick(dt,{stompPressed:true});
-   let sprung=false,apex=p.y,reached=false;g.onEvent=e=>{if(e.type==='spring')sprung=true;};
-   for(let i=0;i<600;i++){g.tick(dt,{moveAxis:sprung?1:0,jumpHeld:true});apex=Math.max(apex,p.y);if(p.groundId==='pocket-landing'){reached=true;break;}if(g.deaths)break;}
-   assert(sprung,'the stomp is thrown back');assert(apex>mass.y+5.75,`well over the lump (${apex.toFixed(2)})`);
-   assert(reached&&g.deaths===0,'and the flight steers onto the landing');
-   assert.equal(station.amount,1);}
-  // 4. Lean, then keyboard steps: lean the spire, and from the bridge hold E a
-  //    stride back from the lump's face so a step rises ahead, hop up, repeat.
-  {const {g,station,mass,p}=boot();
-   stroke(g,mass,{x:MASS+1.2,lift:0,dx:6.5,dy:-3,t:1.7});
-   let r='',holds=0;
-   for(let round=0;round<8&&r!=='landing';round++){
-     r=hopTo(g,154,3);if(r==='landing')break;
-     for(let i=0;i<120&&!p.groundId;i++)g.tick(dt,{});
-     assert(p.groundId===mass.id&&!g.deaths,`blocked on the clay, not dead (${r})`);
-     for(let i=0;i<12;i++)g.tick(dt,{moveAxis:-1});
-     for(let i=0;i<60;i++)g.tick(dt,{moveAxis:0,shapeHeld:true});holds++;
-     for(let i=0;i<40;i++)g.tick(dt,{moveAxis:1,jumpPressed:i===0,jumpHeld:true});
-   }
-   assert.equal(r,'landing',`E steps up the lump's face (${r}, ${holds} holds)`);assert(holds>=1&&holds<=5);assert.equal(g.deaths,0);}
-  // 5. Keyboard only: no pointer at all. Facing the clay, E works whatever is
-  //    ahead into a step — pressing the spire down, raising the pit, pressing
-  //    the lump — and at the landing's wall, with nothing ahead to step onto,
-  //    it lifts the ground underfoot instead. A plain rule does the whole
-  //    pocket: hold E while the clay ahead is more than a step up or any way
-  //    down, walk when it is a step or less, hop when the landing is in reach.
-  {const {g,station,mass,p}=boot(),landingLedge=g.level.platforms.find(q=>q.id==='pocket-landing');
-   let t=0,hopTimer=0,heldE=0;
-   for(let i=0;i<150/dt&&p.groundId!=='pocket-landing'&&!g.deaths;i++){
-     const aheadX=Math.max(mass.x,Math.min(mass.x+mass.w,p.x+FORM.stepReach)),rise=surfaceAt(mass,aheadX)-p.y,atWall=p.x>landingLedge.x-.6;
-     let input;
-     if(atWall&&landingLedge.y-p.y<2.4){input={moveAxis:1,jumpPressed:hopTimer<=0&&!!p.groundId,jumpHeld:true};if(input.jumpPressed)hopTimer=60;}
-     // A way down is only worth raising while the landing is still above:
-     // from the lump's crest the descent towards it is the way on.
-     else if(atWall||(p.x+FORM.stepReach>=mass.x-.3&&(rise>FORM.step||(rise<-.05&&p.y<landingLedge.y)))){input={moveAxis:0,shapeHeld:true};p.facing=1;heldE++;}
-     // The dock stands a fifth of a unit under the clay: too tall to step onto,
-     // nothing to work, so the way on is a hop, which is what a player does.
-     else if(p.groundId!==mass.id&&rise>.14){input={moveAxis:1,jumpPressed:hopTimer<=0&&!!p.groundId,jumpHeld:true};if(input.jumpPressed)hopTimer=60;}
-     else input={moveAxis:1};
-     hopTimer--;g.tick(dt,input);t+=dt;
-   }
-   assert.equal(p.groundId,'pocket-landing',`a keyboard alone crosses the pocket (ended at ${p.x.toFixed(1)}, ${p.y.toFixed(2)} after ${t.toFixed(0)}s)`);
-   assert.equal(g.deaths,0,'without dying');assert(t<150,`in ${t.toFixed(0)}s`);assert(heldE>frames(5),'by holding E');
-   assert.equal(station.amount,1,'and the key alone moves enough clay to read as shaped');}
-  // Resuming. A saved game only rebuilds the pocket from its solution when its
-  // checkpoint lies beyond the clay — "shaped" is a share of clay moved, not a
-  // crossing, so a save at the dock with the spire worked resumes as the clump
-  // and the pocket is worked again.
+   for(const input of formSolutionInputs(g,station,{dt}))g.tick(dt,input);
+   assert.equal(station.amount,1,'the pull reads as shaped');
+   const top=surfaceAt(mass,UNDER);assert(top>PERCH.y-2.6,`the pillar's top (${top.toFixed(2)}) is within a jump of the perch`);
+   under(g,mass);const j=leap(g,false);assert(j.landed,`a jump off the pillar lands on the perch (feet to ${j.apex.toFixed(2)})`);
+   for(let i=0;i<30;i++)g.tick(dt,{});assert(g.level.stamps.find(c=>c===FLOWER||c.x===FLOWER.x&&c.y===FLOWER.y).taken,'and takes the flower');assert.equal(g.deaths,0);
+   // Off the perch, the way on is the landing.
+   assert.equal(landing(g),'landing');}
+  // Wet: left alone the pillar melts in seconds; a rider's weight does not hold it; a hand does.
   {const {g,station,mass}=boot();
-   stroke(g,mass,{x:MASS+1.2,lift:0,dx:6.5,dy:-3,t:1.7});
-   const save=g.snapshot();save.shaped=[...new Set([...save.shaped,station.id])];
-   assert.equal(save.checkpointId,'pocket-dock');
-   const back=new Game();back.start(0);assert(back.restore(save),'the save restores');
-   const restored=massOf(back,back.level.shaping.find(q=>q.id===station.id));
-   assert(Array.from(restored.form.h).every((h,i)=>h===restored.form.rest[i]),'saved at the dock, the pocket resumes as its clump');
-   // Crossed to the landing's flag, the same save rebuilds the solved pocket.
-   const {g:crossed,station:cs,mass:cm,p}=boot();solveFormStation(cs,massOf(crossed,cs),{dt});
-   assert.equal(landing(crossed),'landing');for(let i=0;i<300&&crossed.checkpointId!=='pocket-landing';i++)crossed.tick(dt,{moveAxis:Math.sign(154-p.x)});
-   assert.equal(crossed.checkpointId,'pocket-landing','the landing flag is the next checkpoint');
-   const later=crossed.snapshot();assert(later.shaped.includes(cs.id));
-   const resumed=new Game();resumed.start(0);assert(resumed.restore(later));
-   // The crossing itself dented the clay underfoot; a resume rebuilds the
-   // clean solution, so that is what it is held to.
-   const rm=massOf(resumed,resumed.level.shaping.find(q=>q.id===cs.id)),{g:clean,station:cst}=boot(),ref=solveFormStation(cst,massOf(clean,cst),{dt});
-   let worst=0;for(let i=0;i<rm.form.n;i++)worst=Math.max(worst,Math.abs(rm.form.h[i]-ref.h[i]));
-   assert(worst<1e-9,`saved beyond the clay, the pocket resumes solved (max |Δh| ${worst.toExponential(1)})`);
-   assert.equal(resumed.player.groundId,'pocket-landing');}
-  // R softens the pocket only from off the clay. In the air over it, or standing
-  // on it, regrowing the towers would set the player on top of them.
-  {const {g,station,mass,p}=boot();solveFormStation(station,massOf(g,station),{dt});
-   const solved=Float64Array.from(mass.form.h);
-   Object.assign(p,{x:MASS+6.7,y:surfaceAt(mass,MASS+6.7)+1.5,vx:0,vy:0,groundId:null,coyote:0});const y0=p.y;
-   g.tick(dt,{shapeReset:true});
-   assert.deepEqual(Array.from(mass.form.h),Array.from(solved),'R in the air over the clay changes nothing');
-   assert(p.y<y0,'and the player keeps falling rather than riding a regrown tower');
-   for(let i=0;i<90&&!p.groundId;i++)g.tick(dt,{});assert.equal(p.groundId,mass.id);g.tick(dt,{shapeReset:true});
-   // Standing dents the clay a little; what R must not do is put the clump back.
-   assert(!Array.from(mass.form.h).every((h,i)=>Math.abs(h-mass.form.rest[i])<1e-9),'nor does R standing on it put the clump back');
-   assert(Math.max(...Array.from(mass.form.h).map((h,i)=>Math.abs(h-solved[i])))<.5,'the solved shape stands, dented only by the boots');
+   for(const input of formSolutionInputs(g,station,{dt}))g.tick(dt,input);
+   const top=surfaceAt(mass,UNDER),level=6.2;let t=0;
+   while(surfaceAt(mass,UNDER)>level+(top-level)*.25&&t<20){g.tick(dt,{});t+=dt;}
+   assert(t>.6&&t<8,`the pillar has slumped three quarters of the way back after ${t.toFixed(1)}s`);}
+  {const {g,station,mass,p}=boot();
+   for(const input of formSolutionInputs(g,station,{dt}))g.tick(dt,input);
+   under(g,mass);const y0=p.y;for(let i=0;i<4/dt;i++)g.tick(dt,{});
+   assert(p.groundId===mass.id&&p.y<y0-1,`standing on the pillar does not hold it: the rider sinks with it (${(y0-p.y).toFixed(2)})`);}
+  {const {g,station,mass}=boot();
+   for(const input of formSolutionInputs(g,station,{dt}))g.tick(dt,input);
+   const top=surfaceAt(mass,UNDER);
+   for(let i=0;i<4/dt;i++)g.tick(dt,{moveAxis:0,shapeId:id,shapeX:UNDER,shapeY:top});
+   assert(surfaceAt(mass,UNDER)>top-.3,`a hand on the pillar holds it (${surfaceAt(mass,UNDER).toFixed(2)} of ${top.toFixed(2)})`);}
+  // R softens the pocket from off the clay, and is refused under the boots.
+  {const {g,station,mass,p}=boot();
+   for(const input of formSolutionInputs(g,station,{dt}))g.tick(dt,input);
+   under(g,mass);g.tick(dt,{});g.tick(dt,{shapeReset:true});
+   assert(surfaceAt(mass,UNDER)>7,'R while standing on the clay is refused');
    const dock=LEVELS[0].platforms.find(q=>q.id==='pocket-dock');
-   Object.assign(p,{x:dock.x+4,y:dock.y,vx:0,vy:0,groundId:'pocket-dock'});g.tick(dt,{shapeReset:true});
-   assert(Array.from(mass.form.h).every((h,i)=>h===mass.form.rest[i]),'from the dock, R puts the clump back');}
-  // The beads: every one in the pocket can be picked up on the way across the
-  // solved clay, by walking or by a standing hop under it.
-  {const {g,station,mass,p}=boot();solveFormStation(station,massOf(g,station),{dt});
+   Object.assign(p,{x:dock.x+4,y:dock.y,vx:0,vy:0,groundId:'pocket-dock'});g.tick(dt,{});g.tick(dt,{shapeReset:true});
+   assert(mass.form.h.every((h,i)=>h===mass.form.rest[i]),'from the dock, R puts the level clump back');assert.equal(station.amount,0);}
+  // The beads: every one in the pocket is picked up on the walk across, by
+  // walking or by a standing hop under it.
+  {const {g,p}=boot();
    Object.assign(p,{x:DOCK+.5,vx:0});g.tick(dt,{});
    const pocket=g.level.coins.filter(c=>c.x>=DOCK&&c.x<=END);assert(pocket.length>=7);
    let stuck=0,last=p.x;
@@ -405,63 +342,31 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
    }
    assert.equal(g.deaths,0);
    assert.deepEqual(pocket.filter(c=>!c.taken).map(c=>[c.x,c.y]),[],'every pocket bead is collected on one crossing');}
-  // Dying with the clay half-made keeps the clay: the pocket does not slump
-  // back (relax is off), the dock flag is the respawn, and the crossing still
-  // stands. R softens it only from off the clay — never under the boots, which
-  // would set them inside a regrown tower — and then the strokes work anew.
-  {const {g,station,mass,p}=boot();solveFormStation(station,massOf(g,station),{dt});
-   const solved=Float64Array.from(mass.form.h),dock=LEVELS[0].platforms.find(q=>q.id==='pocket-dock');
-   assert.equal(hopTo(g,MASS+6.7,6),'there');g.damage(true);for(let i=0;i<70;i++)g.tick(dt,{});
-   assert.equal(g.deaths,1);assert.equal(p.groundId,'pocket-dock');assert(Math.abs(p.x-LEVELS[0].platforms.find(q=>q.id==='pocket-dock').checkpoint)<.01,'respawned at the dock flag');
-   for(let i=0;i<10/dt;i++)g.tick(dt,{});
-   let worst=0;for(let i=0;i<mass.form.n;i++)worst=Math.max(worst,Math.abs(mass.form.h[i]-solved[i]));
-   assert(worst<=FORM.sag+1e-9,`ten idle seconds later the bridge is as the boots left it, no slump (${worst.toFixed(3)})`);
-   assert.equal(landing(g),'landing','and it still carries the player across');
-   // R under the boots is refused; R from the dock puts the clump back. (A
-   // death used to leave the respawn timer a hair below zero, which read as
-   // "still respawning" and left every station deaf to hands for good.)
-   Object.assign(p,{x:MASS+12.7,y:surfaceAt(mass,MASS+12.7),vx:0,vy:0,groundId:mass.id});g.tick(dt,{});assert(standingOn(station,p)>=0,'back on the ramp');
-   g.tick(dt,{shapeReset:true});assert.equal(station.amount,1,'R while standing on the clay is refused');
-   Object.assign(p,{x:dock.x+5,y:dock.y,vx:0,vy:0,groundId:'pocket-dock'});g.tick(dt,{});
-   g.tick(dt,{shapeReset:true});assert.equal(station.amount,0,'R from the dock softens the pocket back');
-   assert(mass.form.h.every((h,i)=>h===mass.form.rest[i]),'to its clump');
-   for(const input of formSolutionInputs(g,station,{dt}))g.tick(dt,input);
-   assert.equal(station.amount,1);assert.equal(landing(g),'landing','and the strokes open it again');assert.equal(g.deaths,1);}
-  // Sand scraped bare is deadly: press the spire's clay away from the dock's
-  // end and the footing there shows; a walker who comes back onto it dies and
-  // respawns at the dock with the clay as they left it.
+  // The sand under it all: spikes lie just under the clay's base, so bare
+  // sandstone kills; the rest surface, the thinnest clay the mass allows and
+  // the solved surface all stand clear of them.
+  {const {g,station,mass}=boot();
+   const band=g.level.hazards.find(h=>h.x<=mass.x&&h.x+h.w>=mass.x+mass.w&&h.y<mass.y-mass.h&&h.y>mass.y-mass.h-1);
+   assert(band,'spikes lie just under the pocket\'s base');
+   const kill=band.y+.7,f=mass.form,base=mass.y-mass.h;
+   for(let i=0;i<f.n;i++)assert(base+f.rest[i]>=kill+.1,`rest column ${i} sits on the spikes`);
+   assert(base+FORM.minThick>kill,'the thinnest clay the mass allows is above the kill line');
+   const solved=solvedForm(level,id);
+   for(let i=0;i<f.n;i++){f.h.set(solved);if(!formSteepAt(mass,mass.x+i*f.dx,RULES.radius))assert(base+solved[i]-FORM.sag>kill,`solved column ${i} is a stand away from the spikes`);}}
+  // A save past the pocket resumes with the riverbed walkable and the flower kept.
   {const {g,station,mass,p}=boot();
-   for(let k=0;k<8;k++)stroke(g,mass,{x:MASS+.3,lift:1,dx:0,dy:-6,t:1});
-   assert(mass.form.h[0]<.05&&surfaceAt(mass,MASS+.5)<SAND+.2,`the dock end is scraped to the sand (${surfaceAt(mass,MASS+.5).toFixed(2)})`);
-   // From the raised dock this is a fall rather than a walk, and it carries
-   // clear over the scraped strip onto the clay beyond it.
-   for(let i=0;i<3/dt;i++)g.tick(dt,{moveAxis:1});
-   assert(p.groundId===mass.id&&p.x>MASS+1.2&&!g.deaths,`walking off the dock carries the player past the bare strip onto clay (${p.x.toFixed(2)}, ${p.groundId})`);
-   const kept=Float64Array.from(mass.form.h);
-   // The clay pressed out of the strip piles up between the pit and the dock,
-   // so the way back to the bare footing is over that mound rather than along
-   // the floor: the walker is set beside the strip and walks onto it.
-   const beside=MASS+2.2;
-   Object.assign(p,{x:beside,y:surfaceAt(mass,beside),vx:0,vy:0,groundId:mass.id,coyote:.13});g.tick(dt,{});
-   for(let i=0;i<3/dt&&!g.deaths;i++)g.tick(dt,{moveAxis:-1});
-   assert.equal(g.deaths,1,'walking back onto the bare sand kills');
-   for(let i=0;i<70;i++)g.tick(dt,{});
-   assert.equal(p.groundId,'pocket-dock');
-   let worst=0;for(let i=0;i<mass.form.n;i++)worst=Math.max(worst,Math.abs(mass.form.h[i]-kept[i]));
-   assert(worst<=FORM.sag+1e-9,'the clay is as they left it');}
-  // A checkpoint past the pocket resumes with the pocket shaped: the save
-  // carries the fact, and restore rebuilds the authored surface from it.
-  {const {g,station,mass}=boot();solveFormStation(station,massOf(g,station),{dt});
-   assert.equal(landing(g),'landing');g.tick(dt,{});
+   for(const input of formSolutionInputs(g,station,{dt}))g.tick(dt,input);
+   under(g,mass);assert(leap(g,false).landed);for(let i=0;i<30;i++)g.tick(dt,{});
+   assert.equal(landing(g),'landing');for(let i=0;i<300&&g.checkpointId!=='pocket-landing';i++)g.tick(dt,{moveAxis:1});
    assert.equal(g.checkpointId,'pocket-landing','the landing has a flag of its own');
-   const save=JSON.parse(JSON.stringify(g.snapshot()));assert.deepEqual(save.shaped,[id]);
+   const save=JSON.parse(JSON.stringify(g.snapshot()));assert(save.stamps.length>=1,'the flower is in the save');
    const r=new Game();r.start(level);assert(r.restore(save));
+   assert(r.level.stamps.some(c=>c.taken&&c.x===FLOWER.x),'a resume keeps the flower');
+   assert.equal(r.player.groundId,'pocket-landing');
    const rs=r.level.shaping.find(s=>s.id===id),rm=massOf(r,rs);
-   assert.equal(rs.amount,1);
-   let worst=0;for(let i=0;i<rm.form.n;i++)worst=Math.max(worst,Math.abs(rm.form.h[i]-solvedForm(level,id)[i]));
-   assert.equal(worst,0,'a resumed pocket carries the solved surface');
-   for(let i=0;i<120;i++)r.tick(dt,{});assert.equal(rs.amount,1,'and stays shaped');}
-  console.log('PASS the pocket: shut while unworked; crossed by the authored lean-and-slump, by squash-and-slump, by a pillar and a stomp-launch, and by E-steps; every bead taken; deaths keep the clay, R works only from off it, and a save resumes it solved');
+   Object.assign(r.player,{x:DOCK+8,y:6.25,vx:0,vy:0,groundId:'pocket-dock'});r.tick(dt,{});
+   assert.equal(hopTo(r,LEVELS[0].platforms.find(q=>q.id==='pocket-landing').checkpoint),'landing','and the riverbed is still a walk');void rm;}
+  console.log('PASS the pocket: walked unworked; the perch past a jump and a stomp off the level clay and reached off the pulled-up pillar with its flower; the pillar melts unless a hand holds it; R from the dock; every bead; the sand under it; a save keeps the flower');
 }
 
 // The Weaver's Gap by keyboard alone. The canyon's rule carries the brink to

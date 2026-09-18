@@ -21,15 +21,30 @@ import knot from './knot.js';
 //                              are added if you left them out.
 //   backdrop(w,L,section,layers)  far scenery: layers.at(factor) is a
 //                              parallax group (no wrapping); layers.place(
-//                              group, worldX, y, z) returns a child group that
-//                              appears at worldX when the camera is there.
-//                              Shadows are switched off for you.
+//                              group, worldX, y, z, {until}) returns a child
+//                              group that appears at worldX when the camera is
+//                              there and, given `until`, retires once the
+//                              player is past that x. Shadows are switched
+//                              off for you.
+//   quietBackdrop: true        the module paints a whole sky of its own: the
+//                              chapter's placeholder blobs and columns sink
+//                              while the player is in the section.
 //   props(section,L)           → [{key,x,w?,y?,z?,make(w,parent,section)}]:
 //                              scenery streamed by WORLD x like decoration;
 //                              `parent` is a group already at (x,y,z) under
 //                              levelRoot. Keys are prefixed dream:<key>: for you.
 //   animate(w,game,dt,section,ctx)  per frame while the player is within 40 of
 //                              the section; ctx = {playerX,time,reducedMotion}.
+//   foreground(w,g,variant,s,section)  the side scenery depth-scenery.js
+//                              stands in front of a stone deck `s` (g is at
+//                              the deck's y − 2.1, drawn with fake
+//                              perspective, never a collider): build into g
+//                              and return true, or decline for the chapter's
+//                              pastel mound. Fixed colours (support.js
+//                              fixedMaterial) fade when the part would cover
+//                              the player, a deck, a hazard or a bead; palette
+//                              slots cannot, so keep those under y 1.6 — they
+//                              must never cover the route.
 //
 // Every hook is optional. A module with none of them gets the chapter's
 // default look: rolled slabs, the shared placeholder backdrop, no props.

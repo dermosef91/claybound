@@ -201,6 +201,27 @@ check('an auto station ignores hands until its channel latches, then works itsel
   assert(resumed.latched['plug-done']);assert.equal(resumed.level.shaping.find(s=>s.id==='hand').amount,1);assert.equal(at(resumed,'raised').y,3);
   assert(!quiet.some(e=>e.type==='activate'),'a restore re-latches without announcing');
 });
+check('a save past the Folding Path\'s cast restores in silence, and a world with no chapter built yet takes an event without painting',()=>{
+  // A hand station is quiet on restore because it only opens on a running
+  // frame; a cast is judged by the clay's form, so the mass rebuilt to its
+  // solution reads as done the instant the stations settle. That used to be
+  // announced — before the world had built the chapter, whose palette alone
+  // holds the dust the announcement is painted with — and took the load down.
+  const g=new Game();g.start(4);
+  const cast=g.level.shaping.find(s=>s.id==='folding-cast');assert(cast.mould&&cast.channel==='folding-cast','the Dream still casts a mould that opens a channel');
+  const land=at(g,'folding-cast-land');assert(land.checkpoint>cast.end,'its checkpoint stands beyond the clay');
+  const save={...JSON.parse(JSON.stringify(g.snapshot())),checkpointId:land.id,activatedCheckpoints:[land.id],shaped:[cast.id],latched:[cast.channel]};
+  const quiet=[],resumed=new Game();resumed.onEvent=e=>quiet.push(e);resumed.start(4);quiet.length=0;
+  assert(resumed.restore(save));
+  assert.deepEqual(quiet,[],'a restore announces nothing');
+  assert(resumed.latched[cast.channel]);assert.equal(resumed.channels[cast.channel],1);
+  assert.equal(resumed.level.shaping.find(s=>s.id===cast.id).amount,1,'the cast resumes finished');
+  resumed.event('probe');assert.equal(quiet.length,1,'the sink is handed back once the replay is over');quiet.length=0;
+  // The world before its first build(): no palette slots for dust, but no crash.
+  const w=Object.create(World.prototype);w.character={};w.mat={};w.particles=[];w.fxRoot=new THREE.Group();w.reducedMotion=false;
+  assert.doesNotThrow(()=>w.event({type:'activate',channel:cast.channel,x:0,y:0}));
+  assert.equal(w.particles.length,0);
+});
 
 // --- 12. the ending -----------------------------------------------------------------------
 const finaleLevel=(extra={})=>level({end:68,
@@ -370,7 +391,7 @@ check('the editor accepts every new kind, creature, trigger and station field wi
   // A backup written before trigger zones existed still imports, and the
   // canyon's canonical hash — the one tests/editor.mjs holds — is unchanged.
   const old=structuredClone(source);delete old.triggers;assert.deepEqual(validateDraft(old,LEVELS[0]).triggers,[]);
-  assert.equal(validateDraft(LEVELS[0],LEVELS[0]).layoutVersion,'editor-11-15255ug');
+  assert.equal(validateDraft(LEVELS[0],LEVELS[0]).layoutVersion,'editor-12-ysehsz');
   assert.notEqual(validateDraft(source,LEVELS[0]).layoutVersion,validateDraft(old,LEVELS[0]).layoutVersion,'a zone the chapter carries revises the layout');
   // Placing each through a session runs under the simulation.
   const memory=new Map(),storage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)},library=new DraftLibrary(LEVELS,storage),s=new DraftSession(library,0);

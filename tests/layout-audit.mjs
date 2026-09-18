@@ -29,7 +29,13 @@ export function auditLevel(L,index){
   // A formable mass has no pose: it stands as its authored solution leaves it,
   // and a link meets it at the end nearest the other platform.
   for(const station of level.shaping||[])if(station.rule==='form'){const s=level.platforms.find(p=>p.id===station.parts[0]);if(s)solveFormStation(station,s);}
-  const edge=(s,other)=>s.form?s.y-s.h+formHeight(s.form,other.x+other.w/2<s.x+s.w/2?0:s.w):null;
+  // — or, where the other platform stands over the mass, at the solved surface
+  // under it: a perch over a pillar is reached from the pillar's top.
+  const edge=(s,other)=>{
+    if(!s.form)return null;
+    const cx=other.x+other.w/2,over=cx>s.x&&cx<s.x+s.w;
+    return s.y-s.h+formHeight(s.form,over?cx-s.x:cx<s.x+s.w/2?0:s.w);
+  };
   const shaped=level.platforms.map(s=>{
     if(!s.shape)return s;
     return {...s,...s.shape.to,shapedFrom:s.shape.from};

@@ -59,6 +59,18 @@ assets={
  'dream-sculpture.glb':'colorful+abstract+sculpture+3d+model.glb',
  'dream-caterpillar.glb':'caterpillar.glb',
  'dream-giraffe.glb':'giraffe.glb',
+ 'dream-fruit.glb':'3d+fruit+sculpture.glb',
+ # The Melted Parade's dressing, uploaded to "parade 3d assets" under the chapter's folder.
+ 'dream-banner.glb':'decorative banner 3d model.glb',
+ 'dream-column.glb':'decorative+candy+column+3d+model.glb',
+ 'dream-cane.glb':'whimsical+candy+cane+3d+model.glb',
+ 'dream-sun.glb':'smiley+sun+3d+model.glb',
+ # The Crooked Garden's gate: a clay arch with a watching flower grown up one
+ # leg, supplied without a pupil (dist/dream-assets.js fits the eyeball and
+ # sets one on it at load, as for the flower). Uploaded to ~/Downloads:
+ #   python3 scripts/prepare-dream-assets.py ~/Downloads
+ 'dream-arch.glb':'Meshy_AI_Clay_Garden_Arch_0917232650_texture.glb',
+ # The Breathing Corridor's cavern wall, repeated across its backdrop.
  'dream-cavern.glb':'crimson+caverns.glb'
 }
 def locate(source):
@@ -73,8 +85,10 @@ decimated={'dream-hat.glb':Path(sys.argv[2]) if len(sys.argv)>2 else None,
  'dream-cavern.glb':locate('crimson+caverns+decimated.glb')}
 adaptation={'dream-hat.glb':'glTF Transform 4.4.1 weld + simplify ratio=.025 error=.01; metallic-roughness map dropped',
  'dream-cavern.glb':'glTF Transform 4 weld + simplify ratio=.1 error=.04 (10,425 → 5,362 triangles); metallic-roughness map dropped'}
-# Models whose metallic-roughness map is left out of the shipped file.
-matte={'dream-hat.glb','dream-cavern.glb'}
+# Models whose metallic-roughness map is left out of the shipped file (the
+# arch's and the cavern's, like the hat's, paint a gloss the matte clay world
+# does not have).
+matte={'dream-hat.glb','dream-arch.glb','dream-cavern.glb'}
 SLOTS=['baseColorTexture','metallicRoughnessTexture','normalTexture','occlusionTexture','emissiveTexture']
 def pad(b,value=b'\0'):return b+value*((-len(b))%4)
 def digest(b):return hashlib.sha256(b).hexdigest()

@@ -28,13 +28,20 @@ export const MARBLE=Object.freeze({
   probe:.3,
   // Seconds at rest in the socket before it counts as home.
   seat:.5,
+  // A ball that goes over an open end leaves with at least this much speed:
+  // a rock that crept off the edge would drop straight down the cliff face
+  // instead of clearing it, and the puzzle is aimed at what lies past it.
+  exit:4.5,
 });
 
-export function createMarble(x,{radius=MARBLE.radius}={}){
+// A marble is boxed in by its benches unless the station names an open end
+// (`spill:'right'` or `'left'`). Over that end it leaves the form for good:
+// the clay can no longer reach it, and `resetMarble` does not bring it back.
+export function createMarble(x,{radius=MARBLE.radius,spill=null}={}){
   const start=Number.isFinite(x)?x:2;
-  return {start,x:start,vx:0,r:radius>0?radius:MARBLE.radius,spin:0,still:0,home:false};
+  return {start,x:start,vx:0,r:radius>0?radius:MARBLE.radius,spin:0,still:0,home:false,spill:spill==='left'||spill==='right'?spill:null,spilled:false};
 }
-export function resetMarble(m){m.x=m.start;m.vx=0;m.spin=0;m.still=0;m.home=false;}
+export function resetMarble(m){if(m.spilled)return;m.x=m.start;m.vx=0;m.spin=0;m.still=0;m.home=false;}
 
 // Where the marble's centre sits over the base of the form.
 export const marbleHeight=(f,m)=>formHeight(f,m.x)+m.r;
@@ -42,6 +49,7 @@ export const marbleHeight=(f,m)=>formHeight(f,m.x)+m.r;
 // One fixed tick. `socket` is [left, right] in the form's own x, where the
 // marble is home once it has sat still for `seat`. Returns whether it is at rest.
 export function stepMarble(m,f,dt,socket=null){
+  if(m.spilled)return false;
   const step=Math.max(0,Math.min(1/30,Number.isFinite(dt)?dt:0));
   if(!step)return Math.abs(m.vx)<MARBLE.rest;
   const e=MARBLE.probe,slope=(formHeight(f,m.x+e)-formHeight(f,m.x-e))/(2*e);
@@ -56,12 +64,57 @@ export function stepMarble(m,f,dt,socket=null){
     m.vx=Math.max(-MARBLE.top,Math.min(MARBLE.top,m.vx));
   }
   m.x+=m.vx*step;
-  // The benches either end of the trough are walls.
-  if(m.x<m.r){m.x=m.r;m.vx=Math.abs(m.vx)*MARBLE.bounce;}
-  if(m.x>f.w-m.r){m.x=f.w-m.r;m.vx=-Math.abs(m.vx)*MARBLE.bounce;}
+  // The benches either end of the trough are walls — unless that end is open,
+  // where the ball rolls on at the edge's height until its centre is past the
+  // brink and it is gone. `y` is where it left, over the base of the form.
+  if(m.spill==='left'&&m.x<0)return spill(m,f,-1);
+  if(m.spill==='right'&&m.x>f.w)return spill(m,f,1);
+  if(m.x<m.r&&m.spill!=='left'){m.x=m.r;m.vx=Math.abs(m.vx)*MARBLE.bounce;}
+  if(m.x>f.w-m.r&&m.spill!=='right'){m.x=f.w-m.r;m.vx=-Math.abs(m.vx)*MARBLE.bounce;}
   m.spin+=m.vx*step/m.r;
   const resting=m.vx===0||Math.abs(m.vx)<MARBLE.rest&&Math.abs(slope)<MARBLE.flat;
   m.still=resting?m.still+step:0;
   m.home=Array.isArray(socket)&&m.x>=socket[0]&&m.x<=socket[1]&&m.still>=MARBLE.seat;
   return resting;
+}
+function spill(m,f,dir){
+  m.spilled=true;m.still=0;m.home=false;
+  m.y=formHeight(f,m.x)+m.r;
+  m.vx=dir*Math.min(MARBLE.top,Math.max(MARBLE.exit,Math.abs(m.vx)));
+  return false;
+}
+
+// A spilled ball in the world. It has left the form's own x for world
+// coordinates — `wx`,`wy` its centre, `vy` its fall — set by whoever owns the
+// form, since only they know where the form stands. `decks` are the flat tops
+// it can come down on ({id,x,w,top,breakable}); `walls` the solid faces its
+// sides can meet ({x,w,top,bottom}). A breakable deck it comes down on is
+// reported and passed through; any other stops it, and from then on it only
+// rolls out along that top. Returns the decks it came down on this tick, the
+// breakable ones first, for the owner to break.
+export function stepRockFall(m,dt,{decks=[],walls=[]}={}){
+  const step=Math.max(0,Math.min(1/30,Number.isFinite(dt)?dt:0));
+  if(!step||!m.spilled)return [];
+  if(m.landed){
+    const brake=MARBLE.roll*2*step;
+    m.vx=Math.abs(m.vx)<=brake?0:m.vx-Math.sign(m.vx)*brake;
+    m.wx+=m.vx*step;m.spin+=m.vx*step/m.r;
+    return [];
+  }
+  const prevY=m.wy;
+  m.vy-=MARBLE.gravity*step;
+  m.wx+=m.vx*step;m.wy+=m.vy*step;
+  for(const b of walls){
+    if(m.wy-m.r>=b.top||m.wy+m.r<=b.bottom)continue;
+    if(m.vx>0&&m.wx+m.r>b.x&&m.wx<b.x){m.wx=b.x-m.r;m.vx=-Math.abs(m.vx)*MARBLE.bounce;}
+    else if(m.vx<0&&m.wx-m.r<b.x+b.w&&m.wx>b.x+b.w){m.wx=b.x+b.w+m.r;m.vx=Math.abs(m.vx)*MARBLE.bounce;}
+  }
+  const hits=decks.filter(d=>m.wx>d.x&&m.wx<d.x+d.w&&prevY-m.r>=d.top-1e-6&&m.wy-m.r<=d.top).sort((a,b)=>b.top-a.top);
+  const floor=hits.find(d=>!d.breakable);
+  if(floor){
+    m.wy=floor.top+m.r;m.vy=0;m.vx*=MARBLE.bounce;m.landed=true;m.groundId=floor.id;
+    return hits.filter(d=>d.breakable&&d.top>=floor.top).concat([floor]);
+  }
+  m.spin+=m.vx*step/m.r;
+  return hits;
 }
