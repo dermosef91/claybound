@@ -65,7 +65,7 @@ export function resolvePush(s,p,{prevX,radius,height,dt,walls=[]}){
 // {x, w, floor} — and `open` whether the rot that filled it is gone; `clear`
 // says the player is not standing where the block would come back. Returns the
 // transition made this tick, or null: 'dissolve' as the reaction starts,
-// 'shatter' as it falls to pieces, 'respawn' as it comes back, 'lock' as it
+// 'shatter' as it falls to pieces, 'respawn' as it comes back, 'tip' as it
 // tips into the gap, 'locked' as it settles there.
 export function stepPush(s,dt,{open=false,notch=null,clear=true}={}){
   const step=Math.max(0,Math.min(1/30,Number.isFinite(dt)?dt:0));
@@ -74,7 +74,7 @@ export function stepPush(s,dt,{open=false,notch=null,clear=true}={}){
   switch(s.pushPhase){
     case 'free':
       if(notch&&!open&&over>PUSH.contact){s.pushPhase='dissolving';s.pushT=0;return 'dissolve';}
-      if(notch&&open&&over>=PUSH.lock*s.w){s.pushPhase='locking';s.pushT=0;s.dropFromX=s.x;s.dropToX=notch.x;s.dropFrom=s.y;s.dropTo=notch.floor+s.h;return 'lock';}
+      if(notch&&open&&over>=PUSH.lock*s.w){s.pushPhase='locking';s.pushT=0;s.dropFromX=s.x;s.dropToX=notch.x;s.dropFrom=s.y;s.dropTo=notch.floor+s.h;return 'tip';}
       return null;
     case 'dissolving':
       s.pushT+=step;s.dissolve=Math.min(1,s.pushT/PUSH.dissolve);

@@ -134,7 +134,7 @@ console.log('PASS wet clay melts under boots and not under a hand, a mould is a 
   n=0;while(t!=='respawn'&&n++<1000)t=stepPush(s,dt,{open:false,notch,clear:n>30});
   assert(t==='respawn'&&n*dt>=PUSH.gone-dt&&s.x===s.baseX&&s.y===s.baseY&&s.active&&!s.hidden&&s.pop===1&&s.pushPhase==='free','it comes back where it started, once the ground is clear');
   s.x=notch.x-s.w*(1-PUSH.lock)+.01;
-  assert.equal(stepPush(s,dt,{open:true,notch}),'lock','far enough over the open gap it tips in');
+  assert.equal(stepPush(s,dt,{open:true,notch}),'tip','far enough over the open gap it tips in');
   n=0;while(t!=='locked'&&n++<1000)t=stepPush(s,dt,{open:true,notch});
   assert(t==='locked'&&close(n*dt,PUSH.drop,dt*2)&&close(s.x,notch.x)&&close(s.y,notch.floor+s.h)&&s.active===false,'and seats on the gap\'s floor, stood down');
   assert.equal(stepPush(s,dt,{open:true,notch}),null,'seated, nothing more happens');

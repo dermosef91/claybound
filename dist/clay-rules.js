@@ -370,7 +370,7 @@ function stepFix(game,station,s,dt){
       if(t==='dissolve')game.event('push-dissolve',at);
       else if(t==='shatter')game.event('push-shatter',at);
       else if(t==='respawn')game.event('push-respawn',at);
-      else if(t==='lock'){station.kneadPending=true;game.event('push-lock',at);}
+      else if(t==='tip'){station.kneadPending=true;game.event('push-lock',at);}
       else if(t==='locked'){
         // The plug is seated: from here the mass stands in the block's place,
         // as the very lump the block was, and settles — a lump squeezed into a
