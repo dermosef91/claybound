@@ -7,9 +7,9 @@
 import {p,path} from '../../route-authoring.js';
 const part=(id,pose,extra={})=>p(id,pose.x,pose.w,pose.y,'clay',{shape:{from:{...pose},to:{...pose}},...extra});
 // The blob: a free formable mass 13 wide, 3 thick, flat on top at 3.6 (a .6
-// step up from orchard-mid) over a base at .6, hanging over open sky, so a
-// hole pulled through it is the fall past -7 that kills everywhere. Clump
-// knots are [across, height over the mass's y], so a flat top level with y is 0.
+// step up from orchard-mid) over a base at .6, with nails under it so bare
+// footing kills. Clump knots are [across, height over the mass's y], so a flat
+// top level with y is 0.
 const BLOB={x:44,w:13,y:3.6,h:3.0};
 const K=(x,top)=>[(x-BLOB.x)/BLOB.w,top];
 const STATION_HINT='The violet blob has its own gravity. Pull it up under you — drag it, or hold E — until the hanging saucer is a jump away. Or stomp the blob and let it throw you at the sky.';
@@ -49,10 +49,10 @@ export default {
     {kind:'drip',x:64.5,y:14.7,reach:1.2,period:4},
     {kind:'drip',x:71.4,y:13.2,reach:1.2,period:4}
   ],
-  // No nails anywhere in the orchard: the domes, saucers and the mass hang
-  // over open sky, and a fall from them is the drop past -7 that kills
-  // everywhere. The two-unit tail gap keeps its pair.
-  hazards:[{x:67,w:2,y:-2.5}],
+  // No nails under the domes, the saucers or the tail gap: they hang over
+  // open sky, and a fall from them is the drop past -7 that kills everywhere.
+  // The mass keeps its bed of nails — bare footing dug through it kills.
+  hazards:[{x:44,w:13,y:0}],
   hints:[
     {x:8,end:24,icon:'jump',title:'Round islands',text:'Run over the domes; jump from their sides, not their crowns.'},
     {x:37,end:58,icon:'knead',title:'Pull it up',text:STATION_HINT}
@@ -64,7 +64,7 @@ export default {
     // units right — the clay it trails behind lays out as a walkable ramp —
     // then pulls the crest up at the mass's right end into a pillar at ≈8.7,
     // and finally lifts the thinned left end a little so no footing is ever
-    // less than .6 of clay over the drop. Solved, the surface climbs from
+    // less than .6 of clay over the nails. Solved, the surface climbs from
     // ≈1.3 at the left end up a ramp to ≈5.6 at 54, one hop onto the pillar
     // (7.5–8.7 over 55–57), and one hop onto the saucer hanging at 10.8.
     // (The volume solver draws every pull's clay
