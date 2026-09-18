@@ -1,4 +1,4 @@
-import {chapter,p,row,path} from '../route-authoring.js';
+import {chapter,p,row,path,makeRoom} from '../route-authoring.js';
 const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,to},...extra});
 // The chapter is built around a valley. The caravan starts on a plateau and
 // steps down off it; the sinking sandstone carries that descent to the canyon
@@ -22,13 +22,17 @@ const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,
 // crumble and a stub onto a wider bridge rather than two narrow banks. The
 // flower in the arch moved onto the crumbling steps that reach it.
 //
-// Coordinates are authored final: there is no `makeRoom` seam here, because
-// nothing is being opened up inside a finished chapter.
-const L={
-  layoutVersion:11,
+// Layout 12 opens the chapter up once after all: the Boulder Drop is a room
+// of its own between the arch's roof and the summit, so the summit, the
+// ropeway and the bell stand fifty units further on than they were authored.
+// Everything up to the arch keeps its final coordinates; the room itself is
+// authored final too, after the seam, the way the forest's Weaver's Gap is.
+const SEAM=270,GAP=50;
+const L=makeRoom({
+  layoutVersion:12,
   name:'The Sunbaked Canyon',short:'Sunbaked Canyon',label:'Riverbed & ropeway',biome:'desert',
   intro:'Down off the plateau to the clay riverbed, then up the long wall to the ropeway.',
-  sky:'#80afe0',fog:'#f1bba0',spawn:{x:1.5,y:13},end:354,previousDistance:1175,cameraY:2,
+  sky:'#80afe0',fog:'#f1bba0',spawn:{x:1.5,y:13},end:354,previousDistance:1342,cameraY:2,
   sections:[
     {x:-8,name:'The Caravan Steps',landmark:'arch'},
     {x:46,name:'The Sinking Shortcut',landmark:'sandwheel'},
@@ -63,15 +67,16 @@ const L={
     p('sand4',80,3.6,5.25,'crumble',{delay:1}),
     p('sand5',86.5,3.8,5.75,'crumble',{delay:.9}),
     // --- the riverbed: the pocket ---------------------------------------------
-    // One mass of clay on a sandstone shelf that fills the chasm, with spikes
-    // half a unit below the clay's base, so bare sandstone kills and any clay
-    // at all is safe. Since layout 11 the dock stands over the clay's rest
-    // surface, so the pocket is entered from above: the clump can be stepped
-    // onto, and what stops it being a way across is the pit between its
-    // towers, which is deeper than a hop out of it.
+    // One mass of wet clay on a sandstone shelf that fills the chasm, with
+    // spikes half a unit below the clay's base, so bare sandstone kills and any
+    // clay at all is safe. Since layout 12 the clay rests level with the dock
+    // and the landing, so the riverbed is simply walked across; what the clay
+    // is for is the flower on the perch over it, out of any jump's reach until
+    // the ground under the jumper has been pulled up — and wet clay does not
+    // wait: pulled up, it slumps back in seconds unless a hand is on it.
     p('pocket-dock',92,9.3,6.25,'stone',{checkpoint:97,landmark:'sandwheel'}),
-    p('pocket-floor',101.3,17.2,.6,'wall',{h:6.6}),
-    part('pocket-clay',{x:101.3,w:17.2,y:2.75,h:2.15},{x:101.3,w:17.2,y:2.75,h:2.15},{station:'canyon-pocket',clayRole:'mass'}),
+    p('pocket-floor',101.3,17.2,3.5,'wall',{h:9.5}),
+    part('pocket-clay',{x:101.3,w:17.2,y:6.2,h:2.7},{x:101.3,w:17.2,y:6.2,h:2.7},{station:'canyon-pocket',clayRole:'mass'}),
     p('pocket-landing',118.5,7.5,6.2,'stone',{checkpoint:122}),
     // A spiked stub in the gap out of the pocket: the step across is a jump.
     // `spiked` says the band on top of it is meant to be there, so the audit
@@ -123,13 +128,19 @@ const L={
   ],
   route:['start','lift1','arrival','notch','rope-cross',['lookout','walk'],
     'basin','sand1','sand2','sand3','sand-rest','sand4','sand5',
-    'pocket-dock','pocket-clay','pocket-landing',
+    'pocket-dock',['pocket-clay','walk'],['pocket-landing','walk'],
     'windwell',['valve1','walk'],'wind-step','wind-crown','wind-exit','wind-gondola','rest-bank',
     'last-well',['valve2','walk'],'clay-1','sky-lift','sky2','sky-rest','sky-sand','sky-sand-copy-1',
     'clay-5',['arch-drop','walk'],['arch-entry','walk'],
-    'arch-shelf','clay-2-copy-1','arch-lift','arch-balcony','arch-roof','summit',
+    'arch-shelf','clay-2-copy-1','arch-lift','arch-balcony','arch-roof',
+    // The Boulder Drop: over the bridge to the mill, up the cracked ledges to
+    // the valve and back down, up the flank on the wind, across the pool once
+    // the boulder has gone, and down through the hole it left.
+    ['shelf-bridge','walk'],['boulder-plateau','walk'],'porous-1','porous-2','switch-perch',['valve3','walk'],['boulder-plateau','fall'],
+    'flank-1','flank-2','flank-3','boulder-mount',['boulder-pool','walk'],['cave-floor','fall'],['summit','walk'],
     ['zip-trolley','board'],['bell-roof','ride']],
   detours:[
+    path(['pocket-clay','pocket-perch',['pocket-clay','fall']]),
     path(['wind-crown','wind-turn','well-flower','wind-turn','wind-crown','wind-exit']),
     path(['sand2',['basin-flower','fall'],'sand3']),
     path(['arch-balcony','clay-2-copy-2','clay-2','clay-2-copy-2','arch-balcony','arch-roof'])
@@ -151,7 +162,7 @@ const L={
   coins:[
     {x:10.75,y:14},{x:14,y:13.5},{x:17.5,y:13},{x:28,y:11.4},{x:40.5,y:9.6},
     ...row(56,7.7,2),...row(62,7.1,2),...row(68,5.9,2),...row(81,6.35,2),...row(87.5,6.85,2),
-    {x:94.25,y:7.7},...row(104.3,5.2,3,1.3),{x:116.5,y:8.3},{x:120.5,y:7.6},{x:123,y:7.6},
+    {x:94.25,y:7.7},...row(104.3,7.6,3,1.3),{x:116.5,y:8.3},{x:120.5,y:7.6},{x:123,y:7.6},
     {x:130,y:4.8},{x:139,y:9.25},{x:140.5,y:11.35},{x:144.25,y:12.9},...row(158.5,15.4,2),
     ...row(167.5,17.9,3),{x:185.75,y:19.5},...row(191.5,21.8,2),{x:198.75,y:24.9},{x:204,y:25.5},
     {x:224.85,y:27.5},{x:226.85,y:27},{x:228.6,y:27.5},...row(237,27.9,3),
@@ -171,15 +182,18 @@ const L={
   // stub out of the pocket, and in the gaps the climb jumps.
   hazards:[
     {x:10,w:8,y:2.5},{x:24,w:14,y:2.5},{x:43.25,w:2.75,y:.25},{x:53,w:38.75,y:2.5},
-    {x:101.3,w:17.2,y:.1},{x:126,w:2,y:3.25},{x:153,w:13,y:6.25},{x:243,w:20.25,y:19.75}
+    {x:101.3,w:17.2,y:3},{x:126,w:2,y:3.25},{x:153,w:13,y:6.25},{x:243,w:20.25,y:19.75}
   ],
   shaping:[],
-  // The valley's deepest point is the pocket, and what marks it is a formation
-  // standing behind the violet clay: wider than the mass itself, so the purple
-  // reads as running out from under it, set back at the backdrop's own depth so
-  // it belongs to the horizon rather than the route. Scenery only — and, being
-  // a placement rather than built geometry, it is the workshop's to move.
-  decor:[{kind:'purple-arch',x:110,y:.6,size:20,z:-16}],
+  // The valley bottoms out at the pocket — the descent ends here and the climb
+  // to the summit starts — and what marks it is a formation standing behind the
+  // violet clay: wider than the mass itself, so the purple reads as running out
+  // from under it, set back at the backdrop's own depth so it belongs to the
+  // horizon rather than the route. Its base is the riverbed shelf's own top, so
+  // it stands on the floor of the valley rather than in front of it; layout 12
+  // raised that shelf from y .6 to y 3.5 and the arch came up with it. Scenery
+  // only — and, being a placement and not built geometry, the workshop's to move.
+  decor:[{kind:'purple-arch',x:110,y:3.5,size:20,z:-16}],
   hints:[
     {x:0,end:9,icon:'walk',title:'Move and jump',text:'A / D or arrows to move. Hold jump to leap.'},
     {x:46,end:55,icon:'sink',title:'Crumbling ledges',text:'Cracked ledges crumble. Keep moving — the riverbed below them bites.'},
@@ -188,36 +202,110 @@ const L={
       touchText:'Step onto the trolley. Your weight sends it down the cable to the bell.'}
   ],
   guides:[{platformId:'wind-crown',offset:.55,dir:-1},{platformId:'arch-balcony',offset:.55,dir:-1},{platformId:'arch-balcony',offset:3.4,dir:1}]
-};
+},SEAM,GAP);
 
 // --- The Sandwright's Pocket ---------------------------------------------------
 // One mass of clay, formable the way the lab's lump is — no pose, only a surface
 // the hand drags where it likes — sitting free on a sandstone shelf that fills
-// the riverbed from its floor up to the clay's base. It rests as two towers with
-// a skim of clay over the pit between them: a spire at the dock's end, a lump
-// against the landing's cliff cresting a unit above the landing. The shelf is
-// sown with spikes half a unit below the clay's base, so bare sandstone kills
-// and any clay at all is safe.
+// the riverbed from its floor up to the clay's base. Since layout 12 it is the
+// lab's WET clay (`pace`): it settles in well under a second and slumps back in
+// seconds, and — the one real difference — is not held by the weight of anyone
+// standing on it, only by a hand. It rests nearly level, flush with the dock
+// and the landing, so the riverbed is walked across without a thought. The
+// shelf is still sown with spikes half a unit below the clay's base, so bare
+// sandstone kills and any clay at all is safe.
 //
-// The dock overlooks the clay rather than meeting it, so the clump can be
-// stepped onto — the room is entered from above. That is not a way through:
-// the pit between the towers is deeper than a hop, the lump's crest is out of
-// reach from the floor of it, and a player who drops in works their way out
-// with the same hand or held E that opens the pocket in the first place. The
-// pocket still opens only once the clay is worked, and any shape that carries
-// the player counts.
+// What the clay is for is the flower: a perch hangs over the middle of the
+// pocket, out of reach of a jump from the level clay and of a stomp off it.
+// Pull the ground up under yourself and jump before it melts — or pull it up,
+// let go, and stomp off its top before it sinks — and the perch is yours.
 // A knot is placed by the world x it stands at, as a share of the mass's width.
 // Rounded, because the last knot sits exactly on the far end and the division
 // that puts it there lands a whisker past 1 in binary.
 const K=(x,top)=>[Math.round((x-101.3)/17.2*1e6)/1e6,top];
+// The perch's height: past a jump (feet to 8.7) and past a stomp off the level
+// clay (9.7, with the wet clay's softer throw), within a jump off the pillar
+// the authored stroke pulls up (11.3).
+const POCKET_PERCH=10.6;
+L.platforms.push(p('pocket-perch',108.7,2.6,POCKET_PERCH,'ledge',{optional:true}));
+L.stamps.push({x:110,y:POCKET_PERCH+.9});
 L.shaping.push(
-  {id:'canyon-pocket',rule:'form',free:true,relax:false,shaped:.24,icon:'knead',name:'Shape the pocket',verb:'Grab it and drag',gesture:'up',cueX:102.6,
+  {id:'canyon-pocket',rule:'form',free:true,shaped:.17,icon:'spark',name:'Wet clay',verb:'Build fast, climb faster',gesture:'up',cueX:110,
    parts:['pocket-clay'],x:92,end:126,spawn:{x:96,y:6.25,groundId:'pocket-dock'},
-   clump:[K(101.3,3.7),K(104,3.7),K(105.2,-1.8),K(111.8,-1.8),K(113,4.4),K(118.5,4.4)],
-   solution:[{x:102.5,lift:0,dx:6.5,dy:-3,t:1.7},{x:115,lift:0,dx:-5.5,dy:-2.6,t:1.8}],
-   hint:'Grab the violet clay and drag it: lean the spire into a bridge, slump the lump into a ramp, or shape your own way. Clay is ground; bare sand is not. Or face the clay and hold E to work it into steps. Step off and press R to soften it.'}
+   clump:[K(101.3,0),K(105.5,.12),K(110,-.05),K(114.5,.1),K(118.5,0)],
+   // The lab's wet pace, and a softer throw than dry clay's: wet clay gives
+   // less back under a stomp, which is what keeps the perch a pillar's climb.
+   pace:{settle:.6,relaxTime:5,relaxMin:.4,holdUnderfoot:false},launch:14,
+   solution:[{x:110,lift:0,dx:0,dy:4.8,t:1.4}],
+   hint:'Wet clay slumps back in seconds unless a hand is on it. Pull the ground up under yourself and jump for the perch before it melts, or let go and stomp off its top before it sinks. R softens it.'}
 );
-L.hints.push(
-  {x:92,end:118.4,icon:'knead',title:'Shape the clay',text:'Grab the violet clay and drag it. Lean the spire into a bridge, slump the lump into a ramp. Or hold E facing the clay to work it into steps; step off and press R to soften it.',touchText:'Grab the violet clay and drag it: lean the spire into a bridge, slump the lump into a ramp. Clay is ground; bare sand is not.'}
+
+// --- The Boulder Drop ------------------------------------------------------------
+// The summit's cave is floored over with planks, and the only thing in the
+// chapter heavy enough to go through them is a boulder resting in a pool of
+// violet clay on the mesa above. Getting up there is the wind's business: a
+// valve at the end of two cracked ledges wakes a well over the mill, and the
+// well lifts the player up three ledges on the mesa's flank that no jump
+// reaches cold. On top, the clay is worked the way the pocket's was, except
+// that here it is the ground under the boulder that is raised and leaned
+// until the boulder rolls off the mesa's edge, drops on the planks, and opens
+// the cave. The player follows it down.
+//
+// The mesa is a stone ledge for the working stand and a wall body under the
+// pool, flush with the clay's base the way the pocket's floor is, so the pool
+// reads as clay sitting on rock. Its body stops at y44 so a jump off the valve
+// perch underneath it never meets its underside. The cave's floor begins where
+// the pillar ends, and the pillar stands beside its cliff rather than on it:
+// nothing left of the pillar stands at cave height, so the planks are the only
+// way in. A step between the pillar and the cracked ledges is the way back for
+// anyone who drops onto the planks before the boulder does.
+const B=(x,top)=>[Math.round((x-289)/20*1e6)/1e6,top];
+L.platforms.push(
+  p('shelf-bridge',269,7,33.2,'bridge'),
+  p('boulder-plateau',276,13,32.8,'stone',{checkpoint:280,landmark:'windmill',rest:true}),
+  // The valve: two cracked ledges up and a perch over the second.
+  p('porous-1',291.5,4.5,34.9,'crumble',{delay:1}),
+  p('porous-2',298.5,4.5,37,'crumble',{delay:1}),
+  p('switch-perch',292,5,39.1,'ledge'),
+  p('valve3',295.2,1.8,39.23,'switch',{channel:'wind-c',latch:true}),
+  // The flank: three ledges in the well's draught, each a jump only the wind makes.
+  p('flank-1',279,3,38.5,'ledge'),
+  p('flank-2',276,3,44,'ledge'),
+  p('flank-3',281,3,50,'ledge'),
+  // The mesa, the pool and the boulder.
+  p('boulder-mount',284,5,52,'stone'),
+  p('boulder-body',289,20,48,'wall',{h:4}),
+  part('boulder-pool',{x:289,w:20,y:52,h:4},{x:289,w:20,y:52,h:4},{station:'boulder-run',clayRole:'mass'}),
+  // The pillar, the planks it carries, and the cave under its overhang.
+  p('pillar-step',304.5,3,38.5,'ledge'),
+  p('pillar',309,3,40,'wall',{h:15.4}),
+  p('plank-floor',309,8,40.75,'break',{timber:true,rockOnly:true}),
+  p('cave-lip',317,2,43,'wall',{h:3}),
+  p('cave-roof',317,17,52,'wall',{h:9}),
+  p('cave-floor',312,10,34.6,'stone')
+);
+L.sections.splice(6,0,{x:SEAM,name:'The Boulder Drop',landmark:'windmill'});
+L.winds.push({id:'well-c',x:274.5,w:8,y:32.8,h:18.5,fx:0,fy:19,channel:'wind-c'});
+L.circuits.push({source:'valve3',channel:'wind-c',targets:['flank-1','flank-2'],kind:'wind'});
+L.hazards.push({x:270,w:39,y:19.75});
+L.coins.push({x:293.75,y:36.3},{x:300.75,y:38.4},...row(279.5,40,2,1),...row(276.5,45.5,2,1),{x:282.5,y:51.5},{x:286.5,y:53.4},...row(312.5,36,3,1.2));
+// No hint card for the room: the valve, the well, the ledges in its draught
+// and a boulder in a pool of the clay the pocket has already taught say what
+// they want on their own.
+L.shaping.push(
+  {id:'boulder-run',rule:'form',free:true,relax:false,shaped:.2,icon:'wheel',name:'Drop the boulder',verb:'Raise the ground',gesture:'up',cueX:290.5,
+   parts:['boulder-pool'],x:284,end:310,spawn:{x:286.5,y:52,groundId:'boulder-mount'},
+   // A hollow at the near end with the boulder in it, a lip past it, and from
+   // the lip a chute that falls in a straight line to the open edge — knotted
+   // every unit and a half, because the rest shape is smoothed between knots
+   // and a long segment would be flat at both ends, where a slow boulder
+   // stops. Left alone the boulder sits in the hollow; raise the ground under
+   // it and it rides the mound up and rolls off it over the lip, and the chute
+   // does the rest.
+   clump:[B(289,-.1),B(291.5,-.2),B(293.5,-.7),B(295.5,.3),...[297,298.5,300,301.5,303,304.5,306,307.5,309].map((x,i)=>B(x,.1-.275*i))],
+   marble:{x:4.5,radius:1.5,look:'rock',spill:'right'},channel:'boulder-down',
+   solution:[{x:293.3,lift:0,dx:-.4,dy:3,t:1}],
+   message:'The boulder is down · the cave is open',
+   hint:'The boulder rests in a hollow. Only the clay moves it: grab the violet clay and pull the ground up under it, then lean the slope to the right. Off the edge it drops on the planks. R softens the clay.'}
 );
 export default chapter(L);
