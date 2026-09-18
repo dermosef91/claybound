@@ -1,6 +1,7 @@
 import * as THREE from '../lib/three.module.js';
 import {deck,sectionDecks,slot,rand} from './support.js';
 import {clayMaterial,clayShape,sculptClay} from '../clay.js';
+import {dreamEyeball} from '../dream-assets.js';
 // Section 4 — The Breathing Corridor, after its painting: a tunnel built
 // entirely of thick WAVY stripes of soft clay — vermilion, red, magenta,
 // plum — stacked like layered Play-Doh with rounded lips. A heavy striped
@@ -14,10 +15,11 @@ import {clayMaterial,clayShape,sculptClay} from '../clay.js';
 //     boundaries between them undulate the way the painting's strata do
 //   · the breathing pillars, the throat and the teeth are stacks of stripes
 //     that stretch with the breath (the stack is the breathe pose's `body`)
-//   · the eyes are big and permanent: a cream ball with a dark pupil in a
-//     socket of two stripe lobes; the pupil slides toward the player, the
-//     lobes close in a slow blink every 4–8 s — two over the pillar stretch,
-//     one over the entry, one in the throat, two by the teeth and the exit
+//   · the eyes are big and permanent: the supplied fleshy eyeball sunk into a
+//     socket of rolled lips that cut across it, the ball turning to watch the
+//     player and the lips sliding together in a slow blink every 4–8 s — two
+//     over the pillar stretch, one over the entry, one in the throat, two by
+//     the teeth and the exit
 //   · the hazard hook draws cone beds in place of the engine's cream spikes;
 //     the kill line is untouched
 //   · the molars (presses) are fat vermilion drips that bite; the shared
@@ -34,13 +36,15 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // and the haze; the painting's deep red and the pink of its cones are the two
 // colours they cannot reach, so those two are fixed materials made once per
 // world and hooked into the clay relief.
-const RED=0xb42d33,PINK=0xdc7a82;
+// The socket behind an eye is the painting's deepest red — the pocket the
+// ball is pressed into, and the crease under its upper lip.
+const RED=0xb42d33,PINK=0xdc7a82,SOCKET_RED=0x5f1418;
 function fixed(w,name,hex){
   if(!w.mat)return 'orange';
   if(!w.mat[name]){const m=new THREE.MeshStandardMaterial({color:hex,roughness:.95,metalness:0});m.name=name;clayMaterial(w,m,.075);w.mat[name]=m;}
   return name;
 }
-const red=w=>fixed(w,'corridorRed',RED),pink=w=>fixed(w,'corridorPink',PINK);
+const red=w=>fixed(w,'corridorRed',RED),pink=w=>fixed(w,'corridorPink',PINK),socketRed=w=>fixed(w,'corridorSocket',SOCKET_RED);
 const mat=(w,name)=>slot(w,name,'orange');
 // The stripe cycle, top down: vermilion, red, magenta, plum.
 const cycle=w=>[mat(w,'terrain'),red(w),mat(w,'top'),mat(w,'accent')];
@@ -115,35 +119,102 @@ function drip(w,parent,x,y,z,r,h,material,variant=0){
 }
 
 // --- eyes -----------------------------------------------------------------------------
-// A big permanent eye set into a stripe: a cream ball with a dark pupil, in a
-// socket of two lobes (red above, vermilion below) that bulge out of the
-// face around it. animate() slides the pupil toward the player and closes
-// the lobes over the ball in a slow blink.
+// A big permanent eye SET INTO the stripes, after the painting: the supplied
+// fleshy eyeball (dist/assets/dream-eyeball.glb) sunk into a socket whose two
+// lips are rolls of clay swept along a lens — red above, vermilion below —
+// carried out over the ball so they cut across its top and bottom, converging
+// to points at the two corners, with a brow fold over them and a deep-red
+// backing behind so the corners look into flesh rather than through the
+// ceiling. Each fold sweeps on past the eye across the strata it lies over,
+// the way the painting's folds do; the section's own stripes are the layers
+// outside that, so the socket only supplies what wraps the ball.
+//
+// The model's pupil is painted into its colour map, not set on it, so the BALL
+// turns to look rather than a disc sliding across it — held to a narrow cone,
+// which keeps the pupil inside the opening. animate() aims it and slides the
+// two lips together for a slow blink every 4–8 s.
+//
+// Shares of the eye's radius, so one socket fits the vault's .58–.68 eyes, the
+// throat's .62 and the exit deck's .52: the lens opening's half-width, how far
+// it opens above and below its centre line (a little under three quarters of
+// the ball's height shows, as in the painting), that line's height and its
+// rise across the socket, how deep the ball is sunk, and how far each lip
+// travels to shut — `open` again, so the two meet on the centre line.
+export const SOCKET={half:1.05,open:.72,rise:.06,tilt:.10,sink:.06,shut:.72};
 function eye(w,parent,x,y,z,seed,r=.6){
   const g=group(parent,'Corridor eye',x,y,z);
-  w.ball(r,r*.92,r*.6,'cream',g,0,0,0).name='Eyeball';
-  const iris=group(g,'Eye pupil',0,0,r*.48);
-  w.ball(r*.4,r*.4,r*.16,'dark',iris,0,0,0).name='Pupil';
-  const upper=w.ball(r*2.6,r*.5,r*.95,red(w),g,0,r*1.02,-.3);upper.name='Eye lid';
-  const lower=w.ball(r*2.6,r*.48,r*.95,mat(w,'terrain'),g,0,-r*1.02,-.3);lower.name='Eye lid';
-  registry(w).eyes.push({group:g,iris,upper,lower,r,period:4.5+rand(seed)*3.5,phase:rand(seed+9)*5});
+  // The lens: a centre line tilted up across the socket, an opening that
+  // closes to nothing at the corners, and a wrap that carries the lips'
+  // fronts out over the middle of the ball and lets them fall back at the ends.
+  const U=SOCKET.half*r,line=u=>r*SOCKET.rise+SOCKET.tilt*u,
+    open=u=>r*SOCKET.open*Math.sqrt(Math.max(0,1-(u/U)**2)),
+    wrap=u=>Math.cos(clamp(u/U,-1,1)*Math.PI/2);
+  // The socket's back, wider than the opening, buried in the stripes: without
+  // it the lens corners look straight through the ceiling. What little of it
+  // shows in those corners is the painting's deepest red, the eye's pocket.
+  w.ball(U*1.12,r*1.15,r*.45,socketRed(w),g,0,line(0),-r*.75).name='Eye socket';
+  // The ball, sunk behind the lips. Without the model the section's own
+  // sculpted ball stands in, in the same socket, its pupil a disc on the gaze.
+  let gaze;
+  if(w.dreamAssets?.eyeball){
+    const ball=dreamEyeball(w,g,r);ball.root.position.set(0,line(0),-r*SOCKET.sink);gaze=ball.gaze;
+  }else{
+    gaze=group(g,'Eyeball gaze',0,line(0),-r*SOCKET.sink);
+    w.ball(r,r*.94,r*.72,'cream',gaze,0,0,0).name='Eyeball';
+    w.ball(r*.4,r*.4,r*.16,'dark',gaze,0,0,r*.66).name='Pupil';
+  }
+  // The two lips, each in its own group so the blink can slide it.
+  // A lip does not stop at the socket: past the corners the opening has closed
+  // to nothing, so the fold runs on as a plain band across the stripes it lies
+  // over, sweeping further to the right than the left, and only tapers away
+  // well clear of the eye. Ending it at the corner instead would leave its cut
+  // face out in the open, which is the one thing the painting never shows.
+  const lip=(name,material,{top,bottom,base,amp,depth,thickness})=>{
+    const h=group(g,name,0,0,0);
+    ribbon(w,h,{x0:-r*2.7,x1:r*3.0,top,bottom,depth,lip:thickness,step:r*.34,taper:r*1.1,
+      material,name:'Eye lid',zAt:u=>r*(base+amp*wrap(u))});
+    return h;
+  };
+  // A lip's band has to be deeper than it travels plus what it has left to
+  // cover, or sliding it over the ball would walk its far edge off the ball's
+  // crown and show a sliver of sclera above a shut eye. Shut, the upper lip
+  // reaches line + open + BAND - shut, which has to clear the ball's top at
+  // line + r; BAND at 1.12r leaves a tenth of the radius in hand either way.
+  const BAND=1.12;
+  const lower=lip('Eye lid lower',mat(w,'terrain'),{top:u=>line(u)-open(u),bottom:u=>line(u)-open(u)-r*BAND,
+    base:.28,amp:.30,depth:r*1.10,thickness:r*.30});
+  const upper=lip('Eye lid upper',red(w),{top:u=>line(u)+open(u)+r*BAND,bottom:u=>line(u)+open(u),
+    base:.30,amp:.34,depth:r*1.15,thickness:r*.34});
+  // The brow: one more fold butting onto the upper lip, set back and sweeping
+  // on past the socket, so the eye reads as part of a stack and not stuck on.
+  ribbon(w,g,{x0:-r*3.1,x1:r*3.5,top:u=>line(u)+open(u)+r*(BAND+.95),bottom:u=>line(u)+open(u)+r*BAND,
+    depth:r,lip:r*.30,step:r*.44,taper:r*1.3,material:mat(w,'top'),name:'Eye brow',zAt:u=>r*(.04+.12*wrap(u))});
+  registry(w).eyes.push({group:g,gaze,upper,lower,r,period:4.5+rand(seed)*3.5,phase:rand(seed+9)*5});
   return g;
 }
-const BLINK=.34;
+// How far off straight ahead a ball is turned, across and up. A narrower cone
+// than the garden's eyes turn through (.6/.45): the pupil is painted on, so
+// turning the ball turns everything painted on it — including the dark cap the
+// bake mirrored onto the ball's back, which needs 68° of turn to come round to
+// the silhouette. tests/dream-models.mjs holds these against that figure.
+export const GAZE={x:.35,y:.26};
+const BLINK=.34,FORWARD=new THREE.Vector3(0,0,1),direction=new THREE.Vector3(),turn=new THREE.Quaternion();
 function animateEyes(w,game,dt,ctx){
   const list=registry(w).eyes;if(!list.length)return;
-  const p=game.player,t=ctx.time;
+  const p=game.player,t=ctx.time,rate=1-Math.exp(-dt*9);
   for(let i=list.length-1;i>=0;i--){
     const e=list[i];
     if(!attached(e.group,w.scene)){list.splice(i,1);continue;}
     e.group.getWorldPosition(worldPosition);
     const dx=ctx.playerX-worldPosition.x,dy=(p.y+.9)-worldPosition.y;
     const still=ctx.reducedMotion;
-    e.iris.position.x=still?0:clamp(dx/9,-1,1)*e.r*.3;
-    e.iris.position.y=still?0:clamp(dy/7,-1,1)*e.r*.22;
+    if(still)direction.set(0,0,1);
+    else direction.set(clamp(dx/9,-GAZE.x,GAZE.x),clamp(dy/7,-GAZE.y,GAZE.y),1).normalize();
+    e.gaze.quaternion.slerp(turn.setFromUnitVectors(FORWARD,direction),still?1:rate);
     const u=(((t+e.phase)%e.period)+e.period)%e.period/BLINK,k=!still&&u<1?Math.sin(u*Math.PI):0;
-    e.upper.position.y=e.r*(1.02-.7*k);e.lower.position.y=-e.r*(1.02-.7*k);
-    e.upper.scale.y=e.r*.5*(1+.5*k);e.lower.scale.y=e.r*.48*(1+.5*k);
+    // The lips slide together across the ball and bulge forward as they meet.
+    e.upper.position.y=-e.r*SOCKET.shut*k;e.lower.position.y=e.r*SOCKET.shut*k;
+    e.upper.position.z=e.lower.position.z=e.r*.06*k;
   }
 }
 

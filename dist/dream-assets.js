@@ -34,7 +34,11 @@ import {fixedMaterial,lid,slot} from './dream/support.js';
 // swag valance with gold buttons over a hanging smiley-flower pennant. That
 // last one is cut in two at load like the flower: the swags run along the
 // hat-worm bridge's underside, the pennant hangs on its plinth.
-export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb',fruit:'dream-fruit.glb',banner:'dream-banner.glb',column:'dream-column.glb',cane:'dream-cane.glb',sun:'dream-sun.glb',arch:'dream-arch.glb'};
+//
+// The Breathing Corridor's eye is the odd one out: its pupil is painted into
+// the colour map rather than set on it here, so nothing about it is rigged and
+// the ball itself turns to look. EYEBALL below holds what that needs.
+export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb',fruit:'dream-fruit.glb',banner:'dream-banner.glb',column:'dream-column.glb',cane:'dream-cane.glb',sun:'dream-sun.glb',arch:'dream-arch.glb',eyeball:'dream-eyeball.glb'};
 
 // Each planet's core orb in model space — the sphere the fruit and the leaf
 // sprouts are stuck onto — fitted over every vertex by a modal-radius
@@ -47,6 +51,25 @@ export const PLANET_ORBS={
   mint:{center:[.0210,.4632,-.0038],radius:.3704},
   raspberry:{center:[.0046,.4859,-.0166],radius:.3911}
 };
+
+// The corridor's eyeball, measured the same way and for the same reason. The
+// upload is a ball and nothing else — a least-squares sphere over every vertex
+// sits within 4% of all of them (rms .0094, worst .0366) — so `radius` is what
+// a placement scales by and turning the ball does not move its silhouette.
+// tests/dream-models.mjs re-fits the sphere against the shipped vertices so a
+// re-export cannot drift.
+//
+// The pupil is painted into the colour map rather than set on the ball, so
+// there is nothing here to rig: the ball itself turns. Its dark disc is hard
+// edged (the colour steps over under 3° of arc), about 26° of arc across, 44%
+// of the ball's width, and the axis it is painted about sits 4.6° off the
+// model's own +z. That tilt is left as painted rather than turned out: it is a
+// twentieth of the pupil's own radius, the painting this section follows has
+// its pupil off centre too, and turning it would take the fleshy relief off
+// the pose it was sculpted in. The bake also mirrored a second dark cap onto
+// −z, about 22° across; the corridor's gaze cone is held far inside the 68° of
+// turn that would bring it round to the silhouette.
+export const EYEBALL={centre:[-.0010,-.0011,-.0002],radius:.9314};
 
 // The flower's petals begin this far up the model; below it is stem, leaves
 // and root.
@@ -178,6 +201,11 @@ export function prepareDreamAsset(w,key,gltf){
   // fog and is the one crisp thing up there. The towers and the sun keep it —
   // their softness is the depth they are placed at.
   if(key==='column')gltf.scene.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])m.fog=false;});
+  // The eyeball arrives double-sided, which it has no use for: it is a closed
+  // ball pressed into clay, so its inside is never the near face, and drawing
+  // it would only give the dark cap the bake mirrored onto its back a way to
+  // show through any hairline the socket's folds leave at the rim.
+  if(key==='eyeball')gltf.scene.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])m.side=THREE.FrontSide;});
   if(key==='arch'){
     let mesh=null;gltf.scene.traverse(o=>{if(o.isMesh&&!mesh)mesh=o;});
     if(!mesh)throw new Error('Invalid dream model: '+key);
@@ -288,6 +316,24 @@ export function dreamArch(w,parent,{height}){
   w.ball(r*.28,r*.28,r*.16,'cream',gaze,-r*.38,r*.4,R*.9+r*.5).name='Flower glint';
   const shut=w.mesh(lid(w),petalMaterial(w),root,eye.x,eye.y,eye.z);shut.scale.setScalar(R*1.07);shut.rotation.x=-Math.PI/2;shut.name='Flower lid';
   return {root,model,scale:s,size:a.size.clone().multiplyScalar(s),gaze,pupil,lid:shut,eye:{radius:R*s}};
+}
+// The corridor's eyeball under `parent`, `radius` across its fitted sphere,
+// that sphere's centre on the parent's origin. Returns {root,gaze}: `gaze` is
+// a group on that centre whose +z is the direction the painted pupil looks, so
+// turning it aims the eye and nothing inside it needs touching. Unlike every
+// other eye in the chapter the pupil is not a mesh — it is in the colour map —
+// which is why this hands back no `pupil` and no `lid`: the socket the corridor
+// builds round it does the blinking.
+export function dreamEyeball(w,parent,radius){
+  const a=asset(w,'eyeball'),root=new THREE.Group(),model=a.scene.clone(true),s=radius/EYEBALL.radius;
+  root.name='Dream eyeball';model.name='Supplied clay eyeball';
+  const gaze=new THREE.Group();gaze.name='Eyeball gaze';root.add(gaze);parent.add(root);
+  // The ball rides inside the gaze group, shifted so its fitted centre sits on
+  // that group's origin — the point a socket is cut about, and the point the
+  // turn has to be about if the ball is to look around without wandering.
+  model.scale.setScalar(s);model.position.set(...EYEBALL.centre).multiplyScalar(-s);
+  gaze.add(model);
+  return {root,gaze,model,radius};
 }
 
 // --- the parade's carnival dressing ------------------------------------------------
