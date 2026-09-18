@@ -2,20 +2,22 @@ import * as THREE from './lib/three.module.js';
 import {applyEnvironment} from './environments.js';
 import {clayMaterial} from './clay.js';
 import {animateHero,heroEvent} from './hero.js';
+import {parentAxis,rotateAbout} from './dream-rigs.js';
 import {DIORAMAS} from './completion-dioramas.js';
 
 // The level-complete screen is a diorama, not a plate of art: the finished
-// chapter rebuilt as a small object you could pick up, lit from one side and
-// set against its own sky. It borrows the game's renderer, its clay and the
-// chapter's own supplied models, but nothing else about it is the playfield —
-// the camera is a real perspective lens rather than the game's orthographic
-// side-on box, and every piece is placed and turned in three dimensions
-// instead of standing on one plane facing front.
+// chapter rebuilt as a small stage, lit from one side and set against its own
+// sky. It borrows the game's renderer, its clay and the chapter's own supplied
+// models, but nothing else about it is the playfield — the camera is a real
+// perspective lens rather than the game's orthographic side-on box, and every
+// piece is placed and turned in three dimensions.
 //
-// Composition is fixed by the screen it shares: the chapter number, the
-// wordmark, the three results and the buttons all sit down the left, so the
-// hero, the goal gate and the landmark behind them are framed right of centre
-// (the same 65%/66% focal point the pre-rendered plates were cropped to).
+// It is photographed the way a model on a table is photographed: a low lens
+// almost level with the stage, the hero centred with both arms up, the gate
+// they have just rung beside them, and behind them the chapter's own country
+// out of focus — the platform and everything on it sharp, everything past its
+// far lip drawn soft, so the eye has a foreground to stand on and a depth to
+// look into.
 
 // A dome rather than a flat plate, because a perspective camera can see the
 // sky's curve. The gradient runs zenith → horizon with a haze that gathers
@@ -28,8 +30,6 @@ uniform float sunSize;uniform float sunPower;uniform float hazeHeight;
 varying vec3 vWorld;
 void main(){
   vec3 dir=normalize(vWorld-cameraPosition);
-  // Curve the band toward the horizon so the gradient's interest sits where
-  // the landmark meets the sky rather than overhead, out of frame.
   float height=clamp(dir.y*hazeHeight+.08,0.0,1.0);
   vec3 color=mix(horizon,zenith,pow(height,.72));
   float toSun=max(dot(dir,normalize(sunDirection)),0.0);
@@ -39,6 +39,29 @@ void main(){
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
+
+// A separable Gaussian, run once across and once down at half resolution: the
+// background's depth of field. The title's single diagonal tap was a softening;
+// the stage wants the country behind it genuinely out of focus, which takes a
+// real kernel and two passes. The second pass tone-maps as it lands on screen.
+const BLUR_VERTEX='varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.0,1.0);}';
+const blurFragment=final=>`uniform sampler2D tDiffuse;uniform vec2 step;varying vec2 vUv;
+void main(){
+  vec3 c=texture2D(tDiffuse,vUv).rgb*.1964825;
+  c+=(texture2D(tDiffuse,vUv+step).rgb+texture2D(tDiffuse,vUv-step).rgb)*.1746813;
+  c+=(texture2D(tDiffuse,vUv+step*2.0).rgb+texture2D(tDiffuse,vUv-step*2.0).rgb)*.1216974;
+  c+=(texture2D(tDiffuse,vUv+step*3.0).rgb+texture2D(tDiffuse,vUv-step*3.0).rgb)*.0662803;
+  c+=(texture2D(tDiffuse,vUv+step*4.0).rgb+texture2D(tDiffuse,vUv-step*4.0).rgb)*.0281928;
+  c+=(texture2D(tDiffuse,vUv+step*5.0).rgb+texture2D(tDiffuse,vUv-step*5.0).rgb)*.0093571;
+  gl_FragColor=vec4(c,1.0);
+  ${final?'#include <tonemapping_fragment>\n#include <colorspace_fragment>':''}
+}`;
+
+// The cheer. Both upper arms swung up and out about the character's own
+// forward axis, the forearms opened a little further, layered over whatever
+// the idle is doing that frame — the same way the parade's giraffe is posed.
+const CHEER={arm:2.35,forearm:.42,shoulder:.18};
+const FORWARD=new THREE.Vector3(0,0,1);
 
 export class CompletionScene{
   constructor(world){
@@ -64,8 +87,8 @@ export class CompletionScene{
     w.sun.shadow.bias=-.00025;w.sun.shadow.normalBias=.035;w.sun.shadow.radius=4;
     w.scene.add(w.hemi,w.sun,w.sun.target,w.fill);
     // A back light the playfield has no use for. Side-on, a rim light would
-    // only graze the front faces; in a diorama it is what lifts the hero and
-    // the gate off the landmark behind them.
+    // only graze the front faces; on a stage it is what lifts the hero and
+    // the gate off the country behind them.
     w.rim=new THREE.DirectionalLight(0xffffff,0);w.scene.add(w.rim);
     w.flags=[];w.particles=[];
     w.fxRoot=new THREE.Group();w.scene.add(w.fxRoot);
@@ -80,14 +103,26 @@ export class CompletionScene{
 
     // The hero's own animation writes its world position from the simulated
     // player, and always at the playfield's depth. Standing it anywhere else
-    // in a diorama therefore means carrying it: the mount holds the real
-    // placement and cancels that fixed depth, and the rig moves inside it.
+    // means carrying it: the mount holds the real placement and cancels that
+    // fixed depth, and the rig moves inside it.
     this.heroMount=new THREE.Group();this.heroMount.name='Diorama footing';w.scene.add(this.heroMount);
     this.camera=new THREE.PerspectiveCamera(34,16/9,.35,520);
     this.game={status:'menu',respawnTimer:0,flowerCelebration:null,
       player:{x:0,y:0,vx:0,vy:0,facing:1,groundId:'diorama',invuln:0,stunTime:0,stomping:false,stompWindup:0,skidding:false},
       level:{boss:null,platforms:[{id:'diorama',kind:'stone',x:-6,y:0,w:12,active:true}]}};
     this.width=0;this.height=0;
+    this.makeDefocus();
+  }
+
+  makeDefocus(){
+    const options={type:THREE.HalfFloatType,depthBuffer:true};
+    this.backTarget=new THREE.WebGLRenderTarget(1,1,options);
+    this.blurTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:false});
+    this.compositeCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+    this.blurAcross=new THREE.ShaderMaterial({uniforms:{tDiffuse:{value:this.backTarget.texture},step:{value:new THREE.Vector2()}},depthTest:false,depthWrite:false,vertexShader:BLUR_VERTEX,fragmentShader:blurFragment(false)});
+    this.blurDown=new THREE.ShaderMaterial({uniforms:{tDiffuse:{value:this.blurTarget.texture},step:{value:new THREE.Vector2()}},depthTest:false,depthWrite:false,vertexShader:BLUR_VERTEX,fragmentShader:blurFragment(true)});
+    this.acrossScene=new THREE.Scene();this.acrossScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),this.blurAcross));
+    this.downScene=new THREE.Scene();this.downScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),this.blurDown));
   }
 
   // Each chapter's diorama is built once and kept. Its models are the ones the
@@ -97,25 +132,32 @@ export class CompletionScene{
     const key=DIORAMAS[biome]?biome:'desert';
     if(this.key===key)return;
     this.key=key;
-    for(const [name,entry]of this.built)entry.root.visible=name===key;
+    for(const [name,entry]of this.built){entry.front.visible=entry.back.visible=entry.lamps.visible=name===key;}
     if(this.built.has(key)){this.apply(this.built.get(key));return;}
     const w=this.view,spec=DIORAMAS[key];
     applyEnvironment(w,{biome:spec.biome});
     // applyEnvironment leaves the playfield's fixtures and parallax bookkeeping
     // behind it; a diorama keeps none of that, and its lights are its own.
     w.torches=[];w.parallax=[];w.ambient=[];w.water=null;w.flags=[];
-    const root=new THREE.Group();root.name=`Completion diorama · ${key}`;w.scene.add(root);
-    const entry={root,spec,lights:[],flags:[],bell:null,spin:[]};
+    // Three roots: what is sharp, what is out of focus, and the lamps that
+    // have to light both passes and so belong to neither.
+    const front=new THREE.Group();front.name=`Completion stage · ${key}`;
+    const back=new THREE.Group();back.name=`Completion country · ${key}`;
+    const lamps=new THREE.Group();lamps.name=`Completion lamps · ${key}`;
+    w.scene.add(front,back,lamps);
+    const entry={front,back,lamps,spec,flags:[],bell:null,spin:[],pulse:[]};
     w.bell=null;
-    spec.build(w,root,{
+    spec.build(w,front,back,{
       // A diorama's own lamp: placed in three dimensions, kept with the scene
       // and never handed to the chapter's roaming fixtures.
       light:(color,intensity,distance,x,y,z)=>{
-        const l=new THREE.PointLight(color,intensity,distance);l.position.set(x,y,z);root.add(l);entry.lights.push(l);return l;
+        const l=new THREE.PointLight(color,intensity,distance);l.position.set(x,y,z);lamps.add(l);return l;
       },
       // Anything a diorama wants to keep turning: a windmill's sails, a
       // gondola's slow sway, a planet on its axis.
-      spin:(object,speed,axis='y',amplitude=0)=>{entry.spin.push({object,speed,axis,amplitude,base:object.rotation[axis]});return object;}
+      spin:(object,speed,axis='y',amplitude=0)=>{entry.spin.push({object,speed,axis,amplitude,base:object.rotation[axis]});return object;},
+      // A lamp that breathes — the ember caverns' mushrooms and crystals.
+      pulse:(lamp,amount=.25,speed=1.3,phase=0)=>{entry.pulse.push({lamp,base:lamp.intensity,amount,speed,phase});return lamp;}
     });
     entry.flags=w.flags.slice();entry.bell=w.bell||null;
     this.built.set(key,entry);
@@ -142,10 +184,11 @@ export class CompletionScene{
     sky.sunSize.value=l.sunSize??220;sky.sunPower.value=l.sunGlow??.5;sky.hazeHeight.value=l.hazeHeight??1.35;
     w.scene.background.set(l.horizon);
     w.scene.fog.color.set(l.fog||l.horizon);w.scene.fog.near=l.fogNear??40;w.scene.fog.far=l.fogFar??150;
+    this.blur=spec.blur??2.2;
     const hero=spec.hero;
     this.heroMount.position.set(hero.x,hero.y,hero.z-.48);
     this.heroMount.rotation.set(hero.tilt||0,0,hero.roll||0);
-    this.heroScale=hero.scale??1;this.heroYaw=hero.yaw??0;
+    this.heroScale=hero.scale??1;this.heroYaw=hero.yaw??0;this.cheer=hero.cheer??1;
     this.width=0;this.resize(this.lastWidth||1280,this.lastHeight||720);
   }
 
@@ -156,9 +199,8 @@ export class CompletionScene{
   // scene past it. An asymmetric frustum moves the framing instead: the lens
   // renders a wider, taller frame than the canvas shows and the canvas takes
   // its top-left corner, which lands what the camera is aimed at at a chosen
-  // fraction across and down — the 65%/66% the plates were cropped to. The
-  // field of view is then divided back out, so the subject is off to one side
-  // at the size it would have been in the middle.
+  // fraction across and down. The field of view is then divided back out, so
+  // the subject is off-centre at the size it would have been in the middle.
   resize(width,height){
     this.lastWidth=width;this.lastHeight=height;
     if(this.width===width&&this.height===height)return;
@@ -176,6 +218,10 @@ export class CompletionScene{
     camera.updateProjectionMatrix();
     this.baseQuaternion=camera.quaternion.clone();
     this.basePosition=camera.position.clone();
+    const bw=Math.max(1,Math.ceil(width*.5)),bh=Math.max(1,Math.ceil(height*.5));
+    this.backTarget.setSize(bw,bh);this.blurTarget.setSize(bw,bh);
+    this.blurAcross.uniforms.step.value.set(this.blur/bw,0);
+    this.blurDown.uniforms.step.value.set(0,this.blur/bh);
   }
 
   show(){
@@ -195,6 +241,21 @@ export class CompletionScene{
     heroEvent(c,{type:'respawn'});
   }
 
+  // Arms up. Layered over the idle after the mixer has written its frame, so
+  // the body keeps breathing under it and the pose is exactly the same every
+  // time the screen opens.
+  poseCheer(c,strength){
+    if(!c.loaded||!c.asset||strength<=0)return;
+    const bone=name=>c.asset.getObjectByName(name);
+    for(const [side,sign]of [['Left',1],['Right',-1]]){
+      const shoulder=bone(side+'Shoulder'),arm=bone(side+'Arm'),fore=bone(side+'ForeArm');
+      if(!arm)continue;
+      if(shoulder)rotateAbout(shoulder,parentAxis(shoulder,FORWARD,c.model),sign*CHEER.shoulder*strength);
+      rotateAbout(arm,parentAxis(arm,FORWARD,c.model),sign*CHEER.arm*strength);
+      if(fore)rotateAbout(fore,parentAxis(fore,FORWARD,c.model),sign*CHEER.forearm*strength);
+    }
+  }
+
   update(dt){
     const w=this.view,entry=this.built.get(this.key);
     const step=this.world.reducedMotion?0:Math.min(dt,.05);
@@ -203,11 +264,16 @@ export class CompletionScene{
     const c=w.character;
     c.root.rotation.y=this.heroYaw;c.root.scale.setScalar(this.heroScale);
     c.root.visible=true;c.shadow.visible=false;
+    // The arms come up over the first half second and then hold, with the
+    // smallest sway so a held pose does not read as a frozen one.
+    const raised=Math.min(1,this.time*2.2),sway=this.world.reducedMotion?0:Math.sin(this.time*1.7)*.02;
+    this.poseCheer(c,this.cheer*(raised*(1-.5*(1-raised)*(1-raised))+sway));
     if(!entry)return;
     for(const s of entry.spin){
       if(s.amplitude)s.object.rotation[s.axis]=s.base+Math.sin(this.time*s.speed)*s.amplitude;
       else s.object.rotation[s.axis]=s.base+this.time*s.speed;
     }
+    for(const p of entry.pulse)p.lamp.intensity=p.base*(1+Math.sin(this.time*p.speed+p.phase)*p.amount);
     // Clay bunting does not flap; it settles. A slow, shallow roll per pennant
     // keeps the gate alive without turning a solid material into cloth.
     for(const [i,flag]of entry.flags.entries())flag.rotation.y=(flag.userData.baseYaw??=flag.rotation.y)+Math.sin(this.time*.9+i*1.3)*.055;
@@ -227,11 +293,24 @@ export class CompletionScene{
     }
   }
 
+  // Two passes. The country behind the stage — the sky, the far models, the
+  // clouds — is drawn to a half-size target and blurred across and down onto
+  // the canvas; then the stage, the hero and the gate are drawn sharp over it
+  // with the depth cleared, so nothing sharp is ever hidden behind something
+  // soft. The renderer is left exactly as the game had it.
   render(dt){
     if(!this.active||!this.key)return;
     const rect=this.world.canvas.getBoundingClientRect();
     this.resize(Math.max(1,Math.round(rect.width)),Math.max(1,Math.round(rect.height)));
     this.update(dt);
-    this.world.renderer.render(this.view.scene,this.camera);
+    const entry=this.built.get(this.key),r=this.world.renderer,scene=this.view.scene;
+    const background=scene.background,autoClear=r.autoClear;
+    entry.front.visible=false;this.heroMount.visible=false;
+    r.setRenderTarget(this.backTarget);r.render(scene,this.camera);
+    r.setRenderTarget(this.blurTarget);r.render(this.acrossScene,this.compositeCamera);
+    r.setRenderTarget(null);r.render(this.downScene,this.compositeCamera);
+    entry.front.visible=true;this.heroMount.visible=true;entry.back.visible=false;this.sky.visible=false;
+    scene.background=null;r.autoClear=false;r.clearDepth();r.render(scene,this.camera);
+    scene.background=background;entry.back.visible=true;this.sky.visible=true;r.autoClear=autoClear;
   }
 }

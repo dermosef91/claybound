@@ -14,7 +14,7 @@
 //
 // Fractions are of the visible canvas: 0,0 is its top-left corner.
 import * as THREE from '../dist/lib/three.module.js';
-import {DIORAMAS} from '../dist/completion-dioramas.js';
+import {DIORAMAS,STAGE,AT} from '../dist/completion-dioramas.js';
 
 const W=1672,H=941;
 
@@ -127,16 +127,20 @@ for(const key of keys.length?keys:Object.keys(DIORAMAS)){
     // The gate's own extremes, carried through its placement: the flag tip is
     // 3.3 out along its local x and the crest 4.43 up, and those are what
     // leave the frame first.
-    const turn=-.52,gx=1.6,gz=-.2;
+    const turn=AT.gateTurn,[gx,gz]=AT.gate;
     const tip=[gx+3.3*Math.cos(turn),0,gz-3.3*Math.sin(turn)];
     const points=[
       ['hero feet',hero.x,hero.y,hero.z],
       ['hero head',hero.x,hero.y+1.78,hero.z],
+      ['hero hands up',hero.x,hero.y+2.35,hero.z],
       ['gate centre',gx,0,gz],
       ['gate crest',gx,4.43,gz],
       ['gate flag tip',tip[0],3.2,tip[2]],
-      ['footing front lip',0,0,3.6],
-      ['footing far lip',0,0,-3.6]
+      ['stage front lip',0,0,STAGE.lipZ],
+      ['stage far lip',0,0,STAGE.lipZ-STAGE.depth],
+      ['stage left end',-STAGE.width/2,0,STAGE.lipZ],
+      ['stage right end',STAGE.width/2,0,STAGE.lipZ],
+      ['stage face foot',0,-STAGE.thickness,STAGE.lipZ]
     ];
     console.log(`\n=== ${key} ===`);
     for(const [name,x,y,z]of points){

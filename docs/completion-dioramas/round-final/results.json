@@ -1,11 +1,11 @@
 {
   "round": "final",
   "viewport": {
-    "width": 1672,
-    "height": 941
+    "width": 430,
+    "height": 932
   },
   "report": {
-    "chapter-1-canyon": {
+    "chapter-1-canyon-portrait": {
       "status": "complete",
       "biome": "desert",
       "short": "Sunbaked Canyon",
@@ -14,12 +14,12 @@
       "y": 10.2,
       "diorama": true,
       "key": "desert",
-      "calls": 205,
-      "drawnTriangles": 276892,
+      "calls": 150,
+      "drawnTriangles": 228298,
       "meshes": 111,
-      "triangles": 167442
+      "triangles": 209714
     },
-    "chapter-2-wildwood": {
+    "chapter-2-wildwood-portrait": {
       "status": "complete",
       "biome": "forest",
       "short": "Wildwood",
@@ -28,12 +28,12 @@
       "y": 33.4,
       "diorama": true,
       "key": "forest",
-      "calls": 187,
-      "drawnTriangles": 410126,
-      "meshes": 210,
-      "triangles": 395760
+      "calls": 362,
+      "drawnTriangles": 500260,
+      "meshes": 488,
+      "triangles": 715410
     },
-    "chapter-3-caverns": {
+    "chapter-3-caverns-portrait": {
       "status": "complete",
       "biome": "cave",
       "short": "Ember Caverns",
@@ -42,12 +42,12 @@
       "y": 0,
       "diorama": true,
       "key": "cave",
-      "calls": 243,
-      "drawnTriangles": 225382,
-      "meshes": 335,
-      "triangles": 508214
+      "calls": 201,
+      "drawnTriangles": 237608,
+      "meshes": 705,
+      "triangles": 955432
     },
-    "chapter-4-quarter": {
+    "chapter-4-quarter-portrait": {
       "status": "complete",
       "biome": "citadel",
       "short": "Hanging Quarter",
@@ -56,12 +56,12 @@
       "y": 44.2,
       "diorama": true,
       "key": "citadel",
-      "calls": 227,
-      "drawnTriangles": 254530,
-      "meshes": 457,
-      "triangles": 654716
+      "calls": 148,
+      "drawnTriangles": 201848,
+      "meshes": 1066,
+      "triangles": 1278990
     },
-    "chapter-5-dream": {
+    "chapter-5-dream-portrait": {
       "status": "complete",
       "biome": "dream",
       "short": "Soft Dream",
@@ -70,10 +70,10 @@
       "y": 0,
       "diorama": true,
       "key": "dream",
-      "calls": 190,
-      "drawnTriangles": 524918,
-      "meshes": 555,
-      "triangles": 918135
+      "calls": 143,
+      "drawnTriangles": 234702,
+      "meshes": 1166,
+      "triangles": 1579601
     }
   },
   "errors": [],

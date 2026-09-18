@@ -60,6 +60,9 @@ review(async({page,url,errors,requests})=>{
 
     // result() is on a 750 ms timer so the victory pose can read first.
     await page.waitForFunction(()=>document.body.classList.contains('is-complete'),null,{timeout:15000});
+    // The scene fades in over .55 s and the buttons rise in .34 s later; a
+    // capture before both have finished shows half the overlay missing.
+    await page.waitForTimeout(1100);
     const live=await page.evaluate(()=>{
       const c=playtest.completion;
       if(!c?.active)return {diorama:false};

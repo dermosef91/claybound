@@ -16,7 +16,27 @@ body.has-completion-diorama .completion-scene{background:transparent}
 body.has-completion-diorama .completion-background{display:none}
 /* A little more scrim than the plate needed. A diorama has real highlights in
    it, and the wordmark has to stay readable over a sunlit arch. */
-body.has-completion-diorama .completion-shade{background:linear-gradient(100deg,#162336b0 0%,#16233675 38%,#1623361a 62%,#16233600 100%)}
+body.has-completion-diorama .completion-shade{background:linear-gradient(100deg,#16233680 0%,#16233650 34%,#16233614 58%,#16233600 100%)}
+/* Over a diorama the screen is composed as a stage: the buttons stand in a
+   column at the top centre, over the country, and the hero and gate hold the
+   lower right. The wordmark and results keep the left. The top-right note
+   gives its corner to the sky. */
+body.has-completion-diorama .completion-note-top{display:none}
+@media(orientation:landscape) and (min-height:851px){
+  body.has-completion-diorama .completion-content{position:static}
+  body.has-completion-diorama .completion-scene{--reward-size:clamp(50px,6.6vh,64px)}
+  body.has-completion-diorama .completion-heading{margin-top:clamp(12px,2.2vh,24px)}
+  body.has-completion-diorama #dialog.is-completion h2{font-size:clamp(56px,5.9vw,100px)}
+  body.has-completion-diorama .completion-flourish{margin-top:12px}
+  body.has-completion-diorama .completion-stats{margin-top:clamp(16px,3vh,32px);width:clamp(320px,31vw,500px)}
+  body.has-completion-diorama .completion-stat dd{font-size:clamp(22px,2vw,31px)}
+  /* Centred by `left` rather than a transform: the rise animation owns
+     transform, and its final translateY(0) threw out a translateX. */
+  body.has-completion-diorama .completion-actions{position:absolute;top:clamp(150px,20.5vh,210px);left:calc(55% - clamp(170px,15.1vw,253px));width:clamp(340px,30.2vw,506px);margin:0;gap:clamp(10px,1.4vh,14px)}
+  body.has-completion-diorama .completion-button{min-height:clamp(46px,5.8vh,56px);font-size:clamp(15px,1.3vw,20px);gap:12px}
+  body.has-completion-diorama .completion-button svg{width:22px;height:22px}
+  body.has-completion-diorama .completion-primary svg{width:24px;height:24px}
+}
 #dialog.is-completion #dialog-content{width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:0;border:0;border-radius:0;background:none;color:#fff2d7;box-shadow:none;overflow:visible;font-family:"Clay Sans",Arial,sans-serif}
 .completion-scene{--reward-size:clamp(66px,10.5vh,108px);--result-cream:#fff2d7;--result-orange:var(--clay-orange);position:relative;isolation:isolate;width:100%;min-height:100%;overflow:hidden;background:#28384c;animation:completion-reveal .55s ease-out both}
 .completion-background,.completion-shade{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:-2}

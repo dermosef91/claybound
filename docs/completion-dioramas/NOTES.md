@@ -13,18 +13,38 @@ whose models never arrived, and the screen is the poster it always was.
 
 ## What each one is
 
-Every chapter says the same sentence in its own vocabulary: the hero stands on
-a last piece of that chapter's ground, the goal gate they have just rung is
-beside them, and the thing the chapter is remembered for stands in the middle
-distance where they are looking. The camera is behind and over one shoulder.
+Every chapter is photographed the same way, to a set of supplied target renders
+(2026-09-18): a low lens almost level with a wide stage, the hero centred on it
+with both arms up, the gate they have just rung immediately to their right, and
+behind the stage's far lip the chapter's own country out of focus. The stage
+and everything on it draw sharp; everything past the lip is drawn to a half-size
+target and blurred across and down (a separable Gaussian, two passes) before
+the stage is drawn over it. The cheer is a layered pose — both upper arms
+turned up about the character's forward axis after the mixer has written its
+frame — so the idle keeps breathing under it.
 
-| Chapter | Landmark in the eyeline | Supplied models used |
+Over a diorama the overlay is composed as a stage too: the buttons stand in a
+column at the top centre, the wordmark and results keep the left, and the
+top-right note gives its corner to the sky. All of that is gated on
+`body.has-completion-diorama`, so the painted-plate fallback keeps its old
+layout untouched. (The rise animation owns `transform`; the buttons are
+centred with `left`, not `translateX`, for that reason.)
+
+| Chapter | Stage and country | Supplied models used |
 |---|---|---|
-| 01 Sunbaked Canyon | the Great Arch, with the windwell turning beyond it | `canyon-arch`, `canyon-summit`, `canyon-cave`, `canyon-tent`, `cactus`, `windmill-tower/sails`, `cloud` |
-| 02 Wildwood | the hero mushroom, the falls behind it | `forest-hero-mushroom`, `forest-grove`, `forest-waterfall`, `forest-falls`, `forest-hills`, `forest-canopy(-distant)`, `forest-spring-pad`, `forest-bloom` |
-| 03 Ember Caverns | the kiln, awake — the one warm light in a cold frame | `cave-crystalcap`, `cave-grotto`, plus `caveRock`/`caveCrystals`/`caveMushrooms` |
-| 04 Hanging Quarter | the cloudtop castle across the gap | `castle`, `city-laundry`, `cloud` |
-| 05 Soft Dream | the parade's giraffe, under two planets and a smiling sun | `dream-giraffe`, `dream-sculpture`, `dream-hat`, `dream-flower`, `dream-planet-mint/raspberry`, `dream-saucer-mint`, `dream-sun` |
+| 01 Sunbaked Canyon | terracotta plateau with strata, cacti, a pot; the caravan banner on a ledge left; the Great Arch behind the buttons, mesas each side, one flagged | `canyon-arch`, `canyon-summit`, `canyon-cave`, `canyon-tent`, `cactus`, `cloud` |
+| 02 Wildwood | grass stage with leafy bushes on its lip, two toadstools, daisies; the living tree's trunks at the left edge and a crown of leaf masses across the top; falls between groves; groves adrift | `forest-grove`, `forest-waterfall`, `forest-falls`, `forest-hills`, `forest-canopy-distant`, `forest-hero-mushroom`, `forest-bloom`, `cloud` |
+| 03 Ember Caverns | dark stone stage edged in blocks; cyan crystals and amber caps each with a lamp; ledges behind carrying dozens of small caps; stalactites over the top and shafts of pale light from the upper right | `cave-crystalcap`, `cave-grotto`, plus `caveRock`/`caveCrystals`/`caveMushrooms` |
+| 04 Hanging Quarter | blue clay stage edged in big cream cubes, the laundry line and cacti; blue towers with green tops, trees and pennants standing out of cloud, an arch among the near ones | `castle`, `city-laundry`, `cactus`, `cloud` |
+| 05 Soft Dream | the same stage in the dream's clay, flowers on it; the parade behind, two planets and a sun | `dream-giraffe`, `dream-sculpture`, `dream-hat`, `dream-flower`, `dream-planet-mint/raspberry`, `dream-saucer-mint`, `dream-sun` |
+
+Three things this second pass taught, to add to the list below: a point light
+bright enough to read as "hot" saturates under ACES (the kiln's mouth went
+cream, the cave's crystals went white — the additive halo quads did as much
+of that as the light); the view clones every material the level already has,
+so a `if(!w.mat.x)` guard for a chapter-specific clay never fires once that
+chapter has been played — replace outright; and the citadel palette has no
+green, so its towers' grass is a material the diorama makes for itself.
 
 ## The two tools
 
