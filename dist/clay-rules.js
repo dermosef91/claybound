@@ -54,6 +54,9 @@ export function initializeRule(station,L){
         station.cast=s.mould=cast;
       }
       station.form=s.form=f;
+      // The world builds a view from the platform alone (world.makePlatform),
+      // so the station's throw is stamped on its clay: bouncy clay is drawn pink.
+      s.bouncy=!!station.bouncy;
       // A marble run: the ball starts where the station says, in the form's
       // own x, and is home in the station's socket — or, with an open end
       // named, gone over it: a rock the clay is worked to drop off the mass.
@@ -106,8 +109,9 @@ export function stompRule(station,partIndex){
   // A stomp into the soft block presses a crater where the boots land, on top
   // of what the fall alone does to it.
   if(station.rule==='sag'){station.punch=(station.punch||0)+GIVE.stomp;return true;}
-  // A stomp into the formable mass is a crater where the boots land, and the
-  // clay throws the stomper back up on the next tick, once it has them.
+  // A stomp into the formable mass is a crater where the boots land — and, on
+  // a `bouncy` station, the clay throws the stomper back up on the next tick,
+  // once it has them.
   if(station.rule==='form'){station.punch=(station.punch||0)+FORM.stomp;station.stomped=true;return true;}
   if(perPart(station)){
     if(partIndex<0)return false;
@@ -283,11 +287,16 @@ export function applyRule(game,station,dt,{near=false}={}){
     if(on&&sagForm(f,x,dt,station.punch||0))station.worked=true;
     station.punch=0;
     stepForm(f,dt,{hand:!!station.hand,standing:on,relax:station.relax!==false});
-    // A stomp that has landed: the crater is pressed, and the clay throws the
-    // stomper straight back up, as the packed lump does at full — here on the
-    // first stomp, every time. Nothing rearms; the next stomp throws again.
-    if(on&&station.stomped){
-      station.stomped=false;
+    // A stomp that has landed: the crater is pressed. Only clay a station calls
+    // `bouncy` — the lab's slab, lump and wet bench — throws the stomper
+    // straight back up, as the packed lump does at full, on the first stomp
+    // and every one after; nothing rearms. Everywhere else, the chapters
+    // included, a stomp is a press and the boots stay in the crater: the throw
+    // is a mechanic of its own, introduced later, and the clay that has it is
+    // drawn pink (shaping-views.js) so it is never mistaken for the violet.
+    const thrown=on&&station.stomped&&!!station.bouncy;
+    if(on)station.stomped=false;
+    if(thrown){
       p.vy=station.launch??FORM.launch;p.groundId=null;p.coyote=0;p.springing=true;p.stomping=false;p.stompWindup=0;
       game.event('spring',{platformId:s.id,x:p.x,y:p.y});
       station.pressed=false;station.fall=p.vy;

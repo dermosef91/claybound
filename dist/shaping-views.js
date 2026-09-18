@@ -21,6 +21,18 @@ function roundedGrid(radius){
 // One step darker than the first pass: the reference blob is a deeper violet
 // than the lilac that ended up on screen, which read washed out against the sky.
 export const MAGIC_CLAY=0x7a55b5;
+// Bouncy clay — a formable mass whose station throws a stomper back up
+// (clay-rules.js) — is the same material in pink: a raspberry a step darker
+// than the river's hot pink, so the prints and the glitter still read, and
+// unmistakably not the violet, so the throw is never expected of clay that
+// only takes the crater. The chapters meet it later; the lab has it now.
+export const BOUNCY_CLAY=0xd9609b;
+// The two tints the skin needs beyond the colour itself: the turned-away tone
+// the light bouncing inside the clay gives it, and the glow that scatters back
+// out at the rims. The violet pair is the one the skin was tuned with.
+const VIOLET_TINTS=Object.freeze({deep:new THREE.Vector3(.62,.5,.95),rim:new THREE.Vector3(.32,.16,.8)});
+const PINK_TINTS=Object.freeze({deep:new THREE.Vector3(.96,.5,.74),rim:new THREE.Vector3(.8,.16,.44)});
+const BOUNCY_BLOCK=Object.freeze({name:'magicBlockBouncy',hex:BOUNCY_CLAY,tints:PINK_TINTS});
 function magicMaterials(w){
   if(w.mat.magicClay)return;
   const m=new THREE.MeshStandardMaterial({color:MAGIC_CLAY,roughness:.55,metalness:0,emissive:MAGIC_CLAY,emissiveIntensity:.04});
@@ -236,7 +248,9 @@ function createBlockView(w,s,root,{form=false}={}){
   const stretch=new THREE.BufferAttribute(new Float32Array(count).fill(1),1);stretch.setUsage(THREE.DynamicDrawUsage);
   geometry.setAttribute('clayStretch',stretch);
   geometry.setIndex(faces);
-  const mesh=new THREE.Mesh(geometry,blockMaterial(w));mesh.castShadow=true;mesh.receiveShadow=true;
+  // Pink where the station throws a stomper back up (clay-rules.js stamps it
+  // on the platform), violet everywhere else.
+  const mesh=new THREE.Mesh(geometry,blockMaterial(w,s.bouncy?BOUNCY_BLOCK:undefined));mesh.castShadow=true;mesh.receiveShadow=true;
   mesh.name='Soft clay block';root.add(mesh);
   // Room for the swell above the top and the belly at the sides, so culling
   // never drops a block that is still on screen.
@@ -468,21 +482,25 @@ vec3 magicGlitter(vec3 p, vec3 n, float pixel) {
 }
 `;
 
-// Layers the violet skin over a material the clay relief is already installed
+// Layers the magic skin over a material the clay relief is already installed
 // on. `source` names the clay's own coordinates and `height` how far below its
-// top a point sits, both as vertex-shader expressions.
-function magicSkin(m,source,height,declare=''){
+// top a point sits, both as vertex-shader expressions; `tints` are the deep and
+// rim tones (violet unless a bouncy pink asks otherwise), carried as uniforms
+// so the two colours share one program.
+function magicSkin(m,source,height,declare='',tints=VIOLET_TINTS){
   if(!m.userData.clay)return m;
   const compile=m.onBeforeCompile,key=m.customProgramCacheKey;
   m.onBeforeCompile=(shader,renderer)=>{
     compile.call(m,shader,renderer);
+    shader.uniforms.magicDeep={value:tints.deep};
+    shader.uniforms.magicRim={value:tints.rim};
     shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
 ${declare}
 varying vec3 vMagicPosition;
 varying float vMagicHeight;`).replace('#include <project_vertex>',`vMagicPosition = ${source};
 vMagicHeight = ${height};
 #include <project_vertex>`);
-    shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vMagicPosition;\nvarying float vMagicHeight;'+MAGIC_SKIN)
+    shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vMagicPosition;\nvarying float vMagicHeight;\nuniform vec3 magicDeep;\nuniform vec3 magicRim;'+MAGIC_SKIN)
       .replace('diffuseColor.rgb *= mix(1.0, clayData.b / 0.94, 0.55);',`diffuseColor.rgb *= mix(1.0, clayData.b / 0.94, 0.55);
 vec2 magicUV = magicPlane(vMagicPosition, vClayNormal);
 float magicPixel = max(length(dFdx(magicUV)), length(dFdy(magicUV)));
@@ -496,11 +514,11 @@ diffuseColor.rgb *= mix(0.66, 1.0, smoothstep(-7.5, -1.0, vMagicHeight));`)
       .replace('clayData.r * bumpScale, faceDirection','clayData.r * bumpScale + magicPrint * magicMask * 0.0019, faceDirection')
       .replace('#include <lights_fragment_end>',`#include <lights_fragment_end>
 // Light bouncing inside the clay keeps its turned-away sides a deep, saturated
-// violet rather than the grey the sky's ground colour would give them, and a
-// little of it scatters back out at the rims.
+// tone of its own colour rather than the grey the sky's ground colour would
+// give them, and a little of it scatters back out at the rims.
 vec3 magicUp = inverseTransformDirection(geometryNormal, viewMatrix);
-reflectedLight.indirectDiffuse *= mix(vec3(0.62, 0.5, 0.95), vec3(1.0), smoothstep(-0.8, 0.6, magicUp.y));
-totalEmissiveRadiance += vec3(0.32, 0.16, 0.8) * pow(1.0 - saturate(dot(geometryNormal, geometryViewDir)), 3.0) * 0.16;
+reflectedLight.indirectDiffuse *= mix(magicDeep, vec3(1.0), smoothstep(-0.8, 0.6, magicUp.y));
+totalEmissiveRadiance += magicRim * pow(1.0 - saturate(dot(geometryNormal, geometryViewDir)), 3.0) * 0.16;
 // Glitter at half strength, and only in about three tenths of the skin. Its
 // brightest cores clip in tone mapping, so 0.45 of the light is what reads as
 // half as bright on screen.
@@ -519,12 +537,14 @@ if (magicSparkle > 0.0) totalEmissiveRadiance += magicGlitter(vMagicPosition, no
 // thumbprint goes on being a thumbprint.
 export const BLOCK_SQUASH=2;
 
-// The shared magic clay, taught to read its relief from the rest shape.
-function blockMaterial(w){
-  if(w.mat.magicBlock)return w.mat.magicBlock;
+// The shared magic clay, taught to read its relief from the rest shape. Each
+// colour lives under its own slot in w.mat, so the streaming disposer and the
+// level rebuild treat it as shared, the way the river's streams are.
+function blockMaterial(w,{name='magicBlock',hex=MAGIC_CLAY,tints=VIOLET_TINTS}={}){
+  if(w.mat[name])return w.mat[name];
   // A fresh material rather than a clone: a clone shares the relief's settings
   // but not its shader hook, and would come out perfectly smooth.
-  const m=new THREE.MeshStandardMaterial({color:MAGIC_CLAY,roughness:.55,metalness:0,emissive:MAGIC_CLAY,emissiveIntensity:.04});
+  const m=new THREE.MeshStandardMaterial({color:hex,roughness:.55,metalness:0,emissive:hex,emissiveIntensity:.04});
   clayMaterial(w,m,.045);
   const cap=BLOCK_SQUASH.toFixed(1),compile=m.onBeforeCompile,key=m.customProgramCacheKey;
   m.onBeforeCompile=(shader,renderer)=>{
@@ -559,7 +579,7 @@ vClayPosition = clayFlat * claySize`)
   };
   m.customProgramCacheKey=()=>key.call(m)+'-rest';
   // The block's top is its rest shape's zero, so its rest height is the depth.
-  return w.mat.magicBlock=magicSkin(m,'clayFlat','clayFlat.y');
+  return w.mat[name]=magicSkin(m,'clayFlat','clayFlat.y','',tints);
 }
 
 // Rebuilds the buffer only when the heightfield has actually moved, and

@@ -15,7 +15,7 @@ import {burstDrifterLeaves} from './drifter-leaves.js';
 import {loadCottage,cottageModel} from './cottage.js';
 import {loadClay,clayBox,clayMeshMaterial,sculptClay,clayShape} from './clay.js';
 import {loadClouds} from './clouds.js';
-import {cameraFraming,cameraTarget,cameraAnchorY,anchorDragged,VERTICAL_BIAS} from './camera.js';
+import {cameraFraming,cameraTarget,cameraAnchorY,anchorDragged,between,VERTICAL_BIAS} from './camera.js';
 import {syncStream,disposeBranch} from './streaming.js';
 import {backdropView} from './decor.js';
 import {landmark,balanceDeck,animateWind} from './setpieces.js';
@@ -479,7 +479,9 @@ export class World {
       if(q.life<=0){this.fxRoot.remove(q.mesh);disposeSporeParticle(q);this.particles.splice(i,1);}
     }
   }
-  render(game,dt,menu=false) {
+  // `alpha` is how far the frame falls between the last two ticks (camera.js
+  // `between`); the frame loop passes it, everyone else draws the tick as is.
+  render(game,dt,menu=false,alpha=1) {
     const heroDt=dt;
     if(game.status==='paused')dt=0;
     this.time+=dt;
@@ -511,18 +513,21 @@ export class World {
     if(!edit){
     if(Math.abs(p.x-(this.lastPlayerX??p.x))>this.viewW*1.5){this.cameraAnchorY=p.y;this.cameraFace=p.facing;const snap=cameraTarget(p,this.viewW,this.viewH,this.landscape);this.cameraX=snap.x;this.cameraY=snap.y;}
     this.lastPlayerX=p.x;
+    // The player as drawn, between the last two ticks; the camera follows the
+    // picture, not the simulation, or the frame would jitter against the hero.
+    const hero=alpha<1?{...p,x:between(p.prevX,p.x,alpha),y:between(p.prevY,p.y,alpha)}:p;
     this.cameraLook+=(p.vx*.2-this.cameraLook)*(1-Math.exp(-dt*3.5));
     // Ease the side the frame leans towards, so tapping the other direction
     // slides the view instead of throwing it across the screen.
     this.cameraFace=this.cameraFace===undefined?p.facing||1:this.cameraFace+((p.facing||1)-this.cameraFace)*(1-Math.exp(-dt*2.6));
-    this.cameraAnchorY=cameraAnchorY(this.cameraAnchorY,p,this.viewH,dt);
+    this.cameraAnchorY=cameraAnchorY(this.cameraAnchorY,hero,this.viewH,dt);
     const citadel=this.biome==='citadel';
     // A scene the game is watching — a boulder going over its edge — takes the
     // frame with it: the rock sits in the upper part of the view so what it is
     // about to come down on is in the picture, and the pan is slower than the
     // follow, so it reads as the camera turning to look rather than snapping.
     const scene=game.cinema;
-    const target=scene?{x:scene.x+this.viewW*.04,y:scene.y-this.viewH*.16}:motherCamera(L.boss,p,this.viewW,this.viewH,this.landscape)||cameraTarget(p,this.viewW,this.viewH,this.landscape,this.cameraLook,this.cameraAnchorY,this.cameraFace);
+    const target=scene?{x:scene.x+this.viewW*.04,y:scene.y-this.viewH*.16}:motherCamera(L.boss,hero,this.viewW,this.viewH,this.landscape)||cameraTarget(hero,this.viewW,this.viewH,this.landscape,this.cameraLook,this.cameraAnchorY,this.cameraFace);
     const targetX=menu?L.spawn.x+this.viewW*.11:target.x;
     const targetY=menu?L.spawn.y+this.viewH*VERTICAL_BIAS:target.y;
     this.sceneReturn=scene?1.2:Math.max(0,(this.sceneReturn||0)-dt);
@@ -531,7 +536,7 @@ export class World {
     // Standing, the frame settles onto the player. Airborne it is gentle,
     // because the anchor is already holding still — until a long fall drags the
     // anchor along, where it has to keep up or the landing leaves the screen.
-    const verticalRate=scene?5:p.groundId?7:anchorDragged(this.cameraAnchorY,p,this.viewH)?10:4.5;
+    const verticalRate=scene?5:p.groundId?7:anchorDragged(this.cameraAnchorY,hero,this.viewH)?10:4.5;
     this.cameraY+=(targetY-this.cameraY)*(1-Math.exp(-dt*verticalRate));
     }else{this.cameraX=edit.x;this.cameraY=edit.y;}
     this.trauma=Math.max(0,(this.trauma||0)-dt*TRAUMA_DECAY);this.shake=shakeAmplitude(this.trauma);
@@ -543,13 +548,17 @@ export class World {
     this.camera.position.set(this.cameraX+sx,this.cameraY+(edit?0:(this.theme.cameraElevation??(this.biome==='citadel'?1.25:3.05)))+sy,26);this.camera.lookAt(this.cameraX+sx,this.cameraY+sy,0);if(roll)this.camera.rotation.z+=roll;
     if(this.camera.zoom!==1){this.camera.zoom=1;this.camera.updateProjectionMatrix();}
     this.sun.position.set(this.cameraX-10,this.cameraY+18,12);this.sun.target.position.set(this.cameraX,this.cameraY-2,0);
-    animateHero(this,game,heroDt);
+    animateHero(this,game,heroDt,alpha);
     for(const s of L.platforms){
-      // A broken deck is gone from view — except a rotten one, whose pieces are
-      // still falling; a hidden one is a plug not yet seated, or seated and
-      // stood down for the mass in its place.
-      const view=this.platforms.get(s.id);if(!view)continue;view.root.position.set(s.x,s.y,0);view.root.visible=(!s.broken||!!s.rot)&&!s.hidden;
-      for(const rope of view.ropes||[]){const anchor=rope.userData.ceiling;if(anchor)rope.scale.y=Math.max(.1,anchor.y-s.y-(anchor.offset??.25))/anchor.rest;}
+      const view=this.platforms.get(s.id);if(!view)continue;
+      // Drawn between the last two ticks like the hero; a deck that has not
+      // moved has prevX at x and draws where it stands. A broken deck is gone
+      // from view — except a rotten one, whose pieces are still falling; a
+      // hidden one is a plug not yet seated, or seated and stood down for the
+      // mass in its place.
+      const x=between(s.prevX,s.x,alpha),y=between(s.prevY,s.y,alpha);
+      view.root.position.set(x,y,0);view.root.visible=(!s.broken||!!s.rot)&&!s.hidden;
+      for(const rope of view.ropes||[]){const anchor=rope.userData.ceiling;if(anchor)rope.scale.y=Math.max(.1,anchor.y-y-(anchor.offset??.25))/anchor.rest;}
       for(const guide of view.guides||[])guide.visible=!s.broken&&s.active!==false;
       updateClayView(view,s);
       if(view.clay){
@@ -557,7 +566,7 @@ export class World {
         const near=!!station&&p.x>=station.x&&p.x<=station.end&&Math.abs(p.y-station.spawn.y)<10&&station.amount<.995;
         animateClayView(view,s,dt,{near,playing:game.status==='playing',reducedMotion:this.reducedMotion});
       }
-      if(view.balance){view.balance.rotation.z=s.angle;view.meter?.forEach((m,i)=>m.scale.setScalar(game.latched[s.channel]||s.charge>(i+1)/4?1:.45));}
+      if(view.balance){view.balance.rotation.z=between(s.prevAngle,s.angle,alpha);view.meter?.forEach((m,i)=>m.scale.setScalar(game.latched[s.channel]||s.charge>(i+1)/4?1:.45));}
       if(s.kind==='timed'||s.kind==='pulse'){
         view.root.visible=true;
         view.root.scale.y=s.active?1:.28;
@@ -575,7 +584,7 @@ export class World {
           view.phaseActive=s.active;
           for(const o of view.phaseMeshes)o.material=s.active?o.userData.realMat:this.mat.ghost;
         }
-        view.root.position.y=s.y+(low?Math.sin(t*22)*.035:0);
+        view.root.position.y=y+(low?Math.sin(t*22)*.035:0);
       }
       if(s.kind==='crumble'){
         animateCrumble(this,view,s,game.status==='playing'?dt:0);

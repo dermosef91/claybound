@@ -227,6 +227,11 @@ export class Game {
     this.time+=dt;this.elapsed+=dt;
     const p=this.player, L=this.level;
     const previousPlayer={x:p.x,y:p.y};
+    // Kept on the player too, for the frame: the world draws them between this
+    // pose and the one the tick ends on (camera.js `between`), so a display
+    // whose frames land one tick or two never sees them stutter. Recorded
+    // before the machines move, so a carried rider's step is inside it.
+    p.prevX=p.x;p.prevY=p.y;
     updateMotherPuff(this,dt);
     if(motherCinematic(L.boss)){
       // Keep gravity and landing live; gently bring the player beside her for

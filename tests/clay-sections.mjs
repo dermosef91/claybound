@@ -292,7 +292,16 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
    assert(station.amount<.5,`walking across is not shaping it (${station.amount.toFixed(2)})`);}
   // The perch is out of reach from the level clay, by jump and by stomp.
   {const {g,mass}=boot();under(g,mass);const j=leap(g,false);assert(!j.landed&&j.apex<PERCH.y-1,`a jump off the level clay falls short of the perch (feet to ${j.apex.toFixed(2)}, perch ${PERCH.y})`);}
-  {const {g,mass}=boot();under(g,mass);const s=leap(g,true);assert(!s.landed&&s.apex<PERCH.y-.5,`a stomp off the level clay falls short too (feet to ${s.apex.toFixed(2)})`);}
+  // The pocket is not bouncy: a stomp into it is a crater and nothing more —
+  // no throw, no `spring`, and the boots stay in the clay they pressed.
+  // Wet clay heals a crater in seconds, so the crater is read at its deepest.
+  {const {g,mass,p}=boot();under(g,mass);const springs=[];g.onEvent=e=>{if(e.type==='spring')springs.push(e);};
+   const before=surfaceAt(mass,UNDER);let apex=p.y,lowest=before;
+   for(let i=0;i<300;i++){g.tick(dt,{jumpPressed:i===0,jumpHeld:true,stompPressed:i===15});apex=Math.max(apex,p.y);lowest=Math.min(lowest,surfaceAt(mass,UNDER));assert.notEqual(p.groundId,'pocket-perch','a stomp off the level clay never reaches the perch');}
+   assert(apex<PERCH.y-.5,`a stomp off the level clay falls short too (feet to ${apex.toFixed(2)})`);
+   assert.equal(springs.length,0,'the first chapter\'s clay does not throw a stomper back up');
+   assert(lowest<before-.1,`the stomp craters the clay (${(before-lowest).toFixed(2)})`);
+   assert.equal(p.groundId,mass.id,'and the stomper stays on the clay');}
   // The authored stroke pulls a pillar up under the perch; a jump off it lands
   // there and the flower is taken.
   {const {g,station,mass,p}=boot();
@@ -366,7 +375,7 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
    const rs=r.level.shaping.find(s=>s.id===id),rm=massOf(r,rs);
    Object.assign(r.player,{x:DOCK+8,y:6.25,vx:0,vy:0,groundId:'pocket-dock'});r.tick(dt,{});
    assert.equal(hopTo(r,LEVELS[0].platforms.find(q=>q.id==='pocket-landing').checkpoint),'landing','and the riverbed is still a walk');void rm;}
-  console.log('PASS the pocket: walked unworked; the perch past a jump and a stomp off the level clay and reached off the pulled-up pillar with its flower; the pillar melts unless a hand holds it; R from the dock; every bead; the sand under it; a save keeps the flower');
+  console.log('PASS the pocket: walked unworked; the perch past a jump and a stomp off the level clay (a stomp that craters but does not throw) and reached off the pulled-up pillar with its flower; the pillar melts unless a hand holds it; R from the dock; every bead; the sand under it; a save keeps the flower');
 }
 
 // The Weaver's Gap by keyboard alone. The canyon's rule carries the brink to

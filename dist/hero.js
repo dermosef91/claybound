@@ -4,6 +4,7 @@ import {clayModel} from './clay.js';
 import {assetURL} from './model-assets.js';
 import {animateFlowerCelebration} from './flower-celebration.js';
 import {CHARACTERS} from './characters.js';
+import {between} from './camera.js';
 
 const clamp=THREE.MathUtils.clamp;
 const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
@@ -209,13 +210,16 @@ export function heroEvent(c,e){
   }
 }
 
-export function animateHero(w,game,dt){
+export function animateHero(w,game,dt,alpha=1){
   const c=w.character,p=game.player,paused=game.status==='paused';
   // Remove last frame's procedural pose before the mixer evaluates its clips.
   if(c.flower?.basePose){for(const [bone,q] of c.flower.basePose)bone.quaternion.copy(q);c.flower.basePose=null;}
   // Normal locomotion keeps running; the reward clock drives only the arm/head overlay.
   const step=paused?0:Math.min(dt,.05),air=!p.groundId;
-  c.clock+=step;c.root.position.set(p.x,p.y,.48);c.lastVx=p.vx;
+  // Drawn `alpha` of the way between the last two ticks (camera.js `between`),
+  // as the decks are, so a rider and their deck move as one.
+  const x=between(p.prevX,p.x,alpha),y=between(p.prevY,p.y,alpha);
+  c.clock+=step;c.root.position.set(x,y,.48);c.lastVx=p.vx;
   c.turn=damp(c.turn,p.facing<0?Math.PI:0,26,step);c.root.rotation.y=c.turn;
   if(c.loaded){
     c.hurt=Math.max(0,c.hurt-step);c.landing=Math.max(0,c.landing-step);
@@ -287,5 +291,6 @@ export function animateHero(w,game,dt){
   for(const s of game.level.platforms)if(s.active&&!s.broken&&p.x>s.x-.2&&p.x<s.x+s.w+.2&&p.y>=s.y-.15&&(!beneath||s.y>beneath.y))beneath=s;
   c.shadow.visible=c.loaded&&!!beneath&&p.y-beneath.y<8&&!dying;
   // The pool under a bigger character is bigger; its softening with height is not.
-  if(beneath){const height=Math.max(0,p.y-beneath.y),scale=c.build/(1+height*.15);c.shadow.position.set(p.x,beneath.y+.10,.48);c.shadow.scale.set(scale,scale*.58,1);c.shadow.material.opacity=.22/(1+height*.36);}
+  // The deck is drawn between ticks too, so the pool sits on the drawn deck.
+  if(beneath){const floor=between(beneath.prevY,beneath.y,alpha),height=Math.max(0,y-floor),scale=c.build/(1+height*.15);c.shadow.position.set(x,floor+.10,.48);c.shadow.scale.set(scale,scale*.58,1);c.shadow.material.opacity=.22/(1+height*.36);}
 }
