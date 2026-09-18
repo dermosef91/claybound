@@ -66,9 +66,10 @@ export const FORM=Object.freeze({
   sag:.3,sink:.9,foot:.5,landing:.03,landingMax:.35,stomp:.75,dentMax:1.2,
   // A tap is a poke this deep.
   tap:.3,
-  // A stomp into the clay craters it and throws the player straight back up,
-  // the way the packed lump does — but the first time, every time. Straight up
-  // this fast is about six and two-thirds units of height.
+  // A stomp into `bouncy` clay craters it and throws the player straight back
+  // up, the way the packed lump does — but the first time, every time; clay
+  // that is not bouncy only takes the crater. Straight up this fast is about
+  // six and two-thirds units of height.
   launch:19,
   // Holding E works the clay ahead of the player into a step at this rate,
   // this wide (wide enough that a step rounded to the corner limit can still

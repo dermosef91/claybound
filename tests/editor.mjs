@@ -11,11 +11,16 @@ const base=JSON.stringify(LEVELS),library=new DraftLibrary(LEVELS,storage);
 {
  const canonical=validateDraft(LEVELS[0],LEVELS[0]);
  assert.equal(LEVELS[0].layoutVersion,12);assert(!LEVELS[0].custom);
- assert.equal(canonical.layoutVersion,'editor-12-1qjonk0','canonical canyon matches the approved editor export');
+ assert.equal(canonical.layoutVersion,'editor-12-kgicgy','canonical canyon matches the approved editor export');
  // The pocket's formable mass survives the round trip as data: its rule, its
  // clump and its solution, bounded, and no other rule is ever let in.
  const pocket=canonical.shaping.find(s=>s.id==='canyon-pocket'),authored=LEVELS[0].shaping.find(s=>s.id==='canyon-pocket');
- for(const key of ['rule','free','relax','shaped','pace','launch','cueX','gesture','clump','solution'])assert.deepEqual(pocket[key],authored[key],`the canonical canyon keeps its formable mass's ${key}`);
+ for(const key of ['rule','free','relax','shaped','pace','cueX','gesture','clump','solution'])assert.deepEqual(pocket[key],authored[key],`the canonical canyon keeps its formable mass's ${key}`);
+ // `bouncy` — the stomp's throw — is carried only when a station says so, so
+ // the canonical canyon, which does not, exports without it.
+ assert(!('bouncy' in pocket)&&!('launch' in pocket),'the pocket\'s clay neither bounces nor carries a dead launch');
+ {const draft=structuredClone(LEVELS[0]);draft.shaping.find(s=>s.id==='canyon-pocket').bouncy=true;
+  assert.equal(validateDraft(draft,LEVELS[0]).shaping.find(s=>s.id==='canyon-pocket').bouncy,true,'a station that says bouncy stays bouncy through the round trip');}
  for(const bad of [{rule:'sag'},{gesture:'sideways'},{clump:[[2,0]]},{clump:[]},{solution:[{x:130,lift:0,dx:0,dy:0,t:0}]},{shaped:0},{solution:Array.from({length:41},()=>({x:130,lift:0,dx:1,dy:1,t:1}))}]){
   const draft=structuredClone(LEVELS[0]);Object.assign(draft.shaping.find(s=>s.id==='canyon-pocket'),bad);
   assert.throws(()=>validateDraft(draft,LEVELS[0]),`a station with ${JSON.stringify(bad)} is refused`);

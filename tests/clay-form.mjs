@@ -417,6 +417,27 @@ console.log('PASS the perch is out of reach of a jump or a stomp from the slab, 
 }
 console.log('PASS a stomp craters and throws, a tap pokes, E raises a step ahead, a stander holds the clay still, and clay left alone slumps');
 
+// --- clay that is not bouncy: a stomp is a crater and nothing more --------------------------
+// The throw is opt-in (`bouncy`); the dig bench does not ask for it, and
+// neither does any chapter. A stomp into such clay presses the crater, is
+// heard as a knead, and leaves the stomper standing in it.
+{
+  const {g,s,st,p,tick,hold,walk,stomp,top}=rig('dig');
+  assert(!st.bouncy&&!s.bouncy,'the dig bench is not bouncy');
+  const springs=[];g.onEvent=e=>{if(e.type==='spring')springs.push(e);};
+  assert(walk(s.x+6));hold(frames(1));
+  const stood=p.y,crater=top(6);
+  const flight=stomp();
+  assert(top(6)<crater-.1,`the stomp presses a crater (${(crater-top(6)).toFixed(2)})`);
+  assert.equal(springs.length,0,'and throws nobody');
+  assert(flight<=stood+1e-6,`the feet never rise above where they stood (${(flight-stood).toFixed(2)})`);
+  assert.equal(p.groundId,s.id,'the stomper stays on the clay, in the crater');
+  stomp();
+  assert.equal(springs.length,0,'a second stomp is a second crater, not a throw');
+  assert.equal(g.deaths,0);
+}
+console.log('PASS clay that is not bouncy takes a stomp as a crater: no throw, no spring, the stomper stays in it');
+
 // --- the lump on the bench -----------------------------------------------------------------
 {
   const {g,s,st,p,tick,hold,walk,jump,stomp,hopTo,place,hand,release,top}=rig('lump');
@@ -565,14 +586,14 @@ console.log('PASS pointer: grab-and-drag raises and lowers, a press from the air
 // --- the mesh reads the surface the feet do --------------------------------------------
 {
   const {World}=await import('../dist/world.js');
-  const {createClayView,updateClayView,animateClayView,MAGIC_CLAY}=await import('../dist/shaping-views.js');
+  const {createClayView,updateClayView,animateClayView,MAGIC_CLAY,BOUNCY_CLAY}=await import('../dist/shaping-views.js');
   const w=Object.create(World.prototype);w.mat={};
   const g=boot();
   for(const id of ['form','lump']){
     assert(visitStation(g,id));
     const s=massOf(g,id),view=createClayView(w,s,new THREE.Group()),mesh=view.clay.pieces[0].mesh,position=mesh.geometry.attributes.position,array=position.array;
     const meshes=[];view.root.traverse(o=>{if(o.isMesh)meshes.push(o);});
-    assert.equal(meshes.length,1,`${id}: one unadorned lump`);assert.equal(mesh.material.color.getHex(),MAGIC_CLAY,`${id}: in the magic violet`);
+    assert.equal(meshes.length,1,`${id}: one unadorned lump`);assert.equal(mesh.material.color.getHex(),s.bouncy?BOUNCY_CLAY:MAGIC_CLAY,`${id}: in the bouncy pink, since the bench throws`);assert(s.bouncy,`${id} is bouncy`);
     const check=label=>{
       updateClayView(view,s);
       assert(position.array.every(Number.isFinite)&&mesh.geometry.attributes.normal.array.every(Number.isFinite),`${id} ${label}: finite positions and normals`);

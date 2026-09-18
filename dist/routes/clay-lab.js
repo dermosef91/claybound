@@ -157,13 +157,13 @@ const shaping=[
    hint:'Size each slab: stomp it to raise it, drag it up or down, or hold E to grow the one you stand on or face. R flattens the row.'},
   // A clump is a list of [across, top] knots: across from 0 at the left end to
   // 1 at the right, top over the bench level. The slab is flat, a step down.
-  {id:'form',rule:'form',icon:'knead',name:'Fully formable clay',verb:'Grab it and drag',gesture:'up',
+  {id:'form',rule:'form',bouncy:true,icon:'knead',name:'Fully formable clay',verb:'Grab it and drag',gesture:'up',
    parts:['form-mass'],x:108,end:141,spawn:{x:111,y:0,groundId:'form-dock'},
    clump:[[0,-.8],[1,-.8]],
    hint:'Grab any point of the clay and drag: pull up a pillar or a step, push down a bowl, drag sideways to stretch a bridge. Press in from the air to dent it, hold E to work the clay ahead of you into a step. Stomp it and it craters and throws you straight back up. It keeps its volume, so what rises here sinks there, and left alone it slowly slumps back. R resets it.'},
   // The lump thins to nothing at the ends of its footprint, so it sits on the
   // bench as a square blob with the bench bare on either side.
-  {id:'lump',rule:'form',free:true,icon:'knead',name:'A lump on the bench',verb:'Grab it and drag',gesture:'up',
+  {id:'lump',rule:'form',free:true,bouncy:true,icon:'knead',name:'A lump on the bench',verb:'Grab it and drag',gesture:'up',
    parts:['form-lump'],x:141,end:166,spawn:{x:142,y:0,groundId:'form-exit'},
    clump:[[0,0],[.25,0],[.32,4.6],[.68,4.6],[.75,0],[1,0]],
    hint:'A square lump, too steep to climb and too tall to jump. Lean it over into a ramp, spread it flat, pull a step up at its foot, or draw it up into a pillar; a stomp on top throws you higher still. It keeps its volume, and left alone it slumps back into a lump. R resets it.'},
@@ -186,7 +186,7 @@ const shaping=[
    hint:'The pale outline is a mould. Pull, push and drag the clay until its surface lies along the line; the slab holds exactly enough and keeps its volume. The line turns green when cast and the grate lifts, staying open as the cast slumps. R resets both.'},
   // Wet clay: settles in well under a second, slumps in seconds, and is not
   // held by the weight of a rider, only by a hand.
-  {id:'wet',rule:'form',icon:'spark',name:'Wet clay',verb:'Build fast, climb faster',gesture:'up',
+  {id:'wet',rule:'form',bouncy:true,icon:'spark',name:'Wet clay',verb:'Build fast, climb faster',gesture:'up',
    parts:['wet-mass'],x:268,end:309,spawn:{x:271,y:0,groundId:'wet-dock'},
    clump:[[0,-.8],[1,-.8]],pace:{settle:.6,relaxTime:5,relaxMin:.4,holdUnderfoot:false},
    hint:'Wet clay slumps back in seconds unless a hand is on it. Drag a step up, or hold E, and climb before it melts. For the perch: pull a pillar up under yourself, let go, stomp from its top before it sinks. Volume is kept. R resets it.'},
