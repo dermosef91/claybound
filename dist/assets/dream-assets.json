@@ -324,5 +324,54 @@
       "c5aee0d4c987fdfe0196a8f21d73a64006469a6a1df8111112e54e594a714b50"
     ],
     "geometryUnchanged": true
+  },
+  "dream-cavern.glb": {
+    "source": "crimson+caverns.glb",
+    "sourceSha256": "573c9dbec6b138d5c1d0c7bb8640c08c779d1fadfd4fdf4560f012f81ced4b65",
+    "shippedSha256": "43ee4a5f6fba32f2de586cf1af2de96e9626580a972037004273072f4ee6b4ae",
+    "sourceBytes": 20546780,
+    "shippedBytes": 1219348,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 5362,
+    "geometryBufferSha256": [
+      "41ee52ef2b36a0d446a49cb4ae7ac1c9c9d01b3ce61dd63498e6c335cfa28250",
+      "5dd6822eda33e84056b428a9e50139ddcf71c705c0cf315c04def81238adfc6d"
+    ],
+    "geometryUnchanged": false,
+    "adaptation": "glTF Transform 4 weld + simplify ratio=.1 error=.04 (10,425 \u2192 5,362 triangles); metallic-roughness map dropped"
+  },
+  "dream-eyeball.glb": {
+    "source": "Meshy_AI_Fleshy_Eyeball_0918110855_texture.glb",
+    "sourceSha256": "e3fcba387bdc45d3ac22f7ca8f1d15f0b6b2d6835bbeea6811a4bfa306cec50b",
+    "shippedSha256": "59e2fea9b07e91739e216a9ff2ba2d340b5d88a267493a9d384f1a11c873552f",
+    "sourceBytes": 16554840,
+    "shippedBytes": 609988,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 3003,
+    "geometryBufferSha256": [
+      "6b06508a2785c7f47eaa4df7ffd2678b025430329fd5671a1b9442e8fa6de3a7",
+      "348558889845bdc3a20da00767129ff7c49b574c9ca91b7a710e1dc382d8047d",
+      "9347b1e5cf5fed5df1e4cc0537110c9bd75ae8fff9d8ea5e8ce393429b698bd3",
+      "a3c8346864450abcddd388a5891b888546d42cd553bbe9662bb887cb1dd6d7d2"
+    ],
+    "geometryUnchanged": true
   }
 }

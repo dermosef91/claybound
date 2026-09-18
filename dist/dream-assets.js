@@ -33,8 +33,17 @@ import {fixedMaterial,lid,slot} from './dream/support.js';
 // (its towers and far spires), a smiling sun, and a decorative banner — a
 // swag valance with gold buttons over a hanging smiley-flower pennant. That
 // last one is cut in two at load like the flower: the swags run along the
-// hat-worm bridge's underside, the pennant hangs on its plinth.
-export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb',fruit:'dream-fruit.glb',banner:'dream-banner.glb',column:'dream-column.glb',cane:'dream-cane.glb',sun:'dream-sun.glb',arch:'dream-arch.glb'};
+// hat-worm bridge's underside, the pennant hangs on its plinth. Those four are
+// still loaded although the parade is shelved out of the chapter (SHELVED in
+// dist/routes/dream.js): the section keeps its own harness and its own tests,
+// and splicing it back should not also mean re-shipping its models.
+//
+// The cavern is the Breathing Corridor's backdrop wall, repeated across its
+// parallax rather than placed once. The corridor's eye is the odd one out:
+// its pupil is painted into the colour map rather than set on it here, so
+// nothing about it is rigged and the ball itself turns to look. EYEBALL below
+// holds what that needs.
+export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb',fruit:'dream-fruit.glb',banner:'dream-banner.glb',column:'dream-column.glb',cane:'dream-cane.glb',sun:'dream-sun.glb',arch:'dream-arch.glb',cavern:'dream-cavern.glb',eyeball:'dream-eyeball.glb'};
 
 // Each planet's core orb in model space — the sphere the fruit and the leaf
 // sprouts are stuck onto — fitted over every vertex by a modal-radius
@@ -47,6 +56,25 @@ export const PLANET_ORBS={
   mint:{center:[.0210,.4632,-.0038],radius:.3704},
   raspberry:{center:[.0046,.4859,-.0166],radius:.3911}
 };
+
+// The corridor's eyeball, measured the same way and for the same reason. The
+// upload is a ball and nothing else — a least-squares sphere over every vertex
+// sits within 4% of all of them (rms .0094, worst .0366) — so `radius` is what
+// a placement scales by and turning the ball does not move its silhouette.
+// tests/dream-models.mjs re-fits the sphere against the shipped vertices so a
+// re-export cannot drift.
+//
+// The pupil is painted into the colour map rather than set on the ball, so
+// there is nothing here to rig: the ball itself turns. Its dark disc is hard
+// edged (the colour steps over under 3° of arc), about 26° of arc across, 44%
+// of the ball's width, and the axis it is painted about sits 4.6° off the
+// model's own +z. That tilt is left as painted rather than turned out: it is a
+// twentieth of the pupil's own radius, the painting this section follows has
+// its pupil off centre too, and turning it would take the fleshy relief off
+// the pose it was sculpted in. The bake also mirrored a second dark cap onto
+// −z, about 22° across; the corridor's gaze cone is held far inside the 68° of
+// turn that would bring it round to the silhouette.
+export const EYEBALL={centre:[-.0010,-.0011,-.0002],radius:.9314};
 
 // The flower's petals begin this far up the model; below it is stem, leaves
 // and root.
@@ -172,12 +200,43 @@ export function prepareDreamAsset(w,key,gltf){
   // Every model keeps the colours it was painted in and takes only the clay
   // surface relief.
   clayMaterials(gltf.scene);clayModel(w,gltf.scene);retainModel(w,gltf.scene);
+  // The cavern is the only model that is scenery rather than a thing in the
+  // world: it stands thirty units back, repeated, behind everything the player
+  // touches. Three changes keep it there instead of competing with the clay in
+  // front of it — single-sided faces, because the upload is doubleSided and its
+  // lit interior read as dark holes through the gaps between copies; no normal
+  // map, because relief that reads at arm's length is noise at this distance;
+  // and a soft pink tint over a little emissive, which holds the wall lighter
+  // than the clay in front of it. That last one is atmospheric perspective and
+  // it is the whole trick: tinted to the saturation the painting's backdrop
+  // has, the wall sat at the same value as the platforms and the level read
+  // flat, so it is deliberately paler than the reference it is matching.
+  // The materials are the shared ones the loader retained, so this is done
+  // once and every copy takes it.
+  if(key==='cavern'){
+    // Smooth the shading first. Halving the upload's triangles left flat-shaded
+    // facets, and a wall of them read as broken crystal where the painting has
+    // soft folds of flesh; averaged vertex normals shade the same triangles as
+    // curves. The silhouette stays faceted, which distance and fog hide.
+    gltf.scene.traverse(o=>{if(o.isMesh){o.geometry.deleteAttribute('normal');o.geometry.computeVertexNormals();}});
+    for(const m of materialsOf(gltf.scene)){
+      m.side=THREE.FrontSide;
+      m.normalMap=null;m.flatShading=false;
+      m.color.set(0xcd6480);m.emissive=new THREE.Color(0xb05a74);m.emissiveIntensity=.38;
+      m.needsUpdate=true;
+    }
+  }
   w.dreamAssets??={};const record=w.dreamAssets[key]={scene:gltf.scene,box,size,center};
   // The lollipop's column stands in the sky layer, where the pink haze would
   // bleach its candy stripe to lilac: like the spiral sun's ribbons it takes no
   // fog and is the one crisp thing up there. The towers and the sun keep it —
   // their softness is the depth they are placed at.
   if(key==='column')gltf.scene.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])m.fog=false;});
+  // The eyeball arrives double-sided, which it has no use for: it is a closed
+  // ball pressed into clay, so its inside is never the near face, and drawing
+  // it would only give the dark cap the bake mirrored onto its back a way to
+  // show through any hairline the socket's folds leave at the rim.
+  if(key==='eyeball')gltf.scene.traverse(o=>{if(o.isMesh)for(const m of Array.isArray(o.material)?o.material:[o.material])m.side=THREE.FrontSide;});
   if(key==='arch'){
     let mesh=null;gltf.scene.traverse(o=>{if(o.isMesh&&!mesh)mesh=o;});
     if(!mesh)throw new Error('Invalid dream model: '+key);
@@ -213,6 +272,12 @@ export async function loadDreamAssets(w,onProgress){
   }
   await w.dreamLoading;onProgress?.(1);
 }
+// Every distinct material under `root`, single or multi-material.
+const materialsOf=root=>{
+  const seen=new Set();
+  root.traverse(o=>{if(o.isMesh)for(const m of[o.material].flat())if(m)seen.add(m);});
+  return seen;
+};
 const asset=(w,key)=>{
   const a=w.dreamAssets?.[key];if(!a)throw new Error('Load the dream models before dressing the dream.');
   return a;
@@ -268,6 +333,21 @@ export function dreamHat(w,parent,width){
   root.add(model);parent.add(root);
   return root;
 }
+// A slab of the Breathing Corridor's cavern under `parent`, `width` across and
+// centred on the parent's origin, so a backdrop can lay several overlapping
+// without arithmetic. `turn` spins it about z and `flip` mirrors it in x: one
+// upload repeated seven times across a section would otherwise read as one
+// shape stamped out in a row. Returns the root; `userData.size` is the scaled
+// bounding box, for a caller that wants to lay copies edge to edge.
+export function dreamCavern(w,parent,width,{turn=0,flip=false}={}){
+  const a=asset(w,'cavern'),root=new THREE.Group(),model=a.scene.clone(true),k=width/a.size.x;
+  root.name='Dream cavern';model.name='Supplied cavern wall';
+  root.scale.set(flip?-k:k,k,k);root.rotation.z=turn;
+  model.position.copy(a.center).negate();
+  root.userData.size=a.size.clone().multiplyScalar(k);
+  root.add(model);parent.add(root);
+  return root;
+}
 // How tall a hat `width` across stands, foot to crown — what a stack steps by.
 export const dreamHatHeight=(w,width)=>{const a=asset(w,'hat');return width*a.size.y/a.size.x;};
 // The garden's gate under `parent`, `height` tall from its foot — on the
@@ -288,6 +368,25 @@ export function dreamArch(w,parent,{height}){
   w.ball(r*.28,r*.28,r*.16,'cream',gaze,-r*.38,r*.4,R*.9+r*.5).name='Flower glint';
   const shut=w.mesh(lid(w),petalMaterial(w),root,eye.x,eye.y,eye.z);shut.scale.setScalar(R*1.07);shut.rotation.x=-Math.PI/2;shut.name='Flower lid';
   return {root,model,scale:s,size:a.size.clone().multiplyScalar(s),gaze,pupil,lid:shut,eye:{radius:R*s}};
+}
+// The corridor's eyeball under `parent`, `radius` across its fitted sphere,
+// that sphere's centre on the parent's origin. Returns {root,gaze}: `gaze` is
+// a group on that centre, so turning it aims the eye and nothing inside it
+// needs touching — the painted pupil leaves along its +z, give or take the
+// 4.6° EYEBALL notes the bake left it off the model's own axis. Unlike every
+// other eye in the chapter the pupil is not a mesh — it is in the colour map —
+// which is why this hands back no `pupil` and no `lid`: the socket the corridor
+// builds round it does the blinking.
+export function dreamEyeball(w,parent,radius){
+  const a=asset(w,'eyeball'),root=new THREE.Group(),model=a.scene.clone(true),s=radius/EYEBALL.radius;
+  root.name='Dream eyeball';model.name='Supplied clay eyeball';
+  const gaze=new THREE.Group();gaze.name='Eyeball gaze';root.add(gaze);parent.add(root);
+  // The ball rides inside the gaze group, shifted so its fitted centre sits on
+  // that group's origin — the point a socket is cut about, and the point the
+  // turn has to be about if the ball is to look around without wandering.
+  model.scale.setScalar(s);model.position.set(...EYEBALL.centre).multiplyScalar(-s);
+  gaze.add(model);
+  return {root,gaze,model,radius};
 }
 
 // --- the parade's carnival dressing ------------------------------------------------

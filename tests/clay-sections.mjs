@@ -158,7 +158,6 @@ const SECTIONS=[
   // The blob is walked onto flat before it is pulled up into a stair.
   {level:4,station:'orchard-blob',bypass:{from:'orchard-mid',to:'orchard-under',mode:'jump'},rideable:true,form:true},
   {level:4,station:'corridor-plug',bypass:{from:'corridor-floor-1',to:'corridor-floor-2',mode:'jump'}},
-  {level:4,station:'parade-worm',bypass:{from:'parade-head',to:'parade-caterpillar',mode:'jump'}},
   // The clot is a stepping stone in the riverbed before it is pressed flat.
   {level:4,station:'river-clot',bypass:{from:'river-raft',to:'river-far-bank',mode:'jump'},rideable:true},
   {level:4,station:'room-floor-mass',bypass:{from:'room-doll-table',to:'room-shaft-foot',mode:'jump'},rideable:true,form:true},

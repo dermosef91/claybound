@@ -27,7 +27,7 @@ export const THEMES={
 };
 
 export function applyEnvironment(w,L){
-  const theme=THEMES[L.biome];w.theme=theme;w.biome=L.biome;w.parallax=[];w.ambient=[];w.torches=[];w.water=null;
+  const theme=THEMES[L.biome];w.theme=theme;w.biome=L.biome;w.parallax=[];w.ambient=[];w.torches=[];w.water=null;w.backdropLayers=null;
   for(const name of ['terrain','terrain2','top','bark','barkLight','foliage','leafLight','vine','back','back2','accent','water','dust']){
     if(!w.mat[name])w.mat[name]=new THREE.MeshStandardMaterial({roughness:.98,metalness:0,bumpMap:w.bump,bumpScale:['terrain','terrain2','top'].includes(name)?.12:.065});
     w.mat[name].color.setHex(theme[name]);

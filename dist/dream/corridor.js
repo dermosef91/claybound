@@ -1,10 +1,11 @@
 import * as THREE from '../lib/three.module.js';
 import {deck,sectionDecks,slot,rand} from './support.js';
 import {clayMaterial,clayShape,sculptClay} from '../clay.js';
+import {dreamEyeball,dreamCavern} from '../dream-assets.js';
 // Section 4 — The Breathing Corridor, after its painting: a tunnel built
 // entirely of thick WAVY stripes of soft clay — vermilion, red, magenta,
 // plum — stacked like layered Play-Doh with rounded lips. A heavy striped
-// ceiling runs the length of the corridor with big cream eyes set into its
+// ceiling runs the length of the corridor with big fleshy eyes set into its
 // stripes and soft drips hanging from it; the decks are striped slabs whose
 // layers undulate along the face; the pits are filled with soft pink and red
 // cones; behind everything a pink haze with dim mauve columns and arches.
@@ -14,10 +15,11 @@ import {clayMaterial,clayShape,sculptClay} from '../clay.js';
 //     boundaries between them undulate the way the painting's strata do
 //   · the breathing pillars, the throat and the teeth are stacks of stripes
 //     that stretch with the breath (the stack is the breathe pose's `body`)
-//   · the eyes are big and permanent: a cream ball with a dark pupil in a
-//     socket of two stripe lobes; the pupil slides toward the player, the
-//     lobes close in a slow blink every 4–8 s — two over the pillar stretch,
-//     one over the entry, one in the throat, two by the teeth and the exit
+//   · the eyes are big and permanent: the supplied fleshy eyeball sunk into a
+//     socket of rolled lips that cut across it, the ball turning to watch the
+//     player and the lips sliding together in a slow blink every 4–8 s — two
+//     over the pillar stretch, one over the entry, one in the throat, two by
+//     the teeth and the exit
 //   · the hazard hook draws cone beds in place of the engine's cream spikes;
 //     the kill line is untouched
 //   · the molars (presses) are fat vermilion drips that bite; the shared
@@ -34,13 +36,15 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // and the haze; the painting's deep red and the pink of its cones are the two
 // colours they cannot reach, so those two are fixed materials made once per
 // world and hooked into the clay relief.
-const RED=0xb42d33,PINK=0xdc7a82;
+// The socket behind an eye is the painting's deepest red — the pocket the
+// ball is pressed into, and the crease under its upper lip.
+const RED=0xb42d33,PINK=0xdc7a82,SOCKET_RED=0x5f1418;
 function fixed(w,name,hex){
   if(!w.mat)return 'orange';
   if(!w.mat[name]){const m=new THREE.MeshStandardMaterial({color:hex,roughness:.95,metalness:0});m.name=name;clayMaterial(w,m,.075);w.mat[name]=m;}
   return name;
 }
-const red=w=>fixed(w,'corridorRed',RED),pink=w=>fixed(w,'corridorPink',PINK);
+const red=w=>fixed(w,'corridorRed',RED),pink=w=>fixed(w,'corridorPink',PINK),socketRed=w=>fixed(w,'corridorSocket',SOCKET_RED);
 const mat=(w,name)=>slot(w,name,'orange');
 // The stripe cycle, top down: vermilion, red, magenta, plum.
 const cycle=w=>[mat(w,'terrain'),red(w),mat(w,'top'),mat(w,'accent')];
@@ -115,35 +119,102 @@ function drip(w,parent,x,y,z,r,h,material,variant=0){
 }
 
 // --- eyes -----------------------------------------------------------------------------
-// A big permanent eye set into a stripe: a cream ball with a dark pupil, in a
-// socket of two lobes (red above, vermilion below) that bulge out of the
-// face around it. animate() slides the pupil toward the player and closes
-// the lobes over the ball in a slow blink.
+// A big permanent eye SET INTO the stripes, after the painting: the supplied
+// fleshy eyeball (dist/assets/dream-eyeball.glb) sunk into a socket whose two
+// lips are rolls of clay swept along a lens — red above, vermilion below —
+// carried out over the ball so they cut across its top and bottom, converging
+// to points at the two corners, with a brow fold over them and a deep-red
+// backing behind so the corners look into flesh rather than through the
+// ceiling. Each fold sweeps on past the eye across the strata it lies over,
+// the way the painting's folds do; the section's own stripes are the layers
+// outside that, so the socket only supplies what wraps the ball.
+//
+// The model's pupil is painted into its colour map, not set on it, so the BALL
+// turns to look rather than a disc sliding across it — held to a narrow cone,
+// which keeps the pupil inside the opening. animate() aims it and slides the
+// two lips together for a slow blink every 4–8 s.
+//
+// Shares of the eye's radius, so one socket fits the vault's .58–.68 eyes, the
+// throat's .62 and the exit deck's .52: the lens opening's half-width, how far
+// it opens above and below its centre line (a little under three quarters of
+// the ball's height shows, as in the painting), that line's height and its
+// rise across the socket, how deep the ball is sunk, and how far each lip
+// travels to shut — `open` again, so the two meet on the centre line.
+export const SOCKET={half:1.05,open:.72,rise:.06,tilt:.10,sink:.06,shut:.72};
 function eye(w,parent,x,y,z,seed,r=.6){
   const g=group(parent,'Corridor eye',x,y,z);
-  w.ball(r,r*.92,r*.6,'cream',g,0,0,0).name='Eyeball';
-  const iris=group(g,'Eye pupil',0,0,r*.48);
-  w.ball(r*.4,r*.4,r*.16,'dark',iris,0,0,0).name='Pupil';
-  const upper=w.ball(r*2.6,r*.5,r*.95,red(w),g,0,r*1.02,-.3);upper.name='Eye lid';
-  const lower=w.ball(r*2.6,r*.48,r*.95,mat(w,'terrain'),g,0,-r*1.02,-.3);lower.name='Eye lid';
-  registry(w).eyes.push({group:g,iris,upper,lower,r,period:4.5+rand(seed)*3.5,phase:rand(seed+9)*5});
+  // The lens: a centre line tilted up across the socket, an opening that
+  // closes to nothing at the corners, and a wrap that carries the lips'
+  // fronts out over the middle of the ball and lets them fall back at the ends.
+  const U=SOCKET.half*r,line=u=>r*SOCKET.rise+SOCKET.tilt*u,
+    open=u=>r*SOCKET.open*Math.sqrt(Math.max(0,1-(u/U)**2)),
+    wrap=u=>Math.cos(clamp(u/U,-1,1)*Math.PI/2);
+  // The socket's back, wider than the opening, buried in the stripes: without
+  // it the lens corners look straight through the ceiling. What little of it
+  // shows in those corners is the painting's deepest red, the eye's pocket.
+  w.ball(U*1.12,r*1.15,r*.45,socketRed(w),g,0,line(0),-r*.75).name='Eye socket';
+  // The ball, sunk behind the lips. Without the model the section's own
+  // sculpted ball stands in, in the same socket, its pupil a disc on the gaze.
+  let gaze;
+  if(w.dreamAssets?.eyeball){
+    const ball=dreamEyeball(w,g,r);ball.root.position.set(0,line(0),-r*SOCKET.sink);gaze=ball.gaze;
+  }else{
+    gaze=group(g,'Eyeball gaze',0,line(0),-r*SOCKET.sink);
+    w.ball(r,r*.94,r*.72,'cream',gaze,0,0,0).name='Eyeball';
+    w.ball(r*.4,r*.4,r*.16,'dark',gaze,0,0,r*.66).name='Pupil';
+  }
+  // The two lips, each in its own group so the blink can slide it.
+  // A lip does not stop at the socket: past the corners the opening has closed
+  // to nothing, so the fold runs on as a plain band across the stripes it lies
+  // over, sweeping further to the right than the left, and only tapers away
+  // well clear of the eye. Ending it at the corner instead would leave its cut
+  // face out in the open, which is the one thing the painting never shows.
+  const lip=(name,material,{top,bottom,base,amp,depth,thickness})=>{
+    const h=group(g,name,0,0,0);
+    ribbon(w,h,{x0:-r*2.7,x1:r*3.0,top,bottom,depth,lip:thickness,step:r*.34,taper:r*1.1,
+      material,name:'Eye lid',zAt:u=>r*(base+amp*wrap(u))});
+    return h;
+  };
+  // A lip's band has to be deeper than it travels plus what it has left to
+  // cover, or sliding it over the ball would walk its far edge off the ball's
+  // crown and show a sliver of sclera above a shut eye. Shut, the upper lip
+  // reaches line + open + BAND - shut, which has to clear the ball's top at
+  // line + r; BAND at 1.12r leaves a tenth of the radius in hand either way.
+  const BAND=1.12;
+  const lower=lip('Eye lid lower',mat(w,'terrain'),{top:u=>line(u)-open(u),bottom:u=>line(u)-open(u)-r*BAND,
+    base:.28,amp:.30,depth:r*1.10,thickness:r*.30});
+  const upper=lip('Eye lid upper',red(w),{top:u=>line(u)+open(u)+r*BAND,bottom:u=>line(u)+open(u),
+    base:.30,amp:.34,depth:r*1.15,thickness:r*.34});
+  // The brow: one more fold butting onto the upper lip, set back and sweeping
+  // on past the socket, so the eye reads as part of a stack and not stuck on.
+  ribbon(w,g,{x0:-r*3.1,x1:r*3.5,top:u=>line(u)+open(u)+r*(BAND+.95),bottom:u=>line(u)+open(u)+r*BAND,
+    depth:r,lip:r*.30,step:r*.44,taper:r*1.3,material:mat(w,'top'),name:'Eye brow',zAt:u=>r*(.04+.12*wrap(u))});
+  registry(w).eyes.push({group:g,gaze,upper,lower,r,period:4.5+rand(seed)*3.5,phase:rand(seed+9)*5});
   return g;
 }
-const BLINK=.34;
+// How far off straight ahead a ball is turned, across and up. A narrower cone
+// than the garden's eyes turn through (.6/.45): the pupil is painted on, so
+// turning the ball turns everything painted on it — including the dark cap the
+// bake mirrored onto the ball's back, which needs 68° of turn to come round to
+// the silhouette. tests/dream-models.mjs holds these against that figure.
+export const GAZE={x:.35,y:.26};
+const BLINK=.34,FORWARD=new THREE.Vector3(0,0,1),direction=new THREE.Vector3(),turn=new THREE.Quaternion();
 function animateEyes(w,game,dt,ctx){
   const list=registry(w).eyes;if(!list.length)return;
-  const p=game.player,t=ctx.time;
+  const p=game.player,t=ctx.time,rate=1-Math.exp(-dt*9);
   for(let i=list.length-1;i>=0;i--){
     const e=list[i];
     if(!attached(e.group,w.scene)){list.splice(i,1);continue;}
     e.group.getWorldPosition(worldPosition);
     const dx=ctx.playerX-worldPosition.x,dy=(p.y+.9)-worldPosition.y;
     const still=ctx.reducedMotion;
-    e.iris.position.x=still?0:clamp(dx/9,-1,1)*e.r*.3;
-    e.iris.position.y=still?0:clamp(dy/7,-1,1)*e.r*.22;
+    if(still)direction.set(0,0,1);
+    else direction.set(clamp(dx/9,-GAZE.x,GAZE.x),clamp(dy/7,-GAZE.y,GAZE.y),1).normalize();
+    e.gaze.quaternion.slerp(turn.setFromUnitVectors(FORWARD,direction),still?1:rate);
     const u=(((t+e.phase)%e.period)+e.period)%e.period/BLINK,k=!still&&u<1?Math.sin(u*Math.PI):0;
-    e.upper.position.y=e.r*(1.02-.7*k);e.lower.position.y=-e.r*(1.02-.7*k);
-    e.upper.scale.y=e.r*.5*(1+.5*k);e.lower.scale.y=e.r*.48*(1+.5*k);
+    // The lips slide together across the ball and bulge forward as they meet.
+    e.upper.position.y=-e.r*SOCKET.shut*k;e.lower.position.y=e.r*SOCKET.shut*k;
+    e.upper.position.z=e.lower.position.z=e.r*.06*k;
   }
 }
 
@@ -166,8 +237,14 @@ function profile(points){
 // beads, meeting the throat's top at 7 and clearing the molars over floor-2.
 // The mass sits behind the walk line, so a full jump's head may overlap it
 // in the picture without ever meeting it.
+//
+// Over the windpipe it climbs with the ribs and levels off at 11 — the
+// squeeze's top — so that ceiling reads as a fold of this one coming down
+// rather than a block hung in the air, then swoops shut over the exit the way
+// it opens at the entry.
 function layout(L){
-  const ids=['entry','pillar-1','pillar-2','pillar-3','floor-1','throat','plug','floor-2','tooth-1','tooth-2','exit'];
+  const ids=['entry','pillar-1','pillar-2','pillar-3','floor-1','throat','plug','floor-2','tooth-1','tooth-2',
+    'floor-3','rib-1','rib-2','rib-3','rib-4','shelf','squeeze','exit'];
   const d={};for(const id of ids)if(!(d[id]=deck(L,'corridor-'+id)))return null;
   const right=s=>s.x+s.w;
   const under=profile([
@@ -175,7 +252,10 @@ function layout(L){
     [d['pillar-1'].x+1,5.5],[d['pillar-2'].x-.6,6.15],[right(d['pillar-2'])+.6,6.15],[d['pillar-3'].x+1.2,5.4],
     [d['floor-1'].x+2,4.9],[d['floor-1'].x+5.5,5],[right(d['floor-1']),6.3],[d.throat.x,7.05],[right(d.throat),7.05],
     [d['floor-2'].x,6.55],[right(d['floor-2']),6.55],[d['tooth-1'].x,6.45],[right(d['tooth-2']),6.45],
-    [d.exit.x+1.5,5.5],[right(d.exit),4.6],[right(d.exit)+1.5,4.4]
+    [d['floor-3'].x,6.5],[right(d['floor-3']),7.2],
+    [d['rib-1'].x+1.1,8.2],[d['rib-2'].x+1.1,9.2],[d['rib-3'].x+1.1,10.2],[d['rib-4'].x+1.1,10.9],
+    [d.squeeze.x,11],[right(d.squeeze),11],[right(d.shelf),9],
+    [d.exit.x+2,6.2],[right(d.exit),4.8],[right(d.exit)+1.5,4.5]
   ]);
   return {d,under,left:d.entry.x,right:right(d.exit)};
 }
@@ -273,6 +353,10 @@ function animateMolars(w,game,dt){
 
 export default {
   key:'corridor',
+  // The cavern walls below are a whole backdrop of their own, so the chapter's
+  // placeholder blobs and columns sink away while the player is in here —
+  // their mauve masonry read straight through the tunnel before.
+  quietBackdrop:true,
   // Stone decks: striped slabs instead of the chapter's rolled slab.
   dress(w,s,g){return stripedDeck(w,s,g);},
   // Breathing walls (pillars, throat, teeth): striped bodies posed by the
@@ -330,8 +414,15 @@ export default {
       at(d['pillar-1'].x+1.9,1.05,2,.68);
       at(d['pillar-3'].x-.3,1.05,4,.62);
       at(d['tooth-1'].x+2.1,1.05,6,.62);
+      // Three more up the windpipe, the last one right over the squeeze, so
+      // the ceiling that shuts on you is the one watching you wait.
+      at(d['floor-3'].x+3.4,1,7,.6);
+      at(d['rib-2'].x+1.1,1.1,8,.66);
+      at(d.squeeze.x+1.7,1.15,9,.7);
       const drips=[[d.entry.x+.4,.8,2.2,R],[d.entry.x+6.6,.5,1.2,T],[d['pillar-2'].x-1.3,.5,1.3,P],[d['pillar-3'].x-1.6,.44,.95,R],
         [d['floor-1'].x+1.2,.6,1.3,T],[d['floor-1'].x+7,.5,1.4,R],[d['floor-2'].x+1.9,.55,1.5,P],[d['tooth-1'].x-.8,.42,1.1,R],
+        [d['floor-3'].x+1.1,.5,1.3,R],[d['rib-1'].x+.4,.46,1.1,T],[d['rib-3'].x-.9,.5,1.25,P],[d['rib-4'].x+1.8,.44,1,R],
+        [rgt(d.shelf)-.6,.55,1.45,T],
         [d.exit.x+1.2,.52,1.4,T],[rgt(d.exit)+.2,.74,2,R]];
       drips.forEach(([x,r,h,m],i)=>drip(w,g,x,under(x)+.15,.95,r,h,m,i));
     }});
@@ -339,9 +430,54 @@ export default {
     (L.crushers||[]).filter(c=>c.x>=left&&c.x<right).forEach((c,i)=>list.push({key:'molar-'+i,x:c.x,w:3,y:0,z:0,make(w,parent){molar(w,parent,c,under(c.x)+.25);}}));
     return list;
   },
-  // Far scenery: the pink haze of the palette with dim mauve columns and
-  // arches at two depths — the painting's deep organic tunnel receding.
+  // Far scenery: the supplied cavern wall, repeated at two depths, standing in
+  // for the chapter's placeholder columns — the painting's backdrop is a deep
+  // organic tunnel receding, not masonry. Copies are laid so they overlap by
+  // about a third, each turned a little and every other one mirrored, so a
+  // single slab reads as one continuous wall of flesh rather than a row.
+  //
+  // The near rank is the wall the corridor is cut through; the far rank is
+  // bigger, dimmer and set low, so the gap between them reads as depth. Both
+  // are lit by the scene and take its fog, which is what pales them toward the
+  // palette's pink the further back they stand.
   backdrop(w,L,section,layers){
+    const near=layers.at(.45),far=layers.at(.22);
+    if(!w.dreamAssets?.cavern)return this.placeholderBackdrop(w,L,section,layers);
+    // Near rank: four slabs about 52 across, alternately high and low. They
+    // are spaced wider than they need to be on purpose — the ragged gaps the
+    // copies leave are the point, because the pale sky behind them is what
+    // reads as a lit tunnel mouth. Covering the frame edge to edge was the
+    // first thing tried and it flattened the whole backdrop into wallpaper.
+    //
+    // Both ranks stop short of the corridor's exit. They ran 25 units past it
+    // at first, and the Colour River then opened on this crimson wall instead
+    // of its own pillars and pink hills — a section's backdrop belongs to its
+    // section, and the river brings a whole sky of its own.
+    const last=section.x+section.length;
+    for(let i=0;i<4;i++){
+      const x=Math.min(section.x-16+i*26+rand(i+50)*4,last-30),y=(i%2?2.6:6.4)+rand(i+53)*2;
+      const g=layers.place(near,x,y,-30);g.name='Cavern wall';
+      dreamCavern(w,g,52+rand(i+51)*12,{turn:(rand(i+52)-.5)*.5,flip:i%2===1});
+    }
+    // Far rank: higher and set back, backing the near rank's gaps without
+    // closing them — depth behind the mouths, not a lid.
+    //
+    // These are small on purpose. A parallax item sits at factor*(worldX −
+    // cameraX) on screen, so at .22 it only leaves frame once the camera is
+    // (halfWidth + halfView)/.22 away: the 84-wide slabs tried first were
+    // still filling the sky 200 units later, painting this crimson over the
+    // Colour River's own pillars and pink hills. Kept near 24 across, they
+    // fade out roughly where the corridor does.
+    for(let i=0;i<5;i++){
+      const x=Math.min(section.x-14+i*20+rand(i+60)*4,last-16);
+      const g=layers.place(far,x,7+rand(i+63)*3,-52);
+      g.name='Cavern deep';
+      dreamCavern(w,g,22+rand(i+61)*6,{turn:(rand(i+62)-.5)*.3,flip:i%2===0});
+    }
+  },
+  // The look before the cavern was supplied, kept for a rig that builds the
+  // section without the dream models (tests/dream-sections.mjs runs one).
+  placeholderBackdrop(w,L,section,layers){
     const near=layers.at(.45),far=layers.at(.22);
     for(let i=0;i<6;i++){
       const x=section.x-12+i*16+rand(i+50)*3,h=13+rand(i+51)*4,g=layers.place(near,x,-9,-30);g.name='Haze column';

@@ -21,7 +21,7 @@ import {readFile} from 'node:fs/promises';
 import * as THREE from '../dist/lib/three.module.js';
 import {Game,FIXED_DT as dt,RULES} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
-import {MODULES,soloSection} from '../dist/routes/dream.js';
+import {MODULES,SHELVED,soloSection} from '../dist/routes/dream.js';
 import {World} from '../dist/world.js';
 import {createHero,attachHero} from '../dist/hero.js';
 import {createCaveLights} from '../dist/cave-lighting.js';
@@ -38,9 +38,13 @@ import {searchRoute} from './playthroughs.mjs';
 const INDEX=LEVELS.findIndex(L=>L.biome==='dream');
 assert(INDEX>=0,'the dream is a registered chapter');
 const wanted=(process.env.SECTION||'').split(',').map(s=>s.trim()).filter(Boolean);
+// Naming a section reaches shelved ones too, so a module that is no longer in
+// the chapter can still be built and piloted on its own; the default sweep is
+// the chapter's own list.
+const known=[...MODULES,...SHELVED];
 const modules=wanted.length?wanted.map(key=>{
-  const m=MODULES.find(m=>m.key===key);
-  if(!m)throw new Error(`unknown section ${key} (known: ${MODULES.map(m=>m.key).join(', ')})`);
+  const m=known.find(m=>m.key===key);
+  if(!m)throw new Error(`unknown section ${key} (known: ${known.map(m=>m.key).join(', ')})`);
   return m;
 }):MODULES;
 const PILOT=process.env.PILOT!=='0';

@@ -44,40 +44,27 @@ const SPOTS={
  'folding':{x:101,y:0,ground:'folding-entry',ticks:120},
  'orchard':{x:211,y:0,ground:'orchard-entry',ticks:120},
  'corridor':{x:286,y:0,ground:'corridor-entry',ticks:120},
- 'parade':{x:341,y:0,ground:'parade-entry',ticks:120},
- // On the giraffe's head beside the hat-worm: the coil on its plinth, the
- // camera raised to the stack of supplied hats on the coil's top (the play
- // camera leaves the stack above the frame), and the pulled bridge resting on
- // the plinth with the hats landed along its back.
- // Beside the ground hatworm under the boots, then up the supplied giraffe:
- // on its back with the second hatworm, on the collar at its neck, and a
- // pulled-back look at the whole animal from its knee. (The parade begins at
- // chapter x 337.)
- 'parade-boots':{x:349.5,y:0,ground:'parade-ground-1',ticks:120,creatures:true},
- 'parade-back':{x:359.5,y:4,ground:'parade-back',ticks:120,creatures:true},
- 'parade-neck':{x:364.8,y:6.2,ground:'parade-neck',ticks:120},
- 'parade-giraffe':{x:354.8,y:2,ground:'parade-knee',cameraX:361.5,cameraY:4.6,ticks:120},
- // The gait runs on frame time: .6 s of live frames lands its swing near a
- // peak (GIRAFFE_MARCH.rate 2.6). Leaving: the player across on the bridge,
- // the camera held on the giraffe as it turns (2.6 s) and walks off left.
- 'parade-awake':{x:364.8,y:6.2,ground:'parade-neck',cameraX:361.5,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:.6},
- 'parade-leaving':{x:375,y:7.8,ground:'parade-worm',cameraX:359,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:3.2,creatures:true},
- 'parade-gone':{x:375,y:7.8,ground:'parade-worm',cameraX:359,cameraY:4.6,ticks:120,shaped:['parade-worm'],settle:7,creatures:true},
- // Aboard the caterpillar float at its rest, before the parade wakes.
- 'parade-ride':{x:379.7,y:3.6,ground:'parade-caterpillar',cameraX:380,cameraY:5,ticks:1,settle:.5},
- 'parade-worm':{x:367,y:8.2,ground:'parade-head',ticks:120},
- 'parade-stack':{x:367,y:8.2,ground:'parade-head',cameraX:369.3,cameraY:13.5,ticks:120},
- 'parade-pulled':{x:367,y:8.2,ground:'parade-head',ticks:120,shaped:['parade-worm']},
- 'river':{x:416,y:0,ground:'river-entry',ticks:120},
+ // The windpipe, the corridor's second half: the foot of the rib staircase,
+ // a rib mid-climb, and the shelf waiting under the squeeze.
+ //
+ // The corridor begins at chapter x 282 and is 83 long. The Melted Parade that
+ // used to follow it is shelved out of MODULES, so **every spot from the river
+ // on stands 47 left of where it did** — these are re-derived from the built
+ // chapter, not shifted by eye. The parade's own spots went with it;
+ // `SECTION=parade` still shoots the section, dressing and all, on its own.
+ 'windpipe':{x:336,y:0,ground:'corridor-floor-3',ticks:120},
+ 'windpipe-ribs':{x:350.1,y:4.4,ground:'corridor-rib-3',cameraX:352,cameraY:5.4,ticks:120},
+ 'windpipe-squeeze':{x:356,y:6.2,ground:'corridor-shelf',ticks:120},
+ 'river':{x:369,y:0,ground:'river-entry',ticks:120},
  // The two frames the river's look is judged on (docs/river-look/reference-*):
  // over the first yellow river with the entry aqueduct behind, and in the blue
  // loop at the top of the yellow ribbon beside the crossing's flag.
- 'river-a':{x:426.5,y:.4,ground:'river-yellow-1',cameraX:427,cameraY:3.6,ticks:120},
- 'river-b':{x:470.3,y:12.4,cameraX:473,cameraY:9.6,ticks:120},
- 'room':{x:496,y:0,ground:'room-entry',ticks:120},
- 'knot':{x:616,y:0,ground:'knot-entry',ticks:120},
- 'knot-climb':{x:652,y:4,ground:'knot-ledge-b',ticks:120},
- 'knot-wake':{x:708,y:0,ground:'knot-wake',ticks:120}
+ 'river-a':{x:379.5,y:.4,ground:'river-yellow-1',cameraX:380,cameraY:3.6,ticks:120},
+ 'river-b':{x:423.3,y:12.4,cameraX:426,cameraY:9.6,ticks:120},
+ 'room':{x:449,y:0,ground:'room-entry',ticks:120},
+ 'knot':{x:569,y:0,ground:'knot-entry',ticks:120},
+ 'knot-climb':{x:605,y:4,ground:'knot-ledge-b',ticks:120},
+ 'knot-wake':{x:661,y:0,ground:'knot-wake',ticks:120}
 };
 const section=process.env.SPOTS?'':(process.env.SECTION||'');
 const raw=process.env.SPOTS||'garden-start,knot-wake';

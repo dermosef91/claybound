@@ -33,6 +33,14 @@ adaptation; without the second argument the hat is skipped rather than shipped a
 full weight. Its metallic-roughness map is dropped as well: the roughness it paints
 (about .47) would make it the one glossy prop in a matte clay world, and
 clayMaterials sets the roughness every supplied model shares.
+
+The Breathing Corridor's cavern is decimated the same way, and for the same
+reason: it is repeated across the parallax, so its cost is paid once per copy.
+It arrives at 10,425 triangles and ships at 5,362 — the floor the simplifier
+reaches before the UV atlas's seams stop it, and far more than a shape seen
+through fog at thirty units of depth needs. Its decimated copy is kept beside
+the upload as crimson+caverns+decimated.glb rather than passed on the command
+line, and its metallic-roughness map goes the way of the hat's.
 """
 from pathlib import Path
 from io import BytesIO
@@ -61,7 +69,14 @@ assets={
  # leg, supplied without a pupil (dist/dream-assets.js fits the eyeball and
  # sets one on it at load, as for the flower). Uploaded to ~/Downloads:
  #   python3 scripts/prepare-dream-assets.py ~/Downloads
- 'dream-arch.glb':'Meshy_AI_Clay_Garden_Arch_0917232650_texture.glb'
+ 'dream-arch.glb':'Meshy_AI_Clay_Garden_Arch_0917232650_texture.glb',
+ # The Breathing Corridor's eye: a fleshy eyeball with its pupil painted into
+ # the colour map, so the ball itself turns to look (dist/dream-assets.js holds
+ # the fitted sphere and the pupil's axis). Uploaded to ~/Downloads, like the
+ # arch.
+ 'dream-eyeball.glb':'Meshy_AI_Fleshy_Eyeball_0918110855_texture.glb',
+ # The Breathing Corridor's cavern wall, repeated across its backdrop.
+ 'dream-cavern.glb':'crimson+caverns.glb'
 }
 def locate(source):
  """The upload, in the given directory or its parent; None when it is not in this upload."""
@@ -69,11 +84,17 @@ def locate(source):
   if (base/source).exists():return base/source
  return None
 # Models shipped from a decimated copy rather than the upload's own geometry.
-decimated={'dream-hat.glb':Path(sys.argv[2]) if len(sys.argv)>2 else None}
-adaptation={'dream-hat.glb':'glTF Transform 4.4.1 weld + simplify ratio=.025 error=.01; metallic-roughness map dropped'}
+# The hat's is passed on the command line; the cavern's is looked for beside
+# its upload, since it is prepared once and kept with it.
+decimated={'dream-hat.glb':Path(sys.argv[2]) if len(sys.argv)>2 else None,
+ 'dream-cavern.glb':locate('crimson+caverns+decimated.glb')}
+adaptation={'dream-hat.glb':'glTF Transform 4.4.1 weld + simplify ratio=.025 error=.01; metallic-roughness map dropped',
+ 'dream-cavern.glb':'glTF Transform 4 weld + simplify ratio=.1 error=.04 (10,425 → 5,362 triangles); metallic-roughness map dropped'}
 # Models whose metallic-roughness map is left out of the shipped file (the
-# arch's, like the hat's, paints a gloss the matte clay world does not have).
-matte={'dream-hat.glb','dream-arch.glb'}
+# arch's and the cavern's, like the hat's, paint a gloss the matte clay world
+# does not have; the eyeball's is a 4096² map — over half its 16.5 MB —
+# painting a roughness clayMaterials overrides anyway).
+matte={'dream-hat.glb','dream-arch.glb','dream-cavern.glb','dream-eyeball.glb'}
 SLOTS=['baseColorTexture','metallicRoughnessTexture','normalTexture','occlusionTexture','emissiveTexture']
 def pad(b,value=b'\0'):return b+value*((-len(b))%4)
 def digest(b):return hashlib.sha256(b).hexdigest()
@@ -108,7 +129,7 @@ for shipped,source in assets.items():
  original=upload.read_bytes()
  if shipped in decimated:
   if not decimated[shipped]:
-   print(shipped,'skipped; pass the decimated GLB as the second argument to ship it');continue
+   print(shipped,'skipped; its decimated copy was not found (the hat takes one as the second argument, the cavern one beside its upload)');continue
   data=decimated[shipped].read_bytes()
  else:data=original
  size=struct.unpack_from('<I',data,12)[0];doc=json.loads(data[20:20+size]);binary=data[28+size:]

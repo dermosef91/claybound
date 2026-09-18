@@ -10,7 +10,7 @@ import * as THREE from '../dist/lib/three.module.js';
 import {readFile} from 'node:fs/promises';
 import {Game} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
-import {MODULES,soloSection} from '../dist/routes/dream.js';
+import {MODULES,SHELVED,soloSection} from '../dist/routes/dream.js';
 import {World} from '../dist/world.js';
 import {createHero,attachHero} from '../dist/hero.js';
 import {createCaveLights} from '../dist/cave-lighting.js';
@@ -74,7 +74,7 @@ async function cpuWorld(){
   await attachClay(w);await attachDream(w);
   return w;
 }
-const INDEX=LEVELS.findIndex(L=>L.biome==='dream'),parade=MODULES.find(m=>m.key==='parade');
+const INDEX=LEVELS.findIndex(L=>L.biome==='dream'),parade=[...MODULES,...SHELVED].find(m=>m.key==='parade');
 const w=await cpuWorld(),L=soloSection(parade),g=new Game();g.start(INDEX,L);
 const platform=id=>g.level.platforms.find(p=>p.id===id);
 const back=platform('parade-back'),neck=platform('parade-neck'),headDeck=platform('parade-head'),knee=platform('parade-knee');
