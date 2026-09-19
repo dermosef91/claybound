@@ -94,10 +94,11 @@ await click('#settings');assert.equal(document.querySelector('[data-action="sett
 await click('[data-action="settings-sound"]');assert.equal(app.saved.sound,false);assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'false');assert.equal($('menu-sound').getAttribute('aria-label'),'Enable sound');
 await click('[data-action="close"]');await click('#settings');assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'false');
 await click('[data-action="close"]');await click('#menu-sound');assert.equal(app.saved.sound,true);
-// Stop motion is on by default and unfolds its tuning under the switch; turning
-// it off records the choice, folds the tuning, and is what the save remembers.
+// Stop motion is on by default and stands alone — its tuning is the look's
+// workings, kept behind ß; turning the switch off records the choice, and is
+// what the save remembers.
 await click('#settings');assert.equal(document.querySelector('[data-action="settings-stopmotion"]').getAttribute('aria-checked'),'true','on by default');
-assert(document.querySelector('[data-tuning="stopmotion"]'),'and unfolded');
+assert(!document.querySelector('[data-tuning]'),'with its tuning hidden until it is found');
 await click('[data-action="settings-stopmotion"]');assert.equal(app.saved.stopMotion,false);assert.equal(app.saved.stopMotionChosen,true,'the switch records that it was used');
 assert.equal(JSON.parse(storage.get('claybound-v1')).stopMotionChosen,true);assert(!document.querySelector('[data-tuning]'),'folded once off');
 await click('[data-action="close"]');
@@ -122,10 +123,16 @@ await click('[data-action="settings-stopmotion"]');assert.equal(app.saved.stopMo
 assert.equal(JSON.parse(storage.get('claybound-v1')).stopMotion,true,'the choice is saved on the device');
 await click('[data-action="close"]');await click('#settings');assert.equal(document.querySelector('[data-action="settings-stopmotion"]').getAttribute('aria-checked'),'true','and shown again on reopening');
 await click('[data-action="settings-stopmotion"]');assert.equal(app.saved.stopMotion,false);await click('[data-action="close"]');
-// Its tuning unfolds under the switch while it is on, a slider lands on the
-// saved numbers and the device at once, and the fold follows the switch.
+// Its tuning is hidden like the cast: ß with the panel open finds it, and the
+// device remembers. Once found it unfolds under the switch while it is on, a
+// slider lands on the saved numbers and the device at once, and the fold
+// follows the switch.
 await click('#settings');assert(!document.querySelector('[data-tuning]'),'folded while off');
-await click('[data-action="settings-stopmotion"]');assert(document.querySelector('[data-tuning="stopmotion"]'),'unfolds when switched on');
+await click('[data-action="settings-stopmotion"]');assert(!document.querySelector('[data-tuning]'),'still hidden when switched on, until it is found');
+window.dispatchEvent(Object.assign(new window.Event('keydown'),{key:'ß'}));await settle();
+assert.equal(app.saved.stopMotionTuningUnlocked,true,'ß with the settings panel open unlocks the tuning');
+assert.equal(JSON.parse(storage.get('claybound-v1')).stopMotionTuningUnlocked,true,'and the device remembers');
+assert(document.querySelector('[data-tuning="stopmotion"]'),'which unfolds it under the switch');
 assert.equal(document.querySelectorAll('#dialog input[type="range"]').length,6,'four tuners join the two volume sliders');
 {
   const fps=document.querySelector('input[data-tune="fps"]'),music=app.saved.music;assert.equal(fps.value,'12');

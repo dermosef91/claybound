@@ -195,7 +195,8 @@ The simulation runs at a fixed 120 Hz and is independent of rendering. It includ
 - `dist/citadel.js`: sculpted citadel walls, arches, houses, rooftop details, pulley lifts, clouds and the imported castle skyline.
 - `dist/citadel-depth.js`: a separate, softly blurred background pass for the citadel and forest. Canyon and cavern scenery render directly with the main scene, using distance fog for haze.
 - `dist/fullscreen.js`, `controls.js`, `controls.css`: fullscreen state and the analog thumb joystick.
-- `dist/lib/`: locally bundled Three.js 0.185.1 and Lucide, with their licenses.
+- `dist/lib/`: locally bundled Three.js 0.185.1, Lucide and PostHog 1.434.2
+  (the slim, no-external build), with their licenses.
 
 Static serving requires no build step or external asset services. A modern WebGL 2 browser is required. Serve `dist` over HTTP; opening `index.html` from a file URL will not support JavaScript modules.
 

@@ -168,3 +168,61 @@ plan. Three character GLBs of 4 MB each and five music tracks of about
 3.5 MB each are loaded before the player has chosen anything; deferring them
 until a chapter actually starts would take the cold load down by most of its
 weight.
+
+## Analytics
+
+`dist/analytics.js` reports anonymous product analytics to PostHog, and it
+reports from **the Firebase deployment only**. Pages serves a byte-identical
+bundle and a developer serves `dist/` off localhost; a module that reported
+from wherever it found itself would blend three populations into one number.
+The host allowlist at the top of that file is the entire gate — nothing else
+in the game asks where it is running.
+
+To change the key or the region, edit the two constants at the top of
+`dist/analytics.js` and redeploy. The project key is public by design:
+PostHog project keys are write-only ingest keys meant to ship in client code,
+which is also why it is a plain constant rather than a build-time variable —
+`dist/` has to stay servable with no build step.
+
+The SDK is vendored at `dist/lib/posthog.js` (the slim, no-external build,
+165 KB) and reached through a **dynamic** import. That is deliberate: Rollup
+splits it into its own chunk, so a player on Pages or localhost, or one who
+has switched usage stats off, never downloads it at all. The main bundle
+carries only the 4.7 KB of `analytics.js` itself.
+
+### What is collected
+
+Five events, all anonymous, with no person profiles and no cookies —
+persistence is `localStorage`, which is what lets a returning player be
+recognised for retention without a consent banner.
+
+- `title_ready` — the cold load finished. Carries `load_ms` measured from
+  navigation start, the viewport, and the WebGL renderer string. Against a
+  17.7 MB cold load this is the number that matters most.
+- `world_load_failed` — its counterpart: the players who never saw the game.
+- `chapter_started` — chapter, biome, and whether it was a restart or a
+  resumed checkpoint.
+- `chapter_load_failed` — a chapter's assets did not arrive.
+- `player_died`, `checkpoint_reached`, `chapter_completed` — the funnel.
+  Completion carries beads, flowers, time, deaths, and the frame summary
+  (`fps_mean`, `slow_frame_pct`, `worst_frame_ms`) drained from the frames
+  that actually drew that chapter.
+
+Nothing identifies a player, and no free-text input is captured.
+
+### The opt-out
+
+Settings carries a **Usage stats** switch, on by default, stored as
+`analytics` in the `claybound-v1` save. Turning it off stops capture
+immediately. Turning it back on within the same load only works if the SDK
+was started — a player who arrived opted out has nothing to opt in, and picks
+it up on the next load. That is the deliberate trade for never fetching
+PostHog at all when the answer is no.
+
+### Testing it
+
+`tests/analytics.mjs` covers the host gate, the inert-before-init contract
+and the opt-out markup. It cannot cover the live SDK, because the module
+refuses to start while the key is the placeholder — which is itself the point
+of one of the assertions: a deploy that forgot to paste the real key sends
+nothing rather than firing failed requests into the void.
