@@ -272,23 +272,41 @@ const labMarkup=()=>`<button class="chapter-choice playground-choice" data-actio
 function help(){
   openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run. A controller's left stick or d-pad steers too.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them. On a controller, A or Y.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms. On a controller, B, X or a trigger.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Violet clay can be shaped</strong><span>Tap or drag it, hold E, or stomp it — violet clay breathes when you are beside it and stretches into ramps, stairs and bridges. R softens it back.</span></div></div><div class="control-row">${hintIcon('menu')}<div><strong>Arrows or W / A / S / D steer the menus</strong><span>Enter or Space chooses, Escape backs out. On a controller: d-pad or stick, A to choose, B to go back.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
 }
-function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active,{music:saved.music,effects:saved.effects,rumble:saved.rumble,stopMotion:saved.stopMotion,stopMotionTuning:saved.stopMotionTuning,characters:CHARACTERS,character:saved.character,charactersUnlocked:saved.charactersUnlocked}));}
+function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active,{music:saved.music,effects:saved.effects,rumble:saved.rumble,stopMotion:saved.stopMotion,stopMotionTuning:saved.stopMotionTuning,stopMotionTuningUnlocked:saved.stopMotionTuningUnlocked,characters:CHARACTERS,character:saved.character,charactersUnlocked:saved.charactersUnlocked}));}
 // The cast is not part of the game a first-time player meets, so the picker is
 // hidden until someone types ß with the settings panel open. Found once, it
 // stays: an unlock you have to rediscover on every visit is a nuisance, not a
 // secret. The volume sliders are the panel's landmark, and the picker belongs
 // directly beneath them.
+// The stop-motion tuning is kept behind the same key in the same panel: the
+// switch is the preference, the exposures, boil, wobble, flicker and creatures
+// are the look's workings. One press finds everything still hidden here, so a
+// save that unlocked the cast before the tuning existed needs only one more.
 // The Clay Lab is hidden the same way: ß with the chapter list open adds it
 // under the five, and keeps it there.
 window.addEventListener('keydown',e=>{
   if(e.key!=='ß'||$('dialog').classList.contains('hidden'))return;
   const content=$('dialog-content');
-  if(!saved.charactersUnlocked){
+  if(content.querySelector('[data-action="settings-rumble"]')){
+    const found=[];
     const sliders=content.querySelector('.title-levels');
-    if(sliders&&content.querySelector('[data-action="settings-rumble"]')){
-      saved.charactersUnlocked=true;persist();
+    if(!saved.charactersUnlocked&&sliders){
+      saved.charactersUnlocked=true;
       sliders.insertAdjacentHTML('afterend',characterMarkup(CHARACTERS,saved.character));
-      icons();toast('Characters unlocked.');return;
+      found.push('Characters');
+    }
+    if(!saved.stopMotionTuningUnlocked){
+      saved.stopMotionTuningUnlocked=true;found.push('stop-motion tuning');
+      // Only unfolds now if the look is on; otherwise the switch adds it when
+      // it is turned on, the same as any other opening of the panel.
+      const control=content.querySelector('[data-action="settings-stopmotion"]');
+      if(saved.stopMotion&&control&&!content.querySelector('[data-tuning="stopmotion"]'))
+        control.insertAdjacentHTML('afterend',stopMotionTuningMarkup(saved.stopMotionTuning));
+    }
+    if(found.length){
+      persist();icons();
+      const names=found.join(' and ');
+      toast(`${names[0].toUpperCase()}${names.slice(1)} unlocked.`);return;
     }
   }
   if(!saved.labUnlocked){
@@ -405,9 +423,10 @@ $('dialog-content').addEventListener('click',e=>{
     saved.stopMotion=!saved.stopMotion;saved.stopMotionChosen=true;if(world)world.stopMotion=saved.stopMotion;persist();
     b.setAttribute('aria-checked',String(saved.stopMotion));
     b.innerHTML=`${icon('camera')}<span>Stop motion</span><strong>${saved.stopMotion?'On':'Off'}</strong>`;
-    // The look's tuning unfolds under the switch while it is on.
+    // The look's tuning unfolds under the switch while it is on — once it has
+    // been found; until then the switch stands alone.
     $('dialog-content').querySelector('[data-tuning="stopmotion"]')?.remove();
-    if(saved.stopMotion)b.insertAdjacentHTML('afterend',stopMotionTuningMarkup(saved.stopMotionTuning));
+    if(saved.stopMotion&&saved.stopMotionTuningUnlocked)b.insertAdjacentHTML('afterend',stopMotionTuningMarkup(saved.stopMotionTuning));
     icons();
   }
   if(a==='settings-stopmotion-creatures'){

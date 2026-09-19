@@ -46,10 +46,12 @@ for(const stopMotion of [false,true]){
 assert(settingsMarkup(true,false).includes('data-action="settings-stopmotion" role="switch" aria-checked="true"'),'on by default');
 console.log('PASS settings stop motion: a switch beside rumble, on until turned off, showing the saved state');
 
-// The look's tuning unfolds under the switch only while it is on, every number
-// in its own unit at its saved value, the two switches showing their state.
-assert(!settingsMarkup(true,false,{stopMotion:false,stopMotionTuning:{fps:12}}).includes('data-tuning'),'folded away while off');
-const tuned=settingsMarkup(true,false,{stopMotion:true,stopMotionTuning:{fps:16,boil:9,wobble:5,flicker:2,creatures:false}});
+// The look's tuning unfolds under the switch only once it has been found and
+// only while the look is on, every number in its own unit at its saved value,
+// the two switches showing their state.
+assert(!settingsMarkup(true,false,{stopMotion:true,stopMotionTuning:{fps:12}}).includes('data-tuning'),'hidden until unlocked, even with the look on');
+assert(!settingsMarkup(true,false,{stopMotion:false,stopMotionTuning:{fps:12},stopMotionTuningUnlocked:true}).includes('data-tuning'),'folded away while off');
+const tuned=settingsMarkup(true,false,{stopMotion:true,stopMotionTuningUnlocked:true,stopMotionTuning:{fps:16,boil:9,wobble:5,flicker:2,creatures:false}});
 const block=tuned.match(/<div class="title-tuning" data-tuning="stopmotion">[\s\S]*?<\/button>\s*<\/div>/)?.[0];
 assert(block,'the tuning block is there while on');
 assert(tuned.indexOf('data-action="settings-stopmotion"')<tuned.indexOf('data-tuning')&&tuned.indexOf('data-tuning')<tuned.indexOf('data-action="fullscreen"'),'right under the switch');
@@ -63,4 +65,4 @@ assert(!block.includes('stopmotion-hold'),'no hold-position switch: a puppet is 
 assert(stopMotionTuningMarkup({fps:99,boil:-4}).includes('value="24"')&&stopMotionTuningMarkup({fps:99,boil:-4}).includes('data-tune="boil" data-unit="‰"'),'out-of-range saves are clamped into the sliders');
 const shipped=stopMotionTuningMarkup();
 for(const needle of ['data-readout="tune-fps">12/s<','data-readout="tune-boil">6‰<','data-readout="tune-wobble">3‰<','data-readout="tune-flicker">4%<','settings-stopmotion-creatures" role="switch" aria-checked="true"'])assert(shipped.includes(needle),'defaults are the tuned look: '+needle);
-console.log('PASS settings stop-motion tuning: unfolds under the switch while on, five controls at their saved values in their units, clamped');
+console.log('PASS settings stop-motion tuning: hidden until unlocked, then unfolds under the switch while on, five controls at their saved values in their units, clamped');
