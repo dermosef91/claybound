@@ -73,7 +73,7 @@ export function validateDraft(source,base){
   // An older imported forest has no boss clearing. Do not silently gate its
   // earlier finish bell on a boss that is outside that draft's playable path.
   if(source.boss?.kind!=='mother-puff')delete out.boss;
-  const nums={x:[-100,2000],y:[-40,160],w:[.6,80],h:[.6,80],moveX:[-30,30],moveY:[-30,30],period:[.5,60],phase:[-20,20],bob:[0,4],rise:[0,30],travel:[1,80],floorY:[-40,160],delay:[.15,3.5],duty:[.1,.95],duration:[.3,60],fx:[-30,30],fy:[-15,25],speed:[.1,8],min:[-100,2000],max:[-100,2000],range:[.2,25],bellX:[.1,80],checkpoint:[-100,2080],rate:[.1,12],drop:[.1,40],conveyor:[-12,12],reach:[.2,10]};
+  const nums={x:[-100,2000],y:[-40,160],w:[.6,80],h:[.6,80],moveX:[-30,30],moveY:[-30,30],period:[.5,60],phase:[-20,20],bob:[0,4],rise:[0,30],travel:[1,80],floorY:[-40,160],delay:[.1,3.5],duty:[.1,.95],duration:[.3,60],fx:[-30,30],fy:[-15,25],speed:[.1,8],min:[-100,2000],max:[-100,2000],range:[.2,25],bellX:[.1,80],checkpoint:[-100,2080],rate:[.1,12],drop:[.1,40],conveyor:[-12,12],reach:[.2,10]};
   const oneOf=(value,choices,label)=>{if(!choices.includes(value))throw new Error(`${label} must be one of ${choices.join(', ')}.`);return value;};
   for(const list of LISTS){
     const items=source[list]??(OPTIONAL_LISTS.has(list)?[]:undefined);
@@ -93,8 +93,11 @@ export function validateDraft(source,base){
         clean.shape={from:pose(item.shape?.from,'unshaped'),to:pose(item.shape?.to,'shaped')};
         for(const key of ['station','clayRole'])if(item[key]!==undefined){if(!idOK(item[key]))throw new Error(`Invalid ${key}.`);clean[key]=item[key];}
       }
-      for(const key of ['id','channel','releases','holdChannel','landmark','waitFor'])if(item[key]!==undefined){if(!idOK(item[key]))throw new Error(`Invalid ${key}. Use letters, numbers and hyphens.`);clean[key]=item[key];}
-      for(const key of ['goal','latch','gust','spores','arch','house','entrance','optional','recovery','rest','timber','spiked','rockOnly','motherArena'])if(item[key]!==undefined)clean[key]=!!item[key];
+      // `carve` names the rotten deck a stone corner wears the bite of; `push`
+      // makes a stone a block a walk moves, `rot` a crumbling deck that gives
+      // at once and for good (clay-rules.js initFix). Names and flags, never behaviour.
+      for(const key of ['id','channel','releases','holdChannel','landmark','waitFor','carve'])if(item[key]!==undefined){if(!idOK(item[key]))throw new Error(`Invalid ${key}. Use letters, numbers and hyphens.`);clean[key]=item[key];}
+      for(const key of ['goal','latch','gust','spores','arch','house','entrance','optional','recovery','rest','timber','spiked','rockOnly','motherArena','push','rot'])if(item[key]!==undefined)clean[key]=!!item[key];
       if(list==='platforms'){
         if(!idOK(item.id)||!KINDS[item.kind])throw new Error('Every platform needs a unique ID and a supported type.');
         clean.kind=item.kind;finite(clean.w,.6,80,'Platform width');
@@ -208,10 +211,12 @@ export function validateDraft(source,base){
       if(s.rule!==undefined){
         if(s.rule!=='form')throw new Error(`Station ${s.id} asks for a clay rule that stays in the lab.`);
         if(!Array.isArray(s.clump)||!s.clump.length||s.clump.length>24)throw new Error(`Station ${s.id} needs a clump of up to 24 knots.`);
-        if(!Array.isArray(s.solution)||s.solution.length>40)throw new Error(`Station ${s.id} needs a solution of up to 40 strokes.`);
+        // A plug (below) is not shaped by authored strokes but by its own
+        // pilot, so it carries no solution; every other mass needs one.
+        if(!Array.isArray(s.solution)||s.solution.length>40){if(!s.fix||s.solution!==undefined)throw new Error(`Station ${s.id} needs a solution of up to 40 strokes.`);}
         Object.assign(station,{rule:'form',free:!!s.free,
-          clump:s.clump.map((k,i)=>[finite(k?.[0],0,1,`station ${s.id} knot ${i+1} across`),finite(k?.[1],-40,40,`station ${s.id} knot ${i+1} top`)]),
-          solution:s.solution.map((k,i)=>({x:finite(k?.x,...nums.x,`station ${s.id} stroke ${i+1} x`),lift:finite(k?.lift,-30,30,`stroke ${i+1} lift`),dx:finite(k?.dx,-30,30,`stroke ${i+1} dx`),dy:finite(k?.dy,-30,30,`stroke ${i+1} dy`),t:finite(k?.t,.05,10,`stroke ${i+1} t`)}))});
+          clump:s.clump.map((k,i)=>[finite(k?.[0],0,1,`station ${s.id} knot ${i+1} across`),finite(k?.[1],-40,40,`station ${s.id} knot ${i+1} top`)])});
+        if(s.solution!==undefined)station.solution=s.solution.map((k,i)=>({x:finite(k?.x,...nums.x,`station ${s.id} stroke ${i+1} x`),lift:finite(k?.lift,-30,30,`stroke ${i+1} lift`),dx:finite(k?.dx,-30,30,`stroke ${i+1} dx`),dy:finite(k?.dy,-30,30,`stroke ${i+1} dy`),t:finite(k?.t,.05,10,`stroke ${i+1} t`)}));
         if(s.relax===false)station.relax=false;
         if(s.shaped!==undefined)station.shaped=finite(s.shaped,.02,1,'station shaped share');
         // Wet clay: a pace of its own (settle, relaxTime, relaxMin in seconds,
@@ -249,6 +254,19 @@ export function validateDraft(source,base){
           station.mould=s.mould.map((k,i)=>[finite(k?.[0],0,1,`station ${s.id} mould knot ${i+1} across`),finite(k?.[1],-40,40,`station ${s.id} mould knot ${i+1} top`)]);
         }
         if(s.message!==undefined)station.message=text(s.message,'message',80);
+        // A plug: the rotten deck the bite is filled with, the block pushed
+        // into the gap it leaves and the gap's floor, by name, and the lump the
+        // block wears as knots like a clump. Names and knots, never behaviour.
+        if(s.fix!==undefined){
+          if(!s.fix||typeof s.fix!=='object')throw new Error(`Station ${s.id} has a fix that is not an object.`);
+          const fix={};
+          for(const key of ['rot','block','floor']){if(!idOK(s.fix[key]))throw new Error(`Station ${s.id} needs the ${key} its plug fits, by ID.`);fix[key]=s.fix[key];}
+          if(s.fix.blockClump!==undefined){
+            if(!Array.isArray(s.fix.blockClump)||s.fix.blockClump.length<2||s.fix.blockClump.length>24)throw new Error(`Station ${s.id} needs a block clump of 2 to 24 knots.`);
+            fix.blockClump=s.fix.blockClump.map((k,i)=>[finite(k?.[0],0,1,`station ${s.id} block knot ${i+1} across`),finite(k?.[1],-40,40,`station ${s.id} block knot ${i+1} top`)]);
+          }
+          station.fix=fix;
+        }
         // A marble on the mass: where it starts in the form's own x, how big
         // it is, the socket it is bound for — or the open end it is to go over
         // — and whether it is drawn as the lab's bead or the chapter's rock.

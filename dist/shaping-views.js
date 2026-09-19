@@ -4,6 +4,8 @@ import {clayMaterial} from './clay.js';
 import {GIVE,giveDepth} from './clay-give.js';
 import {FORM,formHeight} from './clay-form.js';
 import {biteOutline,biteSeed} from './rot-shape.js';
+import {biteLipReach,CAVE_SINK} from './crumble.js';
+import {caveCap} from './cavern.js';
 // Keep vertices across the broad faces, so curved collision profiles also
 // curve between the corners. Corner-only rounded boxes leave a flat centre.
 function roundedGrid(radius){
@@ -368,6 +370,9 @@ function animatePushView(view,s,reducedMotion){
 // lattice, which is stood down. R takes the ramp to nothing and the lattice is
 // back, dormant with the rest.
 const HEAL_FLASH=.45;
+// How far the mended corner's column reaches under the bite: the depth the
+// bench corner beside it is drawn to (crumble.js createCarvedCorner).
+const MEND_COLUMN=12;
 function animateHealView(view,s){
   const clay=view.clay,heal=Math.max(0,Math.min(1,s.heal||0)),{mesh}=clay.pieces[0];
   if(heal<=0){
@@ -385,12 +390,23 @@ function animateHealView(view,s){
   if(heal>=HEAL_FLASH*.5){
     if(!clay.patch){
       // The whole bite the rot ate, ragged wall and all, filled with the
-      // bench's clay and capped like the bench beside it.
+      // bench's clay and capped like the bench beside it — and carried on down
+      // as the corner's own column, since the gap's floor deck stands down
+      // from view once the corner is whole (clay-rules.js sealFix).
       clay.patch=new THREE.Group();clay.patch.name='Mended corner';view.root.add(clay.patch);
-      const outline=biteOutline(s.w,H,biteSeed(s)),shape=new THREE.Shape(outline.map(([x,y])=>new THREE.Vector2(x,y))),depth=D-.16;
-      const body=w.mesh(new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelThickness:.05,bevelSize:.05,bevelSegments:2}),'terrain',clay.patch,0,0,-depth/2);
+      const cave=w.biome==='cave',bite=biteOutline(s.w,H,biteSeed(s)).map(([x,y])=>[x,cave?Math.min(y,-CAVE_SINK):y]);
+      const floorEnd=bite.findIndex(([x,y])=>x===0&&y===-H),outline=[...bite.slice(0,3),[s.w,-MEND_COLUMN],[0,-MEND_COLUMN],...bite.slice(floorEnd)];
+      const shape=new THREE.Shape(outline.map(([x,y])=>new THREE.Vector2(x,y))),depth=D-.16;
+      const body=w.mesh(new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelThickness:.05,bevelSize:.05,bevelSegments:2}),cave?'terrain2':'terrain',clay.patch,0,0,-depth/2);
       body.name='Mended clay';
-      w.box(s.w+.06,.55,D+.01,'top',clay.patch,s.w/2,-.22,0,.19);
+      // In the cave the mend is a cave deck again: the pressed plate and the
+      // proud course under the lip, taken up where the carved corner's stops.
+      if(cave){
+        caveCap(w,clay.patch,s.w+.14,.49,D+.01,s.w/2,-.18,0,s.x);
+        const from=biteLipReach(outline);
+        w.box(s.w+.18-from,.36,3.7,'terrain2',clay.patch,(s.w+.18+from)/2,-.6,0,.16);
+      }
+      else w.box(s.w+.06,.55,D+.01,'top',clay.patch,s.w/2,-.22,0,.19);
     }
     clay.patch.visible=true;mesh.visible=false;
   }

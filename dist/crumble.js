@@ -2,6 +2,7 @@ import * as THREE from './lib/three.module.js';
 import {sculptClay,clayShape} from './clay.js';
 import {porousClay} from './porous-clay.js';
 import {biteSeed,biteOutline,biteBounds,insideBite} from './rot-shape.js';
+import {caveCap} from './cavern.js';
 
 const random=n=>{const x=Math.sin(n*127.13+73.41)*43758.5453;return x-Math.floor(x);};
 const clamp=n=>Math.max(0,Math.min(1,n));
@@ -157,18 +158,38 @@ export function createRot(w,s,root){
 // ragged wall taken out of its face, under the bench's own orange cap. `rot` is
 // the rotten deck whose bite it wears; the corner's collision is the plain
 // stone deck it always was, so only the face is carved.
+//
+// In the cave the corner is the cave's own deck (environments.js buildTerrain):
+// the dark clay, a pressed plate for a cap, and the darker course standing
+// proud under the lip — cut short where the bite's teeth eat the face, so it
+// runs up to the rot and stops, and the mend (shaping-views.js) carries it on.
 export function createCarvedCorner(w,s,rot,root){
   root.name='Bench corner, rotted through';
-  const W=s.w,H=12,D=3.32,seed=biteSeed(rot),outline=biteOutline(rot.w,rot.h,seed),dx=rot.x-s.x;
+  const W=s.w,H=12,D=3.32,seed=biteSeed(rot),outline=biteOutline(rot.w,rot.h,seed),dx=rot.x-s.x,cave=w.biome==='cave';
   // The bite's left wall, top to floor: the outline runs top, open side, floor,
   // then up the wall, so the wall is what follows the floor's last point.
   const floorEnd=outline.findIndex(([x,y])=>x===0&&y===-rot.h);
-  const wall=outline.slice(floorEnd+1).reverse();
-  const points=[[0,0],[dx,0],...wall.map(([x,y])=>[dx+x,y]),[dx,-rot.h],[dx,-H],[0,-H]];
+  // The cave's pressed plate is dented, so a body flush with the walk line
+  // would show through its hollows: there the body starts inside the plate.
+  const top=cave?-CAVE_SINK:0,wall=outline.slice(floorEnd+1).reverse().filter(([,y])=>y<top);
+  const points=[[0,top],[dx,top],...wall.map(([x,y])=>[dx+x,y]),[dx,-rot.h],[dx,-H],[0,-H]];
   const shape=new THREE.Shape(points.map(([x,y])=>new THREE.Vector2(x,y)));
-  const body=w.mesh(new THREE.ExtrudeGeometry(shape,{depth:D-.12,bevelEnabled:true,bevelThickness:.06,bevelSize:.06,bevelSegments:2}),'terrain',root,0,0,-(D-.12)/2);
+  const body=w.mesh(new THREE.ExtrudeGeometry(shape,{depth:D-.12,bevelEnabled:true,bevelThickness:.06,bevelSize:.06,bevelSegments:2}),cave?'terrain2':'terrain',root,0,0,-(D-.12)/2);
   body.name='Carved bench corner';
-  w.box(W+.12,.55,3.51,'top',root,W/2,-.22,0,.19);
+  if(!cave){w.box(W+.12,.55,3.51,'top',root,W/2,-.22,0,.19);return;}
+  caveCap(w,root,W+.14,.49,3.6,W/2,-.18,0,s.x);
+  const end=dx+biteLipReach(outline);
+  w.box(end+.18,.36,3.7,'terrain2',root,(end-.18)/2,-.6,0,.16);
+}
+// How far under the walk line the cave's carved body and its mend start, so
+// the plate's thumb-hollows never show them.
+export const CAVE_SINK=.2;
+// How far left of the bite's own x its teeth reach at the height of the cave
+// deck's proud course, so that course can stop short of them.
+export function biteLipReach(outline){
+  let reach=0;
+  for(const [x,y] of outline)if(y<-.3&&y>-.9)reach=Math.min(reach,x);
+  return reach-.04;
 }
 function fragmentGeometry(w){
   if(!w.fragmentGeometry){

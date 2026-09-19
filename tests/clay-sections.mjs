@@ -19,7 +19,8 @@ import assert from 'node:assert/strict';
 import {crossing,solvedForm} from './routes.mjs';
 import {LEVELS} from '../dist/levels.js';
 import {Game,FIXED_DT as dt,RULES,surfaceAt} from '../dist/simulation.js';
-import {solveFormStation,formSolutionInputs,standingOn} from '../dist/clay-rules.js';
+import {solveFormStation,formSolutionInputs,standingOn,healFix} from '../dist/clay-rules.js';
+import {fixPilot} from './fix-pilot.mjs';
 import {FORM,formShare,formVolume,formRest} from '../dist/clay-form.js';
 import {formSteepAt,nearbyStation} from '../dist/shaping.js';
 
@@ -42,6 +43,38 @@ for(const L of LEVELS)for(const station of L.shaping||[]){
   // The formable mass is the one lab rule a chapter carries; every other rule
   // stays on the bench (tests/clay-lab.mjs holds the same line from its side).
   assert(!station.rule||station.rule==='form',`${L.short}: ${station.id} carries a rule that belongs in the lab`);
+  if(station.rule==='form'&&station.fix){
+    // A plug station (the lab's Fix the Structure): the mass is nowhere until
+    // the block is pushed into the gap the rot leaves, and "shaped" is the
+    // corner mended — the seated lump cast to the mould exactly. The rot fills
+    // the bite the mass will, the block is a pushable stone the bite's size,
+    // and the gap's floor is where it seats.
+    assert.equal(piece.clayRole,'mass');assert(!station.free,`${L.short}: ${station.id} sits in its gap, not free on a footing`);
+    assert.deepEqual(piece.shape.from,piece.shape.to,`${L.short}: ${piece.id} has no pose, only a surface`);
+    assert(Array.isArray(station.clump)&&station.clump.length>=2&&Array.isArray(station.mould)&&station.mould.length>=2,`${L.short}: ${station.id} has a clump and a mould`);
+    const rot=L.platforms.find(p=>p.id===station.fix.rot),block=L.platforms.find(p=>p.id===station.fix.block),floor=L.platforms.find(p=>p.id===station.fix.floor),depth=piece.shape.from.h;
+    assert(rot?.kind==='crumble'&&rot.rot&&rot.delay<=.15&&rot.x===piece.x&&rot.w===piece.w&&rot.y===piece.y&&rot.h===depth,`${L.short}: ${rot?.id} fills ${piece.id}'s bite exactly and gives at once`);
+    assert(block?.kind==='stone'&&block.push&&block.w===piece.w&&block.h===depth,`${L.short}: ${block?.id} is a pushable stone the bite's size`);
+    assert(floor&&floor.x===piece.x&&floor.w===piece.w&&Math.abs(floor.y-(piece.y-depth))<1e-9,`${L.short}: ${floor?.id} is the gap's floor`);
+    // The real game, from the station's spawn, through the plug pilot the
+    // playthroughs use: the corner mends, to the mould exactly, the volume
+    // kept and nobody hurt.
+    const real=new Game();real.start(index);
+    const rs=real.level.shaping.find(s=>s.id===station.id),rm=massOf(real,rs);
+    Object.assign(real.player,rs.spawn,{vx:0,vy:0});real.tick(dt,{});
+    assert.equal(nearbyStation(real)?.id,station.id,'the spawn is inside the stretch');
+    let inputs=0;for(const input of fixPilot(real,rs)){real.tick(dt,input);inputs++;}
+    assert(rs.done&&rs.sealed&&rs.fix.phase==='healed'&&rs.amount===1&&rs.announced,`${L.short}: the pilot mends ${station.id} (${rs.fix.phase} after ${inputs} inputs)`);
+    assert(rm.active&&rm.form.h.every((h,i)=>h===rs.cast[i]),`${L.short}: ${piece.id} is cast to the mould exactly`);
+    assert(Math.abs(formVolume(rm.form)-rm.form.volume)<1e-7,`${L.short}: ${piece.id} keeps its volume exactly when cast`);
+    assert.equal(real.deaths,0);
+    // The sweep's "shaped" (routes.mjs applySolvedForm → healFix) is the very
+    // same corner.
+    const swept=new Game();swept.start(index);const ss=swept.level.shaping.find(s=>s.id===station.id);healFix(ss);
+    const sm=massOf(swept,ss);
+    assert(sm.active&&ss.done&&sm.form.h.every((h,i)=>h===rm.form.h[i]),`${L.short}: the sweep heals ${piece.id} to the surface the pilot casts`);
+    continue;
+  }
   if(station.rule==='form'){
     // A free mass with no pose: it rests as its clump and is shaped by its
     // authored solution, which has to be there for "shaped" to mean anything.
@@ -142,9 +175,10 @@ const SECTIONS=[
   {level:0,station:'boulder-run',bypass:{from:'boulder-pool',to:'cave-floor',mode:'fall'},rideable:true,form:true},
   {level:1,station:'weave-bough',bypass:{from:'gap-brink',to:'weave-perch',mode:'jump'},form:true},
   {level:1,station:'weave-mound',bypass:{from:'weave-spring',to:'canopy-nest',mode:'jump'},form:true},
-  // The tower is the one piece meant to be stood on while it is still tall.
-  {level:2,station:'kiln-tower',bypass:{from:'kiln-ledge',to:'kiln-tunnel',mode:'jump'},rideable:true},
-  {level:2,station:'kiln-plug',bypass:{from:'kiln-tunnel',to:'kiln-run',mode:'jump'}},
+  // The gallery's rotten corner: the mass is nowhere until the block is seated,
+  // the rot in its place gives under a stand and is no take-off, and from the
+  // gap's floor the watch deck is out of reach.
+  {level:2,station:'gallery-fix',bypass:{from:'gallery-corner',to:'gallery-watch',mode:'jump'},form:true,plug:true},
   // The Soft Dream: one purple beat per section — three in the Folding Path,
   // whose two free masses are walked onto flat — and three strands in the knot.
   // The garden's is a free mass whose bulb bars the bed until it is worked.
@@ -167,7 +201,7 @@ const SECTIONS=[
   {level:4,station:'knot-strand-c',bypass:{from:'knot-ledge-c',to:'knot-crown',mode:'jump'},rideable:true}
 ];
 
-for(const {level,station,bypass,rideable,form} of SECTIONS){
+for(const {level,station,bypass,rideable,form,plug} of SECTIONS){
   const L=LEVELS[level],s=(L.shaping||[]).find(s=>s.id===station);
   assert(s,`${L.short} has a station called ${station}`);
   assert.equal(!!s.rule,!!form,`${station} is ${form?'':'not '}a formable mass`);
@@ -184,7 +218,20 @@ for(const {level,station,bypass,rideable,form} of SECTIONS){
     const piece=L.platforms.find(p=>p.id===s.parts[0]),source=L.platforms.find(p=>p.id===bypass.from);
     // Clay the bypass starts from is already worked, so it stands at its finished height.
     const reach=highestFrom(level,source.id),ground=source.shape?source.shape.to.y+(source.shape.to.slope||0):source.y;
-    if(form){
+    if(plug){
+      // A plug's mass is no ground at all until the block is seated: the rot
+      // fills its bite, gives within a beat of a stand and grants no jump, and
+      // the gap's floor under it is too low for the way on.
+      const g=new Game();g.start(level);const live=g.level.shaping.find(q=>q.id===station),mass=massOf(g,live);
+      assert.equal(mass.active,false,`${L.short}: the unworked ${piece.id} has no body to land on`);
+      const rot=g.level.platforms.find(q=>q.id===live.fix.rot),p=g.player;
+      Object.assign(p,{x:rot.x+rot.w/2,y:rot.y+.5,vx:0,vy:0,groundId:null,coyote:0});
+      let stood=false,fell=-1;
+      for(let i=0;i<frames(1);i++){g.tick(dt,{jumpPressed:true,jumpHeld:true});if(p.groundId===rot.id){stood=true;assert.equal(p.coyote,0,`${L.short}: a stand on ${rot.id} is a take-off`);}if(rot.broken){fell=i;break;}}
+      assert(stood&&rot.broken&&fell*dt<rot.delay+.3,`${L.short}: ${rot.id} gives within a beat of a stand (${(fell*dt).toFixed(2)}s)`);
+      assert.equal(crossing(level,{from:live.fix.floor,to:bypass.to,mode:'jump'},{shaped:other=>other.id!==station}),null,
+        `${L.short}: ${bypass.to} is reachable from the gap's floor ${live.fix.floor} with ${station} unworked`);
+    } else if(form){
       // A mass has no pose: its top is wherever its clump stands. The first
       // place on it, coming from the source, that is neither a face to slide
       // down nor sand to die on has to be out of reach — and that place is
@@ -483,10 +530,12 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
 
 // Every gesture the game can ask for is either taught before the chapter that
 // leans on it or arrives with its own words. The canyon and the forest now
-// teach the free hand ('up', three formable masses), the caverns down and out;
-// the pull to the right is first asked for in the Hanging Quarter, whose two
-// pulls each say so in their hint.
+// teach the free hand ('up', three formable masses), the caverns down (the
+// gallery's plug is stomped out and pressed flat; the Kiln's tower and plug,
+// which taught down and out, are gone since layout 11); the pull to the right
+// is first asked for in the Hanging Quarter, whose two pulls each say so in
+// their hint.
 const taught=new Set(LEVELS.slice(0,3).flatMap(L=>(L.shaping||[]).map(s=>s.gesture)));
-assert.deepEqual([...taught].sort(),['down','out','up']);
+assert.deepEqual([...taught].sort(),['down','up']);
 for(const s of LEVELS[3].shaping)if(!taught.has(s.gesture))assert(/right/i.test(s.hint||''),`${s.id} asks for an untaught gesture (${s.gesture}) and does not say so`);
 console.log('PASS the gestures the final chapter leans on are taught before it, or say themselves what they want');

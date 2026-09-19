@@ -3,7 +3,7 @@ import {Game,FIXED_DT as dt,surfaceAt,finaleFlower} from '../dist/simulation.js'
 import {LEVELS} from '../dist/levels.js';
 import {machineTransfer,finaleTransfer} from './machine-pilot.mjs';
 import {motherTransfer} from './mother-puff-pilot.mjs';
-import {solveFormStation} from '../dist/clay-rules.js';
+import {solveFormStation,healFix} from '../dist/clay-rules.js';
 import {formShare} from '../dist/clay-form.js';
 export const cloneGame=g=>{const copy=Object.assign(Object.create(Game.prototype),structuredClone({...g,onEvent:null}));copy.onEvent=()=>{};return copy;};
 export function steer(g,aim){return Math.max(-1,Math.min(1,((aim-g.player.x)*7-(g.player.windX||0)*.16)/6.7));}
@@ -48,6 +48,10 @@ export function settledRock(index,id,source){
   return settled.get(key);
 }
 export function applySolvedForm(g,station,source){
+  // A plug station's "shaped" is not a surface strokes make but the corner
+  // mended: the rot down, the block seated and cast to the mould, sealed. The
+  // game's own restore does exactly that (simulation.js restore → healFix).
+  if(station.fix){healFix(station);if(station.channel){g.latched[station.channel]=true;g.channels[station.channel]=1;}return;}
   applySolvedSurface(g,station,source);
   if(!station.ball?.spill)return;
   const rock=settledRock(g.index,station.id,source);

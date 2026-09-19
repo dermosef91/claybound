@@ -441,11 +441,14 @@ function stepFix(game,station,s,dt){
   s.fixPhase=fix.phase;
   return fix.phase==='shaping';
 }
-// The cast has read as done: snap the surface to the mould and seal it.
+// The cast has read as done: snap the surface to the mould and seal it. The
+// gap's floor is inside the mended corner now, so its own deck is stood down
+// from view — nothing can reach it there.
 function sealFix(station,s,f){
   f.h.set(station.cast);f.prev.set(station.cast);f.dent.fill(0);f.idle=Infinity;f.settled=true;f.version++;
   station.sealed=true;station.fix.phase='healed';station.grip=null;station.hand=false;
   s.sealed=true;s.fixPhase='healed';s.mouldMatch=1;
+  if(station.fix.floorPlatform)station.fix.floorPlatform.hidden=true;
 }
 // What the plug reads as shaped: nothing while the rot stands, a fifth once it
 // is cleared, and then the cast's progress from the seated lump to the mould.
@@ -463,6 +466,7 @@ export function resetFix(station){
   if(rot){rot.broken=false;rot.active=true;rot.timer=0;}
   if(block)resetPush(block);
   if(s){s.active=false;s.fixPhase='rot';s.heal=0;s.sealed=false;s.mouldMatch=0;}
+  if(fix.floorPlatform)fix.floorPlatform.hidden=false;
   fix.phase='rot';station.sealed=false;
 }
 // A saved game that had the corner mended: mended again, without the show.

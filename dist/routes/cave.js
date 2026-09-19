@@ -6,7 +6,7 @@ const part=(id,from,to,extra={})=>p(id,from.x,from.w,from.y,'clay',{shape:{from,
 // Kiln Stair is built into the space afterwards.
 const KILN=59,GAP=34;
 const L=makeRoom({
-  layoutVersion:10,
+  layoutVersion:11,
   name:"The Ember Caverns",short:"Ember Caverns",label:"Wake the heart of the mountain",biome:"cave",
   intro:"Follow the light cables. The way forward sometimes begins above — or below.",sky:"#253c57",fog:"#496d91",spawn:{
   "x": 1.5,
@@ -270,24 +270,51 @@ const L=makeRoom({
   {
     "x": 221,
     "y": 3,
-    "w": 10,
-    "checkpoint": 226,
+    "w": 7.6,
+    "checkpoint": 223.4,
     "id": "gallery-entry",
     "landmark": "crystal",
     "kind": "stone"
   },
   {
-    "x": 234,
-    "y": 1.8,
-    "w": 4,
-    "delay": 1,
-    "id": "gallery-crumble",
-    "kind": "crumble"
+    "x": 225.2,
+    "y": 5.3,
+    "w": 3.2,
+    "h": 2.3,
+    "push": true,
+    "id": "gallery-block",
+    "kind": "stone"
   },
   {
-    "x": 240,
-    "y": 1.8,
-    "w": 8,
+    "x": 228.6,
+    "y": 3,
+    "w": 2.4,
+    "carve": "gallery-rot",
+    "id": "gallery-corner",
+    "kind": "stone"
+  },
+  {
+    "x": 231,
+    "y": 0.7,
+    "w": 3.2,
+    "id": "gallery-floor",
+    "kind": "stone"
+  },
+  {
+    "x": 231,
+    "y": 3,
+    "w": 3.2,
+    "h": 2.3,
+    "delay": 0.12,
+    "rot": true,
+    "id": "gallery-rot",
+    "kind": "crumble"
+  },
+  part('gallery-mass',{x:231,w:3.2,y:3,h:2.3},{x:231,w:3.2,y:3,h:2.3},{station:'gallery-fix',clayRole:'mass'}),
+  {
+    "x": 239.5,
+    "y": 3,
+    "w": 8.5,
     "id": "gallery-watch",
     "kind": "stone"
   },
@@ -891,7 +918,25 @@ const L=makeRoom({
     "kind": "stone"
   }
 ],
-  shaping:[],
+  // The gallery's cliff has rotted through at its corner: the Clay Lab's Fix
+  // the Structure, brought to a chapter. The rot (`gallery-rot`) drops whoever
+  // stands on it and goes for good under a stomp, leaving the bite the corner
+  // was; the violet block on the cliff (`gallery-block`) is pushed over the
+  // open gap, seats there, and is worked flat to the pale line — the top the
+  // corner had — and the cliff is whole again, and the jump to the watch
+  // deck is on. Pushed onto rot still standing, the block dissolves and comes
+  // back where it stood. The block wears `blockClump`, a squared-off lump;
+  // seated, it settles into `clump`, both fitted to hold exactly the gap's
+  // volume (clay-rules.js initFix). It carries no authored solution: the
+  // pilot that plays it (tests/fix-pilot.mjs) reads the seated lump as it goes.
+  shaping:[
+  {id:'gallery-fix',rule:'form',icon:'stairs',name:'Mend the corner',verb:'Stomp, push, cast',gesture:'down',
+   parts:['gallery-mass'],x:221,end:240,spawn:{x:223.4,y:3,groundId:'gallery-entry'},relax:false,
+   fix:{rot:'gallery-rot',block:'gallery-block',floor:'gallery-floor',blockClump:[[0,-.5],[.11,.1],[.89,.1],[1,-.5]]},
+   mould:[[0,0],[1,0]],clump:[[0,-1.8],[.2,.1],[.4,.7],[.6,.7],[.8,.1],[1,-1.8]],
+   channel:'gallery-mended',message:'Mended · the corner holds',
+   hint:'The grey corner is rotten and drops whoever stands on it. Stomp it to clear it; the pale line is the missing piece. Walk into the violet block to push it into the gap, then shape it to the line — drag, hold E, stomp — and the corner mends.'}
+],
   routeLinks:[
   {
     "from": "start",
@@ -948,7 +993,7 @@ const L=makeRoom({
   {"from":"kiln-ledge","to":"kiln-tower","mode":"fall"},
   {"from":"kiln-tower","to":"kiln-tunnel","mode":"walk"},
   {"from":"kiln-tunnel","to":"kiln-plug","mode":"walk"},
-  {"from":"kiln-plug","to":"kiln-run","mode":"jump"},
+  {"from":"kiln-plug","to":"kiln-run","mode":"walk"},
   {"from":"kiln-run","to":"kiln-step","mode":"jump"},
   {"from":"kiln-step","to":"kiln-sill","mode":"jump"},
   {"from":"kiln-sill","to":"ferry-dock","mode":"jump"},
@@ -1094,11 +1139,16 @@ const L=makeRoom({
   },
   {
     "from": "gallery-entry",
-    "to": "gallery-crumble",
-    "mode": "jump"
+    "to": "gallery-corner",
+    "mode": "walk"
   },
   {
-    "from": "gallery-crumble",
+    "from": "gallery-corner",
+    "to": "gallery-mass",
+    "mode": "walk"
+  },
+  {
+    "from": "gallery-mass",
     "to": "gallery-watch",
     "mode": "jump"
   },
@@ -1470,12 +1520,12 @@ const L=makeRoom({
     "y": 4
   },
   {
-    "x": 235.75,
-    "y": 2.75
+    "x": 237.2,
+    "y": 5.3
   },
   {
     "x": 242.1,
-    "y": 2.8
+    "y": 4
   },
   {
     "x": 255.1,
@@ -1544,11 +1594,11 @@ const L=makeRoom({
     "kind": "spitter"
   },
   {
-    "x": 245,
-    "y": 1.8,
+    "x": 246,
+    "y": 3,
     "speed": 0.38,
-    "min": 241,
-    "max": 247,
+    "min": 244.5,
+    "max": 247.5,
     "kind": "spitter"
   },
   {
@@ -1612,9 +1662,9 @@ const L=makeRoom({
     "w": 19
   },
   {
-    "x": 231,
+    "x": 234.2,
     "y": -3.5,
-    "w": 9
+    "w": 5.3
   },
   {
     "x": 248,
@@ -1682,40 +1732,25 @@ const L=makeRoom({
 },KILN,GAP);
 
 // --- The Kiln (57 – 93) -----------------------------------------------------
-// Two pieces of clay, each worked on its own, and neither gains or loses any
-// clay: what gets wider gets lower. The way on runs under a rock lintel far
-// below the tunnel mouth, and a clay tower stands hard against that rock and
-// seals it. Climb on and press it, and it squats back away from the lintel into
-// the kiln floor with you still standing on it — its rock-side face never moves,
-// so the ride can only ever carry you away from the rock, never into it.
-// Under the lintel a second lump fills the tunnel from floor to rock; there is
-// no going over it, so it is spread flat and walked across.
+// The way on runs under a rock lintel far below the tunnel mouth. Two pieces of
+// violet clay once stood in the way here — a tower to ride down and a plug to
+// spread flat — until the chapter's clay moved to the gallery's rotten corner;
+// what they left is the ground they were worked into: a shelf below the kiln
+// ledge, dropped onto from its end, and the tunnel floor under the lintel.
 L.platforms.push(
   p('kiln-floor',59,6,-1.75,'stone',{checkpoint:61,landmark:'kiln'}),
   p('kiln-ledge',65,5,-1.75,'ledge'),
   p('tower-foot',71.6,2.4,-8.6,'wall',{h:6}),
-  part('kiln-tower',{x:71.6,w:2.4,y:-.35,h:8.25},{x:65,w:9,y:-6.4,h:2.2},{station:'kiln-tower',clayRole:'stairs'}),
+  p('kiln-tower',65,9.3,-6.4,'ledge'),
   p('kiln-lintel',74.5,9.5,8.5,'wall',{h:12.8}),
   p('kiln-tunnel',74.3,2.2,-6.4,'stone'),
   p('plug-foot',77,2,-7.2,'wall',{h:5}),
-  part('kiln-plug',{x:77,w:2,y:-4.4,h:2.8},{x:74.5,w:7,y:-6.4,h:.8},{station:'kiln-plug',clayRole:'bridge'}),
+  p('kiln-plug',76.5,5.5,-6.4,'ledge'),
   p('kiln-run',82,4.5,-6.4,'stone'),
   p('kiln-step',87,2.5,-4.2,'ledge'),
   p('kiln-sill',90.5,2.4,-2.1,'ledge')
 );
 L.sections.splice(1,0,{x:57,name:'The Kiln',landmark:'kiln'});
-L.shaping.push(
-  {id:'kiln-tower',icon:'stairs',name:'Ride the tower down',verb:'Press down',gesture:'down',parts:['kiln-tower'],x:59,end:74.3,
-   spawn:{x:62,y:-1.75,groundId:'kiln-floor'},
-   hint:'Stand on the violet tower and press it down. Hold E / KNEAD, or drag it — it takes you with it.'},
-  {id:'kiln-plug',icon:'landing',name:'Flatten the plug',verb:'Pull outward',gesture:'out',parts:['kiln-plug'],x:74.3,end:86,
-   spawn:{x:75.4,y:-6.4,groundId:'kiln-tunnel'},
-   hint:'The lump fills the tunnel. Pull it apart until it lies flat, then walk over it. Or hold E / KNEAD.'}
-);
-L.hints.push(
-  {x:59,end:74.3,icon:'stairs',title:'Ride it down',text:'Stand on the tower and press it down. Hold E, or drag it.',touchText:'Stand on the tower and drag it down.'},
-  {x:74.3,end:86,icon:'landing',title:'Flatten it',text:'Drag the plug apart, or hold E, until it lies flat.',touchText:'Drag the plug apart until it lies flat.'}
-);
 L.hazards.push({x:65,w:28.75,y:-12});
-L.coins.push({x:62,y:-.4},{x:67.5,y:-.4},{x:72.8,y:1.3},{x:72,y:-4.9},{x:78,y:-4.9},{x:84,y:-4.9},{x:88.25,y:-2.7},{x:91.7,y:-.6});
+L.coins.push({x:62,y:-.4},{x:67.5,y:-.4},{x:72.8,y:-3.6},{x:72,y:-4.9},{x:78,y:-4.9},{x:84,y:-4.9},{x:88.25,y:-2.7},{x:91.7,y:-.6});
 export default chapter(L);

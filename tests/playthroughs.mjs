@@ -19,6 +19,7 @@ import {nearbyStation} from '../dist/shaping.js';
 import {formSolutionInputs} from '../dist/clay-rules.js';
 import {machineTransfer,finaleTransfer} from './machine-pilot.mjs';
 import {motherTransfer} from './mother-puff-pilot.mjs';
+import {fixPilot} from './fix-pilot.mjs';
 import {fingerprint} from './support/fingerprint.mjs';
 import {encode,decode} from './support/trace.mjs';
 
@@ -87,7 +88,9 @@ function attempt(original,link,{offset,wait,hold}){
   else if(!launched&&!walk&&!fall){
    const takeoff=drop?Math.max(a.x+.4,Math.min(a.x+a.w-.4,b.x+b.w/2)):overlap&&b.y>a.y?Math.max(a.x+.4,Math.min(a.x+a.w-.4,b.x+b.w/2-dir*offset)):dir>0?a.x+a.w-offset:a.x+offset;
    aim=takeoff;
-   const gap=dir>0?b.x-(a.x+a.w):a.x-(b.x+b.w),running=!wait&&!drop&&gap>=3.5&&b.y>a.y+1.8;
+   // A long jump is run at: a tall one from three and a half units, and any
+   // gap past five — a stand-still hop from the take-off falls short of both.
+   const gap=dir>0?b.x-(a.x+a.w):a.x-(b.x+b.w),running=!wait&&!drop&&((gap>=3.5&&b.y>a.y+1.8)||gap>=5);
    if(running)aim=b.x+b.w/2;
    if(a.kind==='spring'&&!p.groundId){launched=true;aim=b.x+b.w/2;}
    else if(p.groundId===a.id&&(running?(p.x-takeoff)*dir>=0:Math.abs(p.x-takeoff)<.14)){
@@ -155,10 +158,12 @@ export function searchRoute(i,L,{source,flowers=FLOWERS}={}){
   // A formable mass has no pose to hold E for: standing at its dock, the pilot
   // plays the station's authored solution as real pointer inputs — once, here,
   // so a failed take-off candidate never replays the strokes — then crosses.
+  // A plug station is played by its own pilot: the stomp, the push and the
+  // strokes on the seated lump, read off the live game beat by beat.
   const station=nearbyStation(state);
   if(station?.rule==='form'&&station.amount<1&&state.player.groundId){
    attempts++;const g=cloneGame(state),live=g.level.shaping.find(s=>s.id===station.id),inputs=[];
-   for(const input of formSolutionInputs(g,live,{dt})){inputs.push(input);g.tick(dt,input);}
+   for(const input of live.fix?fixPilot(g,live):formSolutionInputs(g,live,{dt})){inputs.push(input);g.tick(dt,input);}
    // A rock run is done when the rock is down, seconds after the last stroke:
    // the pilot stands and watches it go, as a player would.
    for(let f=0;live.ball&&(live.amount<1||g.cinema)&&f<1440;f++){const idle={moveAxis:0};inputs.push(idle);g.tick(dt,idle);}

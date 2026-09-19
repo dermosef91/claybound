@@ -129,7 +129,8 @@ export function buildTerrain(w,s,g){
     // Let room function change the dressing: warm foundry, quiet survey
     // chamber, and cooler crystal gallery. Spikes remain behind the walk line.
     const foundry=['ferry-dock','ferry-exit','heart-entry'].includes(s.id);
-    const survey=['vault-entry','sluice-floor'].includes(s.id);
+    // The gallery's gap floor is where the plug drops in: nothing grows there.
+    const survey=['vault-entry','sluice-floor','gallery-floor'].includes(s.id);
     if(!foundry&&!survey)caveCrystals(w,g,width-1.2,.07,-1.38,s.id==='gallery-entry'?.5:.64);
     if(s.id==='start'||s.checkpoint||s.goal)clayTorch(w,g,s.id==='start'?8.1:s.goal?Math.max(.7,(s.bellX??width-3.5)-2.75):width*.4,.05);
     if(width>8&&!survey)caveMushrooms(w,g,foundry?width-2.2:2,.03,-1.4,foundry?.9:.7);

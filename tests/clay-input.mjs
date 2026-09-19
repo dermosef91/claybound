@@ -65,10 +65,12 @@ async function rig(dockId,{chapter=3,options,shape=[]}={}){
 // they have their own drill below.
 const stations=[0,1,2,3].flatMap(chapter=>{
   const probe=new Game();probe.start(chapter);
-  return probe.level.shaping.map(s=>({chapter,dock:s.id,rule:s.rule}));
+  return probe.level.shaping.map(s=>({chapter,dock:s.id,rule:s.rule,fix:!!s.fix}));
 });
-const docks=stations.filter(d=>!d.rule),formDocks=stations.filter(d=>d.rule==='form');
-assert(docks.length>=5&&formDocks.length>=3,'hand-worked docks and formable masses to drill');
+// The cave's plug (a formable mass seated by a pushed block, clay-rules.js
+// initFix) refuses every hand until it is seated, so it has a drill of its own.
+const docks=stations.filter(d=>!d.rule),formDocks=stations.filter(d=>d.rule==='form'&&!d.fix),plugDocks=stations.filter(d=>d.fix);
+assert(docks.length>=3&&formDocks.length>=3&&plugDocks.length>=1,'hand-worked docks, formable masses and a plug to drill');
 
 // Every chapter's clay, not just the one this file started with: a stroke that
 // works in the Hanging Quarter and nowhere else is not a working stroke.
@@ -260,6 +262,35 @@ console.log('PASS holding E works the station the player is standing at, in ever
   }
 }
 console.log('PASS the formable masses: the pointer grabs and raises them, the authored strokes as pointer events make the solver\'s surface, R resets it from the dock, and E builds a step only ahead of a player on the clay');
+
+// The plug: until the block is seated there is no clay where the mass will be,
+// and the pointer over that place takes hold of nothing; mended, the corner is
+// sealed and takes no hold either. Only the seated, settled lump is worked —
+// which tests/clay-sections.mjs plays through the plug pilot.
+{
+  const {surfaceAt}=await import('../dist/simulation.js');
+  const {healFix}=await import('../dist/clay-rules.js');
+  const wide={width:1920,height:1080,viewH:12};
+  for(const {chapter,dock} of plugDocks){
+    const r=await rig(dock,{chapter,options:wide}),s=r.live(),mass=r.part;
+    assert.equal(s.fix.phase,'rot');assert.equal(mass.active,false);
+    const x=mass.x+mass.w/2,at=r.f.screen(x,mass.y-.4);
+    r.f.emit('pointerdown',{pointerId:51,...at});r.step(3);
+    assert(!r.input.shapeId&&!s.grip,`${chapter}/${dock}: a press where the plug will sit takes hold of nothing while the rot stands`);
+    r.f.emit('pointerup',{pointerId:51,...at});r.step(1);
+    r.f.key('keydown',{code:'KeyE'});r.step(30);r.f.key('keyup',{code:'KeyE'});
+    assert.equal(s.amount,0,`${chapter}/${dock}: E works nothing before the plug is seated`);
+    healFix(s);r.step(2);
+    assert(s.done&&s.sealed&&mass.active,'mended');
+    const held=Float64Array.from(mass.form.h),top=surfaceAt(mass,x),on=r.f.screen(x,top);
+    r.f.emit('pointerdown',{pointerId:52,...on});r.step(3);
+    for(const u of [.2,.4,.6])r.f.emit('pointermove',{pointerId:52,...on,clientY:on.clientY-u*wide.height/wide.viewH}),r.step(3);
+    r.f.emit('pointerup',{pointerId:52,...on});r.step(5);
+    assert.deepEqual(Array.from(mass.form.h),Array.from(held),`${chapter}/${dock}: the mended corner is sealed to the pointer`);
+    assert.equal(r.game.deaths,0);
+  }
+}
+console.log('PASS the plug: no hand reaches where the block has not yet seated, and the mended corner is sealed');
 
 // The clay answers one hand exactly as it answers another. A spore's stun used
 // to switch the hold and the drag off while leaving the tap working, which is
