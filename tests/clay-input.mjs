@@ -179,7 +179,7 @@ console.log('PASS holding E works the station the player is standing at, in ever
 {
   const {solveFormStation,formSolutionInputs}=await import('../dist/clay-rules.js');
   const {surfaceAt}=await import('../dist/simulation.js');
-  const {FORM}=await import('../dist/clay-form.js');
+  const {FORM,formHeight}=await import('../dist/clay-form.js');
   // Landscape, wide enough to see the whole pocket from the dock.
   const wide={width:1920,height:1080,viewH:12};
   // Where to take hold of each mass for a short pull upward — somewhere with
@@ -243,16 +243,19 @@ console.log('PASS holding E works the station the player is standing at, in ever
     else assert.deepEqual(Array.from(f.h),Array.from(before),`${chapter}/${dock}: E from the spawn reaches no clay`);
     r.f.key('keyup',{code:'KeyE'});
     Object.assign(r.stand,{x:spot.stand,y:surfaceAt(mass,spot.stand),groundId:mass.id});r.step(2);
-    const ahead=r.game.player.x+FORM.stepReach,was=surfaceAt(mass,ahead);
+    // The step E builds is in the columns, so it is the columns that are read:
+    // on a mass that gives, the rig's stand sinks the surface ahead as well,
+    // and the walking surface there would show the dent, not the step.
+    const ahead=r.game.player.x+FORM.stepReach,column=()=>formHeight(f,ahead-mass.x),was=column();
     r.f.key('keydown',{code:'KeyE'});r.step(60);
     // On level clay the step is exactly the rule's step height above the boots;
     // over a dip it is more.
-    assert(surfaceAt(mass,ahead)-was>FORM.step*FORM.stepRise-.05,`${chapter}/${dock}: half a second of E on the clay raises a step ahead (${(surfaceAt(mass,ahead)-was).toFixed(2)})`);
+    assert(column()-was>FORM.step*FORM.stepRise-.05,`${chapter}/${dock}: half a second of E on the clay raises a step ahead (${(column()-was).toFixed(2)})`);
     r.f.key('keyup',{code:'KeyE'});
-    const step=surfaceAt(mass,ahead);r.step(120);
+    const step=column();r.step(120);
     // Dry clay keeps the step; wet clay has already begun to let it down.
-    if(s.pace)assert(surfaceAt(mass,ahead)<step-.02,`${chapter}/${dock}: wet clay lets the step slump once E is let go (${(surfaceAt(mass,ahead)-step).toFixed(3)})`);
-    else assert(Math.abs(surfaceAt(mass,ahead)-step)<.05,`${chapter}/${dock}: the step stays once E is let go (${(surfaceAt(mass,ahead)-step).toFixed(3)})`);
+    if(s.pace)assert(column()<step-.02,`${chapter}/${dock}: wet clay lets the step slump once E is let go (${(column()-step).toFixed(3)})`);
+    else assert(Math.abs(column()-step)<.05,`${chapter}/${dock}: the step stays once E is let go (${(column()-step).toFixed(3)})`);
     assert.equal(r.game.deaths,0);
   }
 }

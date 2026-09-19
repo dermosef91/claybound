@@ -20,7 +20,7 @@ import {crossing,solvedForm} from './routes.mjs';
 import {LEVELS} from '../dist/levels.js';
 import {Game,FIXED_DT as dt,RULES,surfaceAt} from '../dist/simulation.js';
 import {solveFormStation,formSolutionInputs,standingOn} from '../dist/clay-rules.js';
-import {FORM,formShare,formVolume} from '../dist/clay-form.js';
+import {FORM,formShare,formVolume,formRest} from '../dist/clay-form.js';
 import {formSteepAt,nearbyStation} from '../dist/shaping.js';
 
 // Side-on area, as the mesh draws it. A ramp is a flat-bottomed wedge whose
@@ -290,6 +290,18 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
   // Unworked, the riverbed is a walk: dock to landing without a hand on the clay.
   {const {g,station}=boot();const r=landing(g);assert.equal(r,'landing',`the level pocket is walked across unworked (${r})`);assert.equal(g.deaths,0);
    assert(station.amount<.5,`walking across is not shaping it (${station.amount.toFixed(2)})`);}
+  // The river gives: a straight walk across wades it, boots on the clay every
+  // tick and never held up — the dent the walker presses is no wall to the
+  // clay ahead — and the wader rides well below the level top.
+  {const {g,mass,p}=boot();let low=Infinity,stalls=0,air=0,last=p.x;
+   for(let i=0;i<20/dt&&p.groundId!=='pocket-landing';i++){
+     g.tick(dt,{moveAxis:1});
+     if(p.x>mass.x+.5&&p.x<mass.x+mass.w-.5){low=Math.min(low,p.y);if(!p.groundId)air++;if(Math.abs(p.x-last)<.004)stalls++;}
+     last=p.x;
+   }
+   assert.equal(p.groundId,'pocket-landing','the wade reaches the landing');assert.equal(g.deaths,0);
+   assert.equal(stalls,0,'the walker is never held up on the clay');assert(air<=6,`the walker keeps the clay under their boots (${air} ticks in the air)`);
+   assert(low<mass.y-.3,`a walker wades the river, well below its level top (${(mass.y-low).toFixed(2)} deep)`);}
   // The perch is out of reach from the level clay, by jump and by stomp.
   {const {g,mass}=boot();under(g,mass);const j=leap(g,false);assert(!j.landed&&j.apex<PERCH.y-1,`a jump off the level clay falls short of the perch (feet to ${j.apex.toFixed(2)}, perch ${PERCH.y})`);}
   // The pocket is not bouncy: a stomp into it is a crater and nothing more —
@@ -301,7 +313,43 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
    assert(apex<PERCH.y-.5,`a stomp off the level clay falls short too (feet to ${apex.toFixed(2)})`);
    assert.equal(springs.length,0,'the first chapter\'s clay does not throw a stomper back up');
    assert(lowest<before-.1,`the stomp craters the clay (${(before-lowest).toFixed(2)})`);
-   assert.equal(p.groundId,mass.id,'and the stomper stays on the clay');}
+   assert.equal(p.groundId,mass.id,'and the stomper stays on the clay');
+   // The crater is the give's, and the give can never thin the clay past what
+   // the mass allows over the spikes.
+   const f=mass.form,thinnest=Math.min(...Array.from(f.h,(h,i)=>h-mass.give.depth[i]));
+   assert(Math.max(...mass.give.depth)>1,`the crater is pressed into the give (${Math.max(...mass.give.depth).toFixed(2)})`);
+   assert(thinnest>=FORM.minThick-1e-9,`the clay under the crater is never thinner than the mass allows (${thinnest.toFixed(2)})`);}
+  // The river gives under weight like the lab's Sag & Set: a stand sinks the
+  // boots about a unit within the second, smoothly — no tick moves the surface
+  // faster than the springs' sink — with soft shoulders swelling beside them.
+  {const {g,mass,p}=boot();under(g,mass);const f=mass.form,base=mass.y-mass.h,y0=p.y;let worst=0,last=surfaceAt(mass,UNDER);
+   for(let i=0;i<120;i++){g.tick(dt,{});const y=surfaceAt(mass,UNDER);worst=Math.max(worst,Math.abs(y-last));last=y;}
+   assert.equal(p.groundId,mass.id,'the stander stays on the clay');
+   assert(y0-p.y>.8&&y0-p.y<1.5,`a stand sinks the boots about a unit (${(y0-p.y).toFixed(2)})`);
+   assert(worst<=mass.give.tune.sink*dt+1e-6,`the surface sinks no faster than the springs allow (${worst.toFixed(4)} a tick)`);
+   const shoulder=Math.max(...[2,2.5,3,-2,-2.5,-3].map(d=>surfaceAt(mass,UNDER+d)-(base+formRest(f,UNDER+d-mass.x))));
+   assert(shoulder>.08,`the clay pushed aside swells into shoulders beside the boots (${shoulder.toFixed(2)})`);
+   assert(mass.form.h.every((h,i)=>Math.abs(h-mass.form.rest[i])<.05),'the stand works the give, not the columns');
+   // Off it, the river flows back: the dent and what it kept are gone within
+   // the wet pace's seconds, and the surface is level again.
+   Object.assign(p,{x:DOCK+4,y:6.25,vx:0,vy:0,groundId:'pocket-dock'});let t=0;
+   while((Math.max(...mass.give.depth)>.05||Math.max(...mass.give.set)>.02)&&t<12){g.tick(dt,{});t+=dt;}
+   assert(t>.3&&t<8,`the river heals its dent once the boots have left (${t.toFixed(2)}s)`);
+   assert(Math.abs(surfaceAt(mass,UNDER)-(base+formRest(f,UNDER-mass.x)))<.08,`and lies at its rest again (${surfaceAt(mass,UNDER).toFixed(2)})`);}
+  // A walk leaves a track, and the track flows back too — once the walker is
+  // off the clay altogether: a stand on its very lip still weighs on it.
+  {const {g,mass,p}=boot();assert.equal(landing(g),'landing');
+   const kept=Math.max(...mass.give.set);assert(kept>.1,`the walk across leaves a kept track (${kept.toFixed(2)})`);
+   Object.assign(p,{x:END-2,y:6.2,vx:0,vy:0,groundId:'pocket-landing'});
+   for(let i=0;i<8/dt;i++)g.tick(dt,{});
+   assert(Math.max(...mass.give.depth)<.05&&Math.max(...mass.give.set)<.02,`the track has flowed back eight seconds on (${Math.max(...mass.give.depth).toFixed(3)} deep, ${Math.max(...mass.give.set).toFixed(3)} kept)`);}
+  // The give is lighter than the bench's so the flower stays in reach: stand a
+  // whole second on the pulled pillar — sinking into it while it melts — and
+  // the jump still lands on the perch.
+  {const {g,station,mass}=boot();
+   for(const input of formSolutionInputs(g,station,{dt}))g.tick(dt,input);
+   under(g,mass);for(let i=0;i<120;i++)g.tick(dt,{});
+   const j=leap(g,false);assert(j.landed,`a jump off the pillar after a second's stand still lands on the perch (feet to ${j.apex.toFixed(2)})`);}
   // The authored stroke pulls a pillar up under the perch; a jump off it lands
   // there and the flower is taken.
   {const {g,station,mass,p}=boot();
@@ -334,7 +382,8 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
    assert(surfaceAt(mass,UNDER)>7,'R while standing on the clay is refused');
    const dock=LEVELS[0].platforms.find(q=>q.id==='pocket-dock');
    Object.assign(p,{x:dock.x+4,y:dock.y,vx:0,vy:0,groundId:'pocket-dock'});g.tick(dt,{});g.tick(dt,{shapeReset:true});
-   assert(mass.form.h.every((h,i)=>h===mass.form.rest[i]),'from the dock, R puts the level clump back');assert.equal(station.amount,0);}
+   assert(mass.form.h.every((h,i)=>h===mass.form.rest[i]),'from the dock, R puts the level clump back');assert.equal(station.amount,0);
+   assert(mass.give.depth.every(d=>d===0)&&mass.give.set.every(d=>d===0)&&mass.give.velocity.every(v=>v===0),'and flattens the give with it');}
   // The beads: every one in the pocket is picked up on the walk across, by
   // walking or by a standing hop under it.
   {const {g,p}=boot();
@@ -353,15 +402,16 @@ console.log('PASS softening a finished piece underfoot never opens a way past th
    assert.deepEqual(pocket.filter(c=>!c.taken).map(c=>[c.x,c.y]),[],'every pocket bead is collected on one crossing');}
   // The sand under it all: spikes lie just under the clay's base, so bare
   // sandstone kills; the rest surface, the thinnest clay the mass allows and
-  // the solved surface all stand clear of them.
+  // the solved surface all stand clear of them — the last with the deepest
+  // the give can press a stander in, which is capped at the thinnest clay.
   {const {g,station,mass}=boot();
    const band=g.level.hazards.find(h=>h.x<=mass.x&&h.x+h.w>=mass.x+mass.w&&h.y<mass.y-mass.h&&h.y>mass.y-mass.h-1);
    assert(band,'spikes lie just under the pocket\'s base');
    const kill=band.y+.7,f=mass.form,base=mass.y-mass.h;
    for(let i=0;i<f.n;i++)assert(base+f.rest[i]>=kill+.1,`rest column ${i} sits on the spikes`);
    assert(base+FORM.minThick>kill,'the thinnest clay the mass allows is above the kill line');
-   const solved=solvedForm(level,id);
-   for(let i=0;i<f.n;i++){f.h.set(solved);if(!formSteepAt(mass,mass.x+i*f.dx,RULES.radius))assert(base+solved[i]-FORM.sag>kill,`solved column ${i} is a stand away from the spikes`);}}
+   const solved=solvedForm(level,id),deepest=h=>Math.min(mass.give.tune.maxDepth,Math.max(0,h-FORM.minThick));
+   for(let i=0;i<f.n;i++){f.h.set(solved);if(!formSteepAt(mass,mass.x+i*f.dx,RULES.radius))assert(base+solved[i]-deepest(solved[i])>kill,`solved column ${i} is a stand away from the spikes`);}}
   // A save past the pocket resumes with the riverbed walkable and the flower kept.
   {const {g,station,mass,p}=boot();
    for(const input of formSolutionInputs(g,station,{dt}))g.tick(dt,input);

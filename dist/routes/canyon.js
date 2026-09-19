@@ -162,7 +162,9 @@ const L=makeRoom({
   coins:[
     {x:10.75,y:14},{x:14,y:13.5},{x:17.5,y:13},{x:28,y:11.4},{x:40.5,y:9.6},
     ...row(56,7.7,2),...row(62,7.1,2),...row(68,5.9,2),...row(81,6.35,2),...row(87.5,6.85,2),
-    {x:94.25,y:7.7},...row(104.3,7.6,3,1.3),{x:116.5,y:8.3},{x:120.5,y:7.6},{x:123,y:7.6},
+    // The three over the river float low: a wader sinks about half a unit
+    // walking it, and the beads are still gathered on the walk across.
+    {x:94.25,y:7.7},...row(104.3,6.9,3,1.3),{x:116.5,y:8.3},{x:120.5,y:7.6},{x:123,y:7.6},
     {x:130,y:4.8},{x:139,y:9.25},{x:140.5,y:11.35},{x:144.25,y:12.9},...row(158.5,15.4,2),
     ...row(167.5,17.9,3),{x:185.75,y:19.5},...row(191.5,21.8,2),{x:198.75,y:24.9},{x:204,y:25.5},
     {x:224.85,y:27.5},{x:226.85,y:27},{x:228.6,y:27.5},...row(237,27.9,3),
@@ -222,6 +224,16 @@ const L=makeRoom({
 // shelf is still sown with spikes half a unit below the clay's base, so bare
 // sandstone kills and any clay at all is safe.
 //
+// It is a river of clay, and it GIVES like one (`give`): the lab's Sag & Set
+// springs ride the columns the hand shapes, so a stand sinks the boots about
+// a unit with soft shoulders rising beside them, a walk drags a trough, a
+// landing presses harder, a stomp craters — and, this being wet clay, all of
+// it flows back at the station's pace once the boots have left. The layer can
+// never thin the clay past what the mass allows, so the spikes stay covered.
+// The bench's own weight (729) sinks a stander almost two units, which would
+// put the perch out of a jump's reach off the pulled pillar; 400 sinks them
+// just over one and leaves the jump nearly half a unit to spare.
+//
 // What the clay is for is the flower: a perch hangs over the middle of the
 // pocket, out of reach of a jump from the level clay. Pull the ground up under
 // yourself and jump before it melts, and the perch is yours. This is the
@@ -232,7 +244,9 @@ const L=makeRoom({
 // that puts it there lands a whisker past 1 in binary.
 const K=(x,top)=>[Math.round((x-101.3)/17.2*1e6)/1e6,top];
 // The perch's height: past a jump off the level clay (feet to 8.7), within a
-// jump off the pillar the authored stroke pulls up (11.3).
+// jump off the pillar the authored stroke pulls up (its top at 10.22; a stand
+// on it sinks about a unit and melts it towards 9.4 within the second, and the
+// jump from there still tops 11).
 const POCKET_PERCH=10.6;
 L.platforms.push(p('pocket-perch',108.7,2.6,POCKET_PERCH,'ledge',{optional:true}));
 L.stamps.push({x:110,y:POCKET_PERCH+.9});
@@ -242,6 +256,8 @@ L.shaping.push(
    clump:[K(101.3,0),K(105.5,.12),K(110,-.05),K(114.5,.1),K(118.5,0)],
    // The lab's wet pace. Not bouncy: the perch is a pillar's climb and a jump.
    pace:{settle:.6,relaxTime:5,relaxMin:.4,holdUnderfoot:false},
+   // The lab's Sag & Set springs, lighter: see the note above on the weight.
+   give:{weight:400},
    solution:[{x:110,lift:0,dx:0,dy:4.8,t:1.4}],
    hint:'Wet clay slumps back in seconds unless a hand is on it. Pull the ground up under yourself and jump for the perch before it melts. R softens it.'}
 );

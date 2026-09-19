@@ -5,7 +5,8 @@
 // ends. No renderer
 // and no game, so every number here is the heightfield's.
 import assert from 'node:assert/strict';
-import {GIVE,createGive,resetGive,giveDepth,giveSet,giveVelocity,pressGive,kickGive,holdUnder,stepGive,giveShare} from '../dist/clay-give.js';
+import {GIVE,GIVE_TUNABLE,createGive,resetGive,giveDepth,giveSet,giveVelocity,pressGive,kickGive,holdUnder,stepGive,capGive,relaxGive,giveShare} from '../dist/clay-give.js';
+import {FORM,createForm} from '../dist/clay-form.js';
 
 const dt=1/120,W=15.5,mid=W/2,height=1.7;
 const lowest=f=>Math.max(...f.depth),highest=f=>-Math.min(...f.depth);
@@ -191,3 +192,60 @@ console.log('PASS clay springing back never overtakes a rising player');
   assert.equal(stepGive(g,dt),false,'then rests');
 }
 console.log('PASS the heightfield is deterministic, allocation-free per tick, shrugs off garbage, and resets completely');
+
+// --- a layer riding a formable mass: its grid, its tune, its cap, its healing ----
+{
+  // The bench's numbers unless a station says otherwise, and never the spacing.
+  const plain=createGive(W);assert.deepEqual(plain.tune,GIVE,'a plain layer carries the bench\'s numbers');
+  assert(!GIVE_TUNABLE.includes('spacing')&&GIVE_TUNABLE.every(k=>k in GIVE),'everything but the spacing can be tuned');
+  const tuned=createGive(W,{tune:{weight:400,tension:30,spacing:.5,nonsense:2,damping:NaN}});
+  assert.equal(tuned.tune.weight,400);assert.equal(tuned.tune.tension,30);assert.equal(tuned.tune.spacing,GIVE.spacing);assert.equal(tuned.tune.damping,GIVE.damping);
+  assert(!('nonsense' in tuned.tune)&&Object.isFrozen(tuned.tune),'a tune takes only the table\'s own numbers, and is frozen');
+  // Lighter weight, shallower stand.
+  const heavy=createGive(W),light=createGive(W,{tune:{weight:400}});
+  run(heavy,360,()=>pressGive(heavy,mid));run(light,360,()=>pressGive(light,mid));
+  assert(giveDepth(light,mid)<giveDepth(heavy,mid)*.7,`a lighter tune sinks less (${giveDepth(light,mid).toFixed(2)} vs ${giveDepth(heavy,mid).toFixed(2)})`);
+  // On a mass's grid the nodes are the mass's columns.
+  const form=createForm(17.2,2.7,[[0,0],[1,0]],{free:true}),layer=createGive(17.2,{spacing:FORM.spacing});
+  assert.equal(layer.n,form.n);assert(Math.abs(layer.dx-form.dx)<1e-12,'one node to a column');
+  // The cap: never deeper than the column less the thinnest clay, nor than the
+  // bench's own edge floor; the kept set is clipped with it; a field pressed
+  // past a lowered cap is woken so the step can clamp it.
+  run(layer,360,()=>pressGive(layer,8.6));
+  const before=Math.max(...layer.depth);assert(before>1.5,'the bench\'s weight presses deep into a thick column');
+  const tops=Float64Array.from(form.h);tops.fill(1.2,20,50);
+  layer.rest=true;capGive(layer,tops,FORM.minThick);
+  for(let i=0;i<layer.n;i++){
+    assert(layer.floor[i]<=layer.edge[i]+1e-12&&layer.floor[i]<=Math.max(0,tops[i]-FORM.minThick)+1e-12,`node ${i} is capped by the column and the edge`);
+    assert(layer.keep[i]<=layer.floor[i]+1e-12&&layer.set[i]<=layer.keep[i]+1e-12,`node ${i} keeps no more than its cap`);
+  }
+  assert.equal(layer.rest,false,'a field pressed past its new cap is woken');
+  stepGive(layer,dt);
+  for(let i=20;i<50;i++)assert(layer.depth[i]<=1.2-FORM.minThick+1e-9,`the step clamps node ${i} to the cap`);
+  assert(Math.abs(layer.deepest-Math.max(...layer.floor))<1e-12,'deepest follows the cap');
+  // Healing: the set flows back at the pace's rate and reaches nought; the
+  // surface follows it up; nothing to heal is a no-op and so is no time.
+  const wet=createGive(17.2,{spacing:FORM.spacing,tune:{weight:400}});
+  run(wet,360,()=>pressGive(wet,8.6));
+  const kept=Math.max(...wet.set);assert(kept>.3,`a stand sets the layer (${kept.toFixed(2)})`);
+  assert.equal(relaxGive(wet,0,{relaxTime:5,relaxMin:.4}),false,'no time heals nothing');
+  relaxGive(wet,dt,{relaxTime:5,relaxMin:.4});
+  const once=Math.max(...wet.set),k=1-Math.exp(-dt/5);
+  assert(Math.abs(once-kept*(1-k))<1e-9||Math.abs(once-(kept-.4*dt))<1e-9,`one tick heals a share of the set (${once.toFixed(4)} of ${kept.toFixed(4)})`);
+  let t=0;while(Math.max(...wet.set)>0&&t<20){relaxGive(wet,dt,{relaxTime:5,relaxMin:.4});stepGive(wet,dt);t+=dt;}
+  assert(t>1&&t<12,`the set is healed to nothing within the pace's seconds (${t.toFixed(2)}s)`);
+  run(wet,240);
+  assert(Math.max(...wet.depth)<.02,`and the surface has followed it up (${Math.max(...wet.depth).toFixed(3)})`);
+  assert.equal(relaxGive(wet,dt,{relaxTime:5,relaxMin:.4}),false,'nothing left to heal');
+  assert.equal(stepGive(wet,dt),false,'and the field rests');
+  // Hold-under against columns of their own heights: the surface under a
+  // rising player is measured from each column's top, not from a flat one.
+  const hill=createGive(17.2,{spacing:FORM.spacing}),cols=Float64Array.from(form.h),i=35,x=i*hill.dx;
+  for(let j=0;j<cols.length;j++)cols[j]=2.7+2*Math.exp(-((j*hill.dx-x)**2)/2);
+  run(hill,360,()=>pressGive(hill,x));
+  const feet=cols[i]-hill.depth[i]-.05;
+  holdUnder(hill,x,feet,1,cols);
+  assert(hill.depth[i]>=cols[i]-feet+.02-1e-9,'springing clay cannot pass the feet measured against its own column');
+  assert(hill.velocity[i]>=-1-1e-9,'nor rise faster than they do');
+}
+console.log('PASS a layer on a mass takes the mass\'s grid and a station\'s tune, is capped by the columns, heals its set at a wet pace and holds under against its own tops');

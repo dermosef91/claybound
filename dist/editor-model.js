@@ -2,6 +2,7 @@ import {BAT} from './enemy-rules.js';
 import {DRIFTER} from './drifter-rules.js';
 import {BLINKER,DRIP,HATWORM} from './dream-enemy-rules.js';
 import {SINK,FOLD,ZIP} from './cavern-machines.js';
+import {GIVE_TUNABLE} from './clay-give.js';
 import {DECOR_KINDS,DECOR_BOUNDS,DECOR_LIMIT,BACKDROP_BOUNDS,BACKDROP_LIMIT,BACKDROP_DEFAULT} from './decor-kinds.js';
 export const DRAFT_KEY='claybound-editor-v1';
 export const KINDS={stone:'Solid cliff',wall:'Wall block',ledge:'Thin ledge',bridge:'Rope bridge',lift:'Rope lift',spring:'Spring / mushroom',crumble:'Crumbling ledge',break:'Breakable seal',switch:'Switch',timed:'Switched bridge',pulse:'Pulse ledge',balance:'Counterweight',counter:'Counter lift',gate:'Relay grate',ferry:'Weight ferry',orbit:'Orbit cradle',clay:'Kneadable clay',sink:'Sinking raft',fold:'Folding deck',dome:'Dome island',zip:'Zip line'};
@@ -222,6 +223,19 @@ export function validateDraft(source,base){
           for(const key of ['settle','relaxTime','relaxMin'])if(s.pace[key]!==undefined)pace[key]=finite(s.pace[key],.05,120,`station ${s.id} pace ${key}`);
           if(s.pace.holdUnderfoot!==undefined)pace.holdUnderfoot=!!s.pace.holdUnderfoot;
           station.pace=pace;
+        }
+        // Clay that gives under weight: the lab's sag springs riding the mass.
+        // `true` takes the bench's numbers; an object names the ones to change,
+        // copied in the table's own order so the export's key order is stable.
+        if(s.give!==undefined){
+          if(s.give===true)station.give=true;
+          else {
+            if(!s.give||typeof s.give!=='object'||Array.isArray(s.give))throw new Error(`Station ${s.id} has a give that is neither true nor an object of numbers.`);
+            for(const key of Object.keys(s.give))if(!GIVE_TUNABLE.includes(key))throw new Error(`Station ${s.id} tunes a give number that does not exist (${key}).`);
+            const give={};
+            for(const key of GIVE_TUNABLE)if(s.give[key]!==undefined)give[key]=finite(s.give[key],1e-3,1e4,`station ${s.id} give ${key}`);
+            station.give=give;
+          }
         }
         if(s.launch!==undefined)station.launch=finite(s.launch,4,40,`station ${s.id} launch`);
         // Whether a stomp throws the stomper back up (and the clay is drawn
