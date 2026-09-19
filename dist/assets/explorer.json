@@ -1,0 +1,90 @@
+{
+  "source": "explorer-surface.glb",
+  "sourceSha256": "53a76cff9f427c25b5e5a93faa33d19e85ff5345177b749a5baecbda6339c9bd",
+  "shippedSha256": "a6048352322501a43c34450af1b28550f5c6dcd4316ffc671189df58ec4a3826",
+  "sourceBytes": 9081452,
+  "shippedBytes": 3219060,
+  "textures": [
+    {
+      "role": "normal",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "baseColor",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "textureLimit": 1024,
+  "geometryUnchanged": true,
+  "geometrySha256": "878dac9ed5d2b06bbcf37fcbe006604a8384a8a790d6de4a270d1a265b9b45c0",
+  "animations": 2,
+  "triangles": 17812,
+  "surface": {
+    "source": "Meshy_AI_Raincoat_Explorer_Running.glb",
+    "sourceSha256": "594c8769a4c94306fab9ce306bd77ae72fabe52c48348e5a3286a318b2bab4ad",
+    "normalsWelded": 26730,
+    "dropped": [
+      "roughness"
+    ],
+    "normalMapKept": 0.45,
+    "grade": {
+      "name": "explorer",
+      "steps": [
+        {
+          "where": {
+            "hue": [
+              32,
+              62
+            ],
+            "sat": [
+              0.7,
+              1
+            ],
+            "val": [
+              0.7,
+              1
+            ]
+          },
+          "hue": -5,
+          "sat": 0.88,
+          "val": 0.96
+        },
+        {
+          "where": {
+            "val": [
+              0,
+              0.55
+            ]
+          },
+          "hue": 3,
+          "sat": 1.06,
+          "lift": 0.32
+        },
+        {
+          "where": {
+            "hue": [
+              22,
+              38
+            ],
+            "sat": [
+              0.35,
+              0.68
+            ],
+            "val": [
+              0.82,
+              1
+            ]
+          },
+          "sat": 1.1,
+          "val": 0.94
+        }
+      ]
+    }
+  }
+}

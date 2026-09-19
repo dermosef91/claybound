@@ -58,13 +58,52 @@ const AIMS={
 // only a few degrees apart, but every one of those degrees would land on the
 // foot as a tilt away from the floor it was modelled flat on — six on the
 // Mixamo rigs, twelve on the apprentice's, whose boots then stood on their
-// heels with the toes in the air. A foot carries the original's rotation away
-// from rest and nothing else, so a foot that rests flat stays flat.
-const FLAT=new Set(['LeftFoot','LeftToeBase','RightFoot','RightToeBase']);
+// heels with the toes in the air.
+//
+// What a foot does take from the toe is its heading along the floor. Where a
+// shoe points is a genuine difference between two rigs standing flat — an
+// auto-rigger fits each foot to the boot it finds, and the explorer arrived
+// with its right boot turned out ten degrees further than its left, which no
+// idle could stand straight in. So the ankle is aimed at the toe in yaw alone,
+// about the vertical, which turns a flat sole without tipping it, and the toe
+// follows its foot the way a hand follows its forearm.
+const YAW=new Set(['LeftFoot','RightFoot']);
+const flat=v=>v.setY(0).normalize();
 // Every joint above is anatomy a humanoid rig has to have. The crown is not: it
 // is a marker some exporters leave above the head and others end without, so a
 // rig may arrive without one and the head is then aimed like any other tip.
 const OPTIONAL=new Set(['head_end']);
+// Where a rig's rest relation is not the original's, the retarget carries the
+// difference into every clip: a wrist that rests a few degrees off the forearm
+// hangs those degrees off it in every state. On a long thin limb that passes
+// unnoticed. On the explorer — a child's build, hands as wide as its forearms,
+// a pelvis half the original's width for the same splay of thigh — it did not:
+// the mitts flared out from under the sleeves and the knees bowed out over the
+// boots, and the stance the references asked for — feet a boot apart, elbows
+// bent with the fists out beside the coat — is not one the original strikes.
+// These are degrees about the model's own axes as the character stands at
+// idle (x tips a limb's end forward for negative values, z turns it toward the
+// model's +x), applied to the named joint and nowhere else: a child that is
+// aimed keeps its own aim, so turning a thigh moves the knee without tipping
+// the boot beneath it. Read them off `scripts/measure-pose.mjs`, judge them on
+// `scripts/review-cast.cjs`.
+const TUNE={
+  explorer:{
+    LeftArm:[0,0,21],RightArm:[0,0,-19],
+    LeftForeArm:[-40,0,16],RightForeArm:[-40,0,-14],
+    LeftHand:[-32,0,7],RightHand:[-32,0,22],
+    LeftUpLeg:[5,0,2],RightUpLeg:[-5,0,2],
+    LeftLeg:[5,0,24],RightLeg:[-5,0,-24]
+  }
+};
+// The floor correction stands a character on its single lowest vertex. The
+// original's idle flexes one ankle a few degrees, which on its own short foot
+// keeps both soles within a few millimetres of the floor; on a boot twice as
+// long the same flex lifts a toe a centimetre, and with the other boot the one
+// touching, that boot visibly hovers. A sink lets the character stand that much
+// lower, in the model's own units: the raised sole meets the floor and the
+// other sinks the same few millimetres into the clay, where nothing shows it.
+const SINK={explorer:.008};
 const PREFIX='mixamorig';
 // Every clip hero.js names, plus the floor-corrected subset. Airborne excerpts
 // are cut from Regular_Jump and Jump_Over_Obstacle_2, whose vertical travel the
@@ -114,14 +153,15 @@ const inherit=(swings,joint)=>{
   for(let above=joint.parent;above;above=above.parent)if(swings.has(above))return swings.get(above).clone();
   return new THREE.Quaternion();
 };
+const TOES={LeftFoot:'LeftToeBase',RightFoot:'RightToeBase'};
 const frame=new Map(),swings=new Map();
 for(const {from,source,joint} of pairs){
   const at=AIMS[from]&&carried(AIMS[from])?AIMS[from]:null;
   const swing=at
     ?new THREE.Quaternion().setFromUnitVectors(aim(source,bone(donor.scene,at)),aim(joint,bone(target.scene,JOINTS[at])))
-    :FLAT.has(from)?new THREE.Quaternion():inherit(swings,joint);
+    :YAW.has(from)?new THREE.Quaternion().setFromUnitVectors(flat(aim(source,bone(donor.scene,TOES[from]))),flat(aim(joint,bone(target.scene,JOINTS[TOES[from]]))))
+    :inherit(swings,joint);
   swings.set(joint,swing);
-  frame.set(joint,rest.get(source).clone().invert().multiply(swing.clone().invert()).multiply(rest.get(joint)));
 }
 const hips=bone(target.scene,'Hips'),donorHips=bone(donor.scene,'Hips');
 const restHipsLocal=hips.position.clone();
@@ -143,6 +183,26 @@ const pushName=suppliedClips.map(c=>c.name).find(name=>/push/i.test(name))||[...
 if(pushName){WANTED.push(pushName);GROUNDED.add(pushName);}
 const mixer=new THREE.AnimationMixer(donor.scene);
 const world=new Map(),scratch=new THREE.Quaternion(),local=new THREE.Quaternion(),hipsWorld=new THREE.Vector3();
+
+// A correction sits between the swing and the original's motion, so it rides
+// along unchanged through every clip. Its degrees are written the way they are
+// read — about the model's axes with the character standing at idle — and
+// the original stands at idle forty degrees of arm away from its A-pose rest,
+// so each is carried back through that joint's idle-to-rest turn before it is
+// kept; applied at rest in the frame below, it comes out at idle as written.
+{
+  const standing=mixer.clipAction(sources.get(WANTED[0]));standing.play();standing.time=0;mixer.update(0);donor.scene.updateMatrixWorld(true);
+  for(const {source,joint} of pairs){
+    const turn=TUNE[name]?.[joint.name],swing=swings.get(joint);
+    const correction=new THREE.Quaternion();
+    if(turn){
+      const idle=source.getWorldQuaternion(new THREE.Quaternion()).multiply(rest.get(source).clone().invert());
+      correction.copy(idle).invert().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(...turn.map(THREE.MathUtils.degToRad)))).multiply(idle);
+    }
+    frame.set(joint,rest.get(source).clone().invert().multiply(correction).multiply(swing.clone().invert()).multiply(rest.get(joint)));
+  }
+  mixer.stopAllAction();mixer.uncacheClip(sources.get(WANTED[0]));
+}
 
 function retarget(source){
   const clip=sources.get(source);if(!clip)throw new Error(`The original character has no clip named ${source}.`);
@@ -186,7 +246,7 @@ function correct(clip){
     for(const mesh of meshes)for(let i=0;i<mesh.geometry.attributes.position.count;i++){
       mesh.getVertexPosition(i,vertex).applyMatrix4(mesh.matrixWorld);floor=Math.min(floor,vertex.y);
     }
-    values.push(+((hips.position.y-floor/rootScale).toFixed(5)));
+    values.push(+((hips.position.y-floor/rootScale-(SINK[name]||0)).toFixed(5)));
   }
   targetMixer.stopAllAction();targetMixer.uncacheClip(clip);
   return {times,values};

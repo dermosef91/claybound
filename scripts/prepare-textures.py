@@ -98,6 +98,12 @@ def repack(source_path, shipped_path, limit):
         'geometryUnchanged': True, 'geometrySha256': geometry.hexdigest(),
         'animations': len(doc.get('animations', [])), 'triangles': triangles,
     }
+    # A model that went through prepare-surface.py first leaves a note of what
+    # was done to it; carry it, so the manifest still leads back to the file
+    # the artist supplied.
+    sidecar = Path(source_path).with_suffix('.surface.json')
+    if sidecar.exists():
+        manifest['surface'] = json.loads(sidecar.read_text())
     return result, manifest
 
 

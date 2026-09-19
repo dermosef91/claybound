@@ -8,7 +8,7 @@
 //
 // The supplied files each arrived with at most a single Running cycle, so
 // scripts/prepare-character.mjs retargets the rest of the set from the original
-// rig. Three of them name their joints the way the original does under a vendor
+// rig. Four of them name their joints the way the original does under a vendor
 // prefix, which hero.js drops on load. The apprentice came off another exporter
 // entirely — its own anatomy of names, no clips, and a root bone carrying the
 // tilt of whatever authored it — so scripts/prepare-rig.mjs settled its names
@@ -52,14 +52,19 @@ export const CHARACTERS=[
     height:STANDING*1.5,orangeSource:0,bonePrefix:'mixamorig'
   },
   {
-    id:'apprentice',name:'Clay apprentice',note:'Terracotta and cream, capped. Who you start as.',
+    id:'apprentice',name:'Clay apprentice',note:'Terracotta and cream, capped.',
     model:'apprentice.glb',motion:'apprentice-motion.json',animation:'apprentice-animation.json',
     height:STANDING*1.15,orangeSource:0,clayDepth:.06,mirror:true
+  },
+  {
+    id:'explorer',name:'Raincoat explorer',note:'Marigold, chestnut and olive. Who you start as.',
+    model:'explorer.glb',motion:'explorer-motion.json',animation:'explorer-animation.json',
+    height:STANDING*1.2,orangeSource:0,bonePrefix:'mixamorig'
   }
 ];
 
 // Who everyone plays as until they choose otherwise. The original stays first
 // in the list — it is the rig the others were retargeted from, and every test
-// that reads CHARACTERS[0] means it — but the apprentice is the one worn.
-export const DEFAULT_CHARACTER='apprentice';
+// that reads CHARACTERS[0] means it — but the explorer is the one worn.
+export const DEFAULT_CHARACTER='explorer';
 export const characterChoice=id=>CHARACTERS.find(entry=>entry.id===id)||CHARACTERS.find(entry=>entry.id===DEFAULT_CHARACTER);
