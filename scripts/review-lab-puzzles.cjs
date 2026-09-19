@@ -71,6 +71,10 @@ review(async({page,url,errors,requests:badRequests})=>{
  await goTo('fix',null);
  await form((mod,marble,g,pt)=>{Object.assign(g.player,{x:359.6,y:0,vx:0,vy:0,groundId:null});pt.step(12);});
  await shot('11-fix-rot');
+ // The push itself: a real walk into the block, so the pose is the simulation's.
+ await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='fix'),block=st.fix.blockPlatform;Object.assign(g.player,{x:block.x-1.2,y:0,vx:0,vy:0,groundId:null});pt.step(12);pt.step(80,{moveAxis:1});});
+ await page.waitForTimeout(300);await page.evaluate(()=>{playtest.step(6,{moveAxis:1});playtest.draw();});
+ await shot('11-fix-push');
  await form((mod,marble,g,pt)=>{const st=g.level.shaping.find(s=>s.id==='fix'),block=st.fix.blockPlatform,s=g.level.platforms.find(q=>q.id==='fix-mass');block.x=s.x-block.w+.55;block.prevX=block.x;Object.assign(g.player,{x:block.x-.6,y:0,vx:0,vy:0,groundId:null});pt.step(34);});
  await shot('11-fix-dissolve');
  await goTo('fix',null);
