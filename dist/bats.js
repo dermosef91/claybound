@@ -2,6 +2,7 @@ import * as THREE from './lib/three.module.js';
 import {clone} from './lib/SkeletonUtils.js';
 import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel} from './clay.js';
+import {puppetStep,boilPuppet} from './stop-motion.js';
 import {BAT} from './enemy-rules.js';
 import {createBatEcho,animateBatEcho,batLookVector} from './bat-echo.js';
 import {applyFlatten} from './clay-feel.js';
@@ -31,7 +32,7 @@ export function createBatView(w,e){
   const root=new THREE.Group();root.name='Flying bat '+e.id;root.position.set(e.x,e.y+BAT.modelOffsetY,.35);w.levelRoot.add(root);
   const pose=new THREE.Group();pose.name='Bat facing';pose.position.y=centerY-BAT.modelOffsetY;root.add(pose);
   const echo=createBatEcho(w,root);
-  const view={kind:'bat',root,pose,echo,id:e.id,loaded:false,deathTime:0,turn:0,aim:new THREE.Quaternion(),look:new THREE.Vector3(),reducedMotion:!!w.reducedMotion};
+  const view={kind:'bat',root,pose,echo,id:e.id,loaded:false,deathTime:0,turn:0,aim:new THREE.Quaternion(),look:new THREE.Vector3(),reducedMotion:!!w.reducedMotion,clock:w.puppetClock};
   if(w.batAsset)attachBatView(w,view);return view;
 }
 function attachBatView(w,view){
@@ -44,7 +45,7 @@ function attachBatView(w,view){
   mixer.update(0);Object.assign(view,{model,mixer,actions,loaded:true});
 }
 export function animateBat(view,e,dt,status){
-  const step=status==='playing'?Math.min(dt,.05):0;
+  const step=status==='playing'?puppetStep(view.clock,dt):0;
   view.root.position.set(e.x,e.y+BAT.modelOffsetY,.35);if(!view.loaded)return;
   if(e.alive){
     view.root.visible=true;view.root.scale.setScalar(1);view.deathTime=0;
@@ -60,7 +61,7 @@ export function animateBat(view,e,dt,status){
     view.actions.Fly.setEffectiveTimeScale(state==='retreat'?1.35:1);
     view.actions.Swoop.setEffectiveTimeScale(diving?view.actions.Swoop.getClip().duration/(e.diveDuration||.5):1);
     animateBatEcho(view.echo,e,status);
-    view.mixer.update(step);
+    view.mixer.update(step);boilPuppet(view.root,view.clock);
     view.root.rotation.set(0,0,0);
     if(state==='retreat'||charging||diving){
       batLookVector(e,view.look);

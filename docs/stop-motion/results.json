@@ -1,0 +1,36 @@
+{
+  "results": [
+    {
+      "id": "apprentice",
+      "name": "run",
+      "off": 15,
+      "on": 2,
+      "squashOff": 0,
+      "squashOn": 0
+    },
+    {
+      "id": "apprentice",
+      "name": "idle",
+      "off": 15,
+      "on": 2,
+      "squashOff": 0,
+      "squashOn": 0
+    },
+    {
+      "id": "apprentice",
+      "name": "land",
+      "off": 15,
+      "on": 15,
+      "squashOff": 0,
+      "squashOn": 0
+    },
+    {
+      "id": "drifter",
+      "name": "creature",
+      "off": 15,
+      "on": 2
+    }
+  ],
+  "errors": [],
+  "requests": []
+}

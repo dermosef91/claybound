@@ -30,14 +30,15 @@ import {createCaveLights} from '../dist/cave-lighting.js';
 import {animateDreamViews} from '../dist/dream-views.js';
 import {animateDream} from '../dist/dream.js';
 import paradeVisual,{HAT_WIDTHS,HAT_NEST,GIRAFFE_WITHERS,GIRAFFE_LEAVE,VALANCE_TILES} from '../dist/dream/parade.js';
-import {DREAM_FILES,PLANET_ORBS,EYEBALL,dreamPlanet,dreamSaucer,dreamSculpture,dreamHat,dreamHatHeight,dreamCaterpillar,dreamGiraffe,skinnedBox,dreamColumn,dreamCane,dreamSun,dreamValance,dreamBanner,dreamEyeball,COLUMN_MEDALLION} from '../dist/dream-assets.js';
+import {DREAM_FILES,PLANET_ORBS,EYEBALL,dreamPlanet,dreamSaucer,dreamSculpture,dreamHat,dreamHatHeight,dreamCaterpillar,dreamGiraffe,skinnedBox,dreamColumn,dreamCane,dreamSun,dreamValance,dreamBanner,dreamEyeball,dreamPillar,dreamMountain,dreamPebbles,COLUMN_MEDALLION} from '../dist/dream-assets.js';
+import {prepareCloudAsset} from '../dist/clouds.js';
 import {SOCKET,GAZE} from '../dist/dream/corridor.js';
 import {updateShaping} from '../dist/shaping.js';
 import {CATERPILLAR_RIG,CATERPILLAR_HEAD,GIRAFFE_BONES,GIRAFFE_POSE} from '../dist/dream-rigs.js';
 import {HATWORM_COLOURS} from '../dist/dream-enemies.js';
 import {animateEnemy,releaseEnemyView} from '../dist/enemies.js';
 import {clone} from '../dist/lib/SkeletonUtils.js';
-import {readPlayer} from './load-player.mjs';
+import {readPlayer,readGLB} from './load-player.mjs';
 import {attachClay} from './load-clay.mjs';
 import {attachDream} from './load-dream.mjs';
 
@@ -75,6 +76,10 @@ const firstMesh=root=>{let m=null;root.traverse(o=>{if(o.isMesh&&!m)m=o;});retur
 
 // --- 1. the shipped files and their manifest --------------------------------------------
 const manifest=JSON.parse(await readFile(url('dream-assets.json')));
+// The models shipped without their metallic-roughness map (a roughness map
+// multiplies the roughness clayMaterials has just pinned), and the garden's
+// three scenery pieces among them.
+const GARDEN=new Set(['pillar','pebbles','mountain']),MATTE=new Set(['hat','arch','eyeball',...GARDEN]);
 const bare={};await attachDream(bare);
 for(const [key,file]of Object.entries(DREAM_FILES)){
   const entry=manifest[file];assert(entry,file+' is in dream-assets.json');
@@ -94,7 +99,11 @@ for(const [key,file]of Object.entries(DREAM_FILES)){
     // The three models whose metallic-roughness map was left out of the
     // shipped file: a roughness map multiplies the roughness clayMaterials has
     // just pinned, so shipping one would make that model the one glossy prop.
-    if(key==='hat'||key==='arch'||key==='eyeball')assert(!o.material.roughnessMap&&!o.material.metalnessMap,file+' has no roughness map to make it the one glossy prop');
+    if(MATTE.has(key))assert(!o.material.roughnessMap&&!o.material.metalnessMap,file+' has no roughness map to make it the one glossy prop');
+    // The garden's scenery is tagged like a fixed colour, so the side scenery
+    // in front of its decks (depth-scenery.js) clones and fades the pebble
+    // pile over the player instead of leaving the shared material alone.
+    assert.equal(!!o.material.userData.fixed,GARDEN.has(key),file+(GARDEN.has(key)?' is tagged fixed for the foreground fade':' keeps its material untagged'));
     // The eyeball is a closed ball pressed into clay; its inside is never the
     // near face, and drawing it would let the dark cap the bake mirrored onto
     // its back show through any hairline at the socket's rim.
@@ -737,4 +746,64 @@ console.log('PASS the dome spin turns the supplied planet');
   assert(lids.every(l=>Math.abs(l.position.y)<1e-9),'and holds the lips open');
   w.reducedMotion=false;
   console.log(`PASS the corridor's ${eyes.length} streamed eyes are the supplied ball in a socket of folds: both lips ${(Math.min(upper.front,lower.front)-ball.front).toFixed(2)} in front of its front pole, an almond of ${aperture.toFixed(2)} of the ball's ${(2*r).toFixed(2)} showing, the blink closing to ${shut.toFixed(2)} still covered, reduced motion still`);
+}
+
+// --- 13. the Crooked Garden's scenery --------------------------------------------------------
+// Everything standing about the garden's decks is a supplied model placed
+// whole — the backdrop's spires and pillars, the pebble heaps at their feet,
+// on the decks and in the side scenery in front of every stone deck, and the
+// chapters' shared cloud in the garden's wash — and the only mushrooms left
+// are the two a player uses, the spring and the floating pads' caps. The
+// side-scenery heaps must be the fade's clones, and the cloud wash must be a
+// material World.build keeps.
+{
+  prepareCloudAsset(w,await readGLB(new URL('../dist/assets/cloud.glb',import.meta.url)));
+  const garden=MODULES.find(m=>m.key==='garden'),L=soloSection(garden),g=new Game();g.start(INDEX,L);
+  const x=L.spawn.x+4;
+  w.build(g.level,INDEX,x);w.syncVisible(g.level,x,true);w.scene.updateMatrixWorld(true);
+  const count=(root,name)=>{let n=0;root.traverse(o=>{if(o.name===name)n++;});return n;};
+  for(const gone of ['Far pillar','Far silhouette','Far island','Far waterfall','Mound','Cloud','Mushroom cap','Mushroom stem'])assert.equal(count(w.backRoot,gone),0,gone+' is no longer sculpted into the backdrop');
+  assert(count(w.backRoot,'Dream mountain')>=7,'the spires stand in the far skyline, before and past the arch');
+  assert(count(w.backRoot,'Dream pillar')>=6,'the pillars stand in the middle distance and near, before and past the arch');
+  assert(count(w.backRoot,'Dream pebble pile')>=4,'pebble heaps lie at the pillars\' feet');
+  assert.equal(count(w.backRoot,'Ivory cloud'),4,'the sky is four of the shared cloud');
+  assert.equal(count(w.backRoot,'Ribbon cloud'),1);assert.equal(count(w.backRoot,'Sky coil'),2);
+  // The wash: every cloud mesh wears a clone kept in w.mat, never the shared material.
+  const shared=new Set();w.cloudAsset.scene.traverse(o=>{if(o.isMesh)shared.add(o.material);});
+  const washes=new Set();
+  w.backRoot.traverse(o=>{if(o.name!=='Ivory cloud')return;o.traverse(m=>{if(!m.isMesh)return;assert(!shared.has(m.material),'a garden cloud never draws the shared ivory material');assert.equal(w.mat[m.material.name],m.material,'its wash lives in w.mat');assert(m.material.userData.clay,'and keeps the clay relief');washes.add(m.material);});});
+  assert(washes.size>=2,'the clouds come in two washes');
+  // On the decks: heaps where the mushrooms and bushes stood, no mushroom, no bush.
+  for(const gone of ['Garden mushroom','Garden bush'])assert.equal(count(w.levelRoot,gone),0,gone+' is gone from the decks');
+  assert(count(w.levelRoot,'Dream pebble pile')>=1,'a pebble heap is streamed in on the entry deck');
+  // In front of the decks: the heaps are the model, on the clones the fade
+  // dims. (Looked up by the deck's id: this rig's depthViews still lists the
+  // `start` of the sections built before, which World.build does not sweep.)
+  const id='garden-entry',view=w.depthViews.get(id);assert(view,'the entry deck has side scenery');
+  const part=view.parts[0];
+  assert(count(part.root,'Dream pebble pile')>=2,'the side scenery in front of '+id+' is two pebble heaps');
+  assert.equal(count(part.root,'Mound'),0);
+  assert(part.materials.length>0,'and its materials are clones the fade can dim');
+  for(const m of part.materials)assert(m.map&&m.userData.fixed,'each clone keeps the pebbles\' colour map and the fixed tag');
+  // The two mushrooms that stay: the floating pads' caps and the spring.
+  w.syncVisible(g.level,30,true);
+  assert(/^Garden floating pad/.test(w.platforms.get('garden-float-1').root.name),'the floating pad is still a mushroom cap');
+  w.syncVisible(g.level,47,true);
+  const spring=w.platforms.get('garden-shroom').root;
+  assert(/^Garden mushroom spring/.test(spring.name)&&count(spring,'Mushroom cap')===1&&count(spring,'Mushroom stem')===1,'the spring is still a mushroom');
+  // Placement: a stretched pillar is as tall as asked and slimmer by the stretch.
+  const a=w.dreamAssets.pillar,tall=dreamPillar(w,new THREE.Group(),6,{stretch:1.25}),plain=dreamPillar(w,new THREE.Group(),6);
+  assert(near(tall.userData.size.y,6,1e-9)&&near(plain.userData.size.y,6,1e-9),'both stand 6 tall');
+  assert(near(tall.userData.size.x,plain.userData.size.x/1.25,1e-9),'the stretched one is a fifth slimmer');
+  assert(near(tall.userData.size.x,6/1.25*a.size.x/a.size.y,1e-9));
+  const pile=dreamPebbles(w,new THREE.Group(),3),spire=dreamMountain(w,new THREE.Group(),8);
+  assert(near(pile.userData.size.x,3,1e-9)&&near(spire.userData.size.y,8,1e-9),'a pile is as wide, a spire as tall, as asked');
+  for(const root of [tall,pile,spire]){root.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(root,true);assert(near(box.min.y,0,1e-6),root.name+' stands with its foot on the origin');}
+  // Rebuilding keeps the wash: the same material instance, never disposed.
+  let disposed=0;for(const m of washes)m.addEventListener('dispose',()=>disposed++);
+  w.build(g.level,INDEX,x);w.syncVisible(g.level,x,true);
+  for(const m of washes)assert.equal(w.mat[m.name],m,'the wash survives World.build');
+  assert.equal(disposed,0,'and is never disposed');
+  assert.equal(sharedDisposals,0,'nothing shared was disposed by building the garden');
+  console.log(`PASS the Crooked Garden stands the supplied pillar, pebble pile and clayfall spire in place of its sculpted scenery (${count(w.backRoot,'Dream pillar')} pillars, ${count(w.backRoot,'Dream mountain')} spires, ${count(w.backRoot,'Dream pebble pile')} far heaps, ${washes.size} cloud washes on four shared clouds); the spring and the pads are the only mushrooms left, and the side-scenery heaps fade on clones`);
 }

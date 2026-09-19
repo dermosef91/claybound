@@ -43,7 +43,7 @@ function hideLoading(fade=false){
 }
 let draftStorage;try{draftStorage=localStorage;}catch{}
 const drafts=new DraftLibrary(LEVELS,draftStorage);
-let saved={last:0,best:{},runs:{},customBest:{},customRuns:{},sound:true,music:Sound.DEFAULT_MUSIC,effects:Sound.DEFAULT_EFFECTS,rumble:true,clayDone:[]};
+let saved={last:0,best:{},runs:{},customBest:{},customRuns:{},sound:true,music:Sound.DEFAULT_MUSIC,effects:Sound.DEFAULT_EFFECTS,rumble:true,stopMotion:false,clayDone:[]};
 try{const s=JSON.parse(localStorage.getItem('claybound-v1'));if(s&&typeof s==='object')saved={...saved,...s,best:s.best||{}};}catch{}
 const persist=()=>{try{localStorage.setItem('claybound-v1',JSON.stringify(saved));}catch{}};
 saved.runs??={};
@@ -55,6 +55,8 @@ const runStore=()=>game.level.custom?saved.customRuns:saved.runs;
 const saveJourney=()=>{if(game&&!game.level.playground&&!editor?.active&&!editor?.testing&&game.status!=='complete'&&game.checkpointId!=='start'){runStore()[game.index]=game.snapshot();persist();}};
 const level=(value,fallback)=>Number.isFinite(Number(value))?Math.min(1,Math.max(0,Number(value))):fallback;
 saved.music=level(saved.music,Sound.DEFAULT_MUSIC);saved.effects=level(saved.effects,Sound.DEFAULT_EFFECTS);saved.rumble=saved.rumble!==false;
+// Off unless chosen: the stepped look is offered, not imposed, while it is judged.
+saved.stopMotion=saved.stopMotion===true;
 // A character that has since been withdrawn falls back to the original rather
 // than leaving the world with nobody in it.
 saved.character=characterChoice(saved.character).id;
@@ -136,7 +138,7 @@ async function ensureWorld(blocking=true){
   if(worldError){if(blocking){hideLoading();show('error',true);$('error-home').focus();}return false;}
   if(worldLoading)return worldLoading;
   worldLoading=Promise.resolve().then(async()=>{
-    if(!world)world=new World($('world'),{character:saved.character,onProgress(ratio){
+    if(!world)world=new World($('world'),{character:saved.character,stopMotion:saved.stopMotion,onProgress(ratio){
       if(ratio===null)return;
       $('loading-progress').classList.add('determinate');$('loading-fill').style.width=`${Math.round(ratio*100)}%`;
       $('loading-status').textContent=ratio<1?`Shaping the clay world · ${Math.round(ratio*100)}%`:'Finding our feet…';
@@ -260,7 +262,7 @@ const labMarkup=()=>`<button class="chapter-choice playground-choice" data-actio
 function help(){
   openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run. A controller's left stick or d-pad steers too.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them. On a controller, A or Y.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms. On a controller, B, X or a trigger.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Violet clay can be shaped</strong><span>Tap or drag it, hold E, or stomp it — violet clay breathes when you are beside it and stretches into ramps, stairs and bridges. R softens it back.</span></div></div><div class="control-row">${hintIcon('menu')}<div><strong>Arrows or W / A / S / D steer the menus</strong><span>Enter or Space chooses, Escape backs out. On a controller: d-pad or stick, A to choose, B to go back.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
 }
-function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active,{music:saved.music,effects:saved.effects,rumble:saved.rumble,characters:CHARACTERS,character:saved.character,charactersUnlocked:saved.charactersUnlocked}));}
+function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active,{music:saved.music,effects:saved.effects,rumble:saved.rumble,stopMotion:saved.stopMotion,characters:CHARACTERS,character:saved.character,charactersUnlocked:saved.charactersUnlocked}));}
 // The cast is not part of the game a first-time player meets, so the picker is
 // hidden until someone types ß with the settings panel open. Found once, it
 // stays: an unlock you have to rediscover on every visit is a nuisance, not a
@@ -377,6 +379,13 @@ $('dialog-content').addEventListener('click',e=>{
     if(saved.rumble)haptics.pulse({type:'land',impact:12});else haptics.silence();
     b.setAttribute('aria-checked',String(saved.rumble));
     b.innerHTML=`${icon('move-vertical')}<span>Rumble</span><strong>${saved.rumble?'On':'Off'}</strong>`;icons();
+  }
+  if(a==='settings-stopmotion'){
+    // Takes effect on the running world at its next frame; the title's hero
+    // and the completion stage read the same flag through the world.
+    saved.stopMotion=!saved.stopMotion;if(world)world.stopMotion=saved.stopMotion;persist();
+    b.setAttribute('aria-checked',String(saved.stopMotion));
+    b.innerHTML=`${icon('camera')}<span>Stop motion</span><strong>${saved.stopMotion?'On':'Off'}</strong>`;icons();
   }
   if(a==='settings-character')chooseCharacter(b.dataset.character);
   if(a==='help')help();

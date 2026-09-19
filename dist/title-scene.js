@@ -3,6 +3,7 @@ import {applyEnvironment} from './environments.js';
 import {canyonModel} from './canyon-assets.js';
 import {cloudModel} from './clouds.js';
 import {animateHero,heroEvent} from './hero.js';
+import {tickPuppets} from './stop-motion.js';
 import {clayMaterial} from './clay.js';
 
 // A persistent diorama using the game's renderer, source models and clay.
@@ -131,6 +132,8 @@ export class TitleScene {
   }
   update(dt){
     const w=this.view,step=this.world.reducedMotion?0:Math.min(dt,.05);this.time+=step;w.reducedMotion=this.world.reducedMotion;
+    // The title is the set's own stage: its hero exposes on the world's clock too.
+    w.puppetClock=tickPuppets(this.world,step);
     if(step>0)for(const cloth of this.flagCloths){
       const swell=this.time*1.65,ripple=this.time*2.7+.7;
       cloth.morphTargetInfluences[0]=Math.cos(swell);cloth.morphTargetInfluences[1]=Math.sin(swell);

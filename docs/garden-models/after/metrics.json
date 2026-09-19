@@ -1,0 +1,40 @@
+{
+  "root": "/Users/moritzgrassy/Claybound/.claude/worktrees/garden-models",
+  "level": 4,
+  "results": [
+    {
+      "spot": "garden-arch",
+      "x": 34.5,
+      "cameraX": 36.76844444444444,
+      "cameraY": 5.295999999999999,
+      "viewW": 20.62222222222222,
+      "viewH": 11.6,
+      "roll": 0,
+      "palette": {
+        "main": "#c36771",
+        "secondary": "#acda58",
+        "backdrop": "#d394ab",
+        "accent": "#ee74a9",
+        "sky": "#f7bb9b",
+        "fog": "#f2b6cb",
+        "sun": "#fff0e0",
+        "fill": "#f3cdd8",
+        "sunPower": 3,
+        "fogNear": 30,
+        "fogFar": 98
+      },
+      "calls": 449,
+      "triangles": 600488,
+      "geometries": 84,
+      "textures": 31,
+      "programs": 24,
+      "frameMs": 0.699999988079071,
+      "frameMsP90": 0.800000011920929,
+      "lights": 3,
+      "transparentMeshes": 80,
+      "sceneMeshes": 838
+    }
+  ],
+  "errors": [],
+  "badRequests": []
+}

@@ -43,7 +43,16 @@ import {fixedMaterial,lid,slot} from './dream/support.js';
 // its pupil is painted into the colour map rather than set on it here, so
 // nothing about it is rigged and the ball itself turns to look. EYEBALL below
 // holds what that needs.
-export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb',fruit:'dream-fruit.glb',banner:'dream-banner.glb',column:'dream-column.glb',cane:'dream-cane.glb',sun:'dream-sun.glb',arch:'dream-arch.glb',cavern:'dream-cavern.glb',eyeball:'dream-eyeball.glb'};
+//
+// The Crooked Garden's scenery is three more, placed whole by depth: a pink
+// clay pillar under a frosting cap (the backdrop's columns), a pile of pastel
+// pebbles (the mounds at their feet, in front of every deck and on the decks
+// themselves), and a terracotta spire with a waterfall down one face (the far
+// skyline and the post-arch peaks). Nothing is rigged or cut; they are
+// scenery like the cavern, and like it keep the colours they were painted in.
+export const DREAM_FILES={flower:'dream-flower.glb',mint:'dream-planet-mint.glb',raspberry:'dream-planet-raspberry.glb',saucerMint:'dream-saucer-mint.glb',saucerRaspberry:'dream-saucer-raspberry.glb',hat:'dream-hat.glb',sculpture:'dream-sculpture.glb',caterpillar:'dream-caterpillar.glb',giraffe:'dream-giraffe.glb',fruit:'dream-fruit.glb',banner:'dream-banner.glb',column:'dream-column.glb',cane:'dream-cane.glb',sun:'dream-sun.glb',arch:'dream-arch.glb',cavern:'dream-cavern.glb',eyeball:'dream-eyeball.glb',pillar:'dream-pillar.glb',pebbles:'dream-pebbles.glb',mountain:'dream-mountain.glb'};
+// The garden's three: what tags their materials below and what places them.
+const GARDEN_SCENERY=new Set(['pillar','pebbles','mountain']);
 
 // Each planet's core orb in model space — the sphere the fruit and the leaf
 // sprouts are stuck onto — fitted over every vertex by a modal-radius
@@ -226,6 +235,13 @@ export function prepareDreamAsset(w,key,gltf){
       m.needsUpdate=true;
     }
   }
+  // The garden's pebble pile also stands in the side scenery in front of the
+  // stone decks, which depth-scenery.js fades when it would cover the player —
+  // but in the dream it only clones (and so can only dim) a material tagged
+  // `fixed`, the mark support.js's fixedMaterial leaves, because the palette's
+  // shared materials must stay shared through every flip. A supplied colour is
+  // as fixed as a hex, so the three take the tag.
+  if(GARDEN_SCENERY.has(key))for(const m of materialsOf(gltf.scene))m.userData.fixed=true;
   w.dreamAssets??={};const record=w.dreamAssets[key]={scene:gltf.scene,box,size,center};
   // The lollipop's column stands in the sky layer, where the pink haze would
   // bleach its candy stripe to lilac: like the spiral sun's ribbons it takes no
@@ -437,6 +453,22 @@ export function dreamColumn(w,parent,height,{reach=0}={}){
 export const dreamCane=(w,parent,height)=>placeDream(w,'cane',parent,'y',height,[.5,0,.5],'Dream cane');
 // The smiling sun, `width` across, centred on the origin.
 export const dreamSun=(w,parent,width)=>placeDream(w,'sun',parent,'x',width,[.5,.5,.5],'Dream sun');
+
+// --- the garden's scenery -----------------------------------------------------------
+// The pillar, `height` tall with its foot on the origin. The upload is a stocky
+// column — six tenths as wide as it is tall — so `stretch` pulls it taller
+// without widening it (the model scales up by height/stretch, then its y
+// alone by stretch); 1.2 still reads as a tapered column under its cap.
+export function dreamPillar(w,parent,height,{stretch=1}={}){
+  const root=placeDream(w,'pillar',parent,'y',height/stretch,[.5,0,.5],'Dream pillar');
+  root.scale.y*=stretch;root.userData.size.y*=stretch;
+  return root;
+}
+// The clayfall spire, `height` tall, foot on the origin; the waterfall runs
+// down its +z face.
+export const dreamMountain=(w,parent,height)=>placeDream(w,'mountain',parent,'y',height,[.5,0,.5],'Dream mountain');
+// The pebble pile, `width` across, resting on the origin plane.
+export const dreamPebbles=(w,parent,width)=>placeDream(w,'pebbles',parent,'x',width,[.5,0,.5],'Dream pebble pile');
 // One of the banner's parts as a mesh of its own, sharing the upload's material.
 function bannerPart(w,part,parent,axis,extent,anchor,name){
   const a=asset(w,'banner'),geometry=a[part],box=geometry.boundingBox,size=box.getSize(new THREE.Vector3());

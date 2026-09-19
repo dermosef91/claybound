@@ -107,6 +107,12 @@ await click('#settings');
   toggles.at(-1).focus();key('Tab');assert.equal(document.activeElement,document.querySelector('#dialog .dialog-close'),'Tab past the last control wraps to the first');
 }
 await click('[data-action="close"]');
+// Stop motion: off until chosen, flipped in place, remembered, and pushed onto the running world.
+await click('#settings');assert.equal(document.querySelector('[data-action="settings-stopmotion"]').getAttribute('aria-checked'),'false');
+await click('[data-action="settings-stopmotion"]');assert.equal(app.saved.stopMotion,true);assert.equal(document.querySelector('[data-action="settings-stopmotion"]').getAttribute('aria-checked'),'true');
+assert.equal(JSON.parse(storage.get('claybound-v1')).stopMotion,true,'the choice is saved on the device');
+await click('[data-action="close"]');await click('#settings');assert.equal(document.querySelector('[data-action="settings-stopmotion"]').getAttribute('aria-checked'),'true','and shown again on reopening');
+await click('[data-action="settings-stopmotion"]');assert.equal(app.saved.stopMotion,false);await click('[data-action="close"]');
 $('settings').focus();await click('#settings');await click('[data-action="help"]');await click('[data-action="close"]');assert.equal(document.activeElement,$('settings'),'Nested help returns focus to the title trigger');
 await click('#chapters');assert.equal(document.querySelectorAll('.chapter-choice[data-level]').length,4);assert.equal(document.querySelectorAll('.chapter-choice[data-action="playground"]').length,0,'the clay lab is hidden until it is unlocked');assert.equal(document.querySelector('.chapter-choice[data-level="4"]'),null,'so is the dream');
 window.dispatchEvent(Object.assign(new window.Event('keydown'),{key:'ß'}));await settle();

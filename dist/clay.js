@@ -38,11 +38,14 @@ export function clayMaterial(w,material,depth){
   if(material.userData.clay){material.userData.clay.requestedDepth=requestedDepth;material.userData.clay.depth=material.bumpScale;return material;}
   const detail=w.clay.detail;
   material.bumpMap=detail;material.metalness=0;
-  material.userData.clay={type:'relief',period:w.clay.profile.period,requestedDepth,depth:material.bumpScale};
+  // `offset` is the live handle on where the prints sit: the shader reads this
+  // very vector, so moving it slides the relief across the surface with no
+  // recompile — the stop-motion boil nudges a puppet's by a hair each step.
+  material.userData.clay={type:'relief',period:w.clay.profile.period,requestedDepth,depth:material.bumpScale,offset:new THREE.Vector3().fromArray(material.userData.clayOffset||[0,0,0])};
   material.onBeforeCompile=shader=>{
     orangeTextureShader(shader,material.userData.clayOrangeSource);
     shader.uniforms.clayPeriod={value:w.clay.profile.period};
-    shader.uniforms.clayOffset={value:new THREE.Vector3().fromArray(material.userData.clayOffset||[0,0,0])};
+    shader.uniforms.clayOffset={value:material.userData.clay.offset};
     shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
 uniform vec3 clayOffset;
 varying vec3 vClayPosition;

@@ -4,6 +4,7 @@ import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel,clayMaterial} from './clay.js';
 import {SPORE} from './spore-rules.js';
 import {applyFlatten} from './clay-feel.js';
+import {puppetStep,heldSample,boilPuppet} from './stop-motion.js';
 export async function loadSpores(w,onProgress){
   if(w.sporeAsset){onProgress?.(1);return;}
   if(!w.sporeLoading)w.sporeLoading=loadModel('spore-puff.glb',onProgress).then(g=>prepareSporeAsset(w,g)).catch(e=>{w.sporeLoading=null;throw e;});
@@ -24,7 +25,7 @@ export function createSporeView(w,e){
   const feet=['Bone_016','Bone_019','Bone_022','Bone_025'].map(name=>{const bone=model.getObjectByName(name);return {bone,rest:bone.quaternion.clone()};});
   const cloud=new THREE.Group();cloud.name='Clay spore puff';root.add(cloud);
   const motes=Array.from({length:w.reducedMotion?5:11},(_,i)=>{const m=w.ball(.1,.1,.1,'spore',cloud);m.castShadow=false;return m;});
-  const view={kind:'spore',root,pose,model,feet,cloud,motes,loaded:true,id:e.id,turn:e.dir*.8,clock:0,deathTime:0,squashNode:pose,reducedMotion:!!w.reducedMotion};
+  const view={kind:'spore',root,pose,model,feet,cloud,motes,loaded:true,id:e.id,turn:e.dir*.8,clock:0,deathTime:0,squashNode:pose,reducedMotion:!!w.reducedMotion,puppet:w.puppetClock};
   animateSpore(view,e,0,'editing');return view;
 }
 // One cloud for both moments a puff lets go of its spores: thrown forward at
@@ -49,7 +50,7 @@ function poseCloud(v,age,forward){
   }
 }
 export function animateSpore(v,e,dt,status){
-  const step=status==='playing'?Math.min(dt,.05):0;v.clock+=step;v.root.position.set(e.x,e.y,.3);
+  const step=status==='playing'?puppetStep(v.puppet,dt):0;v.clock+=step;v.root.position.set(e.x,e.y,.3);
   if(!e.alive){
     v.deathTime+=step;
     // Only the body is pressed flat — straight down whatever wiggle or leap it
@@ -62,22 +63,26 @@ export function animateSpore(v,e,dt,status){
     return;
   }
   v.root.visible=true;v.root.scale.setScalar(1);v.pose.visible=true;v.deathTime=0;
-  const state=e.aiState||'idle',wiggle=state==='wiggle',crouch=state==='crouch',jump=state==='leap',puff=state==='puff';
-  const t=e.stateTime||0,wave=wiggle?Math.sin(t*35):0;
-  v.turn+=(e.dir*.95-v.turn)*(1-Math.exp(-step*12));v.pose.rotation.set(0,v.turn,wiggle?wave*.105:jump?-e.dir*.16:0);
+  // Under stop motion the body reads the creature as it was at the last
+  // exposure; where it is, its life and the cloud it left are read live.
+  const s=heldSample(v.puppet,v,step,()=>({...e}));
+  const state=s.aiState||'idle',wiggle=state==='wiggle',crouch=state==='crouch',jump=state==='leap',puff=state==='puff';
+  const t=s.stateTime||0,wave=wiggle?Math.sin(t*35):0;
+  v.turn+=(s.dir*.95-v.turn)*(1-Math.exp(-step*12));v.pose.rotation.set(0,v.turn,wiggle?wave*.105:jump?-s.dir*.16:0);
   let sy=1,sx=1;
   if(wiggle){sy=.93+Math.sin(t*27)*.055;sx=1.04-Math.sin(t*27)*.04;}
   else if(puff){sy=1.13-t*.8;sx=.95+t*.5;}
   else if(crouch){sy=.86-.18*Math.min(1,t/SPORE.crouchTime);sx=1.12;}
-  else if(jump){sy=e.leapVY>0?1.1:.96;sx=e.leapVY>0?.92:1.035;}
+  else if(jump){sy=s.leapVY>0?1.1:.96;sx=s.leapVY>0?.92:1.035;}
   else if(state==='recover'){const squash=Math.exp(-t*9)*.22;sy=1-squash;sx=1+squash*.65;}
   else {sy=1+Math.sin(v.clock*3)*.025;sx=1-Math.sin(v.clock*3)*.012;}
   v.pose.scale.set(sx,sy,sx);
   for(let i=0;i<v.feet.length;i++){
     const f=v.feet[i];f.bone.quaternion.copy(f.rest);
-    const angle=wiggle?Math.sin(t*35+i*Math.PI)*.09:jump?(i<2?-.2:.24):Math.sin(v.clock*6+i*Math.PI)*Math.min(.075,Math.abs(e.vx||0)*.1);
+    const angle=wiggle?Math.sin(t*35+i*Math.PI)*.09:jump?(i<2?-.2:.24):Math.sin(v.clock*6+i*Math.PI)*Math.min(.075,Math.abs(s.vx||0)*.1);
     f.bone.rotateX(angle);
   }
+  boilPuppet(v.root,v.puppet);
   const age=e.puffAge??10;v.cloud.visible=age<PUFF.life&&status!=='editing';
   if(v.cloud.visible){
     // Fixed world origin keeps the cloud behind when the enemy lunges.
