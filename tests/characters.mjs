@@ -40,8 +40,12 @@ for(const choice of CHARACTERS){
   // The push is the one state a rig may lack: it is carried only once a push
   // clip has been prepared beside the idle (scripts/prepare-push.mjs).
   assert.deepEqual(Object.keys(c.clips).filter(k=>k!=='push'&&k!=='pushStop').sort(),
-    ['death','hurt','idle','jumpFall','jumpRise','land','leapFall','leapRise','longIdle','run','stomp','victory','walk'].sort(),
+    ['death','hurt','idle','jumpFall','jumpRise','land','leapFall','leapRise','longIdle','run','slide','slideStop','stomp','victory','walk'].sort(),
     `${choice.id}: the full state vocabulary is present`);
+  // The slide ships with the original and is retargeted onto everyone else, so
+  // unlike the push no rig is without it: it glides to the seam and stands up after.
+  assert(Math.abs(c.clips.slide.duration-.8)<1e-3&&c.clips.slideStop.duration>.5,
+    `${choice.id}: the slide glides to the seam and the getting-up follows`);
   assert.equal('push' in c.clips,c.sourceClips.some(name=>/push/i.test(name)),`${choice.id}: a push state exactly when a push clip was supplied`);
   if(c.clips.push){
     assert.equal(c.clips.push.userData.source,'Push_Forward_and_Stop',`${choice.id}: the supplied take is the push`);

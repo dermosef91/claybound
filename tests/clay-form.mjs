@@ -6,7 +6,7 @@
 // the same surface the feet do.
 import assert from 'node:assert/strict';
 import * as THREE from '../dist/lib/three.module.js';
-import {Game,FIXED_DT as dt,surfaceAt,RULES as PLAYER} from '../dist/simulation.js';
+import {Game,FIXED_DT as dt,surfaceAt,SLOPE,RULES as PLAYER} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
 import lab from '../dist/routes/clay-lab.js';
 import {visitStation,nearbyStation,nudgeClay,formSteepAt} from '../dist/shaping.js';
@@ -215,7 +215,12 @@ function rig(id='form'){
   let last=p.x,ticks=0;
   const tick=(input={})=>{
     g.tick(dt,input);ticks++;
-    assert(Math.abs(p.x-last)<=6.7*dt+1e-3,`x moves continuously (tick ${ticks}: ${last.toFixed(3)} -> ${p.x.toFixed(3)})`);last=p.x;
+    // Walking pace, or what the clay's own slope is allowed to add to it: a
+    // descent gathers up to `downhill` more, and a face too steep to walk is
+    // slid down as far as `top`. The point of the bound is that nobody crosses
+    // the mass in a jump, so it tracks the ceiling rather than being loosened to it.
+    const ceiling=(p.sliding?SLOPE.top:6.7*(1+SLOPE.downhill))*dt+1e-3;
+    assert(Math.abs(p.x-last)<=ceiling,`x moves continuously (tick ${ticks}: ${last.toFixed(3)} -> ${p.x.toFixed(3)})`);last=p.x;
     if(p.x>s.x&&p.x<s.x+s.w&&p.y<base+FORM.maxHeight){
       assert(p.y>=surfaceAt(s,p.x)-.12-1e-9,`feet never end a tick inside the clay (tick ${ticks}: ${p.y.toFixed(3)} under ${surfaceAt(s,p.x).toFixed(3)})`);
       if(p.groundId===s.id)assert(Math.abs(p.y-surfaceAt(s,p.x))<1e-9,`a rider stands exactly on the surface (tick ${ticks})`);

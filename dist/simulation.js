@@ -53,7 +53,37 @@ export function domeSteepAt(s,x,radius){
   const left=domeSurface(s,x)-domeSurface(s,x-radius),right=domeSurface(s,x+radius)-domeSurface(s,x);
   return Math.sign(left)===Math.sign(right)&&Math.min(Math.abs(left),Math.abs(right))/radius>DOME_WALK;
 }
-export const surfaceAt=(s,x,previous=false)=>s.shape||s.form?claySurface(s,x,previous):s.kind==='dome'?domeSurface(s,x,previous):(previous?s.prevY:s.y)+(s.kind==='bridge'?bridgeOffset(s,x-(previous?s.prevX:s.x)):s.kind==='balance'?Math.sin(previous?s.prevAngle:s.angle)*(x-(previous?s.prevX:s.x)-s.w/2):0);
+export const surfaceAt=(s,x,previous=false,bare=false)=>s.shape||s.form?claySurface(s,x,previous,bare):s.kind==='dome'?domeSurface(s,x,previous):(previous?s.prevY:s.y)+(s.kind==='bridge'?bridgeOffset(s,x-(previous?s.prevX:s.x)):s.kind==='balance'?Math.sin(previous?s.prevAngle:s.angle)*(x-(previous?s.prevX:s.x)-s.w/2):0);
+// The grade under the feet, as rise per run along +x. It reads the one surface
+// function every kind of ground already answers, so an authored deck, a dome's
+// flank, a sagging bridge, a tilting balance and clay the player sculpted
+// themselves all report their slope the same way, without any of them being
+// taught about hills. The span is the body's own width — the same probe
+// `formSteepAt` and `domeSteepAt` read the ground with — so a lump narrower
+// than the walker is stepped over rather than climbed. It reads the clay bare,
+// without the hollow the walker's own weight presses into it: sinking in is not
+// climbing, and a dent that travels with the feet is not a hill.
+export const gradeAt=(s,x,radius=RULES.radius)=>s?(surfaceAt(s,x+radius,false,true)-surfaceAt(s,x-radius,false,true))/(2*radius):0;
+// What a hill does to the pace.
+//
+// `DOME_WALK` and the formable mass's `FORM.walk` already agree on where ground
+// stops being ground, at 1.7 rise per run, so that is the span a grade is
+// measured against here: 0 is flat and 1 is as steep as anything anyone can
+// stand on. Flat ground comes out at exactly the old numbers.
+//
+// Uphill the legs give out — the target speed falls to `uphill` less than
+// itself at the limit, and builds `drag` slower — which drops the walker under
+// the speed the run takes over at, so the climb is walked rather than run
+// without anything choosing the clip. Downhill the hill helps instead, by
+// `downhill` on the top speed and `gather` on the pickup.
+//
+// Past `slide` the feet stop arguing with it: the body goes down on its side
+// and gravity takes it along the face the way it rolls the marble
+// (clay-marble.js), steerable only a little, until the ground eases back to
+// `stand` and it gets up. That threshold sits between the walkable limit and
+// nothing, so the three answers a face can give — walk it, slide it, fall off
+// it — run into each other in order rather than leaving a gap.
+export const SLOPE={uphill:.46,drag:.3,downhill:.3,gather:.45,slide:1,stand:.72,steer:5.5,top:13};
 
 export class Game {
   constructor(onEvent=()=>{}) {this.onEvent=onEvent;this.status='menu';this.load(0);this.status='menu';}
@@ -74,7 +104,7 @@ export class Game {
     // its edge — as {x,y}; the camera follows it and the hands are off.
     this.cinema=null;
     const ground=this.level.platforms.find(p=>this.level.spawn.x>=p.x&&this.level.spawn.x<=p.x+p.w&&Math.abs(p.y-this.level.spawn.y)<.2);
-    this.respawnTimer=0;this.player={...this.level.spawn,vx:0,vy:0,facing:1,health:RULES.maxHealth,invuln:0,coyote:ground?.135:0,jumpBuffer:0,groundId:ground?.id??null,stomping:false,springing:false,squash:0,skidding:false,stride:0,stompWindup:0,stunTime:0,sporeGrace:0};
+    this.respawnTimer=0;this.player={...this.level.spawn,vx:0,vy:0,facing:1,health:RULES.maxHealth,invuln:0,coyote:ground?.135:0,jumpBuffer:0,groundId:ground?.id??null,stomping:false,springing:false,sliding:false,grade:0,squash:0,skidding:false,stride:0,stompWindup:0,stunTime:0,sporeGrace:0};
     this.status='playing';this.event('level',{index});
   }
   pause() {if(this.status==='playing'){this.status='paused';this.event('pause');}}
@@ -155,7 +185,7 @@ export class Game {
       // finished turning. A waiting lift or cradle simply starts its clock.
       if(s.kind==='fold'&&this.latched[s.channel]){s.foldRun=s.duration||FOLD.duration;updateFold(s,true,0);}
     }
-    Object.assign(this.player,{...this.checkpoint,groundId:checkpoint.id,health:RULES.maxHealth,invuln:1.4,stunTime:0,sporeGrace:0,zipGrace:0,stunJumpQueued:false});
+    Object.assign(this.player,{...this.checkpoint,groundId:checkpoint.id,health:RULES.maxHealth,invuln:1.4,sliding:false,grade:0,stunTime:0,sporeGrace:0,zipGrace:0,stunJumpQueued:false});
     if(this.finale){
       const F=this.level.finale,ripe=this.finaleStations().every(s=>!s||s.amount>.995);
       this.finale.strands=this.finaleStations().filter(s=>s?.amount>.995).map(s=>s.id);this.finale.time=0;
@@ -179,7 +209,7 @@ export class Game {
   }
   respawn() {
     this.flowerCelebration=null;
-    const p=this.player;Object.assign(p,{...this.checkpoint,vx:0,vy:0,health:p.health<=0?RULES.maxHealth:Math.min(RULES.maxHealth,p.health),invuln:1.4,groundId:null,coyote:.135,jumpBuffer:0,stomping:false,springing:false,skidding:false,stride:0,stompWindup:0,dropTimer:0,dropThrough:null,stunTime:0,sporeGrace:0,zipGrace:0,stunJumpQueued:false});
+    const p=this.player;Object.assign(p,{...this.checkpoint,vx:0,vy:0,health:p.health<=0?RULES.maxHealth:Math.min(RULES.maxHealth,p.health),invuln:1.4,groundId:null,coyote:.135,jumpBuffer:0,stomping:false,springing:false,sliding:false,grade:0,skidding:false,stride:0,stompWindup:0,dropTimer:0,dropThrough:null,stunTime:0,sporeGrace:0,zipGrace:0,stunJumpQueued:false});
     resetMotherPuff(this,this.level.boss?.state==='defeated');
     // A failed timed crossing always resets its route so the switch can be used again.
     // A rotten deck that has gone does not come back with the player: its gap
@@ -212,7 +242,7 @@ export class Game {
   // is the saved checkpoint too where it carries a flag.
   wake(){
     const w=this.level.finale.wake,deck=this.level.platforms.find(s=>s.id===w.groundId);
-    Object.assign(this.player,{x:w.x,y:w.y,vx:0,vy:0,groundId:w.groundId,coyote:.135,jumpBuffer:0,stomping:false,springing:false,stompWindup:0,dropTimer:0,dropThrough:null});
+    Object.assign(this.player,{x:w.x,y:w.y,vx:0,vy:0,groundId:w.groundId,coyote:.135,jumpBuffer:0,stomping:false,springing:false,sliding:false,grade:0,stompWindup:0,dropTimer:0,dropThrough:null});
     this.checkpoint={x:w.x,y:w.y};
     if(deck?.checkpoint!==undefined){this.checkpointId=deck.id;this.activatedCheckpoints.add(deck.id);}
     this.finale.state='awake';this.event('finale-awake',{x:w.x,y:w.y});
@@ -346,14 +376,38 @@ export class Game {
     const reversing=Math.abs(axis)>.1&&Math.sign(axis)!==Math.sign(p.vx)&&Math.abs(p.vx)>1;
     const skidding=!!p.groundId&&reversing&&Math.abs(p.vx)>3;
     if(skidding&&!p.skidding)this.event('skid',{x:p.x,y:p.y});p.skidding=skidding;
-    const accel=p.groundId?(reversing?110:68):(reversing?58:42);
+    // The hill under the feet, and how much of one it is against the walkable
+    // limit. `climb` is that grade the way the walker is facing it, so the same
+    // face is a climb going up it and a drop coming back down.
+    p.grade=oldGround?gradeAt(oldGround,p.x):0;
+    const heading=Math.abs(axis)>.01?Math.sign(axis):(Math.abs(p.vx)>.01?Math.sign(p.vx):p.facing);
+    const climb=Math.max(-1,Math.min(1,p.grade*heading/DOME_WALK));
+    // One factor either way: below 1 uphill, above 1 downhill, exactly 1 flat.
+    const pace=1-(climb>0?SLOPE.uphill:SLOPE.downhill)*climb;
+    const gather=1-(climb>0?SLOPE.drag:SLOPE.gather)*climb;
+    // A face too steep to walk but not too steep to stand on is slid down —
+    // going down it. Facing up one is still a climb, and still runs into the
+    // wall the steepest clay already makes, so pressing into a hill never ends
+    // up on the floor. It is let go of once the ground eases back to something
+    // standable, and jumping off it ends it below.
+    if(oldGround&&Math.abs(p.grade)>SLOPE.slide&&climb<0)p.sliding=true;
+    else if(!oldGround||Math.abs(p.grade)<SLOPE.stand)p.sliding=false;
+    const accel=p.groundId?(reversing?110:68)*gather:(reversing?58:42);
     let windX=0,windY=0;
     for(const wind of L.winds||[])if(wind.active&&p.x>wind.x&&p.x<wind.x+wind.w&&p.y+RULES.height>wind.y&&p.y<wind.y+wind.h){const strength=wind.gust?.35+.65*(.5+.5*Math.sin(this.time*1.3+wind.phase)):1;windX+=wind.fx*strength;windY+=wind.fy*strength;}
     p.windX=windX;p.windY=windY;
-    p.vx=approach(p.vx,axis*RULES.speed*(p.stomping?.45:1)*(p.sporeSlow?MOTHER_PUFF.slow:1)+windX*(p.groundId?.025:.16),dt*(Math.abs(axis)>.01?accel:(p.groundId?80:10)));
+    if(p.sliding){
+      // Gravity along the face — g·sinθ·cosθ, the marble's own term — against
+      // what little the feet can still do about it, and a cap a walk never
+      // reaches. Nothing brakes it but the ground running out of tilt.
+      p.vx-=RULES.gravity*p.grade/(1+p.grade*p.grade)*dt;
+      p.vx+=(axis*SLOPE.steer+windX*.025)*dt;
+      p.vx=Math.max(-SLOPE.top,Math.min(SLOPE.top,p.vx));
+    }
+    else p.vx=approach(p.vx,axis*RULES.speed*pace*(p.stomping?.45:1)*(p.sporeSlow?MOTHER_PUFF.slow:1)+windX*(p.groundId?.025:.16),dt*(Math.abs(axis)>.01?accel:(p.groundId?80:10)));
     if(motherPushed)p.vx=-13;
     if(p.jumpBuffer>0&&p.coyote>0) {
-      p.vy=RULES.jump;p.groundId=null;p.coyote=0;p.jumpBuffer=0;p.stomping=false;p.springing=false;p.squash=-.12;p.stompWindup=0;
+      p.vy=RULES.jump;p.groundId=null;p.coyote=0;p.jumpBuffer=0;p.stomping=false;p.springing=false;p.sliding=false;p.squash=-.12;p.stompWindup=0;
       this.event('jump',{x:p.x,y:p.y});
     }
     if(input.stompPressed&&oldGround?.kind==='ledge'){
