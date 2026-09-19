@@ -76,7 +76,7 @@ export function stopMotionTuningMarkup(tuning){
     </div>`;
 }
 
-export function settingsMarkup(soundEnabled,fullscreenActive,{music=.55,effects=1,rumble=true,stopMotion=false,stopMotionTuning,characters=[],character='',charactersUnlocked=false}={}){
+export function settingsMarkup(soundEnabled,fullscreenActive,{music=.55,effects=1,rumble=true,stopMotion=false,stopMotionTuning,analytics=true,characters=[],character='',charactersUnlocked=false}={}){
   return `<button class="dialog-close" data-action="close" aria-label="Close settings">${icon('x')}</button>
     <span class="eyebrow">SETTINGS</span><h2>Make yourself at home.</h2>
     <div class="title-levels">
@@ -90,7 +90,8 @@ export function settingsMarkup(soundEnabled,fullscreenActive,{music=.55,effects=
       <button class="title-setting" data-action="settings-stopmotion" role="switch" aria-checked="${stopMotion}" aria-label="Stop-motion animation, twelve poses a second">${icon('camera')}<span>Stop motion</span><strong>${stopMotion?'On':'Off'}</strong></button>
       ${stopMotion?stopMotionTuningMarkup(stopMotionTuning):''}
       <button class="title-setting" data-action="fullscreen" data-fullscreen="label" aria-pressed="${fullscreenActive}">${icon(fullscreenActive?'minimize':'expand')}<span>${fullscreenActive?'Exit fullscreen':'Fullscreen'}</span></button>
+      <button class="title-setting" data-action="settings-analytics" role="switch" aria-checked="${analytics}" aria-label="Anonymous usage statistics">${icon('chart-line')}<span>Usage stats</span><strong>${analytics?'On':'Off'}</strong></button>
       <button class="title-setting" data-action="help">${icon('gamepad-2')}<span>How to play</span></button>
       <button class="title-setting" data-action="editor">${icon('pencil-ruler')}<span>Level editor</span></button>
-    </div><p>Sound preferences and progress save on this device.</p>`;
+    </div><p>Sound preferences and progress save on this device. Usage stats are anonymous — which chapters are played and how well the game runs — and are only ever sent from the hosted game.</p>`;
 }

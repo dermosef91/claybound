@@ -25,6 +25,7 @@ import {menuFocusables,moveMenuFocus,menuDirection,MenuRepeat} from './menu-cont
 import {Haptics} from './haptics.js';
 import {motherQuiet,motherCorrupted} from './mother-puff-rules.js';
 import {updateMotherAtmosphere} from './mother-puff-hud.js';
+import {initAnalytics,track,setAnalyticsEnabled,flush as flushAnalytics,sampleFrame,frameSummary,rendererInfo} from './analytics.js';
 
 applyUIPalette(document.documentElement);
 
@@ -44,7 +45,7 @@ function hideLoading(fade=false){
 }
 let draftStorage;try{draftStorage=localStorage;}catch{}
 const drafts=new DraftLibrary(LEVELS,draftStorage);
-let saved={last:0,best:{},runs:{},customBest:{},customRuns:{},sound:true,music:Sound.DEFAULT_MUSIC,effects:Sound.DEFAULT_EFFECTS,rumble:true,stopMotion:false,clayDone:[]};
+let saved={last:0,best:{},runs:{},customBest:{},customRuns:{},sound:true,music:Sound.DEFAULT_MUSIC,effects:Sound.DEFAULT_EFFECTS,rumble:true,stopMotion:false,analytics:true,clayDone:[]};
 try{const s=JSON.parse(localStorage.getItem('claybound-v1'));if(s&&typeof s==='object')saved={...saved,...s,best:s.best||{}};}catch{}
 const persist=()=>{try{localStorage.setItem('claybound-v1',JSON.stringify(saved));}catch{}};
 saved.runs??={};
@@ -67,6 +68,13 @@ saved.stopMotionTuning=normalizeTuning(saved.stopMotionTuning);
 // players who never opened the cast; a save with the picker unlocked keeps
 // whatever it says.
 saved.character=saved.charactersUnlocked?characterChoice(saved.character).id:DEFAULT_CHARACTER;
+// On unless turned off, and only ever on the hosted game — analytics.js keeps
+// the host allowlist, so this starts nothing on a local dist/ or on Pages.
+// Fire and forget: nothing below waits on the SDK arriving.
+saved.analytics=saved.analytics!==false;
+// `location` is read off globalThis because the editor UI test evaluates this
+// file in a vm context that has no such global.
+initAnalytics({host:globalThis.location?.hostname||'',enabled:saved.analytics});
 const sound=new Sound();sound.enabled=saved.sound;sound.musicLevel=saved.music;sound.effectsLevel=saved.effects;
 const pads=new GamepadInput();
 const haptics=new Haptics(pads,{enabled:saved.rumble});
@@ -107,7 +115,8 @@ function onEvent(e){
     persist();saveJourney();
   }
   if(e.type==='pause')saveJourney();
-  if(e.type==='fall'){$('fade').classList.add('active');}
+  if(e.type==='checkpoint')track('checkpoint_reached',{chapter:game.index,section:game.sectionId,deaths:game.deaths});
+  if(e.type==='fall'){$('fade').classList.add('active');track('player_died',{chapter:game.index,section:game.sectionId,deaths:game.deaths,elapsed:Math.round(game.elapsed)});}
   if(e.type==='respawn')$('fade').classList.remove('active');
   if(e.type==='complete'){
     clearInput();show('hint',false);show('touch-controls',false);show('desktop-controls',false);show('timer',false);
@@ -117,6 +126,11 @@ function onEvent(e){
     const record=completionRecord(e,game.level,bestStore[e.index]);
     if(record.previous&&!game.level.custom){saved.previousRoutes??={};saved.previousRoutes[e.index]=record.previous;}
     bestStore[e.index]=record.best;delete runStore()[e.index];saved.last=Math.min(lastShown(),e.index+1);persist();
+    // Past both early returns, so this is a real chapter finishing rather than
+    // the Clay Lab bell or an editor playtest. The frame summary drains here:
+    // one chapter's worth of frame cost, carried by the event that ends it.
+    track('chapter_completed',{chapter:e.index,name:game.level.name,biome:game.level.biome,custom:!!game.level.custom,
+      beads:e.coins,flowers:e.stamps,seconds:Math.round(e.time),deaths:e.deaths,best:!!record.result?.newBest,...frameSummary()});
     lastResult=record.result;clearTimeout(completionTimer);
     completionTimer=setTimeout(()=>{if(game.status==='complete'&&game.index===e.index)result(record.result);},750);
   }
@@ -156,11 +170,19 @@ async function ensureWorld(blocking=true){
     titleScene=new TitleScene(world);if(menu)titleScene.show();
     editor.world=world;assetsReady=true;
     document.body.classList.add('title-scene-ready');$('title-scene-status').textContent='';
+    // The first moment the game is actually playable. performance.now() is
+    // measured from navigation start, so this is the whole cold load — the one
+    // number that says how many players wait out 17 MB of clay and how many
+    // never get here at all.
+    track('title_ready',{load_ms:Math.round(performance.now()),blocking,
+      pixel_ratio:devicePixelRatio,viewport_w:innerWidth,viewport_h:innerHeight,...rendererInfo(world.renderer)});
     $('menu').inert=!$('dialog').classList.contains('hidden');hideLoading();
     prev=performance.now();return true;
   }).catch(err=>{
     worldError=err;
     console.error('World loading failed',err);clearInput();game.pause();hideLoading();
+    // The counterpart to title_ready: the players who never saw the game.
+    track('world_load_failed',{load_ms:Math.round(performance.now()),reason:String(err?.message||err).slice(0,200)});
     $('error-text').textContent='The clay world could not load. Check your connection and enable graphics acceleration, then try again. Your progress is safe.';
     $('title-scene-status').textContent='Enable graphics acceleration to view the 3D world.';
     if(worldRequested){show('error',true);$('error-home').focus();}else $('menu').inert=!$('dialog').classList.contains('hidden');
@@ -198,7 +220,9 @@ async function begin(index=0,restart=false,sourceChoice,playgroundSource=null){
       await world.prepareLevel(nextLevel,ratio=>{if(ratio!==null&&request===chapterRequest){$('loading-progress').classList.add('determinate');$('loading-fill').style.width=`${Math.round(ratio*100)}%`;$('loading-status').textContent=`Loading the ${assetName} · ${Math.round(ratio*100)}%`;}});
     }catch(error){
       if(request!==chapterRequest)return;
-      console.error('Chapter assets failed to load',error);hideLoading();$('error-text').textContent=`The ${assetName} could not load. Check your connection and try again.`;show('error',true);return;
+      console.error('Chapter assets failed to load',error);
+      track('chapter_load_failed',{chapter:index,biome:nextLevel.biome,reason:String(error?.message||error).slice(0,200)});
+      hideLoading();$('error-text').textContent=`The ${assetName} could not load. Check your connection and try again.`;show('error',true);return;
     }
     if(request!==chapterRequest)return;
     // Downloading is only half the wait: world.build then welds the whole
@@ -222,6 +246,14 @@ async function begin(index=0,restart=false,sourceChoice,playgroundSource=null){
   // the first step is not a catch-up. Uncovering here is safe: animation frames
   // run before the browser paints, so the frame loop draws the built chapter in
   // the very frame that removes the overlay.
+  // Everything above could still have bailed out — a cancelled request, a
+  // failed download — so the chapter only counts as started down here, with
+  // the world built and the overlay about to lift. Draining the frame summary
+  // without reading it keeps an abandoned chapter's frames out of the next
+  // one's average.
+  frameSummary();
+  track('chapter_started',{chapter:index,name:L.name,biome:L.biome,restart:!!restart,resumed:!!resumed,
+    custom:!!L.custom,playground:!!L.playground,source:choice||'original'});
   prev=performance.now();hideLoading(true);
 }
 function home(){saveJourney();clearInput();resetDialog();lastResult=null;menu=true;game.status='menu';document.body.classList.add('is-menu');document.body.dataset.biome='desert';show('menu',true);['hud','dialog','hint','chapter-intro','touch-controls','desktop-controls','timer','error'].forEach(id=>show(id,false));hideLoading();game.load(0);game.status='menu';titleScene?.show();$('fade').classList.remove('active');updatePlayLabel();icons();$('play').focus();}
@@ -269,7 +301,7 @@ const labMarkup=()=>`<button class="chapter-choice playground-choice" data-actio
 function help(){
   openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run. A controller's left stick or d-pad steers too.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them. On a controller, A or Y.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms. On a controller, B, X or a trigger.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Violet clay can be shaped</strong><span>Tap or drag it, hold E, or stomp it — violet clay breathes when you are beside it and stretches into ramps, stairs and bridges. R softens it back.</span></div></div><div class="control-row">${hintIcon('menu')}<div><strong>Arrows or W / A / S / D steer the menus</strong><span>Enter or Space chooses, Escape backs out. On a controller: d-pad or stick, A to choose, B to go back.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
 }
-function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active,{music:saved.music,effects:saved.effects,rumble:saved.rumble,stopMotion:saved.stopMotion,stopMotionTuning:saved.stopMotionTuning,characters:CHARACTERS,character:saved.character,charactersUnlocked:saved.charactersUnlocked}));}
+function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active,{music:saved.music,effects:saved.effects,rumble:saved.rumble,stopMotion:saved.stopMotion,stopMotionTuning:saved.stopMotionTuning,analytics:saved.analytics,characters:CHARACTERS,character:saved.character,charactersUnlocked:saved.charactersUnlocked}));}
 // The cast is not part of the game a first-time player meets, so the picker is
 // hidden until someone types ß with the settings panel open. Found once, it
 // stays: an unlock you have to rediscover on every visit is a nuisance, not a
@@ -413,6 +445,16 @@ $('dialog-content').addEventListener('click',e=>{
     b.setAttribute('aria-checked',String(t.creatures));
     b.innerHTML=`${icon('bug')}<span>Creatures too</span><strong>${t.creatures?'On':'Off'}</strong>`;icons();
   }
+  if(a==='settings-analytics'){
+    // Turning it off stops capture at once. Turning it back on within the same
+    // load only works if the SDK was started — a player who arrived opted out
+    // has no SDK to opt in, and picks it up on the next load instead. That is
+    // the honest trade for never fetching PostHog when the answer is no.
+    saved.analytics=!saved.analytics;setAnalyticsEnabled(saved.analytics);persist();
+    if(saved.analytics)initAnalytics({host:globalThis.location?.hostname||'',enabled:true});
+    b.setAttribute('aria-checked',String(saved.analytics));
+    b.innerHTML=`${icon('chart-line')}<span>Usage stats</span><strong>${saved.analytics?'On':'Off'}</strong>`;icons();
+  }
   if(a==='settings-character')chooseCharacter(b.dataset.character);
   if(a==='help')help();
 });
@@ -455,7 +497,7 @@ window.addEventListener('focus',syncAudioFocus);
 document.addEventListener('visibilitychange',()=>{clearInput();if(document.hidden&&game.status==='playing')pause();syncAudioFocus();});
 window.addEventListener('resize',clearPointerInput);
 window.addEventListener('orientationchange',clearPointerInput);
-window.addEventListener('pagehide',()=>{sound.setForeground(false);saveJourney();});
+window.addEventListener('pagehide',()=>{sound.setForeground(false);saveJourney();flushAnalytics();});
 window.addEventListener('pageshow',syncAudioFocus);
 window.addEventListener('contextmenu',e=>e.preventDefault());
 $('world').addEventListener('webglcontextlost',e=>{e.preventDefault();game.pause();clearInput();$('error-text').textContent='The graphics connection was interrupted. Reload to continue — your latest checkpoint is saved.';show('error',true);});
@@ -539,6 +581,10 @@ function frame(now){
   // that starts it and the one that ends it, when nothing has ticked — and any
   // frame the simulation is not running show the tick as it stands.
   const alpha=held||hitStop>0||game.status!=='playing'?1:accum/FIXED_DT;
+  // Sampled here rather than at the top of the frame: past every early return,
+  // so this counts only frames that actually drew a chapter. Menu idling and
+  // hidden tabs would otherwise flatter the average.
+  sampleFrame(dt);
   world.render(game,dt,menu,alpha);if(!editor?.active&&!$('hud').classList.contains('hidden'))healthHUD?.draw(game,dt);editor?.draw();hudAccum+=dt;if(hudAccum>.06){updateHUD(now);hudAccum=0;}
   requestAnimationFrame(frame);
 }
