@@ -99,51 +99,58 @@ export function createCrumble(w,s,root){
 
 // --- a rotten corner --------------------------------------------------------------
 // A bench corner rotted through: the bite `rot-shape.js` describes, filled with
-// rot — dark clay gone to pieces already, fractured across its face so the
-// seams are its cracks, pitted, flecked, and standing on a darker backing so
-// the cracks read black rather than sky. It falls the way a crumbling ledge
-// does: every fragment is a piece for animateCrumble, holder and all.
-const ROT_CLAY=0x4b423e,ROT_DARK=0x2d2826,ROT_DEPTH=3;
+// rot — one slab of dead clay, pitted like pumice with craters large and small,
+// grains of it clinging along its top and its open side, warm grey-brown where
+// the bench is blue. It is whole until it goes; then it falls as fragments,
+// which are built with it and shown only for the fall. Every piece is a piece
+// for animateCrumble, holder and all.
+const ROT_CLAY=0x776a61,ROT_DEPTH=3;
 export function rotMaterials(w){
-  for(const [name,color,vertexColors]of [['rotClay',ROT_CLAY,true],['rotDark',0x3a322f,true],['rotBack',ROT_DARK,false],['rotChip',0x3b3330,false]]){
+  for(const [name,color,vertexColors]of [['rotClay',ROT_CLAY,true],['rotShard',0x655953,true],['rotGrain',0x7d7067,false],['rotChip',0x6b5f57,false]]){
     const material=w.mat[name]??=new THREE.MeshStandardMaterial();
     material.color.setHex(color);material.roughness=.97;material.metalness=0;material.vertexColors=vertexColors;
   }
 }
+// porousClay builds a slab lying flat with its pitted face up; laid on its
+// side, (x, z) becomes (x, y) and the pits face the front. The holder keeps
+// that turn, since animateCrumble writes the piece's own rotation each frame.
+function rotSlab(w,geo,mat,root,cx,cy){
+  const holder=new THREE.Group();holder.position.set(cx,cy,0);root.add(holder);
+  const mesh=w.mesh(geo,mat,holder,0,0,ROT_DEPTH/2);mesh.rotation.x=Math.PI/2;
+  return {holder,mesh};
+}
 export function createRot(w,s,root){
   root.name='Rotten corner';rotMaterials(w);
   const seed=biteSeed(s),outline=biteOutline(s.w,s.h,seed),{left,right,top,bottom}=biteBounds(outline),pieces=[];
-  // Voronoi cells over the bite's box, in the plane of the bench's face, kept
-  // where their middle lies inside the bite. A cell that straddles the ragged
-  // wall runs on into the bench, where the bench hides it.
+  // The slab: the whole bite, pitted deep.
+  const cx=(left+right)/2,cy=(top+bottom)/2;
+  const whole=clayShape(w,`rot-slab:${seed}:${s.w}:${s.h}`,()=>porousClay(w,outline.map(([x,y])=>[x-cx,-(y-cy)]),ROT_DEPTH,seed,false,{count:54,scale:2.7,bold:.5,concave:true}));
+  const slab=rotSlab(w,whole,'rotClay',root,cx,cy);slab.mesh.name='Rotten clay';
+  pieces.push({mesh:slab.holder,rest:slab.holder.position.clone(),seed:0,layer:0,whole:true});
+  // Grains of rot cling along the top and the open side, and fall with it.
+  for(let i=0;i<18;i++){
+    const onTop=i<11,r=.07+random(seed+i*13)*.09;
+    const x=onTop?left+.25+random(seed+i*7)*(right-left-.45):right-r*.3,y=onTop?top-r*.25:bottom+.3+random(seed+i*11)*(top-bottom-.6);
+    const z=(random(seed+i*17)-.5)*(ROT_DEPTH-.6);
+    const grain=w.mesh(fragmentGeometry(w),'rotGrain',root,x,y,z);grain.scale.set(r*1.2,r*.9,r*1.05);grain.castShadow=false;
+    pieces.push({mesh:grain,rest:grain.position.clone(),seed:60+i,grain:true});
+  }
+  // The fragments it falls as: Voronoi cells over the bite's box, in the plane
+  // of the bench's face, kept where their middle lies inside the bite.
   const cols=Math.max(3,Math.round((right-left)/1.05)),rows=Math.max(2,Math.round((top-bottom)/.9)),sites=[];
   for(let r=0;r<rows;r++){const n=cols-(r%2);for(let c=0;c<n;c++)sites.push([left+(c+.5+(random(seed+c*3+r*11)-.5)*.6)*(right-left)/n,bottom+(r+.5+(random(seed+c*5+r*17)-.5)*.5)*(top-bottom)/rows]);}
   for(const [i,a]of sites.entries()){
     let poly=[[left,bottom],[right,bottom],[right,top],[left,top]];
     for(const b of sites)if(b!==a)poly=clip(poly,b[0]-a[0],b[1]-a[1],(b[0]**2+b[1]**2-a[0]**2-a[1]**2)/2);
     if(poly.length<3)continue;
-    const cx=poly.reduce((q,p)=>q+p[0],0)/poly.length,cy=poly.reduce((q,p)=>q+p[1],0)/poly.length;
-    if(!insideBite(outline,cx,cy))continue;
-    // Drawn in about its middle: the seams between fragments are the cracks.
-    // porousClay builds a slab lying flat with its pitted face up; laid on its
-    // side (x, z) becomes (x, y), and the pits face the front.
-    const local=poly.map(([x,y])=>{const len=Math.hypot(x-cx,y-cy)||1,f=1-Math.min(.075,len*.15)/len;return [(x-cx)*f,-(y-cy)*f];});
-    const geo=clayShape(w,`rot:${seed}:${i}`,()=>porousClay(w,local,ROT_DEPTH,seed+i*137,random(seed+i)>.55));
-    const holder=new THREE.Group();holder.position.set(cx,cy,0);root.add(holder);
-    const mesh=w.mesh(geo,random(seed+i*7)>.4?'rotClay':'rotDark',holder,0,0,ROT_DEPTH/2);mesh.rotation.x=Math.PI/2;
-    mesh.name='Rotten clay';
-    // A fleck or two of black on the face.
-    for(let k=0;k<2;k++)if(random(seed+i*13+k)>.45){
-      const fx=(random(seed+i*17+k)-.5)*.5,fy=(random(seed+i*19+k)-.5)*.5,r=.05+random(seed+i*23+k)*.06;
-      const fleck=w.ball(r,r*.85,r*.4,'rotBack',holder,fx,fy,ROT_DEPTH/2+.01);fleck.castShadow=false;
-    }
-    pieces.push({mesh:holder,rest:holder.position.clone(),seed:i,layer:0});
+    const px=poly.reduce((q,p)=>q+p[0],0)/poly.length,py=poly.reduce((q,p)=>q+p[1],0)/poly.length;
+    if(!insideBite(outline,px,py))continue;
+    const local=poly.map(([x,y])=>{const len=Math.hypot(x-px,y-py)||1,f=1-Math.min(.06,len*.12)/len;return [(x-px)*f,-(y-py)*f];});
+    const geo=clayShape(w,`rot-shard:${seed}:${i}`,()=>porousClay(w,local,ROT_DEPTH-.2,seed+i*137,random(seed+i)>.5));
+    const shard=rotSlab(w,geo,random(seed+i*7)>.5?'rotClay':'rotShard',root,px,py);shard.mesh.name='Rotten clay, fallen';
+    shard.holder.visible=false;
+    pieces.push({mesh:shard.holder,rest:shard.holder.position.clone(),seed:i+1,layer:0,shard:true});
   }
-  // The backing: the whole bite, a hand behind the fragments.
-  const shape=new THREE.Shape(outline.map(([x,y])=>new THREE.Vector2(x,y)));
-  const back=w.mesh(new THREE.ExtrudeGeometry(shape,{depth:.3,bevelEnabled:false}),'rotBack',root,0,0,-ROT_DEPTH/2-.3);
-  back.name='Rot backing';back.castShadow=false;
-  pieces.push({mesh:back,rest:back.position.clone(),seed:97,layer:1});
   return {pieces,crumbClock:0};
 }
 // The bench column the bite is eaten from, drawn as one piece with the bite's
@@ -196,6 +203,8 @@ export function animateCrumble(w,view,s,dt){
   fracture.settled=settled;
   for(const part of fracture.pieces){
     const {mesh,rest,seed}=part;mesh.position.copy(rest);mesh.rotation.set(0,0,0);
+    // A rotten slab is whole until it goes, and its shards only ever fall.
+    if(part.whole)mesh.visible=!!s.active;else if(part.shard)mesh.visible=!s.active;
     if(!s.active){
       const fall=Math.max(0,age-random(seed)*.11),dx=rest.x-s.w/2;
       mesh.position.x+=dx*fall*.42;mesh.position.y-=fall*fall*(part.grain?13:8.5);

@@ -276,10 +276,18 @@ const MOULD_INK=0xf6ecd6,MOULD_CAST=0x9be7a8,MOULD_BAND=.09;
 function createMouldView(s,root,D,base){
   const target=s.mould,n=target.length,dx=s.w/(n-1),z=D/2+.06;
   // The line to lie along: the target's top. A mould that is a gap to fill
-  // (`outline`) is drawn whole — down the open side, along the floor and up
-  // the wall — so it reads as the piece that is missing.
+  // (`outline`) is drawn whole — the bite the rot ate, down the open side,
+  // along the floor and up the bitten wall, teeth and all — so it reads as
+  // the piece that is missing, not as a box over the hole.
   const line=[];for(let i=0;i<n;i++)line.push([i*dx,base+target[i]]);
-  if(s.outline)line.push([s.w,base],[0,base],[0,base+target[0]]);
+  if(s.outline){
+    const bite=biteOutline(s.w,s.h,biteSeed(s));
+    // The bite runs along the top, down the open side, back along the floor
+    // and up the wall; its top is the cast, already drawn, so what follows
+    // the cast's last point is everything after the bite's second corner.
+    for(const [x,y] of bite.slice(2))line.push([x,base+s.h+y]);
+    line.push([0,base+target[0]]);
+  }
   const positions=new Float32Array(line.length*2*3),indices=[];
   for(let i=0;i<line.length;i++){
     const [x,y]=line[i],j=i*6;

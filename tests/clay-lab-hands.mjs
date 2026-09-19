@@ -332,3 +332,34 @@ console.log('PASS sag: pointer, E and tap leave the sag clay alone');
   assert(v.root.visible,'and a stall brings it back');
 }
 console.log('PASS cues: the stair shows a rising stroke on the next slab to raise, the lump a pressing one, and neither nags a working hand');
+
+// --- the plug's cue follows its phases ------------------------------------------
+{
+  const g=new Game();g.start(3,lab);
+  const w={levelRoot:new THREE.Group(),reducedMotion:false};
+  w.shapeHands=createShapeHands(w,g.level);assert(visitStation(g,'fix'));
+  const v=w.shapeHands.find(v=>v.station.id==='fix'),st=v.station,block=st.fix.blockPlatform,rot=st.fix.rotPlatform,mass=g.level.platforms.find(p=>p.id===st.parts[0]);
+  const settle=n=>{for(let i=0;i<n;i++)animateShapeHands(w,g,1/60,true);};
+  assert(v.palm,'the plug has an open hand of its own');
+  // While the rot stands: no cue at all — the sign says stomp.
+  settle(90);assert(!v.root.visible,'nothing is shown while the rot stands');
+  // The gap open: the open hand at the block's near face, pushing towards it,
+  // and neither the pointing hand nor its run and arrow.
+  rot.active=false;rot.broken=true;g.tick(1/120,{});
+  assert.equal(st.fix.phase,'open');
+  const travel=[];for(let i=0;i<114;i++){animateShapeHands(w,g,1/60,true);travel.push(v.palm.position.x);}
+  assert(v.root.visible&&v.palm.visible,'the open hand shows once the gap is open');
+  assert(v.hands.every(h=>!h.visible)&&v.marks.every(m=>!m.visible),'and the pointing hand, run and arrow do not');
+  assert(close(v.root.position.x,block.x,.1)&&v.root.position.y>block.y-block.h&&v.root.position.y<block.y,'at the block\'s near face, part way up it');
+  assert(Math.max(...travel)>Math.min(...travel)+.4&&Math.max(...travel)<=.001,'the hand shoves towards the block and comes back, never through it');
+  // The block goes: the hand goes with it.
+  block.x+=2;animateShapeHands(w,g,1/60,true);assert(close(v.root.position.x,block.x,.1),'it follows the block');
+  // Seated and settling: nothing; shaping: the press, run and arrow, over the mass.
+  block.pushPhase='locked';block.active=false;st.fix.phase='settling';mass.active=true;
+  settle(90);assert(!v.root.visible,'nothing while the plug settles');
+  st.fix.phase='shaping';settle(90);
+  assert(v.root.visible&&!v.palm.visible&&v.hands.every(h=>h.visible)&&v.marks.every(m=>m.visible),'the press once the plug is clay to the hand');
+  assert(v.root.position.x>mass.x&&v.root.position.x<mass.x+mass.w,'over the seated mass');
+  st.fix.phase='healed';st.amount=1;settle(60);assert(!v.root.visible,'and nothing once the corner is mended');
+}
+console.log('PASS the plug\'s cue: silent under the rot, an open hand pushing the block once the gap is open, the press once the plug is seated, silent while it settles and once it is mended');

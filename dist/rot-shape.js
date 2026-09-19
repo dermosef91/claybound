@@ -11,8 +11,9 @@
 // surface, so the corner reads as rotted through rather than sawn out.
 const random=n=>{const x=Math.sin(n*127.13+73.41)*43758.5453;return x-Math.floor(x);};
 
-// How far the bulge eats into the bench, as a share of the gap's width.
-export const BITE=Object.freeze({reach:.22,jag:.05});
+// How far the bite eats into the bench, as a share of the gap's width, and
+// how much each tooth of its edge may wander from where it is drawn.
+export const BITE=Object.freeze({reach:.26,jag:.035});
 
 // The seed a bite is drawn from: the gap's own place on the bench.
 export const biteSeed=s=>Math.round((s.x??0)*7+(s.w??0)*13);
@@ -25,10 +26,12 @@ export function biteOutline(w,h,seed=0){
   const pts=[[0,0],[w,0],[w,-h]];
   // The floor: level where the plug will sit, with a nick or two in it.
   pts.push([w*.62,-h+jag(1,.012)],[w*.3,-h+jag(2,.012)],[0,-h]);
-  // The left wall eats into the bench: out and back over the height of the
-  // gap, never at the very top, so the walking surface is the bench's own.
-  const wall=[[-.15,-h+.12],[-.6,-h+.34],[-1,-h+.56],[-.75,-.66*h],[-1,-.5*h],[-.55,-.34*h],[-.35,-.14*h],[-.08,-.05*h]];
-  for(const [i,[u,v]] of wall.entries())pts.push([u*reach+jag(10+i)*.6,v+jag(20+i)*.4]);
+  // The left wall is bitten, not worn: a few straight teeth into the bench,
+  // deepest a little below the middle, and never at the very top, so the
+  // walking surface is the bench's own. Straight runs between the points —
+  // the shapes drawn from this extrude them as they are.
+  const wall=[[-.1,-.94*h],[-.62,-.8*h],[-1,-.58*h],[-.5,-.44*h],[-.86,-.3*h],[-.38,-.16*h],[-.12,-.05*h]];
+  for(const [i,[u,v]] of wall.entries())pts.push([u*reach+jag(10+i)*.5,v+jag(20+i)*.3]);
   return pts;
 }
 
