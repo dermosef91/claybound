@@ -19,6 +19,21 @@ const reach=rise=>rise>2.6?-1:rise>2.3?2.6:rise>1.8?3.4:rise>1?4.4:5;
 const blockerDepth=s=>s.kind==='stone'?11:s.kind==='wall'?(s.h??4):s.kind==='gate'?(s.h||10):s.shape||s.kind==='clay'?(s.h??.65):0;
 const foldBlocker=s=>{const b=foldWall(s);return {...s,kind:'wall',x:b.x,w:b.w,y:b.top,h:b.top-b.bottom};};
 const standable=s=>!['switch','wall'].includes(s.kind);
+// What a flower may hang over. Almost always an optional ledge within 2.6
+// under it, so there is somewhere to stand and pick it. The one other perch is
+// a spring: its bounce (simulation.js launches at SPRING, falls at gravity,
+// neither halved nor doubled while springing) crests SPRING²/2g above the cap
+// and, at full run, RULES.speed·SPRING/g to either side of where the player
+// landed on it — so a flower inside that envelope, up to a chest's reach
+// (.8 + the .9 pick radius) over the crest, is picked at the top of the
+// bounce with no ledge at all. Returns the perch, or null.
+const SPRING=17.6;
+export function flowerPerch(platforms,c){
+  const ledge=platforms.find(s=>s.optional&&c.x>=s.x-1&&c.x<=s.x+s.w+1&&c.y>s.y&&c.y<=s.y+2.6);
+  if(ledge)return ledge;
+  const crest=SPRING*SPRING/(2*RULES.gravity),drift=RULES.speed*SPRING/RULES.gravity;
+  return platforms.find(s=>s.kind==='spring'&&c.x>=s.x-drift-.9&&c.x<=s.x+s.w+drift+.9&&c.y>s.y&&c.y<=s.y+crest+1.7)??null;
+}
 // Decks whose height changes with the player on or near them; a link to or
 // from one is judged by the pilot's ride, not by the reach table.
 const machine=s=>['spring','lift','counter','ferry','orbit','sink','fold','zip'].includes(s.kind);
@@ -131,10 +146,7 @@ export function auditLevel(L,index){
     const crowds=dy<=3&&(dx<=1.5||(Number.isFinite(e.min)&&cp.checkpoint>=e.min-.8&&cp.checkpoint<=e.max+.8));
     if(crowds)notes.push(`${e.kind||'clayling'} at x ${e.x} crowds the ${cp.id} flag at x ${cp.checkpoint}`);
   }
-  const flowers=level.stamps.map(c=>{
-    const near=shaped.filter(s=>s.optional&&c.x>=s.x-1&&c.x<=right(s)+1&&c.y>s.y&&c.y<s.y+2.6);
-    return near.length?null:`flower at (${c.x}, ${c.y}) has no optional ledge under it`;
-  }).filter(Boolean);
+  const flowers=level.stamps.map(c=>flowerPerch(shaped,c)?null:`flower at (${c.x}, ${c.y}) has no optional ledge under it and no spring whose bounce reaches it`).filter(Boolean);
   // The dream's wiring: a trigger zone should wake something, a waiting lift
   // or a fold should have something to wait for, and the ending should name
   // stations and a wake deck that exist, with its flower within a standing

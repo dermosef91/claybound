@@ -373,5 +373,80 @@
       "a3c8346864450abcddd388a5891b888546d42cd553bbe9662bb887cb1dd6d7d2"
     ],
     "geometryUnchanged": true
+  },
+  "dream-pillar.glb": {
+    "source": "Meshy_AI_Pink_Clay_Pillar_with_0918193828_texture.glb",
+    "sourceSha256": "21e14e0fb2ad9ae95444935f700d5705ce73e7722e60942c4cfd91b821b45a79",
+    "shippedSha256": "1588dd3db663e09da6c54bedb5e8b697812c4d87b73ba4664edc0e1ef1dde6be",
+    "sourceBytes": 14003864,
+    "shippedBytes": 629184,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 3121,
+    "geometryBufferSha256": [
+      "a39d16c56c9b67098c9cce88f5257792341834b9a080f23d974e70023569b431",
+      "b4d357c41804322f29df6b3e60ff2ad3f191de9592a770a900d95e6c2ade5584",
+      "6b44aa7545f79cf157ec40ee1b9dc998722367bda9e44ab412b362f9b7a56d5d",
+      "033edb4d0fe5f7d46675a11dc0243e44b5510aa3bf292b7d78f98bdf8a5d99a5"
+    ],
+    "geometryUnchanged": true
+  },
+  "dream-pebbles.glb": {
+    "source": "Meshy_AI_Pastel_Pebble_Pile_0918193819_texture.glb",
+    "sourceSha256": "233e61bac484a20339a005199cc6946c067162f360ab99a51ab66a65f0dc0ad0",
+    "shippedSha256": "70661a8e8c7abde0d6b5b3bd967e77af4e537dcd7d89e846d5582672738f7572",
+    "sourceBytes": 15525536,
+    "shippedBytes": 718092,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 3138,
+    "geometryBufferSha256": [
+      "42977e0c95692eb9da4694917d797b09829caf350407aaff2f14d462ec197dfe",
+      "d4a2f0f1075c8f5749a2aa5ff44f5ab36cd2656c87ec6f6c2a53ddf67dbe294b",
+      "5fe72b628dc8dd02623dc45a49b4696f0ec28858d91fa83fbde7854a1eff7abe",
+      "2dfbbb15b7b1a7404fe98e0f7bc4dc55c49548ffd7fad8764ab374faf2985d39"
+    ],
+    "geometryUnchanged": true
+  },
+  "dream-mountain.glb": {
+    "source": "Meshy_AI_Clayfall_Mountain_0918193812_texture.glb",
+    "sourceSha256": "0be7e17368eb52495fcfe5c1a25bbad3017ab4a63937c93d519bf1f1052479eb",
+    "shippedSha256": "c3a583436ffd579d7471713c378a76ed3e1a01b9d3cd810bc340f30ee3daf446",
+    "sourceBytes": 22703752,
+    "shippedBytes": 692912,
+    "textures": [
+      [
+        1024,
+        1024
+      ],
+      [
+        1024,
+        1024
+      ]
+    ],
+    "triangles": 3124,
+    "geometryBufferSha256": [
+      "4dca3076d8631550a7bca9a92add08934f134505ac63c969a1f9a4af602333ed",
+      "b05fec58a2ed1a0e2bdbb287303ada53e4ed6c6df51b1275129ad6289dd99049",
+      "39fe0f4ed8352d6a3ff57159e1e3f56182b8b7fc20b64184ee95549bb87625ee",
+      "0b1dd3d8bf04f621ecdda504c4e91f1e08e7196c4aa237e28036e3abf3e51c6c"
+    ],
+    "geometryUnchanged": true
   }
 }

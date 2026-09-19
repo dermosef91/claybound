@@ -91,7 +91,9 @@ function assemble(parts,table,{spawn,name,short,label,intro}){
     // 5: the Melted Parade lifted out and the Breathing Corridor grown from 55
     // to 83 in its place, which moves the river, the room and the knot 47 left
     // and shortens the chapter from 714 to 667.
-    layoutVersion:5,
+    // 6: the garden's crown ledge over the gate removed; its flower hangs in
+    // the air at the spring bounce's apex.
+    layoutVersion:6,
     // Still being built: the chapter list keeps it behind ß, like the Clay Lab,
     // and the Hanging Quarter stays the last chapter anyone is led to. Hidden
     // chapters have to be the last entries of LEVELS: the app walks back from

@@ -14,7 +14,9 @@
 //   · the familiar walk: two stone steps, then two floating pads over a pink
 //     pool, up to the arch deck (flag under the bow, where the palette flips)
 //   · the flower detour: the mushroom under the arch deck's end bounces you
-//     back onto the arch's keystone (flower 1)
+//     back-left over the gate, through flower 1 hanging in the air above it
+//     (there is no perch up there; the bounce's apex is where the flower is),
+//     and down onto the arch deck again
 //   · the eyes: three pulse pads over the pool that watch you and blink shut —
 //     a blink that travels along the row, each pair open together long enough
 //     for the hop; the lids droop through the warning window
@@ -60,8 +62,12 @@ export default {
     // at the palette moment.
     p('garden-mound',39,8,4.6,'stone',{checkpoint:43}),
     p('garden-spur',47,3.2,3),
+    // The spring's bounce (17.6 up, 27 down, simulation.js) crests 5.74 above
+    // the cap — about 9.1 — and, steering left from the moment you leave the
+    // deck, 3.5 left of the cap: right under the flower at (43.3, 10.2), the
+    // one flower in the game with no perch under it, and back down onto the
+    // arch deck. Steer late and the bounce goes straight up and misses it.
     p('garden-shroom',47.4,2.4,3.44,'spring'),
-    p('garden-crown',42,2.6,8.6,'ledge',{optional:true}),
     // The eyes. Period 4.4: open 3.17 s, shut 1.23 s, the last .62 s of open
     // is the warning. Phases -.2 apart make the blink travel along the row;
     // each neighbouring pair is open together 2.29 s a cycle.
@@ -82,13 +88,15 @@ export default {
     'garden-eye-1','garden-eye-2','garden-eye-3','garden-snap-1','garden-snap-2',['garden-dock','fall'],'garden-bed',['garden-exit','fall']],
   // Flower 1: run off the arch deck's end and you land on the mushroom (a
   // slower step lands on the spur beside it and walks on); its bounce carries
-  // you back-left onto the arch's keystone.
-  detours:[path(['garden-mound',['garden-shroom','fall'],'garden-crown',['garden-mound','fall']])],
+  // you back-left through the flower and down onto the arch deck.
+  detours:[path(['garden-mound',['garden-shroom','fall'],'garden-mound'])],
   recoveries:[],
   coins:[{x:16,y:2.4},{x:22,y:3.2},{x:30,y:4.4},{x:35.5,y:5.4},{x:40.5,y:6.2},{x:45.5,y:6.2},
     {x:50.3,y:7},{x:55.3,y:7.8},{x:60.3,y:7},{x:65.4,y:7.8},{x:70.9,y:7},{x:76.5,y:4.6},
     {x:86,y:5.2},{x:90,y:4.8},{x:97,y:1.6},{x:103,y:1.6},{x:42.6,y:10.2},{x:43.8,y:10.2}],
-  stamps:[{x:43.3,y:9.6}],
+  // In the row with its two beads, at the height both a plain bounce (crest
+  // 9.1, chest 9.9) and a jump-held one (crest 9.8) pass within reach of.
+  stamps:[{x:43.3,y:10.2}],
   // The chapter's first hatworm walks the exit deck, well clear of the drop
   // from the bed and 7 short of the Folding Path's first flag (local 108).
   enemies:[{kind:'hatworm',x:101,y:0,min:99.5,max:102.5,speed:1.2}],
@@ -97,7 +105,7 @@ export default {
   hints:[
     {x:0,end:12,icon:'walk',title:"Look who's looking",text:'One flower is watching you. Walk on — the garden leans your way.'},
     {x:40,end:47,icon:'eye',title:"Don't blink",text:'The eyes close. Cross while they watch you — the lids droop first.'},
-    {x:47,end:50.2,icon:'mushroom',title:'Up top',text:'A mushroom below the arch deck bounces you to the crown.'}
+    {x:47,end:50.2,icon:'mushroom',title:'Up top',text:'A mushroom below the arch deck bounces you up through the flower over the gate.'}
   ],
   winds:[],triggers:[],crushers:[],
   shaping:[

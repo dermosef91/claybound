@@ -2,10 +2,27 @@ import * as THREE from './lib/three.module.js';
 import {sculptClay} from './clay.js';
 
 const random=n=>{const x=Math.sin(n*127.13+73.41)*43758.5453;return x-Math.floor(x);};
+const insidePolygon=(outline,x,y)=>{
+  let inside=false;
+  for(let i=0,j=outline.length-1;i<outline.length;j=i++){
+    const [xi,yi]=outline[i],[xj,yj]=outline[j];
+    if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)inside=!inside;
+  }
+  return inside;
+};
+const segmentDistance=(a,b,x,y)=>{
+  const dx=b[0]-a[0],dy=b[1]-a[1],len2=dx*dx+dy*dy||1e-9,t=Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/len2));
+  return Math.hypot(x-(a[0]+dx*t),y-(a[1]+dy*t));
+};
 
 // Actual recessed cavities, including their walls and shaded interiors. Each
 // fragment remains one mesh so pores add no draw calls during collapse.
-export function porousClay(w,polygon,depth,seed,lower=false){
+// The options ask the top face for more pores (count) and bigger ones (a size
+// factor): a whole slab of rotten clay is pitted like pumice, a ledge only
+// flecked. The crater share is how many of them are craters rather than
+// pinpricks. A concave outline — one with teeth — keeps pores everywhere
+// inside it: the margin is then read from the edge itself, not its whole line.
+export function porousClay(w,polygon,depth,seed,lower=false,{count=null,scale=1,bold=.36,concave=false}={}){
   const positions=[],colors=[],uvs=[];
   let poreCount=0;
   const vertex=(p,shade)=>{positions.push(...p);colors.push(shade,shade,shade);uvs.push(p[0],p[2]);};
@@ -19,17 +36,18 @@ export function porousClay(w,polygon,depth,seed,lower=false){
     const xs=outline.map(p=>p[0]),ys=outline.map(p=>p[1]);
     const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
     const area=Math.abs(THREE.ShapeUtils.area(contour));
-    const target=porous?Math.min(top?20:16,Math.ceil(area*(top?15:38))):0;
+    const target=porous?(top&&count?count:Math.min(top?20:16,Math.ceil(area*(top?15:38)))):0;
     for(let attempt=0;attempt<target*35&&pores.length<target;attempt++){
       const k=faceSeed+attempt*17;
       const x=xmin+random(k)*(xmax-xmin),y=ymin+random(k+1)*(ymax-ymin);
-      const large=pores.length===0||random(k+2)>.64;
-      const r=(large?(lower?.085:.063):.021)+random(k+3)*(large?.048:.021);
+      const large=pores.length===0||random(k+2)>1-(top?bold:.36);
+      const r=((large?(lower?.085:.063):.021)+random(k+3)*(large?.048:.021))*(top?scale:1);
       // Keep every mouth inside its face and separated from its neighbours.
-      let inside=true;
-      for(let j=0;j<outline.length;j++){
+      let inside=concave?insidePolygon(outline,x,y):true;
+      for(let j=0;j<outline.length&&inside;j++){
         const a=outline[j],b=outline[(j+1)%outline.length],dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy);
-        if((dx*(y-a[1])-dy*(x-a[0]))/len<r*1.12+.008){inside=false;break;}
+        const gap=concave?segmentDistance(a,b,x,y):(dx*(y-a[1])-dy*(x-a[0]))/len;
+        if(gap<r*1.12+.008){inside=false;break;}
       }
       if(!inside||pores.some(p=>Math.hypot(x-p.x,y-p.y)<r+p.r+.018))continue;
       const ring=Array.from({length:12},(_,j)=>{

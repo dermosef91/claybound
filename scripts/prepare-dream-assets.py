@@ -76,7 +76,15 @@ assets={
  # arch.
  'dream-eyeball.glb':'Meshy_AI_Fleshy_Eyeball_0918110855_texture.glb',
  # The Breathing Corridor's cavern wall, repeated across its backdrop.
- 'dream-cavern.glb':'crimson+caverns.glb'
+ 'dream-cavern.glb':'crimson+caverns.glb',
+ # The Crooked Garden's scenery, in place of the sculpted pillars, mounds,
+ # islands, mushrooms and bushes: a tapered pink clay pillar under a frosting
+ # cap, a pile of pastel pebbles, and a terracotta spire with a waterfall down
+ # one face (dist/dream/garden.js places them by depth). Uploaded to
+ # ~/Downloads, like the arch.
+ 'dream-pillar.glb':'Meshy_AI_Pink_Clay_Pillar_with_0918193828_texture.glb',
+ 'dream-pebbles.glb':'Meshy_AI_Pastel_Pebble_Pile_0918193819_texture.glb',
+ 'dream-mountain.glb':'Meshy_AI_Clayfall_Mountain_0918193812_texture.glb'
 }
 def locate(source):
  """The upload, in the given directory or its parent; None when it is not in this upload."""
@@ -93,8 +101,9 @@ adaptation={'dream-hat.glb':'glTF Transform 4.4.1 weld + simplify ratio=.025 err
 # Models whose metallic-roughness map is left out of the shipped file (the
 # arch's and the cavern's, like the hat's, paint a gloss the matte clay world
 # does not have; the eyeball's is a 4096² map — over half its 16.5 MB —
-# painting a roughness clayMaterials overrides anyway).
-matte={'dream-hat.glb','dream-arch.glb','dream-cavern.glb','dream-eyeball.glb'}
+# painting a roughness clayMaterials overrides anyway; the garden's three each
+# carry a 4096² one, a third to a half of every upload, for the same nothing).
+matte={'dream-hat.glb','dream-arch.glb','dream-cavern.glb','dream-eyeball.glb','dream-pillar.glb','dream-pebbles.glb','dream-mountain.glb'}
 SLOTS=['baseColorTexture','metallicRoughnessTexture','normalTexture','occlusionTexture','emissiveTexture']
 def pad(b,value=b'\0'):return b+value*((-len(b))%4)
 def digest(b):return hashlib.sha256(b).hexdigest()

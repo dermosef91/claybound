@@ -1,4 +1,5 @@
 import * as THREE from './lib/three.module.js';
+import {RoundedBoxGeometry} from './lib/RoundedBoxGeometry.js';
 import {createHandGeometry,createArrowGeometry} from './shape-hand-geometry.js';
 import {shapedShare} from './clay-rules.js';
 import {formPeak} from './clay-form.js';
@@ -32,6 +33,34 @@ function buildHand(geometry,material,parent,flip=1){
   const mesh=new THREE.Mesh(geometry,material);mesh.name='Sculpted pointing hand';hand.add(mesh);
   return hand;
 }
+// An open hand, palm flat against the thing it pushes: a slab of a palm on its
+// edge, four fingers up off it and a thumb off the near side, turned a little
+// towards the camera so the back of the hand and the spread of the fingers
+// read rather than a hand seen edge-on. Its palm face is at x 0; it pushes
+// towards +x.
+function buildPalm(material,parent){
+  const hand=new THREE.Group();hand.name='Open clay hand, pushing';hand.scale.setScalar(1.55);parent.add(hand);
+  const turn=new THREE.Group();turn.rotation.y=-.8;hand.add(turn);
+  const palm=new THREE.Mesh(new RoundedBoxGeometry(.2,.6,.52,3,.08),material);palm.name='Palm';palm.position.set(-.1,0,0);turn.add(palm);
+  for(const [i,len]of [.4,.5,.47,.37].entries()){
+    const finger=new THREE.Mesh(new THREE.CapsuleGeometry(.08,len,4,10),material);finger.name='Finger';
+    finger.position.set(-.1,.3+len/2-.02,-.2+i*.13);finger.rotation.x=(i-1.5)*.05;finger.rotation.z=-.06;turn.add(finger);
+  }
+  const thumb=new THREE.Mesh(new THREE.CapsuleGeometry(.085,.32,4,10),material);thumb.name='Thumb';
+  thumb.position.set(-.14,.12,.31);thumb.rotation.z=-.75;thumb.rotation.x=.35;turn.add(thumb);
+  return hand;
+}
+// The plug's cue follows its phases: nothing while the rot stands (the sign
+// says stomp), a hand pushing the block once the gap is open, the press once
+// the plug is seated, and nothing while it settles or once it is mended.
+const fixMode=station=>{const phase=station.fix?.phase;return phase==='open'?'push':phase==='shaping'?'press':null;};
+// Where the pushing hand stands: flat on the block's near face, a little below
+// the block's middle, following the block as it goes.
+function pushAnchor(station){
+  const block=station.fix?.blockPlatform;
+  if(!block||block.active===false||block.pushPhase!=='free')return null;
+  return {x:block.x-.04,y:block.y-block.h*.45};
+}
 
 export function createShapeHands(w,L){
   const views=[];
@@ -57,7 +86,9 @@ export function createShapeHands(w,L){
       const head=new THREE.Mesh(geometries[2],materials[0]);carrier.add(head);
       head.userData={dir,step:3.32,arrow:true};marks.push(head);
     }
-    views.push({root,carrier,hands,marks,materials,geometries,station,gesture,opacity:0,time:0,dwell:0,seen:0});
+    const view={root,carrier,hands,marks,materials,geometries,station,gesture,opacity:0,time:0,dwell:0,seen:0};
+    if(station.fix){view.palm=buildPalm(materials[0],carrier);view.palm.visible=false;}
+    views.push(view);
   }
   return views;
 }
@@ -99,7 +130,8 @@ export function animateShapeHands(w,game,dt,playing){
   const done=w.clayDone;
   for(const view of w.shapeHands||[]){
     const {station,gesture,root}=view;
-    const spot=anchor(view,L,p);
+    const mode=station.fix?fixMode(station):'press';
+    const spot=mode==='push'?pushAnchor(station):mode?anchor(view,L,p):null;
     const inStretch=!!spot&&p.x>=station.x&&p.x<=station.end&&Math.abs(p.y-station.spawn.y)<10;
     const unworked=station.amount<.995;
     // Dwell resets whenever the clay moves, so the cue never nags a player who
@@ -110,13 +142,22 @@ export function animateShapeHands(w,game,dt,playing){
     else view.dwell+=playing?dt:0;
     view.lastAmount=worked;
     const teaching=!done?.has(station.id)||view.dwell>DWELL;
-    const wanted=inStretch&&unworked&&teaching&&!w.editorCamera&&game.status!=='complete';
+    // A player already shoving the block needs no hand to show them.
+    const wanted=inStretch&&unworked&&teaching&&!w.editorCamera&&game.status!=='complete'&&!(mode==='push'&&p.pushing);
     view.opacity+=((wanted?1:0)-view.opacity)*(1-Math.exp(-dt*7));
     // The cue recedes as the clay takes shape: the player sees their own work.
     const alpha=view.opacity*(.25+.75*(1-worked));
     root.visible=alpha>.02;
     if(!root.visible)continue;
-    root.position.set(spot.x,spot.y,1.8);
+    // A cue that has just lost its anchor fades where it was.
+    if(spot)root.position.set(spot.x,spot.y,1.8);
+    if(view.palm){
+      // One cue or the other: the open hand at the block, or the pointing
+      // hand with its run and arrow over the clay.
+      view.palm.visible=mode==='push';
+      for(const hand of view.hands)hand.visible=mode!=='push';
+      for(const mark of view.marks)mark.visible=mode!=='push';
+    }
 
     view.time+=playing?dt:0;
     // Reduced motion holds a legible mid-gesture pose instead of looping.
@@ -130,6 +171,14 @@ export function animateShapeHands(w,game,dt,playing){
     const bob=w.reducedMotion?0:Math.sin(view.time*2.3)*.07*(1-swing);
     view.carrier.position.set(0,bob,0);
     view.carrier.scale.setScalar(w.landscape===false?.9:1);
+    if(mode==='push'){
+      // The hand comes at the block and leans on it: a short shove, a little
+      // squash as the palm meets the face, and back for the next.
+      view.palm.position.set(-.55+.55*swing,0,0);
+      view.palm.scale.set(1-swing*.12,1+swing*.04,1);
+      for(const m of view.materials)m.opacity=alpha*(.5+.5*fade);
+      continue;
+    }
     for(const hand of view.hands){
       const dir=hand.userData.dir;
       hand.position.set((gesture.move[0]*swing+(gesture.mirror?.48:0))*dir,gesture.move[1]*swing,0);
