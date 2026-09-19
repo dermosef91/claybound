@@ -214,26 +214,36 @@ export function buildCanyonTerrain(w,s,g){
 // Sampled from the reference, the buttes brighten to a sunlit peach just
 // behind the route, then cool through salmon to a dusty red that the longer,
 // lavender fog turns mauve. Each rank is its own clay, so the fog only has to
-// add the last of the distance and the shading survives it. The far ranks
-// carry an emissive floor for the same reason the cave's spires do: their
-// shadow sides face away from every light and went to flat fog colour.
+// add the last of the distance.
+//
+// The heavy fog had one thing right, though: at nine tenths it took most of
+// the far summits' shading and sculpted relief with it, and a distant butte
+// that reads as a silhouette is the more distant for it. Half of that comes
+// back here without fogging the colour further. `flatten` is the share of the
+// lit response handed to a flat emissive floor of the rank's own clay — the
+// mean stays, the light-to-shadow contrast shrinks by that share — and
+// `relief` scales the baked normal map and the fingerprint bump.
 const RANKS={
-  low:{clay:0xec8a60,emissive:0},
-  middle:{clay:0xd96b43,emissive:.03},
-  far:{clay:0xc46262,emissive:.03}
+  low:{clay:0xec8a60,flatten:0,relief:1},
+  middle:{clay:0xd96b43,flatten:.15,relief:.8},
+  far:{clay:0xc46262,flatten:.37,relief:.5}
 };
+// The backdrop's lit faces render at about the clay colour and its shadow
+// faces at roughly six tenths, so the average light a face sees is ~.85.
+const MEAN_LIGHT=.85;
 function rankMaterial(w,rank,source){
   const base=typeof source==='string'?w.mat[source]:source;
   if(!w.clay||!base?.isMeshStandardMaterial)return base;
   w.canyonRanks??=new Map();const key=rank+':'+base.uuid;
   if(!w.canyonRanks.has(key)){
-    const {clay,emissive}=RANKS[rank],m=base.clone();
+    const {clay,flatten,relief}=RANKS[rank],m=base.clone(),pigment=new THREE.Color(clay).multiplyScalar(1-flatten);
     // A clone carries a JSON copy of the clay annotation and no shader hook:
     // keep only the orange source and depth, and let clayMaterial install anew.
     m.userData={clayOrangeSource:base.userData.clayOrangeSource,clayDepth:base.userData.clayDepth};
-    if(m.userData.clayOrangeSource)m.userData.clayOrange=clay;else m.color.setHex(clay);
-    m.emissive.setHex(clay);m.emissiveIntensity=emissive;
-    clayMaterial(w,m,base.userData.clay?.requestedDepth);
+    if(m.userData.clayOrangeSource)m.userData.clayOrange=pigment;else m.color.copy(pigment);
+    m.emissive.setHex(clay);m.emissiveIntensity=flatten*MEAN_LIGHT;
+    m.normalScale?.multiplyScalar(relief);
+    clayMaterial(w,m,(base.userData.clay?.requestedDepth??.035)*relief);
     w.assetMaterials.add(m);w.canyonRanks.set(key,m);
   }
   return w.canyonRanks.get(key);

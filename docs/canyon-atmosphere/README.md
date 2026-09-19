@@ -31,6 +31,14 @@ sets `userData.clayOrange` on a cloned material rather than `color`
 world and registered as asset materials, the way the canyon caps are, so level
 reloads do not dispose them.
 
+The heavy fog had also flattened the far summits into silhouettes, and half of
+that was worth keeping. Rather than fog the colour further, the far rank hands
+37 % of its lit response to a flat emissive floor of its own clay (`flatten`)
+and halves its baked normal map and fingerprint bump (`relief`); the middle
+rank takes 15 % / 0.8. Measured on the right-hand far butte at the ledge, the
+mean colour held (`#ac889f` → `#ad8aa1`) while shading contrast (luminance
+stdev) went 8.0 → 4.9; the original cream-fog frame measured 2.6.
+
 **One salmon cloud → a field.** Twelve clouds at one depth, one size, sixteen
 apart, 96 % fogged: two on screen, both pink. Now three ranks
 (`CLOUD_RANKS`, factors .06/.12/.2 at z −60/−52/−44) of 1.35–4.2-unit puffs
