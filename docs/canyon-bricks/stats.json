@@ -1,7 +1,7 @@
 {
   "last-well": {
     "calls": 409,
-    "triangles": 455778,
+    "triangles": 455782,
     "clouds": 15,
     "cameraX": 183.37,
     "cameraY": 18.1,
@@ -10,41 +10,11 @@
     "fogFar": 110
   },
   "start": {
-    "calls": 327,
-    "triangles": 411454,
+    "calls": 326,
+    "triangles": 410898,
     "clouds": 15,
     "cameraX": 3.77,
     "cameraY": 13.7,
-    "fog": "#9ea8d2",
-    "fogNear": 36,
-    "fogFar": 110
-  },
-  "arch-drop": {
-    "calls": 453,
-    "triangles": 875390,
-    "clouds": 15,
-    "cameraX": 231.12,
-    "cameraY": 27.2,
-    "fog": "#9ea8d2",
-    "fogNear": 36,
-    "fogFar": 110
-  },
-  "pocket-dock": {
-    "calls": 527,
-    "triangles": 578181,
-    "clouds": 15,
-    "cameraX": 102.67,
-    "cameraY": 6.95,
-    "fog": "#9ea8d2",
-    "fogNear": 36,
-    "fogFar": 110
-  },
-  "summit": {
-    "calls": 292,
-    "triangles": 437136,
-    "clouds": 15,
-    "cameraX": 332.37,
-    "cameraY": 35.3,
     "fog": "#9ea8d2",
     "fogNear": 36,
     "fogFar": 110

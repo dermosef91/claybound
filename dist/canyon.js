@@ -163,18 +163,29 @@ export function plankSpan(w,s,g){
 // last brick of a row and the last row take up the slack. Only a brick's
 // place and its slight lean are unique, and those cost no geometry.
 const ROW_HEIGHTS=[1.5,1.75,2,2.25,2.5],BRICK_W=2.25,BRICK_RADIUS=.45,BRICK_SEGMENTS=4,PILLOW=.1;
+// Not every brick in a course is the course's height. The old slabs split
+// each column at its own height, so the joints stepped across the face
+// instead of ruling straight lines, and the reference's bricks vary the same
+// way. About half the bricks stand a quarter or half a unit taller, growing
+// down into the course below and a hair forward of it so the extra shows;
+// the last course cannot, since nothing is below it to grow into. The stretch
+// is a scale on the shared shape, not another shape in the cache.
+const STRETCH=r=>r<.5?0:r<.85?.25:.5;
 const snap=v=>Math.round(v*4)/4;
-// Bricks of one clay, not a checkerboard: the reference's courses are one hue
-// with the joints doing the work. Three near-identical shades, each with its
-// own fingerprint offset so neighbours never share a print, and the darker
-// clay kept for one brick in twelve. Cached with the caps' variants.
-const BRICK_SHADES=[1,.95,1.04];
+// Bricks of one clay with the slight variety of a batch pressed by hand: the
+// old slabs read that way — some a shade brighter, some leaning red, some
+// leaning toward the caps' lighter orange — and a first pass at three shades
+// within five percent lost it. Six shades as hue, saturation and lightness
+// offsets from the terrain clay, each with its own fingerprint offset so
+// neighbours never share a print, and the darker clay for one brick in
+// seven. Cached with the caps' variants.
+const BRICK_SHADES=[[0,0,0],[.006,0,.025],[-.006,.015,-.025],[.003,-.03,.035],[-.004,.02,-.04],[.002,.01,-.012]];
 function brickMaterial(w,seed){
-  if(!w.clay)return random(seed)<.08?'terrain2':'terrain';
-  if(random(seed)<.08)return w.mat.terrain2;
+  if(!w.clay)return random(seed)<.14?'terrain2':'terrain';
+  if(random(seed)<.14)return w.mat.terrain2;
   const variant=Math.abs(Math.floor(seed*7))%BRICK_SHADES.length;w.canyonBricks??=new Map();
   if(!w.canyonBricks.has(variant)){
-    const m=w.mat.terrain.clone();m.color.copy(w.mat.terrain.color).multiplyScalar(BRICK_SHADES[variant]);
+    const [h,s,l]=BRICK_SHADES[variant],m=w.mat.terrain.clone();m.color.copy(w.mat.terrain.color).offsetHSL(h,s,l);
     m.userData={clayOffset:[variant*2.13,variant*1.07,variant*.61]};
     clayMaterial(w,m,w.mat.terrain.userData.clay?.requestedDepth);w.assetMaterials.add(m);w.canyonBricks.set(variant,m);
   }return w.canyonBricks.get(variant);
@@ -190,16 +201,17 @@ function courses(w,g,width,height,top,seed,depth=3.35){
     // Running bond: every other row shifts by half a brick, and each drifts a
     // little of its own, so the joints never line up into a grid.
     const drift=(row%2)*BRICK_W*.5+(random(seed+row*3)-.5)*.3,widths=[];
-    for(let x=-drift;x<width-1e-3;){const bw=snap(BRICK_W+(random(seed+row*13+widths.length*5)-.5)*.5);widths.push([Math.max(0,x),Math.min(width,x+bw)]);x+=bw;}
+    for(let x=-drift;x<width-1e-3;){const bw=snap(BRICK_W+(random(seed+row*13+widths.length*5)-.5)*1.1);widths.push([Math.max(0,x),Math.min(width,x+bw)]);x+=bw;}
     // A stub narrower than a hand at either end joins its neighbour.
     if(widths.length>1&&widths[0][1]-widths[0][0]<.7){widths[1][0]=0;widths.shift();}
     if(widths.length>1&&widths.at(-1)[1]-widths.at(-1)[0]<.7){widths.at(-2)[1]=width;widths.pop();}
+    const last=remaining-h<1e-3;
     widths.forEach(([x0,x1],i)=>{
-      const bw=snap(x1-x0),k=seed+row*17+i*29;
+      const bw=snap(x1-x0),k=seed+row*17+i*29,stretch=last?0:STRETCH(random(k+4));
       // Bricks overlap by a finger so the courses stay solid where a snapped
       // width falls short; the rounded corners still leave the joint a groove.
-      const brick=block(w,g,bw+.06,h+.06,depth+(row%2)*.12,(x0+x1)/2,y-h/2,-.05+(random(k+1)-.5)*.1,brickMaterial(w,k),k,{radius:BRICK_RADIUS,segments:BRICK_SEGMENTS,pillow:PILLOW});
-      brick.rotation.z=(random(k+2)-.5)*.03;brick.name='Pressed brick';
+      const brick=block(w,g,bw+.06,h+.06,depth+(row%2)*.12,(x0+x1)/2,y-h/2-stretch/2,-.05+stretch*.25+(random(k+1)-.5)*.06,brickMaterial(w,k),k,{radius:BRICK_RADIUS,segments:BRICK_SEGMENTS,pillow:PILLOW});
+      brick.scale.y=(h+.06+stretch)/(h+.06);brick.rotation.z=(random(k+2)-.5)*.03;brick.name='Pressed brick';
     });
     y-=h;remaining-=h;row++;
   }

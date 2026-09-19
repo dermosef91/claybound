@@ -20,8 +20,16 @@ grooves. Each brick's place, lean and depth jitter are unique; its geometry
 is one of ~240 shapes shared across the chapter. `buildCanyonWall` (solid
 `wall` bodies, e.g. under the Sandwright's Pocket) uses the same courses.
 
-**One clay, not a checkerboard.** Three shades within ±5 % with their own
-fingerprint offsets (`brickMaterial`), the darker clay one brick in twelve.
+**The batch's slight variety.** The old slabs differed a little in brightness
+and hue block to block, and split each column at its own height, so joints
+stepped across the face; a first pass at three shades within 5 % in ruled
+courses lost both, and the user asked for them back. Six shades as small
+hue/saturation/lightness offsets from the terrain clay (`BRICK_SHADES`,
+hue within ±2°, lightness within ±4 %), each with its own fingerprint offset,
+the darker clay one brick in seven; and about half the bricks in a course
+stand a quarter or half a unit taller (`STRETCH`), growing down into the
+course below and a hair forward, as a `scale.y` on the shared shape. A first
+try at twice these offsets read as a patchwork.
 
 **The cap is the cave's pressed plate.** Thumb hollows and a rolled rim
 (`pressedPlate` in `cavern.js`, split out of `caveCap`), in the canyon's cap
