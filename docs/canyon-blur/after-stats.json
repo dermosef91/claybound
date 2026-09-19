@@ -1,7 +1,7 @@
 {
   "last-well": {
-    "calls": 395,
-    "triangles": 403568,
+    "calls": 403,
+    "triangles": 429676,
     "clouds": 15,
     "cameraX": 183.37,
     "cameraY": 18.1,
@@ -22,8 +22,8 @@
     }
   },
   "start": {
-    "calls": 316,
-    "triangles": 364962,
+    "calls": 321,
+    "triangles": 387926,
     "clouds": 15,
     "cameraX": 3.77,
     "cameraY": 13.7,
@@ -44,8 +44,8 @@
     }
   },
   "arch-drop": {
-    "calls": 444,
-    "triangles": 830580,
+    "calls": 449,
+    "triangles": 853550,
     "clouds": 15,
     "cameraX": 231.12,
     "cameraY": 27.2,
@@ -66,8 +66,8 @@
     }
   },
   "summit": {
-    "calls": 282,
-    "triangles": 398542,
+    "calls": 286,
+    "triangles": 411066,
     "clouds": 15,
     "cameraX": 332.37,
     "cameraY": 35.3,

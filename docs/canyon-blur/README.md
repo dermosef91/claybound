@@ -11,10 +11,13 @@ blur/composite the citadel and forest use — over a backdrop that "can
 disappear on mobile". It now takes the pass, and a stronger one: the
 backdrop draws into a half-size target, is blurred across into a second
 target and blurred down as it is composited (a separable nine-tap Gaussian,
-reach 1.8 half-frame texels), then the playfield draws over the composite.
-The nearest rank of buttes is marked `userData.sharp` and draws with the
-playfield instead, so the play plane's edge stays crisp. The citadel, forest
-and soft dream sections keep their original single 3×3 pass.
+reach 1.2 half-frame texels), then the playfield draws over the composite.
+Only what is far away goes soft: the far rank of buttes and the farthest
+cloud rank (with the sky). The middle and near ranks and the two nearer
+cloud ranks are marked `userData.sharp` and draw with the playfield. A first
+pass blurred the middle rank too at reach 1.8; the user asked for the blur
+to stay on the distant elements and to be lighter. The citadel, forest and
+soft dream sections keep their original single 3×3 pass.
 
 ## The probe
 
@@ -41,11 +44,10 @@ offscreen target itself, which is how the render was shown to be working.
 
 ## Cost
 
-Per frame at the windwell ledge: 409 → 395 draw calls and 456 k → 404 k
-triangles (the composite quad replaces the blurred ranks' individual draws in
-the frame pass), plus two half-resolution fullscreen passes. 66 checks green;
+Per frame at the windwell ledge: 409 → 403 draw calls and 456 k → 430 k
+triangles, plus two half-resolution fullscreen passes. 66 checks green;
 `tests/scene-canyon.mjs` now asserts the three-pass shape and that only the
-near rank draws sharp.
+sharp-marked ranks draw with the playfield.
 
 **Still needs a phone test.** The probe's fallback is the direct draw, which
 is what shipped before, so the failure mode is "no blur", not "no backdrop".

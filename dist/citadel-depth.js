@@ -11,8 +11,9 @@ import {cullCaveCells} from './cavern.js';
 // frame blurred across into a second target, then blurred down as it is
 // composited — a separable Gaussian, nine taps each way, its reach set in
 // half-frame texels. Backdrop groups marked `userData.sharp` (the canyon's
-// nearest rank of buttes) stay out of the blur and draw with the playfield.
-const SOFT={forest:2.2,citadel:.7},STRONG={desert:{scale:.5,radius:1.8}};
+// two nearer ranks of buttes and clouds) stay out of the blur and draw with
+// the playfield, so only what is far away goes soft.
+const SOFT={forest:2.2,citadel:.7},STRONG={desert:{scale:.5,radius:1.2}};
 const VERTEX='varying vec2 vUv; void main(){vUv=uv;gl_Position=vec4(position.xy,1.0,1.0);}';
 // Nine-tap Gaussian along `step` (a texel vector already scaled by the reach).
 const GAUSS=`vec3 gauss(sampler2D map,vec2 uv,vec2 step){
