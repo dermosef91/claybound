@@ -67,6 +67,8 @@ const FORWARD=new THREE.Vector3(0,0,1);
 export class CompletionScene{
   constructor(world){
     this.world=world;this.time=0;this.active=false;this.key=null;this.built=new Map();
+    // The bones last frame's cheer turned, and what they held before it did.
+    this.cheerBase=null;
     // Object.create keeps World's builders — box, ball, cylinder, mesh, rope,
     // flag — while every cache they write to is this scene's own, so a diorama
     // never hands the running chapter a mesh or a material it did not make.
@@ -236,31 +238,63 @@ export class CompletionScene{
   }
   hide(){
     if(!this.active)return;this.active=false;
+    // The rig goes back to the game wearing whatever it was last posed into,
+    // and on a held frame the mixer will not write over it for a while — so
+    // the cheer comes off before it is handed back.
+    this.clearCheer();
     const c=this.world.character;
     this.world.scene.add(c.root);
     c.root.rotation.y=0;c.root.scale.setScalar(1);
     heroEvent(c,{type:'respawn'});
   }
 
-  // Arms up. Layered over the idle after the mixer has written its frame, so
-  // the body keeps breathing under it and the pose is exactly the same every
-  // time the screen opens.
+  // Arms up, layered over the idle so the body keeps breathing under it.
+  //
+  // The turn is a rotation *onto* whatever the bone already holds, so it may
+  // only ever be laid on a bone the mixer has just written. It cannot count on
+  // that: three.js writes a bone only when the blended value changed since the
+  // last frame, and on the stop-motion clock the pose is held — the mixer is
+  // stepped by nothing at all — for every frame between exposures. On a held
+  // frame the arm still carries the last frame's cheer, and turning it again
+  // winds it round and round.
+  //
+  // So the cheer undoes itself: each frame remembers the bones it is about to
+  // turn, and `update` puts them back before the mixer runs again. It is the
+  // flower celebration's `basePose` (flower-celebration.js), kept here because
+  // this overlay is the completion screen's own and outlives no frame.
   poseCheer(c,strength){
     if(!c.loaded||!c.asset||strength<=0)return;
     const bone=name=>c.asset.getObjectByName(name);
+    const base=this.cheerBase=new Map();
+    const turn=(b,angle)=>{
+      if(!b)return;
+      base.set(b,b.quaternion.clone());
+      rotateAbout(b,parentAxis(b,FORWARD,c.model),angle);
+    };
     for(const [side,sign]of [['Left',1],['Right',-1]]){
       const shoulder=bone(side+'Shoulder'),arm=bone(side+'Arm'),fore=bone(side+'ForeArm');
       if(!arm)continue;
-      if(shoulder)rotateAbout(shoulder,parentAxis(shoulder,FORWARD,c.model),sign*CHEER.shoulder*strength);
-      rotateAbout(arm,parentAxis(arm,FORWARD,c.model),sign*CHEER.arm*strength);
-      if(fore)rotateAbout(fore,parentAxis(fore,FORWARD,c.model),sign*CHEER.forearm*strength);
+      turn(shoulder,sign*CHEER.shoulder*strength);
+      turn(arm,sign*CHEER.arm*strength);
+      turn(fore,sign*CHEER.forearm*strength);
     }
+  }
+
+  // Put back what the last frame's cheer turned, so the mixer and the next
+  // cheer both start from the pose the clips actually asked for.
+  clearCheer(){
+    if(!this.cheerBase)return;
+    for(const [bone,q] of this.cheerBase)bone.quaternion.copy(q);
+    this.cheerBase=null;
   }
 
   update(dt){
     const w=this.view,entry=this.built.get(this.key);
     const step=this.world.reducedMotion?0:Math.min(dt,.05);
     this.time+=step;w.time=this.time;w.reducedMotion=this.world.reducedMotion;w.puppetClock=tickPuppets(this.world,step);
+    // Before the mixer: a held pose is left exactly as it was, so last frame's
+    // cheer has to come off the bones or this one would stack on top of it.
+    this.clearCheer();
     animateHero(w,this.game,step);
     const c=w.character;
     c.root.rotation.y=this.heroYaw;c.root.scale.setScalar(this.heroScale);
