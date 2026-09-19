@@ -258,13 +258,15 @@ function butte(w,kind,rank,parent,x,y,z,height,turn){
 // the sky held one large salmon shape. The reference scatters a few white
 // puffs of different sizes across the upper frame — four or five in view,
 // the largest about as wide as the mill's sails. The camera is orthographic,
-// so size never comes from depth — it is authored per rank — and the clouds
-// keep their own white: the sky behind them is unfogged too, and a cloud that
-// takes the fog reads as a butte. Farther ranks lean a little toward the sky
-// instead. `y` is world height at the rank's depth; the camera's downward
-// tilt lifts a plane that deep by ~3 units on screen.
+// so size never comes from depth — it is authored per rank. The two nearer
+// ranks keep their own white — the sky behind them is unfogged too — and lean
+// a little toward the sky by tint. The farthest rank stands behind the far
+// buttes and takes what they take: the fog (three quarters at its depth) and
+// the same flattening, so it reads as haze with a shape rather than a cloud.
+// `y` is world height at the rank's depth; the camera's downward tilt lifts a
+// plane that deep by ~3 units on screen.
 const CLOUD_RANKS=[
-  {factor:.06,z:-60,y:[-1.8,2.6],width:[1.35,2.4],spacing:11,tint:0xe2eaf5},
+  {factor:.06,z:-60,y:[-1.8,2.6],width:[1.35,2.4],spacing:11,tint:0xe2eaf5,fog:true,flatten:.55,relief:.25},
   {factor:.12,z:-52,y:[-1.3,3.0],width:[2.1,3.3],spacing:16,tint:0xf1f5fa},
   {factor:.2,z:-44,y:[-.6,3.4],width:[2.85,4.2],spacing:24,tint:0xffffff}
 ];
@@ -272,8 +274,11 @@ function cloudMaterial(w,rank,source){
   if(!source?.isMeshStandardMaterial)return source;
   w.canyonClouds??=new Map();const key=rank+':'+source.uuid;
   if(!w.canyonClouds.has(key)){
-    const m=source.clone();m.userData={};m.fog=false;m.color.multiply(new THREE.Color(CLOUD_RANKS[rank].tint));
-    clayMaterial(w,m,source.userData.clay?.requestedDepth??.035);
+    const {tint,fog=false,flatten=0,relief=1}=CLOUD_RANKS[rank],m=source.clone();m.userData={};
+    m.fog=fog;m.color.multiply(new THREE.Color(tint)).multiplyScalar(1-flatten);
+    // The cloud's albedo is its baked map, so the floor is the rank's tint.
+    m.emissive.setHex(tint);m.emissiveIntensity=flatten*MEAN_LIGHT;m.normalScale?.multiplyScalar(relief);
+    clayMaterial(w,m,(source.userData.clay?.requestedDepth??.035)*relief);
     w.assetMaterials??=new Set();w.assetMaterials.add(m);w.canyonClouds.set(key,m);
   }
   return w.canyonClouds.get(key);
@@ -282,8 +287,9 @@ function cloudField(w,end){
   const anchors=(w.currentLevel?.platforms||[]).filter(s=>s.id==='arch-drop'&&s.kind==='bridge').map(s=>({x:s.x+s.w*.38,y:s.y+.72,scale:4.1/(w.cloudAsset?.width||1)}));
   CLOUD_RANKS.forEach((rank,r)=>{
     const g=group(w.backRoot);g.name='Canyon clouds '+r;
-    // Only the far rank lends a cloud to the Boulder Drop's authored composition.
-    w.parallax.push({group:g,factor:rank.factor,heightFollow:1,...(r===0?{anchors}:{})});
+    // The middle rank lends a cloud to the Boulder Drop's authored composition:
+    // the nearest unfogged, unflattened rank, so the piece stays a white cloud.
+    w.parallax.push({group:g,factor:rank.factor,heightFollow:1,...(r===1?{anchors}:{})});
     // Cover the view from the chapter's first frame to its last: the rank's
     // own travel plus a screen either side, so nothing pops in at the edges.
     const reach=end*rank.factor+14;

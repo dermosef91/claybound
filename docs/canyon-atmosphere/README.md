@@ -41,11 +41,14 @@ stdev) went 8.0 → 3.5; the original cream-fog frame measured 2.6.
 
 **One salmon cloud → a field.** Twelve clouds at one depth, one size, sixteen
 apart, 96 % fogged: two on screen, both pink. Now three ranks
-(`CLOUD_RANKS`, factors .06/.12/.2 at z −60/−52/−44) of 1.35–4.2-unit puffs
-with `fog:false`, 15 built, 4–5 in view (a first pass at twice the count and
-two thirds the size read as busy). The camera is orthographic, so sizes are
-authored, not a consequence of depth. The Boulder Drop's anchored cloud still
-composes from the far rank.
+(`CLOUD_RANKS`, factors .06/.12/.2 at z −60/−52/−44) of 1.35–4.2-unit puffs,
+15 built, 4–5 in view (a first pass at twice the count and two thirds the
+size read as busy). The two nearer ranks are `fog:false` and keep their
+white; the farthest stands behind the far buttes and takes what they take —
+the fog (about three quarters at z −60) and the same 55 % / ¼ flattening — so
+it reads as haze with a shape. The camera is orthographic, so sizes are
+authored, not a consequence of depth. The Boulder Drop's anchored cloud now
+composes from the middle rank, the nearest one that stays a white cloud.
 
 **A gradient sky.** `sky-gradient.js` is the cave's `hazeGradient` made
 shareable; the canyon rides it on a factor-0 layer with `SKY_STOPS`. Subtle by
