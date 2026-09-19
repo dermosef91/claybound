@@ -403,12 +403,11 @@ $('dialog-content').addEventListener('click',e=>{
     if(saved.stopMotion)b.insertAdjacentHTML('afterend',stopMotionTuningMarkup(saved.stopMotionTuning));
     icons();
   }
-  if(a==='settings-stopmotion-creatures'||a==='settings-stopmotion-hold'){
-    const key=a==='settings-stopmotion-creatures'?'creatures':'hold',t=saved.stopMotionTuning;
-    t[key]=!t[key];if(world)applyStopMotionTuning(world,t);persist();
-    b.setAttribute('aria-checked',String(t[key]));
-    b.innerHTML=key==='creatures'?`${icon('bug')}<span>Creatures too</span><strong>${t.creatures?'On':'Off'}</strong>`
-      :`${icon('grab')}<span>Hold position</span><strong>${t.hold?'On':'Off'}</strong>`;icons();
+  if(a==='settings-stopmotion-creatures'){
+    const t=saved.stopMotionTuning;
+    t.creatures=!t.creatures;if(world)applyStopMotionTuning(world,t);persist();
+    b.setAttribute('aria-checked',String(t.creatures));
+    b.innerHTML=`${icon('bug')}<span>Creatures too</span><strong>${t.creatures?'On':'Off'}</strong>`;icons();
   }
   if(a==='settings-character')chooseCharacter(b.dataset.character);
   if(a==='help')help();

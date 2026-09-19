@@ -64,8 +64,7 @@ function tuner(key,label,iconName,value,unit){
 // Everything the stop-motion look is made of, unfolded under its switch while
 // it is on: exposures a second; the boil of the prints and the wobble of the
 // puppet's registration, both in thousandths of a world unit; the lamp's
-// flicker in per cent; and whether the creatures step and whether a puppet's
-// position holds between exposures along with its pose.
+// flicker in per cent; and whether the creatures step too.
 export function stopMotionTuningMarkup(tuning){
   const t=normalizeTuning(tuning);
   return `<div class="title-tuning" data-tuning="stopmotion">
@@ -74,7 +73,6 @@ export function stopMotionTuningMarkup(tuning){
       ${tuner('wobble','Wobble','move',t.wobble,'‰')}
       ${tuner('flicker','Flicker','sun',t.flicker,'%')}
       <button class="title-setting" data-action="settings-stopmotion-creatures" role="switch" aria-checked="${t.creatures}" aria-label="Creatures step too">${icon('bug')}<span>Creatures too</span><strong>${t.creatures?'On':'Off'}</strong></button>
-      <button class="title-setting" data-action="settings-stopmotion-hold" role="switch" aria-checked="${t.hold}" aria-label="Hold position between exposures">${icon('grab')}<span>Hold position</span><strong>${t.hold?'On':'Off'}</strong></button>
     </div>`;
 }
 
@@ -89,7 +87,7 @@ export function settingsMarkup(soundEnabled,fullscreenActive,{music=.55,effects=
     <div class="title-settings">
       <button class="title-setting" data-action="settings-sound" role="switch" aria-checked="${soundEnabled}" aria-label="Game sound">${icon(soundEnabled?'volume-2':'volume-x')}<span>Sound</span><strong>${soundEnabled?'On':'Off'}</strong></button>
       <button class="title-setting" data-action="settings-rumble" role="switch" aria-checked="${rumble}" aria-label="Vibration and controller rumble">${icon('move-vertical')}<span>Rumble</span><strong>${rumble?'On':'Off'}</strong></button>
-      <button class="title-setting" data-action="settings-stopmotion" role="switch" aria-checked="${stopMotion}" aria-label="Stop-motion animation, eight poses a second">${icon('camera')}<span>Stop motion</span><strong>${stopMotion?'On':'Off'}</strong></button>
+      <button class="title-setting" data-action="settings-stopmotion" role="switch" aria-checked="${stopMotion}" aria-label="Stop-motion animation, twelve poses a second">${icon('camera')}<span>Stop motion</span><strong>${stopMotion?'On':'Off'}</strong></button>
       ${stopMotion?stopMotionTuningMarkup(stopMotionTuning):''}
       <button class="title-setting" data-action="fullscreen" data-fullscreen="label" aria-pressed="${fullscreenActive}">${icon(fullscreenActive?'minimize':'expand')}<span>${fullscreenActive?'Exit fullscreen':'Fullscreen'}</span></button>
       <button class="title-setting" data-action="help">${icon('gamepad-2')}<span>How to play</span></button>

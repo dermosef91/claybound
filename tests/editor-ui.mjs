@@ -119,17 +119,17 @@ await click('#settings');assert(!document.querySelector('[data-tuning]'),'folded
 await click('[data-action="settings-stopmotion"]');assert(document.querySelector('[data-tuning="stopmotion"]'),'unfolds when switched on');
 assert.equal(document.querySelectorAll('#dialog input[type="range"]').length,6,'four tuners join the two volume sliders');
 {
-  const fps=document.querySelector('input[data-tune="fps"]'),music=app.saved.music;assert.equal(fps.value,'8');
-  fps.value='12';fps.dispatchEvent(new window.Event('input',{bubbles:true}));await settle();
-  assert.equal(app.saved.stopMotionTuning.fps,12);assert.equal(document.querySelector('[data-readout="tune-fps"]').textContent,'12/s');
-  assert.equal(JSON.parse(storage.get('claybound-v1')).stopMotionTuning.fps,12,'the number is saved on the device');
+  const fps=document.querySelector('input[data-tune="fps"]'),music=app.saved.music;assert.equal(fps.value,'12');
+  fps.value='16';fps.dispatchEvent(new window.Event('input',{bubbles:true}));await settle();
+  assert.equal(app.saved.stopMotionTuning.fps,16);assert.equal(document.querySelector('[data-readout="tune-fps"]').textContent,'16/s');
+  assert.equal(JSON.parse(storage.get('claybound-v1')).stopMotionTuning.fps,16,'the number is saved on the device');
   assert.equal(app.saved.music,music,'a tuner never moves a volume');
 }
-await click('[data-action="settings-stopmotion-hold"]');assert.equal(app.saved.stopMotionTuning.hold,true);assert.equal(document.querySelector('[data-action="settings-stopmotion-hold"]').getAttribute('aria-checked'),'true');
-await click('[data-action="close"]');await click('#settings');assert(document.querySelector('input[data-tune="fps"]').value==='12','and shown again on reopening');
+await click('[data-action="settings-stopmotion-creatures"]');assert.equal(app.saved.stopMotionTuning.creatures,false);assert.equal(document.querySelector('[data-action="settings-stopmotion-creatures"]').getAttribute('aria-checked'),'false');
+await click('[data-action="close"]');await click('#settings');assert(document.querySelector('input[data-tune="fps"]').value==='16','and shown again on reopening');
 await click('[data-action="settings-stopmotion"]');assert(!document.querySelector('[data-tuning]'),'folds away when switched off');
-await click('[data-action="settings-stopmotion"]');await click('[data-action="settings-stopmotion-hold"]');
-{const fps=document.querySelector('input[data-tune="fps"]');fps.value='8';fps.dispatchEvent(new window.Event('input',{bubbles:true}));await settle();}
+await click('[data-action="settings-stopmotion"]');await click('[data-action="settings-stopmotion-creatures"]');
+{const fps=document.querySelector('input[data-tune="fps"]');fps.value='12';fps.dispatchEvent(new window.Event('input',{bubbles:true}));await settle();}
 await click('[data-action="settings-stopmotion"]');await click('[data-action="close"]');
 $('settings').focus();await click('#settings');await click('[data-action="help"]');await click('[data-action="close"]');assert.equal(document.activeElement,$('settings'),'Nested help returns focus to the title trigger');
 await click('#chapters');assert.equal(document.querySelectorAll('.chapter-choice[data-level]').length,4);assert.equal(document.querySelectorAll('.chapter-choice[data-action="playground"]').length,0,'the clay lab is hidden until it is unlocked');assert.equal(document.querySelector('.chapter-choice[data-level="4"]'),null,'so is the dream');

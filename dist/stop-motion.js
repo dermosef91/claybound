@@ -1,17 +1,19 @@
-// Clay stop-motion is shot on threes here: eight poses a second, each held
+// Clay stop-motion is shot on twos here: twelve poses a second, each held
 // until the next, with nothing in between. That hold is the whole tell — a
 // puppet that eases is a cartoon; one that cuts is clay. The simulation, the
 // camera and where every puppet stands stay smooth, because the game still has
 // to read at sixty; only the poses step, and every puppet on the set cuts to
 // its next pose on the same frame, as it would under one camera.
-export const STOP_MOTION_FPS=8;
+export const STOP_MOTION_FPS=12;
 export const BOIL=.006;
 
-// What the Settings panel can turn while the game runs, with the values the
-// look was tuned at. Amounts are kept in whole numbers a slider can show —
+// What the Settings panel can turn while the game runs, at the values the look
+// was tuned to by eye: twelve exposures, the prints crawling six thousandths of
+// a unit, each puppet landing three thousandths off its mark, the lamp four per
+// cent unsteady. Amounts are kept in whole numbers a slider can show —
 // thousandths of a world unit for the boil and the wobble, a percentage for
 // the flicker — and become the clock's units in applyStopMotionTuning.
-export const TUNING_DEFAULTS=Object.freeze({fps:STOP_MOTION_FPS,boil:Math.round(BOIL*1000),creatures:true,hold:false,wobble:0,flicker:0});
+export const TUNING_DEFAULTS=Object.freeze({fps:STOP_MOTION_FPS,boil:Math.round(BOIL*1000),creatures:true,wobble:3,flicker:4});
 export const TUNING_RANGES=Object.freeze({fps:[4,24],boil:[0,20],wobble:[0,30],flicker:[0,8]});
 export function normalizeTuning(saved){
   const t={...TUNING_DEFAULTS};
@@ -21,7 +23,6 @@ export function normalizeTuning(saved){
       if(Number.isFinite(value))t[key]=Math.min(hi,Math.max(lo,Math.round(value)));
     }
     if(typeof saved.creatures==='boolean')t.creatures=saved.creatures;
-    if(typeof saved.hold==='boolean')t.hold=saved.hold;
   }
   return t;
 }
@@ -33,12 +34,12 @@ export function normalizeTuning(saved){
 // flicker hash on. The tunables ride on it too, so every animator that holds
 // the clock sees a slider move on its next frame.
 export const createPuppetClock=()=>({on:false,held:0,frame:0,step:0,stepped:false,
-  fps:STOP_MOTION_FPS,boil:BOIL,creatures:true,hold:false,wobble:0,flicker:0,lit:false});
+  fps:STOP_MOTION_FPS,boil:BOIL,creatures:true,wobble:TUNING_DEFAULTS.wobble/1000,flicker:TUNING_DEFAULTS.flicker/100,lit:false});
 
 // Put the panel's numbers on the running world's clock.
 export function applyStopMotionTuning(w,tuning){
   const t=normalizeTuning(tuning),c=w.puppetClock??=createPuppetClock();
-  c.fps=t.fps;c.boil=t.boil/1000;c.creatures=t.creatures;c.hold=t.hold;c.wobble=t.wobble/1000;c.flicker=t.flicker/100;
+  c.fps=t.fps;c.boil=t.boil/1000;c.creatures=t.creatures;c.wobble=t.wobble/1000;c.flicker=t.flicker/100;
   return c;
 }
 
@@ -48,8 +49,9 @@ const stepping=(clock,creature)=>!!clock?.on&&(!creature||clock.creatures);
 
 // Advance the shared clock by this frame's dt. With the setting off the poses
 // take dt as they always did. With it on, nothing moves until an exposure's
-// worth of time has built up, then all of it is spent at once — the pose lands
-// on the real elapsed time, so a held puppet never falls behind the world.
+// worth of time (a twelfth of a second, as tuned) has built up, then all of it
+// is spent at once — the pose lands on the real elapsed time, so a held puppet
+// never falls behind the world.
 export function tickPuppets(w,dt){
   const c=w.puppetClock??=createPuppetClock();
   c.on=!!w.stopMotion;
@@ -81,20 +83,16 @@ export function heldSample(clock,view,step,read,creature=true){
 const hash=(n,k)=>{const x=Math.sin(n*12.9898+k*78.233)*43758.5453;return x-Math.floor(x);};
 const seed=name=>{let h=0;for(const ch of String(name??''))h=(h*31+ch.charCodeAt(0))%1000;return h;};
 
-// Where a puppet is drawn. Its position is the simulation's, smooth, unless
-// Hold position is on — then it too is read at exposures, so the whole puppet
-// jumps from pose to pose the way a photographed one does. The wobble is the
-// registration error of a real set: a puppet never lands back in exactly the
+// Where a puppet is drawn: the simulation's position, smooth — a held pose on a
+// moving body is what keeps the game readable — plus the wobble, the
+// registration error of a real set. A puppet never lands back in exactly the
 // same place, so each exposure carries its own small offset, constant until
-// the next. Both are only on the clock; off it this returns the live point.
+// the next. Only on the clock; off it this is the live point.
 export function placePuppet(clock,view,x,y,creature=false){
   const at=view.placed??={x:0,y:0,frame:-1,wx:0,wy:0};
-  if(!stepping(clock,creature)){at.x=x;at.y=y;at.wx=at.wy=0;at.frame=-1;return at;}
-  if(!clock.hold||clock.stepped||at.frame<0){at.x=x;at.y=y;}
-  if(clock.wobble>0){
-    if(at.frame!==clock.frame){const n=clock.frame+seed(view.id??'hero');at.wx=(hash(n,4)-.5)*2*clock.wobble;at.wy=(hash(n,5)-.5)*2*clock.wobble;}
-  }else at.wx=at.wy=0;
-  at.frame=clock.frame;
+  at.x=x;at.y=y;
+  if(!stepping(clock,creature)||clock.wobble<=0){at.wx=at.wy=0;at.frame=-1;return at;}
+  if(at.frame!==clock.frame){const n=clock.frame+seed(view.id??'hero');at.wx=(hash(n,4)-.5)*2*clock.wobble;at.wy=(hash(n,5)-.5)*2*clock.wobble;at.frame=clock.frame;}
   return {x:at.x+at.wx,y:at.y+at.wy,frame:at.frame};
 }
 

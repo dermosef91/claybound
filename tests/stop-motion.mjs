@@ -1,5 +1,5 @@
-// Stop motion is shot on threes: with the setting on, every puppet's pose holds
-// for an eighth of a second and then cuts, together, to the next; the world it
+// Stop motion is shot on twos: with the setting on, every puppet's pose holds
+// for a twelfth of a second and then cuts, together, to the next; the world it
 // stands in keeps moving at sixty. Off, nothing changes — the clock hands each
 // frame's dt straight through, so the game the player had is the game they keep.
 import assert from 'node:assert/strict';
@@ -20,12 +20,12 @@ import {Game} from '../dist/simulation.js';
   assert.equal(puppetStep(c,.4),.05,'off, a hitch is clamped the way every animator clamps it');
   assert.equal(puppetStep(undefined,1/60),1/60,'an animator with no clock at all behaves as before');
   w.stopMotion=true;
-  // At sixty, an eighth of a second is seven frames held and the eighth spent.
+  // At sixty, a twelfth of a second is four frames held and the fifth spent.
   const per=Math.ceil(60/STOP_MOTION_FPS),advanced=[];
-  assert.equal(STOP_MOTION_FPS,8,'shot on threes: eight poses a second');
+  assert.equal(STOP_MOTION_FPS,12,'shot on twos: twelve poses a second');
   for(let i=0;i<2*per;i++){c=tickPuppets(w,1/60);advanced.push(puppetStep(c,1/60));}
   assert.deepEqual(advanced.slice(0,per-1),Array(per-1).fill(0),`${per-1} frames hold`);
-  assert(Math.abs(advanced[per-1]-per/60)<1e-9,`the ${per}th frame spends the whole eighth`);
+  assert(Math.abs(advanced[per-1]-per/60)<1e-9,`the ${per}th frame spends the whole twelfth`);
   assert.deepEqual(advanced.slice(per,2*per-1),Array(per-1).fill(0));assert(advanced[2*per-1]>0,'and the next exposure follows in turn');
   assert.equal(c.frame,2,`two exposures in ${2*per} frames at sixty`);
   assert(Math.abs(advanced.reduce((a,b)=>a+b,0)+c.held-2*per/60)<1e-9,'no time is lost: what is held is spent or still held');
@@ -64,7 +64,7 @@ import {Game} from '../dist/simulation.js';
   assert(c.root.position.x>x0,'but the puppet still moves with the game');
   let cuts=0,last=pose();
   for(let i=0;i<24;i++){frame(1/60,{right:true});const now=pose();if(now.some((v,k)=>v!==last[k]))cuts++;last=now;}
-  assert(cuts>=2&&cuts<=4,`twenty-four frames at sixty cut ${cuts} times, about three`);
+  assert(cuts>=4&&cuts<=5,`twenty-four frames at sixty cut ${cuts} times, about five`);
   assert(offsets.every(o=>o.length()>0&&o.length()<BOIL*2),'each exposure boils the prints by a hair, never further');
   // Off again: the pose eases every frame and the prints go back where they were.
   w.stopMotion=false;frame(1/60,{right:true});
@@ -74,8 +74,8 @@ import {Game} from '../dist/simulation.js';
   const plain=new THREE.Group();plain.add(new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshStandardMaterial()));
   boilPuppet(plain,w.puppetClock);assert(!plain.userData.boiled);
 
-  // A landing squashes the body on a spring. Stepped, that spring is fed an
-  // eighth of a second at a time, which is past what its stiffness can take
+  // A landing squashes the body on a spring. Stepped, that spring is fed a
+  // twelfth of a second at a time, which is past what its stiffness can take
   // in one Euler step: left alone it rang against its clamp for ever, and the
   // puppet shivered after every jump. It has to settle the way it does at sixty.
   // Peak squash over each fifth of a second, for three seconds after a landing.
@@ -103,11 +103,14 @@ import {Game} from '../dist/simulation.js';
   const v=createSpitterView(w,e);
   const frame=dt=>{e.stateTime+=dt;e.x+=dt*.2;tickPuppets(w,dt);animateSpitter(v,e,dt,'playing');};
   const head=()=>v.head.quaternion.toArray().map(q=>+q.toFixed(6));
+  // Frames per exposure at sixty: five at twelve a second. One frame in, the
+  // pose is read; the next held frames keep it; the exposure cuts.
+  const per=Math.ceil(60/w.puppetClock.fps);
   frame(1/60);const wound=head(),x=v.root.position.x;
-  for(let i=0;i<5;i++)frame(1/60);
+  for(let i=0;i<per-2;i++)frame(1/60);
   assert.deepEqual(head(),wound,'the wind-up holds through the held frames although the state timer ran on');
   assert(v.root.position.x>x,'while the creature itself keeps moving');
-  for(let i=0;i<3;i++)frame(1/60);
+  for(let i=0;i<2;i++)frame(1/60);
   assert.notDeepEqual(head(),wound,'and cuts to the wound-up pose on the exposure');
   w.stopMotion=false;frame(1/60);const a=head();frame(1/60);assert.notDeepEqual(head(),a,'off, the wind-up eases every frame');
 
@@ -118,18 +121,19 @@ import {Game} from '../dist/simulation.js';
   frame(1/60);const easedA=head();frame(1/60);assert.notDeepEqual(head(),easedA,'creatures off: the spitter eases while the setting is on');
   assert.equal(puppetStep(w.puppetClock,1/60),0,'and the hero still holds');
   assert(!v.root.userData.boiled,'a creature off the clock is not boiled');
-  applyStopMotionTuning(w,TUNING_DEFAULTS);
+  applyStopMotionTuning(w,TUNING_DEFAULTS);w.puppetClock.held=0;
   frame(1/60);const heldB=head();frame(1/60);frame(1/60);assert.deepEqual(head(),heldB,'creatures on: it holds again');
 }
 
 // The tuning knobs, each on the clock it drives.
 {
   const w={stopMotion:true,puppetClock:createPuppetClock()};
-  // Exposures a second: twelve is four frames held and the fifth spent.
-  applyStopMotionTuning(w,{...TUNING_DEFAULTS,fps:12});
-  const advanced=[];for(let i=0;i<10;i++){tickPuppets(w,1/60);advanced.push(puppetStep(w.puppetClock,1/60));}
-  assert.deepEqual(advanced.map(a=>a>0?1:0),[0,0,0,0,1,0,0,0,0,1],'at twelve a second the fifth frame exposes');
-  assert.equal(normalizeTuning({fps:99}).fps,24);assert.equal(normalizeTuning({boil:'x'}).boil,6);assert.equal(normalizeTuning({hold:'yes'}).hold,false,'saves are clamped and typed');
+  // Exposures a second: eight is seven frames held and the eighth spent.
+  applyStopMotionTuning(w,{...TUNING_DEFAULTS,fps:8});
+  const advanced=[];for(let i=0;i<16;i++){tickPuppets(w,1/60);advanced.push(puppetStep(w.puppetClock,1/60));}
+  assert.deepEqual(advanced.map(a=>a>0?1:0),[0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],'at eight a second the eighth frame exposes');
+  assert.equal(normalizeTuning({fps:99}).fps,24);assert.equal(normalizeTuning({boil:'x'}).boil,6);assert.equal(normalizeTuning({hold:true}).hold,undefined,'saves are clamped and typed, and a retired key is dropped');
+  assert.deepEqual(normalizeTuning(),{fps:12,boil:6,creatures:true,wobble:3,flicker:4},'the defaults are the tuned look');
   // Boil: the amount is the clock's, and nought puts the prints back.
   const m=new THREE.MeshStandardMaterial({name:'skin'});m.userData.clay={offset:new THREE.Vector3()};
   const root=new THREE.Group();root.add(new THREE.Mesh(new THREE.BoxGeometry(),m));
@@ -137,29 +141,26 @@ import {Game} from '../dist/simulation.js';
   boilPuppet(root,w.puppetClock);assert(m.userData.clay.offset.length()>BOIL*1.5&&m.userData.clay.offset.length()<.02*2,'a bigger boil moves the prints further');
   applyStopMotionTuning(w,{...TUNING_DEFAULTS,boil:0});boilPuppet(root,w.puppetClock);
   assert.deepEqual(m.userData.clay.offset.toArray(),[0,0,0],'boil nought puts them back');
-  // Hold position: the drawn point stays where the last exposure put it.
-  w.puppetClock=createPuppetClock();applyStopMotionTuning(w,{...TUNING_DEFAULTS,hold:true});
-  const view={id:'test'};let placed;
-  const place=(x,dt)=>{tickPuppets(w,dt);placed=placePuppet(w.puppetClock,view,x,0,false);return placed.x;};
-  const first=place(1,1/60);
-  for(let i=0;i<6;i++)assert.equal(place(1+(i+1)*.1,1/60),first,'held frames keep the exposure\'s position');
-  assert(place(1.8,1/60)>first,'the exposure moves it on');
-  applyStopMotionTuning(w,{...TUNING_DEFAULTS,hold:false});
-  assert.equal(place(3,1/60),3,'hold off: the live position every frame');
-  // Wobble: an offset within the amount, new each exposure, still within a hold.
+  // The drawn point follows the simulation every frame — a puppet is never held
+  // in place — plus the wobble: an offset within the amount, new each exposure,
+  // still within a hold.
+  w.puppetClock=createPuppetClock();applyStopMotionTuning(w,{...TUNING_DEFAULTS,wobble:0});
+  const view={id:'test'};
+  for(const x of [1,1.1,1.2]){tickPuppets(w,1/60);assert.equal(placePuppet(w.puppetClock,view,x,0,false).x,x,'position is live on every frame');}
   applyStopMotionTuning(w,{...TUNING_DEFAULTS,wobble:30});
   const offsets=[];for(let i=0;i<16;i++){tickPuppets(w,1/60);const at=placePuppet(w.puppetClock,view,5,0,false);offsets.push([+(at.x-5).toFixed(6),+at.y.toFixed(6)]);}
   assert(offsets.every(([x,y])=>Math.abs(x)<=.03+1e-9&&Math.abs(y)<=.03+1e-9),'the wobble stays within its amount');
   assert(offsets.some(([x,y])=>x!==0||y!==0),'and is not nothing');
-  const distinct=new Set(offsets.map(o=>o.join()));assert(distinct.size>=2&&distinct.size<=3,`one offset per exposure, not per frame (${distinct.size})`);
-  applyStopMotionTuning(w,TUNING_DEFAULTS);tickPuppets(w,1/60);assert.deepEqual([placePuppet(w.puppetClock,view,5,0,false).x,placePuppet(w.puppetClock,view,5,0,false).y],[5,0],'wobble nought: no offset');
+  const per=Math.ceil(60/w.puppetClock.fps),distinct=new Set(offsets.map(o=>o.join()));
+  assert(distinct.size>=Math.floor(16/per)&&distinct.size<=Math.ceil(16/per)+1,`one offset per exposure, not per frame (${distinct.size} over 16 frames at ${w.puppetClock.fps}/s)`);
+  applyStopMotionTuning(w,{...TUNING_DEFAULTS,wobble:0});tickPuppets(w,1/60);assert.deepEqual([placePuppet(w.puppetClock,view,5,0,false).x,placePuppet(w.puppetClock,view,5,0,false).y],[5,0],'wobble nought: no offset');
   // Flicker: the lamp scales about the theme's power, new each exposure, and
   // is handed back when the flicker is nought.
   const lit={stopMotion:true,puppetClock:createPuppetClock(),sun:{intensity:3},theme:{sunPower:3}};
   applyStopMotionTuning(lit,{...TUNING_DEFAULTS,flicker:8});
   const seen=new Set();for(let i=0;i<16;i++){tickPuppets(lit,1/60);exposeLight(lit);seen.add(lit.sun.intensity);assert(Math.abs(lit.sun.intensity-3)<=3*.08+1e-9,'within eight per cent');}
-  assert(seen.size>=2&&seen.size<=3,`one light per exposure (${seen.size})`);
-  applyStopMotionTuning(lit,TUNING_DEFAULTS);tickPuppets(lit,1/60);exposeLight(lit);assert.equal(lit.sun.intensity,3,'flicker nought: the theme\'s own power');
+  assert(seen.size>=Math.floor(16/per)&&seen.size<=Math.ceil(16/per)+1,`one light per exposure (${seen.size})`);
+  applyStopMotionTuning(lit,{...TUNING_DEFAULTS,flicker:0});tickPuppets(lit,1/60);exposeLight(lit);assert.equal(lit.sun.intensity,3,'flicker nought: the theme\'s own power');
   lit.stopMotion=false;lit.sun.intensity=2.5;tickPuppets(lit,1/60);exposeLight(lit);assert.equal(lit.sun.intensity,2.5,'off the clock the lamp is left alone');
 }
-console.log('PASS stop motion: the clock holds seven frames and spends the eighth, the hero cuts pose, blends and skin together while its feet keep moving, a landing settles, a creature holds its wind-up, every knob reaches the clock, and off is exactly what it was');
+console.log('PASS stop motion: the clock holds four frames and spends the fifth, the hero cuts pose, blends and skin together while its feet keep moving, a landing settles, a creature holds its wind-up, every knob reaches the clock, and off is exactly what it was');

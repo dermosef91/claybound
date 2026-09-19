@@ -230,7 +230,7 @@ export function animateHero(w,game,dt,alpha=1){
   // spring, the lean — takes this one step, so under stop motion the whole pose
   // holds and cuts together rather than the clips stepping inside a body that
   // still glides. The root's position is set from the simulation and stays smooth,
-  // unless the Hold position setting asks for it to step too (placePuppet).
+  // give or take the registration wobble each exposure (placePuppet).
   const step=paused?0:puppetStep(w.puppetClock,dt),air=!p.groundId;
   // Drawn `alpha` of the way between the last two ticks (camera.js `between`),
   // as the decks are, so a rider and their deck move as one.
@@ -290,7 +290,7 @@ export function animateHero(w,game,dt,alpha=1){
     c.mixer.update(step);
     if(!paused)boilPuppet(c.asset,w.puppetClock);
     // A small foot-anchored response complements, rather than distorts, the rig.
-    // The spring is stiff enough that one Euler step of an eighth of a second
+    // The spring is stiff enough that one Euler step of a twelfth of a second
     // — a stop-motion exposure — rings it against its clamp for good, so it
     // is walked in the simulation's own ticks however long the frame held.
     for(let left=step;left>0;left-=SPRING_DT){

@@ -14,9 +14,9 @@ const {review,patchApp,PROJECT}=require('./support/review.cjs');
 const root=PROJECT,out=process.env.OUT||path.join(root,'docs/stop-motion');
 const cast=(process.env.CAST||'apprentice').split(',');
 const FRAMES=16,TILE={w:112,h:210},CROP={w:300,h:560};
-// One tile per exposure on the landing sheet: an eighth of a second is eight
-// frames at sixty (the clock spends on the eighth).
-const PER=8;
+// One tile per exposure on the landing sheet: a twelfth of a second is five
+// frames at sixty (the clock spends on the fifth).
+const PER=5;
 review(async({page,url,errors,requests})=>{
   fs.mkdirSync(out,{recursive:true});
   await patchApp(page,{root,expose:'window.playtest={manual:false,get game(){return game},get world(){return world},begin,draw(){world.render(game,0);}};'});
@@ -77,7 +77,7 @@ review(async({page,url,errors,requests})=>{
       results.push({id,name,off:cuts.cuts[0],on:cuts.cuts[1],squashOff:cuts.squash[0],squashOn:cuts.squash[1]});
       if(every===1){
         assert.equal(cuts.cuts[0],FRAMES-1,`${id} ${name}: off, every frame moves`);
-        assert(cuts.cuts[1]>=1&&cuts.cuts[1]<=3,`${id} ${name}: on, a couple of cuts in a fifth of a second (${cuts.cuts[1]})`);
+        assert(cuts.cuts[1]>=2&&cuts.cuts[1]<=4,`${id} ${name}: on, about three cuts in sixteen frames (${cuts.cuts[1]})`);
       }else assert(cuts.squash[1]<.02,`${id} ${name}: the landing squash has settled a second on, not ${cuts.squash[1]}`);
     }
     // The chapter's first creature: they expose on the same clock as the hero.
@@ -119,7 +119,7 @@ review(async({page,url,errors,requests})=>{
       await page.locator('#sheet').screenshot({path:path.join(out,`${creature.kind}.png`)});
       results.push({id:creature.kind,name:'creature',off:creature.cuts[0],on:creature.cuts[1]});
       assert.equal(creature.cuts[0],FRAMES-1,`${creature.kind}: off, every frame moves`);
-      assert(creature.cuts[1]>=1&&creature.cuts[1]<=3,`${creature.kind}: on, a couple of cuts (${creature.cuts[1]})`);
+      assert(creature.cuts[1]>=2&&creature.cuts[1]<=4,`${creature.kind}: on, about three cuts (${creature.cuts[1]})`);
     }
     // Two consecutive exposures, close on the chest, for the boil.
     for(const [k,name] of [['a'],['b']].map((v,k)=>[k,v[0]])){

@@ -4,7 +4,7 @@
       "id": "apprentice",
       "name": "run",
       "off": 15,
-      "on": 2,
+      "on": 3,
       "squashOff": 0,
       "squashOn": 0
     },
@@ -12,7 +12,7 @@
       "id": "apprentice",
       "name": "idle",
       "off": 15,
-      "on": 2,
+      "on": 3,
       "squashOff": 0,
       "squashOn": 0
     },
@@ -28,7 +28,7 @@
       "id": "drifter",
       "name": "creature",
       "off": 15,
-      "on": 2
+      "on": 3
     }
   ],
   "errors": [],
