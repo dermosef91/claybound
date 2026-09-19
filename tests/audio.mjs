@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {motherCorrupted,motherQuiet} from '../dist/mother-puff-rules.js';
 import {STONE_ORCHARD_TRACK} from '../dist/mother-puff-music.js';
 import {Sound,HORIZON_TRACK,CHAPTER_TRACKS,FLOWER_VICTORY,SPORE_BALLOON_BURST,MOTHER_PUFF_GROWL,COIN_PICKUP,CHECKPOINT_FLAG,FINISH_BELL,POROUS_CLAY_STEP,ENEMY_HEAD_IMPACT,LEDGE_COLLAPSE,CANYON_WIND,CLAY_KNEAD,JUMP,CLAY_STEP,WOOD_STEP,TIMBER,windExposure} from '../dist/audio.js';
+import {LEVELS} from '../dist/levels.js';
 import canyon from '../dist/routes/canyon.js';
 import forest from '../dist/routes/forest.js';
 import city from '../dist/routes/city.js';
@@ -39,7 +40,8 @@ const elements=[];let nextMedia;
 globalThis.window={AudioContext:Context};
 globalThis.document={createElement:tag=>{assert.equal(tag,'audio');return nextMedia||new Media();},body:{append:el=>elements.push(el)}};
 for(const url of CHAPTER_TRACKS){const music=await readFile(new URL(url));assert(music.length>3e6);assert.equal(music.subarray(0,3).toString(),'ID3');}
-assert.deepEqual(CHAPTER_TRACKS.map(url=>url.split('/').pop()),['steps-along-the-ridge.mp3','morning-at-the-breathing-tree.mp3','where-crystals-sing.mp3','above-the-clay-horizon.mp3']);
+assert.deepEqual(CHAPTER_TRACKS.map(url=>url.split('/').pop()),['steps-along-the-ridge.mp3','morning-at-the-breathing-tree.mp3','where-crystals-sing.mp3','above-the-clay-horizon.mp3','ceremony-under-canopy.mp3']);
+assert.equal(CHAPTER_TRACKS.length,LEVELS.length,'every chapter has its own song, in LEVELS order');
 
 const sound=new Sound();sound.update(.016,false,0,false,true);
 assert.equal(sound.ctx,null);assert.equal(elements.length,0,'no music request or autoplay before a gesture');
@@ -75,7 +77,7 @@ sound.update(.016,false,3);assert.equal(sound.trackGain._target,0);advance(310);
 sound.update(.016,true,3);await settle();assert(!track.paused);assert.equal(track.currentTime,42);
 sound.update(.016,false,3,false,true);assert(!track.paused);assert.equal(track.currentTime,42);
 
-for(const chapter of [1,0,2,1,3]){
+for(const chapter of [1,0,2,1,3,4]){
   track.currentTime=57;const before=sound.ctx.oscillators.length;
   sound.update(.016,true,chapter);await settle();
   assert.equal(track.src,CHAPTER_TRACKS[chapter]);assert.equal(track.currentTime,0,'a new chapter starts its own song');
@@ -112,7 +114,7 @@ rejectOld(Object.assign(new Error(),{name:'NotSupportedError'}));await settle();
 assert(!switching.trackFailed&&!nextMedia.paused,'an abandoned title request cannot fail the newer chapter song');
 assert.equal(switching.trackGain._target,.26);
 nextMedia=null;const savedMute=new Sound();savedMute.enabled=false;savedMute.unlock();assert.equal(savedMute.track,null);
-console.log('PASS four supplied chapter songs, continuous title/Hanging Quarter playback, single streaming player, no duplicate motif, independent effects, pause/resume, mute, hidden-page silence, autoplay retry, per-track failure recovery and stale-request isolation');
+console.log('PASS five supplied chapter songs, continuous title/Hanging Quarter playback, single streaming player, no duplicate motif, independent effects, pause/resume, mute, hidden-page silence, autoplay retry, per-track failure recovery and stale-request isolation');
 
 const pop=new Sound();pop.unlock();await settle();const initial=pop.ctx.oscillators.length;
 pop.effect('break',{spore:true});assert.equal(pop.ctx.oscillators.length,initial+2,'spore burst layers a low pop with a rising bloom');
