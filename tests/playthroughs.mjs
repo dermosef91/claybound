@@ -78,10 +78,12 @@ function attempt(original,link,{offset,wait,hold}){
   // itself once its channel opens takes no hand at all, so it is walked past.
   const station=nearbyStation(g);
   if(station&&!station.rule&&!station.auto&&station.amount<1&&p.groundId){const knead={moveAxis:0,shapeHeld:true};controls.push(knead);g.tick(dt,knead);continue;}
-  // Walking on formable clay, a rise too tall to step up stops the walk; a
-  // player hops it, and so does the pilot — a real jump, nothing edited.
+  // Walking on formable clay, a rise too tall to step up stops the walk — or,
+  // pressed into, is leant on and pushed ahead, which is not the way up it
+  // either; a player hops it, and so does the pilot — a real jump, nothing
+  // edited.
   const ground=p.groundId&&g.level.platforms.find(s=>s.id===p.groundId);
-  if(!launched&&ground?.form){stuck=Math.abs(p.x-lastX)<.004?stuck+1:0;if(stuck>6){jumpPressed=true;stuck=0;}}else stuck=0;
+  if(!launched&&(ground?.form||p.lean)){stuck=Math.abs(p.x-lastX)<.004||p.lean?stuck+1:0;if(stuck>6){jumpPressed=true;stuck=0;}}else stuck=0;
   lastX=p.x;
   if(a.kind==='balance'&&a.channel&&!g.latched[a.channel])aim=a.x+a.w-.7;
   else if(!launched&&!walk&&!fall){
