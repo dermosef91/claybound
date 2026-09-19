@@ -33,11 +33,11 @@ import {cloudModel} from '../clouds.js';
 // Hooks (dream.js): dress() builds the stone decks — the familiar body before
 // the arch, the same body gone strange after it; foreground() heaps pebbles in
 // front of them; deck() dresses the floating pads, the eye pads (pulse), the
-// snapping flower heads (crumble), the mushroom spring, the arch's keystone
-// and the flowerbed's trough; props() streams the flowers, the pebble piles
-// and the arch by WORLD x; hazard() draws the pink pools and the slime under
-// the bed; backdrop() places the far spires, pillars and clouds; animate()
-// moves every eye, lid and petal.
+// snapping flower heads (crumble), the mushroom spring and the flowerbed's
+// trough; props() streams the flowers, the pebble piles and the arch by WORLD
+// x; hazard() draws the pink pools and the slime under the bed; backdrop()
+// places the far spires, pillars and clouds; animate() moves every eye, lid
+// and petal.
 
 const group=(parent,name,x=0,y=0,z=0)=>{const g=new THREE.Group();g.name=name;g.position.set(x,y,z);parent.add(g);return g;};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -75,7 +75,7 @@ const archX=L=>{const m=deck(L,'garden-mound');return m?m.x+ARCH_IN:Infinity;};
 const familiar=(w,x)=>x<archX(w.currentLevel);
 
 // --- the animated registry ---------------------------------------------------------
-// Eyes, eye pads, snapping heads and the keystone are built inside streamed
+// Eyes, eye pads and snapping heads are built inside streamed
 // groups and moved per frame by animate(); each entry is dropped once its
 // group has left the scene.
 const registry=w=>w.gardenAnim??={eyes:[],pads:[],snaps:[]};
@@ -273,24 +273,6 @@ function mushroomSpring(w,s,g){
   cap(w,g,cx,-.4,s.w*.56,.4,1,capMat,dot);
   return {root:g};
 }
-// The crown ledge over the arch. With the supplied gate it is only a cap of
-// moss lying on the gate's crown — the gate stands so its top meets the
-// ledge's, and the moss covers the crown knob's tip — since the gate's own
-// flower does the watching. The sculpted fallback keeps its keystone: a
-// chunky block where the two halves meet, with a closed eye pressed into its
-// face that opens once the player has walked under it.
-function keystone(w,s,g){
-  g.name='Garden arch keystone · '+s.id;
-  if(w.dreamAssets?.arch){
-    w.box(s.w+.1,.3,1.5,'top',g,s.w/2,-.15,-1.2,.14).name='Crown moss';
-    w.ball(.32,.2,.28,'top',g,.2,-.02,-1.3).name='Crown tuft';w.ball(.28,.18,.24,'top',g,s.w-.25,-.04,-1.1).name='Crown tuft';
-    return {root:g};
-  }
-  w.box(s.w+.2,1,1.6,'back',g,s.w/2,-.5,-1.3,.3).name='Keystone';
-  w.box(s.w-.4,.3,1.3,'top',g,s.w/2,-.12,-1.2,.12).name='Keystone frosting';
-  clayEye(w,g,s.w/2,-.5,-.46,.34,'back',s.x*5,{wake:s.x+s.w/2+.5});
-  return {root:g};
-}
 // The bench under the flowerbed: a trough — a floor and a back wall the height
 // of the bench, a front wall left low so the slime inside shows, and a
 // full-height cap at the far end where the bare strip before the exit deck
@@ -363,9 +345,9 @@ function softCloud(w,g,width,turn,tint='pink'){
 // The arch: one chunky rock silhouette with a hole, extruded and bevelled, in
 // the `back` slot so the palette entry at its centre re-inks it from salmon to
 // lilac as the player walks through; frosting on its crown and running down
-// its legs. Static — the crown ledge above it is its keystone and a collider,
-// so the arch must not lean away from it. Built about the arch's centre at the
-// deck's top; its top meets the keystone's underside at +3.1.
+// its legs. Static — the flag stands under its bow and the flower hangs over
+// its crown, so the arch must not lean. Built about the arch's centre at the
+// deck's top; its top is at +3.1.
 function archShape(){
   const s=new THREE.Shape();
   s.moveTo(-3.1,0);s.lineTo(-3.1,1.5);s.absellipse(0,1.5,3.1,1.65,Math.PI,0,true);s.lineTo(3.1,0);s.lineTo(-3.1,0);
@@ -421,13 +403,12 @@ export default {
     return true;
   },
 
-  // The pads, eyes, snapping heads, spring, keystone and trough are the
+  // The pads, eyes, snapping heads, spring and trough are the
   // garden's own; the clay and the goal keep the engine's view.
   deck(w,s,g){
     if(s.shape)return null;
     if(s.kind==='wall'&&s.id==='garden-bed-bench')return trough(w,s,g);
     if(s.kind==='spring')return mushroomSpring(w,s,g);
-    if(s.kind==='ledge'&&s.id==='garden-crown')return keystone(w,s,g);
     if(s.kind==='ledge')return floatPad(w,s,g);
     if(s.kind==='pulse')return eyePad(w,s,g);
     if(s.kind==='crumble')return snappingFlower(w,s,g);

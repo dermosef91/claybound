@@ -32,7 +32,7 @@ import {readPlayer} from './load-player.mjs';
 import {attachClay} from './load-clay.mjs';
 import {attachDream} from './load-dream.mjs';
 import {crossing} from './routes.mjs';
-import {auditLevel} from './layout-audit.mjs';
+import {auditLevel,flowerPerch} from './layout-audit.mjs';
 import {searchRoute} from './playthroughs.mjs';
 
 const INDEX=LEVELS.findIndex(L=>L.biome==='dream');
@@ -126,14 +126,19 @@ for(const module of modules){
     const goals=L.platforms.filter(s=>s.goal);assert.equal(goals.length,1,'exactly one goal deck');assert(goals[0].w>=2.5,'the goal deck is at least 2.5 wide');
     assert(Math.abs((L.end-L.spawn.x)/L.previousDistance-.3)<.005,'previousDistance keeps the .3 ratio');
     assert(Math.abs(goals[0].x+goals[0].bellX-L.end)<1e-6);
+    // A flower hangs over an optional ledge a detour reaches — or, the garden's
+    // way, inside a spring's bounce, picked at the crest with no ledge at all;
+    // then it is the spring a detour must cross from (layout-audit.mjs).
+    let perched=0;
     for(const c of L.stamps){
-      const under=L.platforms.find(s=>s.optional&&c.x>=s.x-1&&c.x<=s.x+s.w+1&&c.y>s.y&&c.y<=s.y+2.6);
-      assert(under,`flower at (${c.x}, ${c.y}) has no optional ledge within 2.6 under it`);
-      assert(L.detours.some(d=>d.some(l=>l.to===under.id)),`flower ledge ${under.id} is not reached by any detour`);
+      const under=flowerPerch(L.platforms,c);
+      assert(under,`flower at (${c.x}, ${c.y}) has no optional ledge within 2.6 under it and no spring whose bounce reaches it`);
+      if(under.kind==='spring')assert(L.detours.some(d=>d.some(l=>l.from===under.id)),`flower spring ${under.id} is not bounced from by any detour`);
+      else{perched++;assert(L.detours.some(d=>d.some(l=>l.to===under.id)),`flower ledge ${under.id} is not reached by any detour`);}
     }
     const links=[...L.routeLinks,...L.detours.flat(),...L.recoveries.flat()];
     for(const link of links)assert(at(link.from)&&at(link.to),`link ${link.from} → ${link.to} names a platform that does not exist`);
-    console.log(`PASS ids unique, one goal, ratio .3, ${L.stamps.length} flower${L.stamps.length===1?'':'s'} over optional ledges`);
+    console.log(`PASS ids unique, one goal, ratio .3, ${L.stamps.length} flower${L.stamps.length===1?'':'s'}: ${perched} over optional ledges, ${L.stamps.length-perched} at a spring's crest`);
 
     // --- 3. every link crosses -------------------------------------------------------
     let crossed=0;const unreachable=[];

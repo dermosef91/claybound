@@ -30,11 +30,22 @@ Kept: the watching flowers, the supplied gate, the slime, the eye pads, the
 snapping flowers — and the two mushrooms that are gameplay, the spring
 (`garden-shroom`) and the floating pads' caps.
 
+Gone as a follow-up: the **crown ledge** over the gate (`garden-crown`, the
+mossy cap the spring bounce used to land you on). The garden's flower now
+hangs in the air above the gate at (43.3, 10.2), in a row with its two beads,
+and is picked at the crest of the spring's bounce — steer left from the moment
+you run off the arch deck and the bounce carries you through it and back onto
+the deck (verified under real physics with and without jump held; the flowers
+pilot collects all three of the chapter's flowers). It is the one flower in
+the game with no perch under it, so the flower audit in
+`tests/layout-audit.mjs` now also accepts a flower inside a spring's bounce
+envelope. `layoutVersion` 5 → 6.
+
 | file | camera x | what to look at |
 |---|---|---|
 | `before/garden-start.png` → `after/garden-start.png` | 3.8 | pink pillars for the salmon fence; pebble heaps in the foreground and on the deck; the shared cloud, washed pink |
 | `before/garden-pads.png` → `after/garden-pads.png` | 17.3 | the dense middle distance; caps a unit lower so cloud shows between them |
-| `before/garden-arch.png` → `after/garden-arch.png` | 36.8 | the small spire's waterfall at the left edge; no mushroom beside the flower |
+| `before/garden-arch.png` → `after/garden-arch.png` | 36.8 | the small spire's waterfall at the left edge; no mushroom beside the flower; the gate's crown clear, the flower and beads floating above it |
 | `before/garden-eyes.png` → `after/garden-eyes.png` | 44.6 | pink pillars against the violet decks; the thinned sky |
 | `before/garden-bed.png` → `after/garden-bed.png` | 72.3 | the 10-tall spire where the island floated; a pillar at the right edge |
 | `before/garden-exit.png` → `after/garden-exit.png` | 94.3 | the post-arch spires; the mushrooms visible right of the flag are the Folding Path's |
