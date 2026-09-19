@@ -96,6 +96,14 @@ const TUNE={
     LeftLeg:[5,0,24],RightLeg:[-5,0,-24]
   }
 };
+// The floor correction stands a character on its single lowest vertex. The
+// original's idle flexes one ankle a few degrees, which on its own short foot
+// keeps both soles within a few millimetres of the floor; on a boot twice as
+// long the same flex lifts a toe a centimetre, and with the other boot the one
+// touching, that boot visibly hovers. A sink lets the character stand that much
+// lower, in the model's own units: the raised sole meets the floor and the
+// other sinks the same few millimetres into the clay, where nothing shows it.
+const SINK={explorer:.008};
 const PREFIX='mixamorig';
 // Every clip hero.js names, plus the floor-corrected subset. Airborne excerpts
 // are cut from Regular_Jump and Jump_Over_Obstacle_2, whose vertical travel the
@@ -238,7 +246,7 @@ function correct(clip){
     for(const mesh of meshes)for(let i=0;i<mesh.geometry.attributes.position.count;i++){
       mesh.getVertexPosition(i,vertex).applyMatrix4(mesh.matrixWorld);floor=Math.min(floor,vertex.y);
     }
-    values.push(+((hips.position.y-floor/rootScale).toFixed(5)));
+    values.push(+((hips.position.y-floor/rootScale-(SINK[name]||0)).toFixed(5)));
   }
   targetMixer.stopAllAction();targetMixer.uncacheClip(clip);
   return {times,values};

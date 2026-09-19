@@ -73,7 +73,9 @@ for(const choice of CHARACTERS){
   // height may differ by a posture's worth but not more.
   assert(Math.abs(bounds().max.y-choice.height)<choice.height*.05,
     `${choice.id}: stands ${bounds().max.y.toFixed(2)} against a declared ${choice.height.toFixed(2)}`);
-  assert(Math.abs(bounds().min.y)<.01,`${choice.id}: the gameplay origin stays between the feet`);
+  // A character may stand a few millimetres into the floor by design (the
+  // explorer's SINK, which seats a long boot's raised sole), never above it.
+  assert(bounds().min.y<.01&&bounds().min.y>-.02,`${choice.id}: the gameplay origin stays between the feet`);
   assert(Math.abs(c.build-choice.height/1.78)<1e-9);
 
   // The original rig rests in an A-pose and the supplied ones in a T-pose, so a

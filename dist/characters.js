@@ -59,7 +59,7 @@ export const CHARACTERS=[
   {
     id:'explorer',name:'Raincoat explorer',note:'Sunflower yellow, chestnut and olive.',
     model:'explorer.glb',motion:'explorer-motion.json',animation:'explorer-animation.json',
-    height:STANDING*1.5,orangeSource:0,bonePrefix:'mixamorig'
+    height:STANDING*1.2,orangeSource:0,bonePrefix:'mixamorig'
   }
 ];
 
