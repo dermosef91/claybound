@@ -243,19 +243,20 @@ function butte(w,kind,rank,parent,x,y,z,height,turn){
   root.traverse(o=>{if(o.isMesh)o.material=rankMaterial(w,rank,o.material);});return root;
 }
 
-// A field of small ivory puffs at three depths. One cloud every sixteen units
-// at a single depth put about two on screen at a time, both 96% into the fog,
-// so the sky held one large salmon shape. The reference scatters eight or so
-// white puffs of different sizes across the upper frame. The camera is
-// orthographic, so size never comes from depth — it is authored per rank —
-// and the clouds keep their own white: the sky behind them is unfogged too,
-// and a cloud that takes the fog reads as a butte. Farther ranks lean a
-// little toward the sky instead. `y` is world height at the rank's depth;
-// the camera's downward tilt lifts a plane that deep by ~3 units on screen.
+// A field of ivory puffs at three depths. One cloud every sixteen units at a
+// single depth put about two on screen at a time, both 96% into the fog, so
+// the sky held one large salmon shape. The reference scatters a few white
+// puffs of different sizes across the upper frame — four or five in view,
+// the largest about as wide as the mill's sails. The camera is orthographic,
+// so size never comes from depth — it is authored per rank — and the clouds
+// keep their own white: the sky behind them is unfogged too, and a cloud that
+// takes the fog reads as a butte. Farther ranks lean a little toward the sky
+// instead. `y` is world height at the rank's depth; the camera's downward
+// tilt lifts a plane that deep by ~3 units on screen.
 const CLOUD_RANKS=[
-  {factor:.06,z:-60,y:[-1.8,2.6],width:[.9,1.6],spacing:5.5,tint:0xe2eaf5},
-  {factor:.12,z:-52,y:[-1.3,3.0],width:[1.4,2.2],spacing:8,tint:0xf1f5fa},
-  {factor:.2,z:-44,y:[-.6,3.4],width:[1.9,2.8],spacing:12,tint:0xffffff}
+  {factor:.06,z:-60,y:[-1.8,2.6],width:[1.35,2.4],spacing:11,tint:0xe2eaf5},
+  {factor:.12,z:-52,y:[-1.3,3.0],width:[2.1,3.3],spacing:16,tint:0xf1f5fa},
+  {factor:.2,z:-44,y:[-.6,3.4],width:[2.85,4.2],spacing:24,tint:0xffffff}
 ];
 function cloudMaterial(w,rank,source){
   if(!source?.isMeshStandardMaterial)return source;
