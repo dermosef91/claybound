@@ -7,7 +7,7 @@ import {updateCavernMachine,solidWall,solidDepth,wallBox,updateFold,FOLD} from '
 import {resetSpitter,contactSpitter,updateShots} from './spitter-rules.js';
 import {DREAM_KINDS,contactDreamEnemy,resetDreamEnemy} from './dream-enemy-rules.js';
 
-import {claySurface,clayWallBounds,updateShaping,stompClay,formWallAhead,formStaysGrounded,formSteepAt,resolveFormBody} from './shaping.js';
+import {claySurface,clayWallBounds,updateShaping,stompClay,formWallAhead,formWallStop,formStaysGrounded,formSteepAt,resolveFormBody,clayInWay,leanStation} from './shaping.js';
 import {solveFormStation,healFix} from './clay-rules.js';
 import {resolvePush} from './clay-push.js';
 import {bridgeOffset} from './bridge-surface.js';
@@ -429,7 +429,9 @@ export class Game {
     // `pushing` is the way the walker leans on a block this tick, for the
     // character's pose: pushing right, pushing left, or not at all; `pushed`
     // is how fast the block went, so a shove that moves nothing reads as a lean.
-    p.pushing=0;p.pushed=0;
+    // `lean` is the same lean on clay, for the clay (below, once the walls
+    // have had their say).
+    p.pushing=0;p.pushed=0;p.lean=null;
     if(oldGround&&!p.stomping)for(const s of L.platforms)if(s.push&&s.active!==false){
       const walls=[];
       for(const q of L.platforms){
@@ -462,8 +464,11 @@ export class Game {
       if(p.vy>0&&prevY+RULES.height<=bottom+1e-7&&p.y+RULES.height>=bottom){p.y=bottom-RULES.height;p.vy=0;p.springing=false;}
     }
     // Formable clay can be walked into a wall or off a cliff: a wall stops the
-    // step, and a cliff is not a slope to be glued to.
-    if(oldGround&&formWallAhead(oldGround,p,prevX,prevY,RULES.radius)){p.x=prevX;p.vx=0;}
+    // step, and a cliff is not a slope to be glued to. The step ends at the
+    // wall's foot, and the walk is whatever the step came to — nothing against
+    // a wall that stands, the clay's own pace against one that gives ahead of
+    // a lean — so the walker never runs on the spot, and never falls behind.
+    if(oldGround&&formWallAhead(oldGround,p,prevX,prevY,RULES.radius)){p.x=formWallStop(oldGround,p,prevX,prevY,RULES.radius);p.vx=dt>0?(p.x-prevX)/dt:0;}
     // A dome's walker is glued to its arc the way a bridge's is to the sag, so
     // running over the top follows the curve down the far side — until the
     // arc turns too steep to stand on, where they are let go to slide off.
@@ -526,6 +531,29 @@ export class Game {
       // The dome turns under whoever runs across it: the rider's travel this
       // tick, in radians of the sphere, kept for the picture alone.
       if(ground?.kind==='dome')ground.domeSpin=(ground.domeSpin||0)+(p.x-prevX)/(ground.w/2);}
+    // A grounded walk pressed against violet clay is a hand on it: walking
+    // into shapeable clay counts as the swipe towards it. Read where the walls
+    // have left the walker, against where the next step of the walk would
+    // take them, so a lean holds while the clay gives ahead of it rather than
+    // coming and going as the wall gets a step away. The lean is left on the
+    // player for the clay to take next tick (updateShaping runs first), and
+    // only on clay that takes one — the formable mass from either side,
+    // hand-worked clay the way it is pulled — so what the walker's shoulders
+    // do is what the clay does. It is the block's push to the character: the
+    // pose leans, and paces to how fast the clay went.
+    if(p.groundId&&!p.stomping&&Math.abs(axis)>.1&&L.shaping?.length){
+      const dir=Math.sign(axis),reach=RULES.speed*dt;
+      for(const s of L.platforms){
+        if(!(s.form||s.shape)||s.id===p.groundId&&!s.form||!clayInWay(s,p,dir,reach,RULES.radius,RULES.height))continue;
+        const station=leanStation(this,s,dir);if(!station)continue;
+        p.lean={id:station.id,dir,push:Math.abs(axis),x:p.x+dir*RULES.radius,foot:p.x,y:p.y};
+        p.pushing=dir;p.pushed=station.rule==='form'?(station.leanPace||0):0;
+        // The walk is what the lean came to: flush behind clay that gave, at
+        // its pace; still against clay that did not.
+        p.vx=dt>0?(p.x-prevX)/dt:0;
+        break;
+      }
+    }
     // Trigger zones latch their channel the first time the player's body is
     // inside them; the latch is kept with the checkpoint like a switch's.
     for(const t of L.triggers||[])if(!this.latched[t.channel]&&p.x+RULES.radius>t.x&&p.x-RULES.radius<t.x+t.w&&p.y<t.y+t.h&&p.y+RULES.height>t.y)this.activate(t.channel,t.x+t.w/2,t.y+t.h/2);

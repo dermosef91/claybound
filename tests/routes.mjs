@@ -97,6 +97,11 @@ export function crossing(index,link,{shaped=true,source}={}){
     for(let frame=0;frame<600;frame++){
       const aim=landingX;
       g.tick(dt,{moveAxis:steer(g,aim),jumpPressed:frame===0&&a.kind!=='spring'&&!walk&&!fall,jumpHeld:true,stompPressed:(drop&&frame===15)||(fall&&overlap&&a.kind==='ledge'&&frame===0)});
+      // A walk pressed against clay works it (a lean is a swipe towards it),
+      // and this is a measure of reach with the piece unworked: a lean on a
+      // piece left unworked is taken off the player here, before the clay
+      // takes it next tick, so the piece stays exactly at its unworked pose.
+      const lean=g.player.lean;if(lean&&!worked(g.level.shaping.find(s=>s.id===lean.id)))g.player.lean=null;
       if(g.player.groundId===b.id||landedSpring)return {phase,offset,frames:frame+1};
       if(g.respawnTimer>0||g.player.y<Math.min(a.y,b.y)-7)break;
     }

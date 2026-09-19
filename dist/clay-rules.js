@@ -167,7 +167,11 @@ export function handRule(game,station,dt,input,{live=false}={}){
   if(station.rule==='form'&&station.form)beginForm(station.form);
   // A plug takes no hand until it sits in its gap, and none again once cast.
   if(!fixWorkable(station)){station.grip=null;return false;}
-  const touching=!!(input.shapeHeld||input.shapeId===station.id);
+  // A walker leaning on the mass is a hand on it too: the simulation leaves
+  // the lean on the player, and only on clay that takes one (shaping.js
+  // `leanStation`), so it is read here as the pointer is.
+  const lean=leanOn(game,station);
+  const touching=!!(input.shapeHeld||input.shapeId===station.id||lean);
   // A lump that has just thrown the player ignores the hand that armed it until
   // that hand lets go. Otherwise a held key, or a thumb resting on the clay,
   // re-packs it underfoot and the experiment becomes an endless trampoline.
@@ -176,7 +180,7 @@ export function handRule(game,station,dt,input,{live=false}={}){
   // and the player is in the stretch; the next touch starts afresh.
   if(!live||!touching||station.spent){if(station.rule==='form')station.grip=null;return false;}
   station.hand=true;
-  if(station.rule==='form')return formHand(game,station,dt,input);
+  if(station.rule==='form')return formHand(game,station,dt,input,lean);
   const dragging=input.shapeId===station.id&&Number.isFinite(input.shapeAmount);
   // A hand that moves a target is kneading; one resting on finished clay is not.
   const set=(list,i,value)=>{if(list[i]!==value){list[i]=value;station.worked=true;}};
@@ -400,7 +404,12 @@ function initFix(station,s,L){
 }
 // Whether the station's clay takes work right now: a plain form always, a plug
 // only while it is seated and uncast.
-const fixWorkable=station=>!station.fix||station.fix.phase==='shaping';
+export const fixWorkable=station=>!station.fix||station.fix.phase==='shaping';
+// The lean the simulation left on the player, if it is on this station's clay:
+// {dir, push, x, foot, y} — the way they lean, how hard (the stick's throw,
+// 0..1), where their leading shoulder meets the clay, and where their boots
+// stand, in world units.
+export const leanOn=(game,station)=>{const lean=game.player?.lean;return lean&&lean.id===station.id?lean:null;};
 // One tick of the plug's life. Returns whether the mass is clay to be worked.
 function stepFix(game,station,s,dt){
   const fix=station.fix,p=game.player,rot=fix.rotPlatform,block=fix.blockPlatform,floor=fix.floorPlatform;
@@ -525,13 +534,16 @@ const massOf=(station,s)=>station.form=s.form||(s.form=createForm(s.w,s.h,statio
 // off the surface) or is pressing in from outside (in the air above it), and
 // every tick after moves the clay by however far the point has travelled, at
 // most `maxMove` per tick. Holding E raises a step ahead of the player, so a
-// keyboard alone can still build a stair.
-function formHand(game,station,dt,input){
+// keyboard alone can still build a stair. A walker leaning on a wall of the
+// clay is the hand taking hold of it where they meet and dragging it the way
+// they walk.
+function formHand(game,station,dt,input,lean=null){
   const s=game.level.platforms.find(q=>q.id===station.parts[0]);if(!s)return true;
   const f=massOf(station,s);
   const pointing=input.shapeId===station.id&&Number.isFinite(input.shapeX)&&Number.isFinite(input.shapeY);
   if(!pointing)station.grip=null;
   else formPoint(station,s,input.shapeX,input.shapeY);
+  if(lean&&dt>0)formLean(station,s,lean,dt);
   if(input.shapeHeld&&dt>0){
     // Holding E works the clay ahead into a step the player can walk up:
     // raised where it lies below their feet, pressed down where it towers over
@@ -586,6 +598,21 @@ export function formPoint(station,s,px,py){
     g.x+=dxh;g.y+=dyh;
     if(pressForm(f,g.x,g.y,FORM.tool))station.worked=true;
   }
+}
+
+// One tick of a walker leaning on the mass: a grab where their leading
+// shoulder meets the clay, dragged sideways the way they walk — never up or
+// down, shoulders push, they do not lift — at most `FORM.lean` a second, and
+// scaled by the stick's throw, so a nudge of the stick is a nudge of the clay.
+// Whatever the drag draws along is never taken from under the walker's own
+// boots, as the E step's is not, so a lean never digs the floor away behind
+// itself. Leaves on the station how fast the clay went, for the walker's pose.
+function formLean(station,s,lean,dt){
+  const f=massOf(station,s),x=Math.max(0,Math.min(f.w,lean.x-s.x));
+  const dxh=lean.dir*Math.min(FORM.maxMove,FORM.lean*Math.max(0,Math.min(1,lean.push))*dt);
+  const pulled=!!dxh&&pullForm(f,x,dxh,0,FORM.radius,{x:lean.foot-s.x,radius:FORM.foot+.2});
+  if(pulled)station.worked=true;
+  station.leanPace=pulled?Math.abs(dxh)/dt:0;
 }
 
 // --- the authored solution -------------------------------------------------------

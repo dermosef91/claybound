@@ -76,6 +76,11 @@ export const FORM=Object.freeze({
   // stand a step tall), aiming `stepRise` of a walkable step above the feet:
   // raising clay that lies lower, pressing down clay that towers.
   knead:1.4,stepReach:1.3,stepRadius:1.35,stepRise:.8,
+  // A walker leaning on a wall of the clay is a hand taking hold of it at
+  // their shoulder and dragging it the way they walk, at most this fast in
+  // units a second — a walk's third, the pace a pushed block goes at, so
+  // leaning on clay and leaning on stone read as the one effort.
+  lean:2.4,
   // Left alone — no hand on it, nobody standing on it — for `settle` seconds,
   // the clay slumps back towards its authored clump: exponentially with this
   // time constant, and never slower than `relaxMin` a second, so it does get

@@ -289,18 +289,33 @@ console.log('PASS the slab is a step down, a level walk and a hop up, weight den
   // Build a full-height pillar in the way. Its faces are walls: a walker who
   // drops onto one slides down it to the moat and stops at the foot rather than
   // being carried up, and a jumper who hits it slides back down, never onto it.
+  // A walker pressing into it is a hand on it (tests/clay-lean.mjs): the
+  // pillar goes ahead of the lean and they follow at its foot, still never up
+  // it; a walker who lets go stands at the foot, and the wall stands.
   for(let i=0;i<60;i++)pullForm(s.form,4,0,.3);
   hold(30);
   assert(formPeak(s.form)>FORM.maxHeight-.6,`a full-height pillar (${formPeak(s.form).toFixed(2)})`);
   promises(s.form,'a pillar in the slab');
-  const wall=s.x+4,moat=Math.min(...[1,1.25,1.5,1.75,2].map(top));
-  hold(frames(4),{moveAxis:1});
-  assert.equal(p.groundId,s.id,'on the clay');
-  assert(p.x<wall-1.2&&p.y<moat+.6,`stopped at the foot of the pillar (${p.x.toFixed(2)}, ${p.y.toFixed(2)} for a wall at ${wall} over a moat at ${moat.toFixed(2)})`);
-  assert(top(p.x-s.x+PLAYER.radius)-p.y>FORM.step,'because the rise ahead is more than a step');
-  for(let i=0;i<3;i++){jump({moveAxis:1});assert(p.x<wall-1&&p.y<moat+.6,`a jump into the wall slides back to its foot (${p.x.toFixed(2)}, ${p.y.toFixed(2)})`);}
+  const wall=s.x+4,crest=()=>{let best=0;for(let lx=0;lx<=s.w;lx+=.05)if(formHeight(s.form,lx)>formHeight(s.form,best))best=lx;return best;};
+  // At the foot: the face a stride ahead towers over the feet, and the feet are
+  // far under the crest. (A lean parks the walker exactly where the rise at
+  // the leading edge is a step, so the edge itself is not read.)
+  const atFoot=()=>top(p.x-s.x+1)-p.y>1.5&&p.y<top(crest())-4;
+  for(let i=0;i<frames(3)&&!p.lean;i++)tick({moveAxis:1});
+  assert(p.lean&&p.groundId===s.id,'walked up to the pillar, on the clay, and leaning on it');
+  const crest0=crest(),x0=p.x;
+  assert(atFoot(),`at the foot of the pillar, not carried up it (${p.x.toFixed(2)}, ${p.y.toFixed(2)} under a crest of ${top(crest()).toFixed(2)})`);
+  hold(frames(1),{moveAxis:1});
+  assert.equal(p.groundId,s.id,'still on the clay');
+  assert(atFoot(),`and still at its foot (${p.x.toFixed(2)}, ${p.y.toFixed(2)} under a crest of ${top(crest()).toFixed(2)})`);
+  assert.equal(p.pushing,1,'leaning on it, to the character');
+  assert(crest()>crest0+.5&&p.x>x0+.5,`the pillar has gone ahead of the lean and the walker followed (crest ${crest0.toFixed(2)} -> ${crest().toFixed(2)}, walker ${(x0-s.x).toFixed(2)} -> ${(p.x-s.x).toFixed(2)})`);
+  const stood=p.x,crest1=crest();
+  hold(frames(.5));
+  assert(Math.abs(p.x-stood)<.05&&Math.abs(crest()-crest1)<.1&&atFoot()&&!p.pushing,'let go of, the wall stands and the walker stands at its foot');
+  for(let i=0;i<3;i++){jump({moveAxis:1});assert(atFoot(),`a jump into the wall slides back to its foot (${p.x.toFixed(2)}, ${p.y.toFixed(2)})`);}
   // From the top, walking off is a fall, not a slide down the face.
-  place(wall,top(4));tick();
+  {const at=crest();place(s.x+at,top(at));}tick();
   assert.equal(p.groundId,s.id,'placed on the pillar top');
   const y0=p.y;let left=false,lowest=y0;
   for(let i=0;i<frames(1.5);i++){tick({moveAxis:1});if(p.groundId===null)left=true;lowest=Math.min(lowest,p.y);if(p.groundId&&Math.abs(p.vy)<1e-9&&p.y<y0-3)break;}
@@ -453,11 +468,12 @@ console.log('PASS clay that is not bouncy takes a stomp as a crater: no throw, n
   assert(peak>4.4&&peak<5.2,`a square lump about 4.6 tall (${peak.toFixed(2)})`);
   assert(formSteepAt(s,s.x+3.9,PLAYER.radius)&&formSteepAt(s,s.x+10.1,PLAYER.radius),'with faces too steep to stand on');
   assert(!formSteepAt(s,s.x+7,PLAYER.radius),'and a top to stand on');
-  // The bench runs bare up to the lump's foot; the lump stops a walker there,
-  // and a jump into its face slides back down: too steep to climb, too tall to
-  // jump to.
-  hold(frames(4),{moveAxis:1});
-  assert(p.x>s.x+.5&&p.x<foot&&p.y<1,`stopped at the foot of the lump (${p.x.toFixed(2)}, ${p.y.toFixed(2)})`);
+  // The bench runs bare up to the lump's foot, and a jump into its face slides
+  // back down: too steep to climb, too tall to jump to. (A walk kept pressed
+  // into it is a hand on it and kneads it — tests/clay-lean.mjs — so the
+  // walker is brought to the foot and let go of.)
+  assert(walk(foot-.7));hold(30);
+  assert(p.x>s.x+.5&&p.x<foot&&p.y<1,`at the foot of the lump (${p.x.toFixed(2)}, ${p.y.toFixed(2)})`);
   for(let i=0;i<3;i++){const apex=jump({moveAxis:1});assert(p.x<foot+.4&&p.y<1.2&&apex<peak,`a jump into the lump slides back to its foot (${p.x.toFixed(2)}, ${p.y.toFixed(2)})`);}
   assert.equal(g.deaths,0);
   // Pat it flat: pressing in from the air, across the top, spreads the lump
