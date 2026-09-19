@@ -9,6 +9,10 @@ node_modules/
 # Optional production bundle (npm run build); dist/ remains the source.
 build/
 
+# Firebase CLI upload cache, rewritten on every deploy. firebase.json and
+# .firebaserc are the configuration and are tracked.
+.firebase/
+
 # Test output: rewritten by tests/playthroughs.mjs on every successful run.
 tests/playthrough-results.json
 tests/flower-playthrough-results.json

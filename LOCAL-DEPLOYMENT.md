@@ -72,6 +72,14 @@ uploads outside this project; the playable, prepared assets are included.
 
 ## Hosted deployment
 
+Two hosts publish the same bundle on every push to `main`: GitHub Pages
+and Firebase Hosting. Both build from `dist/` the same way the local build
+does, so neither is a second copy of the game to keep in step — they are
+two addresses for one `npm run build`. Keeping both means either can be
+retired by deleting one workflow file, without the other noticing.
+
+### GitHub Pages
+
 `.github/workflows/deploy-pages.yml` publishes to GitHub Pages on every
 push to `main`, and can also be started by hand from the Actions tab. The
 job installs dependencies, runs `npm run build` and uploads `build/` — the
@@ -95,3 +103,68 @@ repository requires a paid GitHub plan; making the repository public also
 works. And a Pages site is reachable by anyone who has the address even
 while the repository stays private, so treat the address as public once the
 game is live.
+
+### Firebase Hosting
+
+The game is live at <https://claybound-56949.web.app> (the same release is
+also served from `claybound-56949.firebaseapp.com`). `firebase.json` points
+Hosting at `build/`, and `.firebaserc` names the project, so a deploy from a
+checkout is one command once `firebase login` has been done:
+
+```sh
+npm run build
+npx firebase-tools deploy --only hosting --project claybound-56949
+```
+
+`.github/workflows/deploy-firebase.yml` runs exactly that on every push to
+`main`, and can be started by hand from the Actions tab. It authenticates
+with a service-account key held in the `FIREBASE_SERVICE_ACCOUNT` repository
+secret, written to a file under `RUNNER_TEMP` so the key never enters the
+workspace or the log. The service account needs two roles, **Firebase
+Hosting Admin** and **Firebase Viewer** — the first to upload and release,
+the second because the CLI reads the project before it can resolve which
+Hosting site to deploy to. Without the secret the job fails with a pointed
+message rather than deploying nothing quietly.
+
+Releases are atomic and every one is kept, so a bad deploy is undone from
+the Hosting page of the Firebase console by rolling back to the previous
+version, with no rebuild.
+
+#### Cache headers
+
+Hosting defaults every file to one hour, which is wrong in both directions
+here, so `firebase.json` sets four rules:
+
+- `bundle/**` is content-hashed by the build, so it is immutable for a year.
+  A file under that name can never change; a new build emits a new name.
+- `assets/**` — models, textures and audio fetched by name at runtime — gets
+  one hour. These names are stable across builds, so caching them forever
+  would strand players on an old model after a re-export; an hour, with
+  Hosting's ETags making the revalidation a 304, is the honest compromise.
+- The icons and `og-card.jpg` get a day. Crawlers cache `og:image` by URL,
+  and these names are stable for the same reason.
+- `/`, `/index.html` and `/manifest.webmanifest` are `no-cache`, so a
+  redeploy reaches returning players on their next load rather than up to an
+  hour later. The entry point is the one file that must never be stale: it
+  is what names the hashed bundle.
+
+The root path needs its own rule. Hosting matches `source` globs against the
+request path, and a request for `/` is never rewritten to `/index.html`
+before that match, so a rule written only for `/index.html` silently misses
+every visitor who typed the bare address.
+
+#### Bandwidth
+
+This game is heavy: 111 MB deployed, and a cold visit that stops at the
+title screen still pulls 17.7 MB across 62 requests, most of it character
+models and music. The free Spark plan allows 360 MB of Hosting transfer a
+day, which is about twenty such visits before the site stops serving, so the
+project is on the pay-as-you-go Blaze plan: 10 GB a month free, then $0.15
+per GB. GitHub Pages has no comparable daily cap, which is part of why it is
+worth keeping the Pages deploy alongside.
+
+If that bill ever matters, the payload is the place to attack it and not the
+plan. Three character GLBs of 4 MB each and five music tracks of about
+3.5 MB each are loaded before the player has chosen anything; deferring them
+until a chapter actually starts would take the cold load down by most of its
+weight.

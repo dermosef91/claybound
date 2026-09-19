@@ -1,0 +1,63 @@
+# Publishes the playable game to Firebase Hosting (claybound-56949.web.app).
+#
+# Same bundle as the Pages deploy: dist/ stays the authored, ready-to-serve
+# game, `npm run build` bundles it into build/, and build/ is what ships. See
+# LOCAL-DEPLOYMENT.md. If the build fails the deploy fails with it, and Hosting
+# keeps serving the last released version.
+#
+# Authentication is a service-account key stored as the FIREBASE_SERVICE_ACCOUNT
+# repository secret; LOCAL-DEPLOYMENT.md records how it is created and which
+# roles it needs. Nothing else in this workflow reaches outside the repository.
+name: Deploy game to Firebase
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Let a running deploy finish; queue newer pushes behind it. Hosting releases
+# are atomic, but two concurrent uploads of 111 MB are only waste.
+concurrency:
+  group: firebase-hosting
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the game
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bundle the site
+        run: npm run build
+
+      - name: Publish to Firebase Hosting
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not set; see LOCAL-DEPLOYMENT.md."
+            exit 1
+          fi
+          # Keep the key out of the workspace and out of the log: RUNNER_TEMP is
+          # wiped with the runner, and the CLI reads it by path, never echoing it.
+          key="$RUNNER_TEMP/firebase-service-account.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$key"
+          export GOOGLE_APPLICATION_CREDENTIALS="$key"
+          npx --yes firebase-tools@15 deploy \
+            --only hosting \
+            --project claybound-56949 \
+            --non-interactive
