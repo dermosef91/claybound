@@ -17,12 +17,11 @@ const segmentDistance=(a,b,x,y)=>{
 
 // Actual recessed cavities, including their walls and shaded interiors. Each
 // fragment remains one mesh so pores add no draw calls during collapse.
-// `pores` may ask the top face for more of them (`count`) and bigger ones
-// (`scale`): a whole slab of rotten clay is pitted like pumice, a ledge only
-// flecked.
-// `bold` is the share of them that are craters rather than pinpricks. `concave`
-// lets a toothed outline keep pores everywhere inside it: the margin is then
-// read from the edge itself, not its whole line.
+// The options ask the top face for more pores (count) and bigger ones (a size
+// factor): a whole slab of rotten clay is pitted like pumice, a ledge only
+// flecked. The crater share is how many of them are craters rather than
+// pinpricks. A concave outline — one with teeth — keeps pores everywhere
+// inside it: the margin is then read from the edge itself, not its whole line.
 export function porousClay(w,polygon,depth,seed,lower=false,{count=null,scale=1,bold=.36,concave=false}={}){
   const positions=[],colors=[],uvs=[];
   let poreCount=0;
