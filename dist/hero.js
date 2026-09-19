@@ -3,7 +3,7 @@ import {GLTFLoader} from './lib/GLTFLoader.js';
 import {clayModel} from './clay.js';
 import {assetURL} from './model-assets.js';
 import {animateFlowerCelebration} from './flower-celebration.js';
-import {CHARACTERS} from './characters.js';
+import {CHARACTERS,characterChoice} from './characters.js';
 import {between} from './camera.js';
 import {puppetStep,boilPuppet,placePuppet} from './stop-motion.js';
 
@@ -52,7 +52,7 @@ export function createHero(w){
   return {root,body,facing,shadow,loaded:false,build:1,actions:{},weights:{},state:'idle',idleTime:0,idleVariant:'idle',longIdlePlayed:false,turn:0,spring:0,springV:0,gait:0,clock:0,hurt:0,landing:0,death:false,jumpKind:'jump',lastVx:0};
 }
 
-export async function loadHero(w,onProgress,choice=CHARACTERS[0]){
+export async function loadHero(w,onProgress,choice=characterChoice()){
   const [gltf,motion,animation]=await Promise.all([
     new GLTFLoader().loadAsync(assetURL(choice.model),e=>onProgress?.(e.total?e.loaded/e.total:null)),
     fetch(assetURL(choice.motion)).then(r=>{if(!r.ok)throw new Error('Character motion data could not load.');return r.json();}),
@@ -111,6 +111,8 @@ export function makeHeroClips(animations,motion,animation){
   };
 }
 
+// `choice` describes the rig being attached, so its default is the original —
+// what a bare readPlayer() hands in — and not whoever the player prefers.
 export function attachHero(w,gltf,motion,animation,choice=CHARACTERS[0]){
   const c=w.character;
   if(c.loaded)throw new Error('The character has already been loaded.');

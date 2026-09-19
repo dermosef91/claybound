@@ -32,7 +32,7 @@ const STANDING=1.78;
 
 export const CHARACTERS=[
   {
-    id:'clay',name:'Original',note:'Who you started as.',
+    id:'clay',name:'Original',note:'The first clay figure.',
     model:'player.glb',motion:'player-motion.json',animation:'player-idle.json',
     height:STANDING,orangeSource:.780
   },
@@ -52,10 +52,14 @@ export const CHARACTERS=[
     height:STANDING*1.5,orangeSource:0,bonePrefix:'mixamorig'
   },
   {
-    id:'apprentice',name:'Clay apprentice',note:'Terracotta and cream, capped.',
+    id:'apprentice',name:'Clay apprentice',note:'Terracotta and cream, capped. Who you start as.',
     model:'apprentice.glb',motion:'apprentice-motion.json',animation:'apprentice-animation.json',
     height:STANDING*1.15,orangeSource:0,clayDepth:.06,mirror:true
   }
 ];
 
-export const characterChoice=id=>CHARACTERS.find(entry=>entry.id===id)||CHARACTERS[0];
+// Who everyone plays as until they choose otherwise. The original stays first
+// in the list — it is the rig the others were retargeted from, and every test
+// that reads CHARACTERS[0] means it — but the apprentice is the one worn.
+export const DEFAULT_CHARACTER='apprentice';
+export const characterChoice=id=>CHARACTERS.find(entry=>entry.id===id)||CHARACTERS.find(entry=>entry.id===DEFAULT_CHARACTER);

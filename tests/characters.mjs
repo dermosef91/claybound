@@ -7,7 +7,7 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import * as THREE from '../dist/lib/three.module.js';
 import {createHero,attachHero,detachHero,animateHero,heroEvent} from '../dist/hero.js';
-import {CHARACTERS,characterChoice} from '../dist/characters.js';
+import {CHARACTERS,characterChoice,DEFAULT_CHARACTER} from '../dist/characters.js';
 import {readGLB} from './load-player.mjs';
 import {Game} from '../dist/simulation.js';
 
@@ -23,8 +23,10 @@ const load=async choice=>({
 });
 
 assert.equal(characterChoice('emberleaf').id,'emberleaf');
-assert.equal(characterChoice('nobody').id,CHARACTERS[0].id,'an unknown id falls back to the original');
-assert.equal(characterChoice(undefined).id,CHARACTERS[0].id);
+assert.equal(DEFAULT_CHARACTER,'apprentice','the apprentice is who everyone starts as');
+assert.equal(characterChoice('nobody').id,DEFAULT_CHARACTER,'an unknown id falls back to the default');
+assert.equal(characterChoice(undefined).id,DEFAULT_CHARACTER);
+assert.equal(CHARACTERS[0].id,'clay','the original stays first in the cast: it is the rig the others were retargeted from');
 
 for(const choice of CHARACTERS){
   const {gltf,motion,animation}=await load(choice);

@@ -11,7 +11,7 @@ import {LevelEditor} from './editor.js';
 import {chapterCollections,settingsMarkup,characterMarkup,stopMotionTuningMarkup} from './title-menu.js';
 import {normalizeTuning,applyStopMotionTuning} from './stop-motion.js';
 import clayLab from './routes/clay-lab.js';
-import {CHARACTERS,characterChoice} from './characters.js';
+import {CHARACTERS,characterChoice,DEFAULT_CHARACTER} from './characters.js';
 import {TitleScene} from './title-scene.js';
 import {CompletionScene} from './completion-scene.js';
 import {loadTitleAssets} from './title-assets.js';
@@ -62,7 +62,11 @@ saved.stopMotion=saved.stopMotion===true;
 saved.stopMotionTuning=normalizeTuning(saved.stopMotionTuning);
 // A character that has since been withdrawn falls back to the original rather
 // than leaving the world with nobody in it.
-saved.character=characterChoice(saved.character).id;
+// Who you play as. A save that never had the picker unlocked never made a
+// choice, so it wears the default — which is how a new default reaches the
+// players who never opened the cast; a save with the picker unlocked keeps
+// whatever it says.
+saved.character=saved.charactersUnlocked?characterChoice(saved.character).id:DEFAULT_CHARACTER;
 const sound=new Sound();sound.enabled=saved.sound;sound.musicLevel=saved.music;sound.effectsLevel=saved.effects;
 const pads=new GamepadInput();
 const haptics=new Haptics(pads,{enabled:saved.rumble});
