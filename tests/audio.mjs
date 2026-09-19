@@ -40,7 +40,7 @@ const elements=[];let nextMedia;
 globalThis.window={AudioContext:Context};
 globalThis.document={createElement:tag=>{assert.equal(tag,'audio');return nextMedia||new Media();},body:{append:el=>elements.push(el)}};
 for(const url of CHAPTER_TRACKS){const music=await readFile(new URL(url));assert(music.length>3e6);assert.equal(music.subarray(0,3).toString(),'ID3');}
-assert.deepEqual(CHAPTER_TRACKS.map(url=>url.split('/').pop()),['steps-along-the-ridge.mp3','morning-at-the-breathing-tree.mp3','where-crystals-sing.mp3','above-the-clay-horizon.mp3','ceremony-under-canopy.mp3']);
+assert.deepEqual(CHAPTER_TRACKS.map(url=>url.split('/').pop()),['steps-along-the-ridge.mp3','morning-at-the-breathing-tree.mp3','where-crystals-sing.mp3','above-the-clay-horizon.mp3','sun-drenched-thorns.mp3']);
 assert.equal(CHAPTER_TRACKS.length,LEVELS.length,'every chapter has its own song, in LEVELS order');
 
 const sound=new Sound();sound.update(.016,false,0,false,true);

@@ -17,7 +17,7 @@ export const CHAPTER_TRACKS=[
   new URL('./assets/morning-at-the-breathing-tree.mp3',import.meta.url).href,
   new URL('./assets/where-crystals-sing.mp3',import.meta.url).href,
   HORIZON_TRACK,
-  new URL('./assets/ceremony-under-canopy.mp3',import.meta.url).href
+  new URL('./assets/sun-drenched-thorns.mp3',import.meta.url).href
 ];
 export const FLOWER_VICTORY=new URL('./assets/flower-victory.wav',import.meta.url).href;
 export const SPORE_BALLOON_BURST=new URL('./assets/spore-balloon-burst.wav',import.meta.url).href;
