@@ -60,6 +60,7 @@ const key=(code,props={})=>{const e=Object.assign(new window.Event('keydown',{bu
 // Title navigation is available before the expensive WebGL scene loads.
 assert($('loading').classList.contains('hidden'));assert(!$('menu').inert);
 assert.equal(app.saved.character,'apprentice','a fresh device wears the apprentice');
+assert.equal(app.saved.stopMotion,true,'and plays in stop motion');assert.equal(app.saved.stopMotionChosen,false,'without having chosen to');
 assert.equal($('play-label').textContent,'Play');assert(!$('menu').textContent.toLowerCase().includes('handmade'));
 // The title steers with the arrows: the three live buttons loop and the footer
 // the stylesheet hides never takes the cursor.
@@ -93,6 +94,13 @@ await click('#settings');assert.equal(document.querySelector('[data-action="sett
 await click('[data-action="settings-sound"]');assert.equal(app.saved.sound,false);assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'false');assert.equal($('menu-sound').getAttribute('aria-label'),'Enable sound');
 await click('[data-action="close"]');await click('#settings');assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'false');
 await click('[data-action="close"]');await click('#menu-sound');assert.equal(app.saved.sound,true);
+// Stop motion is on by default and unfolds its tuning under the switch; turning
+// it off records the choice, folds the tuning, and is what the save remembers.
+await click('#settings');assert.equal(document.querySelector('[data-action="settings-stopmotion"]').getAttribute('aria-checked'),'true','on by default');
+assert(document.querySelector('[data-tuning="stopmotion"]'),'and unfolded');
+await click('[data-action="settings-stopmotion"]');assert.equal(app.saved.stopMotion,false);assert.equal(app.saved.stopMotionChosen,true,'the switch records that it was used');
+assert.equal(JSON.parse(storage.get('claybound-v1')).stopMotionChosen,true);assert(!document.querySelector('[data-tuning]'),'folded once off');
+await click('[data-action="close"]');
 // Settings mixes sliders and switches: a slider keeps left and right for its
 // value while up and down move on, and the Tab loop counts the sliders.
 await click('#settings');
@@ -108,7 +116,7 @@ await click('#settings');
   toggles.at(-1).focus();key('Tab');assert.equal(document.activeElement,document.querySelector('#dialog .dialog-close'),'Tab past the last control wraps to the first');
 }
 await click('[data-action="close"]');
-// Stop motion: off until chosen, flipped in place, remembered, and pushed onto the running world.
+// Stop motion, turned off above: flipped in place, remembered, and pushed onto the running world.
 await click('#settings');assert.equal(document.querySelector('[data-action="settings-stopmotion"]').getAttribute('aria-checked'),'false');
 await click('[data-action="settings-stopmotion"]');assert.equal(app.saved.stopMotion,true);assert.equal(document.querySelector('[data-action="settings-stopmotion"]').getAttribute('aria-checked'),'true');
 assert.equal(JSON.parse(storage.get('claybound-v1')).stopMotion,true,'the choice is saved on the device');

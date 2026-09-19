@@ -4,12 +4,14 @@
 // it, it takes an impression, and it can be formed freely. Only the last has
 // left the lab: the canyon's Sandwright's Pocket is one formable mass, and
 // tests/clay-lab.mjs holds that no other rule reaches a chapter. Sag, catapult
-// and stamp stay on the bench.
+// and stamp stay on the bench — though the sag block's springs also ride the
+// pocket's wet mass, as a `give` layer on its columns: the hand shapes the
+// columns, weight works the layer, and the surface is the two together.
 //
 // Every rule is a pure function of the station, the player and dt, so the whole
 // set can be driven headlessly.
 import {clampShape} from './shaping.js';
-import {GIVE,createGive,pressGive,kickGive,holdUnder,stepGive,giveDepth,giveVelocity,giveShare} from './clay-give.js';
+import {GIVE,createGive,pressGive,kickGive,holdUnder,stepGive,capGive,relaxGive,giveDepth,giveVelocity,giveShare} from './clay-give.js';
 import {FORM,MOULD,createForm,resetForm,formHeight,formShare,pullForm,pressForm,pokeForm,sagForm,stepForm,beginForm,easeForm,mouldProfile,mouldClump,mouldFit,formMatch} from './clay-form.js';
 import {createMarble,resetMarble,stepMarble,stepRockFall} from './clay-marble.js';
 import {PUSH,initPush,resetPush,stepPush} from './clay-push.js';
@@ -35,7 +37,7 @@ export function initializeRule(station,L){
   // The formable mass needs its surface before the first tick collides with
   // it, so it is built here rather than lazily like the sag block's springs.
   if(station.rule==='form'){
-    station.grip=null;station.poke=null;station.pressed=false;station.punch=0;station.fall=0;station.stomped=false;
+    station.grip=null;station.poke=null;station.pressed=false;station.punch=0;station.force=0;station.fall=0;station.stomped=false;
     station.done=false;station.open=0;
     const s=L?.platforms.find(q=>q.id===station.parts[0]);
     if(s){
@@ -57,6 +59,11 @@ export function initializeRule(station,L){
       // The world builds a view from the platform alone (world.makePlatform),
       // so the station's throw is stamped on its clay: bouncy clay is drawn pink.
       s.bouncy=!!station.bouncy;
+      // A mass that gives under weight wears the sag block's springs on its
+      // columns, one node to a column: `give:true` takes the bench's numbers,
+      // an object overrides them. The layer replaces the station's own `give`,
+      // as the sag rule keeps its layer there, so R resets both alike.
+      if(station.give)station.give=s.give=createGive(s.w,{spacing:FORM.spacing,tune:station.give===true?null:station.give});
       // A marble run: the ball starts where the station says, in the form's
       // own x, and is home in the station's socket — or, with an open end
       // named, gone over it: a rock the clay is worked to drop off the mass.
@@ -107,12 +114,18 @@ export function stompRule(station,partIndex){
   // A stomp is a knead, whatever the clay does with it.
   station.kneadPending=true;
   // A stomp into the soft block presses a crater where the boots land, on top
-  // of what the fall alone does to it.
-  if(station.rule==='sag'){station.punch=(station.punch||0)+GIVE.stomp;return true;}
-  // A stomp into the formable mass is a crater where the boots land — and, on
-  // a `bouncy` station, the clay throws the stomper back up on the next tick,
-  // once it has them.
-  if(station.rule==='form'){station.punch=(station.punch||0)+FORM.stomp;station.stomped=true;return true;}
+  // of what the fall alone does to it: a force on the springs that fades over
+  // the next tenths of a second. A mass wearing the springs takes it the same way.
+  const G=station.give?.tune||GIVE;
+  if(station.rule==='sag'){station.force=(station.force||0)+G.stomp;return true;}
+  // A stomp into the formable mass is a crater where the boots land — pressed
+  // at once into the columns, or into the give where the mass has one — and,
+  // on a `bouncy` station, the clay throws the stomper back up on the next
+  // tick, once it has them.
+  if(station.rule==='form'){
+    if(station.give)station.force=(station.force||0)+G.stomp;else station.punch=(station.punch||0)+FORM.stomp;
+    station.stomped=true;return true;
+  }
   if(perPart(station)){
     if(partIndex<0)return false;
     station.targets[partIndex]=1;return true;
@@ -196,6 +209,39 @@ export function nudgeRule(station,part,point){
   station.target=clampShape(station.target+NUDGE);station.kneadPending=true;return true;
 }
 
+// Weight on clay that gives: the sag block's whole tick, and the wet mass's
+// weight where it wears a give layer. `feet` and `tops` describe the surface
+// the layer rides for the hold-under — the block's flat top, with `feet` how
+// far below it the player is, or the mass's columns, with `feet` the player's
+// height over their base.
+function weighGive(game,station,s,f,dt,{on,feet,tops=null}){
+  const p=game.player,G=f.tune,x=p.x-s.x;
+  // The tick after a jump off the clay: a little of whatever was pressed in
+  // past a settled stand comes back as height, and the push-off drives the
+  // clay in behind.
+  // The press is measured from the rest surface, not from the kept dent, since
+  // weight sinks a kept dent exactly as deep as fresh clay.
+  if(!on&&station.pressed&&p.groundId===null&&p.vy>0){
+    const extra=Math.max(0,(station.press||0)-G.reboundFrom),boost=Math.min(G.reboundMax,extra*extra*G.reboundGain);
+    p.vy+=boost;kickGive(f,x,G.recoil*p.vy);
+    if(boost>3)game.event('spring',{platformId:s.id,x:p.x,y:p.y});
+  }
+  // Arriving, the clay takes the fall that was recorded while airborne: the
+  // landing itself has already zeroed the player's speed by now. The force
+  // fades over the next tenths of a second.
+  if(on&&!station.pressed)station.force=(station.force||0)+G.landing*Math.min(G.landingMax,Math.max(0,-(station.fall||0)));
+  if(on)pressGive(f,x,G.weight+(station.force||0));
+  station.force=on?(station.force||0)*Math.exp(-dt/G.punch):0;
+  // Weight working the clay is kneading too, for as long as the clay under
+  // the boots is still sinking: standing on a settled dent, which only ever
+  // creeps and sets, is not.
+  stepGive(f,dt);
+  if(on&&giveVelocity(f,x)>.08)station.worked=true;
+  if(!on&&p.vy>0&&p.x>s.x&&p.x<s.x+s.w)holdUnder(f,x,feet,p.vy,tops);
+  if(on)station.press=giveDepth(f,x)+Math.max(0,-giveVelocity(f,x))*G.reboundLead;
+  station.pressed=on;station.fall=on?0:p.vy;
+}
+
 // One tick of a ruled station. Returns true when it has taken charge of the
 // station's target. Hands never fall through to ruled clay either way: they
 // reach it only through handRule, and only where takesHands allows.
@@ -208,30 +254,8 @@ export function applyRule(game,station,dt,{near=false}={}){
     // back only a little when they leave, and keeps the rest: the surface lives
     // in clay-give.js and the collider reads it directly.
     const s=game.level.platforms.find(q=>q.id===station.parts[0]);if(!s)return true;
-    const f=station.give=s.give||(s.give=createGive(s.w)),x=p.x-s.x;
-    // The tick after a jump off the clay: a little of whatever was pressed in
-    // past a settled stand comes back as height, and the push-off drives the
-    // clay in behind.
-    // The press is measured from the rest surface, not from the kept dent, since
-    // weight sinks a kept dent exactly as deep as fresh clay.
-    if(!on&&station.pressed&&p.groundId===null&&p.vy>0){
-      const extra=Math.max(0,station.press-GIVE.reboundFrom),boost=Math.min(GIVE.reboundMax,extra*extra*GIVE.reboundGain);
-      p.vy+=boost;kickGive(f,x,GIVE.recoil*p.vy);
-      if(boost>3)game.event('spring',{platformId:s.id,x:p.x,y:p.y});
-    }
-    // Arriving, the clay takes the fall that was recorded while airborne: the
-    // landing itself has already zeroed the player's speed by now.
-    if(on&&!station.pressed)station.punch=(station.punch||0)+GIVE.landing*Math.min(GIVE.landingMax,Math.max(0,-(station.fall||0)));
-    if(on)pressGive(f,x,GIVE.weight+(station.punch||0));
-    station.punch=on?(station.punch||0)*Math.exp(-dt/GIVE.punch):0;
-    // Weight working the block is kneading too, for as long as the clay under
-    // the boots is still sinking: standing on a settled dent, which only ever
-    // creeps and sets, is not.
-    stepGive(f,dt);
-    if(on&&giveVelocity(f,x)>.08)station.worked=true;
-    if(!on&&p.vy>0&&p.x>s.x&&p.x<s.x+s.w)holdUnder(f,x,s.y-p.y,p.vy);
-    if(on)station.press=giveDepth(f,x)+Math.max(0,-giveVelocity(f,x))*GIVE.reboundLead;
-    station.pressed=on;station.fall=on?0:p.vy;
+    const f=station.give=s.give||(s.give=createGive(s.w));
+    weighGive(game,station,s,f,dt,{on,feet:s.y-p.y});
     // Shaped means set: the deepest press the clay has kept, as a share of the
     // most it keeps. One good stand does it, which is what the name promises.
     station.amount=station.target=giveShare(f);
@@ -276,17 +300,31 @@ export function applyRule(game,station,dt,{near=false}={}){
     // block, the drop into the gap — and none after it is cast. Until it sits
     // in its gap, and once it is the corner again, the mass holds still.
     const workable=!station.fix||stepFix(game,station,s,dt);
-    if(!workable){station.poke=null;station.stomped=false;station.punch=0;station.pressed=on;station.fall=on?0:p.vy;}
+    if(!workable){station.poke=null;station.stomped=false;station.punch=0;station.force=0;station.pressed=on;station.fall=on?0:p.vy;}
     else {
     if(station.poke){if(pokeForm(f,station.poke.x-s.x,station.poke.y-base))station.worked=true;station.poke=null;}
-    // Arriving presses in proportion to the fall that was recorded while
-    // airborne: the landing itself has already zeroed the player's speed.
-    if(on&&!station.pressed)station.punch=(station.punch||0)+Math.min(FORM.landingMax,FORM.landing*Math.max(0,-(station.fall||0)));
-    // Boots sinking in, walking or landing, are kneading; standing still once
-    // the clay has given what it gives is not.
-    if(on&&sagForm(f,x,dt,station.punch||0))station.worked=true;
-    station.punch=0;
+    const give=s.give;
+    if(!give){
+      // Arriving presses in proportion to the fall that was recorded while
+      // airborne: the landing itself has already zeroed the player's speed.
+      if(on&&!station.pressed)station.punch=(station.punch||0)+Math.min(FORM.landingMax,FORM.landing*Math.max(0,-(station.fall||0)));
+      // Boots sinking in, walking or landing, are kneading; standing still once
+      // the clay has given what it gives is not.
+      if(on&&sagForm(f,x,dt,station.punch||0))station.worked=true;
+      station.punch=0;
+    }
     stepForm(f,dt,{hand:!!station.hand,standing:on,relax:station.relax!==false});
+    if(give){
+      // Weight is the layer's job on a mass that gives: the springs take the
+      // stand, the landing and the stomp, and the columns only the hand. After
+      // the slump, so the cap reads this tick's final columns and the surface
+      // can never thin past what the mass allows; and what the springs have
+      // kept heals at the wet pace, once the mass has been left alone as long
+      // as its own slump waits.
+      capGive(give,f.h,FORM.minThick);
+      weighGive(game,station,s,give,dt,{on,feet:p.y-base,tops:f.h});
+      if(f.idle>f.pace.settle)relaxGive(give,dt,f.pace);
+    }
     // A stomp that has landed: the crater is pressed. Only clay a station calls
     // `bouncy` — the lab's slab, lump and wet bench — throws the stomper
     // straight back up, as the packed lump does at full, on the first stomp
@@ -508,7 +546,11 @@ function formHand(game,station,dt,input){
       // drawn a first skim of clay whatever height the player stands at, so a
       // beam laid above them can still be opened by the key.
       const at=Math.max(0,Math.min(s.w,ahead)),under=ahead!==at,have=formHeight(f,under?Math.max(0,Math.min(s.w,p.x-s.x)):at);
-      const want=have<FORM.minThick?Math.max(p.y-base+FORM.step*FORM.stepRise,FORM.minThick+.15):p.y-base+FORM.step*FORM.stepRise;
+      // The step is measured from the columns under the feet, not from the
+      // feet: on a mass that gives, the boots stand a dent below its columns,
+      // and a step drawn from there would press the clay ahead down instead.
+      const feet=p.y-base+(s.give?giveDepth(s.give,Math.max(0,Math.min(s.w,p.x-s.x))):0);
+      const want=have<FORM.minThick?Math.max(feet+FORM.step*FORM.stepRise,FORM.minThick+.15):feet+FORM.step*FORM.stepRise;
       const move=have<want-.03?Math.min(FORM.knead*dt,want-have):have>want+.03?-Math.min(FORM.knead*dt,have-want):0;
       // The clay the step is drawn from is never the clay under the player.
       if(move&&pullForm(f,at,0,move,FORM.stepRadius,{x:p.x-s.x,radius:FORM.foot+.2}))station.worked=true;
@@ -591,7 +633,7 @@ export function resetFormStation(station){
   if(station.ball)resetMarble(station.ball);
   // A plug's rot stands again, its block is back on the dock, its mass dormant.
   if(station.fix)resetFix(station);
-  station.grip=null;station.poke=null;station.pressed=false;station.punch=0;station.fall=0;station.stomped=false;
+  station.grip=null;station.poke=null;station.pressed=false;station.punch=0;station.force=0;station.fall=0;station.stomped=false;
   // A rock that has gone over the edge is not brought back, and what it opened
   // stays open: only the clay softens.
   if(!station.ball?.spilled){station.done=false;station.open=0;}

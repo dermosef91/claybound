@@ -76,7 +76,7 @@ export function stopMotionTuningMarkup(tuning){
     </div>`;
 }
 
-export function settingsMarkup(soundEnabled,fullscreenActive,{music=.55,effects=1,rumble=true,stopMotion=false,stopMotionTuning,analytics=true,characters=[],character='',charactersUnlocked=false}={}){
+export function settingsMarkup(soundEnabled,fullscreenActive,{music=.55,effects=1,rumble=true,stopMotion=true,stopMotionTuning,analytics=true,characters=[],character='',charactersUnlocked=false}={}){
   return `<button class="dialog-close" data-action="close" aria-label="Close settings">${icon('x')}</button>
     <span class="eyebrow">SETTINGS</span><h2>Make yourself at home.</h2>
     <div class="title-levels">

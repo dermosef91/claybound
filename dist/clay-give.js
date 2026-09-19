@@ -10,6 +10,12 @@
 //
 // Depth is measured downwards from the block's authored top: positive is
 // pressed in, negative is clay swelling up beside a dent.
+//
+// The numbers below are the bench's. A layer may carry a `tune` of its own —
+// a station's overrides of any of them but the spacing — and may ride on a
+// formable mass's columns as that mass's give: then its depth is measured from
+// each column's top, `capGive` keeps it from thinning the clay past what the
+// mass allows, and a wet pace may heal what it has kept with `relaxGive`.
 
 export const GIVE=Object.freeze({
   // One node every fifth of a unit: finer than a foot, so a dent is a curve and
@@ -73,20 +79,67 @@ const clamp=(n,lo,hi)=>n<lo?lo:n>hi?hi:n;
 const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 const finite=n=>Number.isFinite(n)?n:0,real=n=>typeof n==='number'&&Number.isFinite(n);
 
-export function createGive(width){
-  const w=Math.max(1,finite(width)),n=Math.max(3,Math.round(w/GIVE.spacing)+1),dx=w/(n-1);
+// What a station may retune: every number but the spacing, which is the
+// layer's grid and belongs to whatever it rides on.
+export const GIVE_TUNABLE=Object.freeze(Object.keys(GIVE).filter(k=>k!=='spacing'));
+const tuneOf=over=>{
+  const t={...GIVE};
+  if(over&&typeof over==='object')for(const k of GIVE_TUNABLE)if(real(over[k]))t[k]=over[k];
+  return Object.freeze(t);
+};
+
+// `spacing` sets the grid — a layer riding a mass takes the mass's, so its
+// nodes are the mass's columns — and `tune` the station's overrides.
+export function createGive(width,{spacing=GIVE.spacing,tune=null}={}){
+  const G=tuneOf(tune);
+  const w=Math.max(1,finite(width)),n=Math.max(3,Math.round(w/(spacing>0?spacing:GIVE.spacing))+1),dx=w/(n-1);
   const make=()=>new Float64Array(n);
-  const f={w,n,dx,depth:make(),velocity:make(),set:make(),previous:make(),load:make(),spread:make(),near:make(),
-    floor:make(),ceiling:make(),keep:make(),envelope:make(),deepest:0,rest:true,held:false,version:0};
+  const f={w,n,dx,tune:G,depth:make(),velocity:make(),set:make(),previous:make(),load:make(),spread:make(),near:make(),
+    floor:make(),edge:make(),ceiling:make(),keep:make(),envelope:make(),deepest:0,rest:true,held:false,version:0};
   for(let i=0;i<n;i++){
     const edge=Math.min(i*dx,w-i*dx);
-    f.floor[i]=Math.min(GIVE.maxDepth,Math.max(0,edge-GIVE.edgeGap)*GIVE.edgeSlope);
-    f.ceiling[i]=GIVE.endRise+(GIVE.maxRise-GIVE.endRise)*smooth(GIVE.endReach,GIVE.endReach+1,edge);
-    f.keep[i]=Math.min(GIVE.setMax,f.floor[i]);
-    f.envelope[i]=smooth(GIVE.edgeGap,2.2,edge);
+    f.floor[i]=f.edge[i]=Math.min(G.maxDepth,Math.max(0,edge-G.edgeGap)*G.edgeSlope);
+    f.ceiling[i]=G.endRise+(G.maxRise-G.endRise)*smooth(G.endReach,G.endReach+1,edge);
+    f.keep[i]=Math.min(G.setMax,f.floor[i]);
+    f.envelope[i]=smooth(G.edgeGap,2.2,edge);
     f.deepest=Math.max(f.deepest,f.floor[i]);
   }
   return f;
+}
+
+// The floor under a layer riding a mass, this tick: the bench's edge floor,
+// or the column's own height less the thinnest clay the mass allows, whichever
+// is nearer the top. The kept set can never be deeper than the floor either.
+// Depth already past a lowered floor is left for the step to clamp, after it
+// has taken the previous surface, so the swept checks see where the clay was.
+export function capGive(f,tops,thick){
+  const G=f.tune,least=Math.max(0,finite(thick));let deepest=0,wake=false;
+  for(let i=0;i<f.n;i++){
+    const floor=Math.min(f.edge[i],Math.max(0,finite(tops[i])-least));
+    f.floor[i]=floor;f.keep[i]=Math.min(G.setMax,floor);
+    if(f.set[i]>f.keep[i])f.set[i]=f.keep[i];
+    if(f.depth[i]>floor)wake=true;
+    deepest=Math.max(deepest,floor);
+  }
+  f.deepest=deepest;
+  if(wake)f.rest=false;
+}
+
+// Wet clay forgives what weight pressed into it: the kept set flows back at
+// the pace's rate — exponentially, and never slower than `relaxMin` a second,
+// so a track does get all the way home — and the springs follow it up, since
+// unloaded clay settles at its set. Returns whether anything was left to heal.
+export function relaxGive(f,dt,{relaxTime,relaxMin}){
+  const step=clamp(finite(dt),0,1/30);
+  if(!step||!(relaxTime>0))return false;
+  const k=1-Math.exp(-step/relaxTime),least=Math.max(0,finite(relaxMin))*step;let any=false;
+  for(let i=0;i<f.n;i++){
+    const s=f.set[i];if(!(s>0))continue;
+    let d=s*k;if(d<least)d=Math.min(least,s);
+    f.set[i]=s-d;any=true;
+  }
+  if(any)f.rest=false;
+  return any;
 }
 
 // Flatten everything: the press, the motion and the kept shape.
@@ -108,7 +161,7 @@ export const giveVelocity=(f,x)=>sample(f,f.velocity,x);
 // Weight on the clay this tick, spread under a foot. Normalised over an endless
 // surface rather than over the block, so weight near an end partly falls onto
 // the bench beside it.
-export function pressGive(f,x,weight=GIVE.weight,foot=GIVE.foot){
+export function pressGive(f,x,weight=f.tune.weight,foot=f.tune.foot){
   if(!real(x)||!real(weight)||!(foot>0))return;
   const norm=weight/(foot*Math.sqrt(2*Math.PI)),lo=Math.max(0,Math.floor((x-foot*3.5)/f.dx)),hi=Math.min(f.n-1,Math.ceil((x+foot*3.5)/f.dx));
   for(let i=lo;i<=hi;i++){const u=(i*f.dx-x)/foot;f.load[i]+=norm*Math.exp(-.5*u*u);}
@@ -116,9 +169,9 @@ export function pressGive(f,x,weight=GIVE.weight,foot=GIVE.foot){
 }
 
 // A sudden push, in surface speed at its centre: positive drives the clay in.
-export function kickGive(f,x,speed,spread=GIVE.kick){
+export function kickGive(f,x,speed,spread=f.tune.kick){
   if(!real(x)||!real(speed)||!speed||!(spread>0))return;
-  speed=clamp(speed,-40,GIVE.sink);
+  speed=clamp(speed,-40,f.tune.sink);
   const lo=Math.max(0,Math.floor((x-spread*3)/f.dx)),hi=Math.min(f.n-1,Math.ceil((x+spread*3)/f.dx));
   for(let i=lo;i<=hi;i++){const u=(i*f.dx-x)/spread;f.velocity[i]+=speed*Math.exp(-.5*u*u);}
   if(lo<=hi)f.rest=false;
@@ -127,12 +180,15 @@ export function kickGive(f,x,speed,spread=GIVE.kick){
 // A rising player is in the way of clay springing back: the surface under their
 // feet cannot pass them, and cannot rise faster than they do. Without this, the
 // rebound catches a jump from below and the landing check calls it a landing.
-export function holdUnder(f,x,feet,rise){
+// `feet` is how far below the block's top the feet are — or, given the `tops`
+// of the columns the layer rides, the feet's height over the columns' base,
+// since each column has a top of its own.
+export function holdUnder(f,x,feet,rise,tops=null){
   if(!real(x)||!real(feet))return;
   rise=Math.max(0,finite(rise));
   const reach=.7,lo=Math.max(0,Math.floor((x-reach)/f.dx)),hi=Math.min(f.n-1,Math.ceil((x+reach)/f.dx));
   for(let i=lo;i<=hi;i++){
-    const u=i*f.dx-x,least=feet+.02-.8*u*u;
+    const u=i*f.dx-x,below=tops?finite(tops[i])-feet:feet,least=below+.02-.8*u*u;
     if(f.depth[i]<least){f.depth[i]=Math.min(least,f.floor[i]);if(f.velocity[i]<-rise)f.velocity[i]=-rise;f.rest=false;f.held=true;}
   }
   if(f.held){f.held=false;f.version++;}
@@ -153,8 +209,9 @@ export function stepGive(f,dt){
   if(f.rest){load.fill(0);return false;}
   const step=clamp(finite(dt),0,1/30);
   if(!step){load.fill(0);return false;}
-  blur(d,spread,n,Math.exp(-dx/GIVE.wide));blur(d,near,n,Math.exp(-dx/GIVE.close));
-  const k=GIVE.stiffness,T=GIVE.tension/(dx*dx),nu=GIVE.viscosity/(dx*dx);
+  const G=f.tune;
+  blur(d,spread,n,Math.exp(-dx/G.wide));blur(d,near,n,Math.exp(-dx/G.close));
+  const k=G.stiffness,T=G.tension/(dx*dx),nu=G.viscosity/(dx*dx);
   let moved=0,moving=0,loaded=0;
   // Velocities first from the old surface, then positions: semi-implicit, which
   // keeps a spring this stiff stable at the game's fixed step. The damping is
@@ -168,18 +225,18 @@ export function stepGive(f,dt){
     // stand never digs an old dent deeper and never lifts a crater back out.
     // How loaded a node is stays between 0 and 1 whatever nonsense weight it is
     // handed, or one bad press would poison the set.
-    const held=load[i]>0?(load[i]<Infinity?load[i]/(load[i]+GIVE.hold):1):0;
-    const stiff=k*(1+GIVE.edgeHard*(1-f.envelope[i]));
-    const target=Math.max(0,set[i]-(load[i]<Infinity?load[i]:1e9)/stiff)-GIVE.bulge*f.envelope[i]*Math.max(0,spread[i]-near[i]);
-    const deep=di-(GIVE.maxDepth-GIVE.cushion);
-    const force=load[i]-stiff*(di-target)+T*(dl-2*di+dr)+nu*(vl-2*vi+vr)-(deep>0?GIVE.cushionStiff*deep*deep:0);
+    const held=load[i]>0?(load[i]<Infinity?load[i]/(load[i]+G.hold):1):0;
+    const stiff=k*(1+G.edgeHard*(1-f.envelope[i]));
+    const target=Math.max(0,set[i]-(load[i]<Infinity?load[i]:1e9)/stiff)-G.bulge*f.envelope[i]*Math.max(0,spread[i]-near[i]);
+    const deep=di-(G.maxDepth-G.cushion);
+    const force=load[i]-stiff*(di-target)+T*(dl-2*di+dr)+nu*(vl-2*vi+vr)-(deep>0?G.cushionStiff*deep*deep:0);
     dl=di;vl=vi;
     const free=vi+force*step;
-    v[i]=Math.min(GIVE.sink,free/(1+(free<0?GIVE.recovery:GIVE.damping)*step));
+    v[i]=Math.min(G.sink,free/(1+(free<0?G.recovery:G.damping)*step));
     if(load[i])loaded=1;
     // Held under weight past what the clay gives back, the press stays.
-    const flow=di-set[i]-GIVE.yield;
-    if(held>0&&flow>0&&set[i]<f.keep[i])set[i]=Math.min(f.keep[i],set[i]+flow*held*GIVE.creep*step);
+    const flow=di-set[i]-G.yield;
+    if(held>0&&flow>0&&set[i]<f.keep[i])set[i]=Math.min(f.keep[i],set[i]+flow*held*G.creep*step);
   }
   for(let i=0;i<n;i++){
     let di=d[i]+v[i]*step;
@@ -202,5 +259,5 @@ export function stepGive(f,dt){
 // One good stand sets it, which is the moment the experiment is named for.
 export function giveShare(f){
   let kept=0;for(let i=0;i<f.n;i++)kept=Math.max(kept,f.set[i]);
-  return clamp(kept/GIVE.shaped,0,1);
+  return clamp(kept/f.tune.shaped,0,1);
 }
