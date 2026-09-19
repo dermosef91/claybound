@@ -58,13 +58,38 @@ const AIMS={
 // only a few degrees apart, but every one of those degrees would land on the
 // foot as a tilt away from the floor it was modelled flat on — six on the
 // Mixamo rigs, twelve on the apprentice's, whose boots then stood on their
-// heels with the toes in the air. A foot carries the original's rotation away
-// from rest and nothing else, so a foot that rests flat stays flat.
-const FLAT=new Set(['LeftFoot','LeftToeBase','RightFoot','RightToeBase']);
+// heels with the toes in the air.
+//
+// What a foot does take from the toe is its heading along the floor. Where a
+// shoe points is a genuine difference between two rigs standing flat — an
+// auto-rigger fits each foot to the boot it finds, and the explorer arrived
+// with its right boot turned out ten degrees further than its left, which no
+// idle could stand straight in. So the ankle is aimed at the toe in yaw alone,
+// about the vertical, which turns a flat sole without tipping it, and the toe
+// follows its foot the way a hand follows its forearm.
+const YAW=new Set(['LeftFoot','RightFoot']);
+const flat=v=>v.setY(0).normalize();
 // Every joint above is anatomy a humanoid rig has to have. The crown is not: it
 // is a marker some exporters leave above the head and others end without, so a
 // rig may arrive without one and the head is then aimed like any other tip.
 const OPTIONAL=new Set(['head_end']);
+// Where a rig's rest relation is not the original's, the retarget carries the
+// difference into every clip: a wrist that rests a few degrees off the forearm
+// hangs those degrees off it in every state. On a long thin limb that passes
+// unnoticed. On the explorer — a child's build, hands as wide as its forearms,
+// a pelvis half the original's width for the same splay of thigh — it did not:
+// the mitts flared out from under the sleeves and the knees bowed out over the
+// boots. These are degrees about the model's own axes, applied to the named
+// joint at rest and nowhere else: a child that is aimed keeps its own aim, so
+// turning a thigh moves the knee without tipping the boot beneath it. Read them
+// off `scripts/measure-pose.mjs`, judge them on `scripts/review-cast.cjs`.
+const TUNE={
+  explorer:{
+    LeftHand:[9,0,-7],RightHand:[9,0,22],
+    LeftUpLeg:[0,0,-10],RightUpLeg:[0,0,10],
+    LeftLeg:[0,0,7],RightLeg:[0,0,-7]
+  }
+};
 const PREFIX='mixamorig';
 // Every clip hero.js names, plus the floor-corrected subset. Airborne excerpts
 // are cut from Regular_Jump and Jump_Over_Obstacle_2, whose vertical travel the
@@ -114,14 +139,20 @@ const inherit=(swings,joint)=>{
   for(let above=joint.parent;above;above=above.parent)if(swings.has(above))return swings.get(above).clone();
   return new THREE.Quaternion();
 };
+const TOES={LeftFoot:'LeftToeBase',RightFoot:'RightToeBase'};
 const frame=new Map(),swings=new Map();
 for(const {from,source,joint} of pairs){
   const at=AIMS[from]&&carried(AIMS[from])?AIMS[from]:null;
   const swing=at
     ?new THREE.Quaternion().setFromUnitVectors(aim(source,bone(donor.scene,at)),aim(joint,bone(target.scene,JOINTS[at])))
-    :FLAT.has(from)?new THREE.Quaternion():inherit(swings,joint);
+    :YAW.has(from)?new THREE.Quaternion().setFromUnitVectors(flat(aim(source,bone(donor.scene,TOES[from]))),flat(aim(joint,bone(target.scene,JOINTS[TOES[from]]))))
+    :inherit(swings,joint);
   swings.set(joint,swing);
-  frame.set(joint,rest.get(source).clone().invert().multiply(swing.clone().invert()).multiply(rest.get(joint)));
+  // A correction sits between the swing and the original's motion, so it turns
+  // the joint in the model's own axes at rest and rides along unchanged after.
+  const turn=TUNE[name]?.[joint.name],
+    correction=turn?new THREE.Quaternion().setFromEuler(new THREE.Euler(...turn.map(THREE.MathUtils.degToRad))):new THREE.Quaternion();
+  frame.set(joint,rest.get(source).clone().invert().multiply(correction).multiply(swing.clone().invert()).multiply(rest.get(joint)));
 }
 const hips=bone(target.scene,'Hips'),donorHips=bone(donor.scene,'Hips');
 const restHipsLocal=hips.position.clone();
