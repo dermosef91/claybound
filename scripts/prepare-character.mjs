@@ -133,7 +133,12 @@ const reach=restHipsWorld.y/donorRestHips.y;
 const rootScale=hips.parent.getWorldScale(new THREE.Vector3()).y;
 const anchor=[0,restHipsLocal.y,restHipsLocal.z];
 
-const sources=new Map([...donor.animations,THREE.AnimationClip.parse(idle.clip)].map(clip=>[clip.name,clip]));
+// The supplied set beside the original: its idle, and the push once one has
+// been prepared (scripts/prepare-push.mjs), which is carried across like the
+// rest, grounded, under the name hero.js finds it by.
+const sources=new Map([...donor.animations,...(idle.clips||[idle.clip]).map(clip=>THREE.AnimationClip.parse(clip))].map(clip=>[clip.name,clip]));
+const pushName=[...sources.keys()].find(name=>/push/i.test(name));
+if(pushName){WANTED.push(pushName);GROUNDED.add(pushName);}
 const mixer=new THREE.AnimationMixer(donor.scene);
 const world=new Map(),scratch=new THREE.Quaternion(),local=new THREE.Quaternion(),hipsWorld=new THREE.Vector3();
 

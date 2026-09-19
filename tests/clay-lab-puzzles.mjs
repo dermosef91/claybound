@@ -13,8 +13,10 @@ import {LEVELS} from '../dist/levels.js';
 import lab from '../dist/routes/clay-lab.js';
 import {visitStation,nearbyStation} from '../dist/shaping.js';
 import {takesHands,shapedShare} from '../dist/clay-rules.js';
-import {FORM,MOULD,PACE,createForm,formPace,formHeight,formVolume,formMatch,mouldProfile,mouldClump,pullForm,pressForm,stepForm,restProfile} from '../dist/clay-form.js';
+import {FORM,MOULD,PACE,createForm,formPace,formHeight,formVolume,formMatch,mouldProfile,mouldClump,mouldFit,pullForm,pressForm,stepForm,restProfile} from '../dist/clay-form.js';
 import {MARBLE,createMarble,resetMarble,stepMarble,marbleHeight} from '../dist/clay-marble.js';
+import {PUSH,initPush,resetPush,resolvePush,stepPush,lockShare} from '../dist/clay-push.js';
+import {biteOutline,biteSeed,biteBounds,insideBite} from '../dist/rot-shape.js';
 
 const source=JSON.stringify(lab),chapters=JSON.stringify(LEVELS);
 const NEW=['dig','lintel','mould','wet','marble'];
@@ -92,11 +94,61 @@ const beadReach=y=>y+JUMP+.65+.8,flowerReach=y=>y+JUMP+.8+.9;
 }
 console.log('PASS wet clay melts under boots and not under a hand, a mould is a legal target its flat slab holds exactly, and a marble rolls, rests, bounces and seats');
 
+// --- the plug's pieces: a lump fitted to a gap, and a block that is pushed ------
+{
+  // A clump fitted to the mould: legal, exactly the mould's volume, and read
+  // as well short of a cast — the seated plug does not fit by itself.
+  const m=plat('fix-mass'),f0=createForm(m.w,m.shape.from.h,[[0,0],[1,0]]),cast=mouldProfile(f0,by.fix.mould),f=mouldFit(f0,by.fix.clump,cast);
+  assert.equal(f.n,cast.length);
+  assert(close(formVolume(f),cast.reduce((a,b)=>a+b,0)*f.dx,1e-9)&&close(formVolume(f),f.volume,1e-9),'the lump holds exactly the mould\'s volume');
+  for(let i=1;i<f.n;i++)assert(Math.abs(f.rest[i]-f.rest[i-1])/f.dx<=FORM.slope+.05,'no face of the lump is steeper than the clay allows');
+  assert(f.rest.every(h=>h>=FORM.minThick-1e-9&&h<=FORM.maxHeight+1e-9),'between the floor and the ceiling');
+  assert(formMatch(f,cast)<.7&&formMatch(f,cast)>.3,`seated, the lump reads well short of a cast (${formMatch(f,cast).toFixed(2)})`);
+  const crest=Math.max(...f.rest);
+  assert(crest<m.shape.from.h+JUMP-.2,`the block's crest (${(crest-m.shape.from.h).toFixed(2)} over the dock) is under a jump, so it can be got behind`);
+  // Snapped to the cast, the volume still holds to the bit.
+  f.h.set(cast);assert(close(formVolume(f),f.volume,1e-9),'the cast holds the same volume');
+  // A mouldFit with no knots is the flat slab.
+  const flat=mouldFit(f0,null,cast);assert(flat.rest.every(h=>close(h,cast[0],1e-6)),'no clump: the flat slab');
+
+  // The block: pushed only by a grounded sweep into its face, a walk's third a
+  // tick at most, stopped by a wall in its way; a lump's height, no deeper.
+  const s={id:'b',x:10,w:3.2,y:1.5,h:1.5,kind:'stone',push:true,active:true};initPush(s);
+  assert(s.pushPhase==='free'&&s.baseX===10&&s.baseY===1.5);
+  const p={x:9.5,y:0};
+  assert.equal(resolvePush(s,p,{prevX:9.5,radius:.32,height:1.7,dt}),0,'standing beside it moves nothing');
+  p.x=9.9;const d=resolvePush(s,p,{prevX:9.5,radius:.32,height:1.7,dt});
+  assert(d>0&&close(d,PUSH.speed*dt),'a sweep into its face carries it a walk\'s third');
+  assert(close(s.x,10+d),'and the block went');
+  assert.equal(resolvePush(s,{x:s.x-.32+.2,y:0},{prevX:s.x-.32-.1,radius:.32,height:1.7,dt,walls:[{x:s.x+s.w,w:.5,top:.9,bottom:0}]}),0,'a wall against its far face stops it');
+  assert.equal(resolvePush(s,{x:s.x-.32+.2,y:3},{prevX:s.x-.32-.1,radius:.32,height:1.7,dt}),0,'a body above it is not pushing it');
+  assert.equal(resolvePush(s,{x:s.x+s.w+.32-.2,y:0},{prevX:s.x+s.w+.32+.1,radius:.32,height:1.7,dt}),-PUSH.speed*dt,'pushed from the right it goes left');
+  // Its life: onto a standing rot it reacts, goes and comes back; over the
+  // open gap it drops in and seats.
+  resetPush(s);const notch={x:20,w:3.2,floor:-1.5};
+  assert.equal(stepPush(s,dt,{open:false,notch}),null);
+  s.x=notch.x-s.w+PUSH.contact+.01;
+  assert.equal(stepPush(s,dt,{open:false,notch}),'dissolve','reaching onto the rot starts the reaction');
+  let t=null,n=0;while(t!=='shatter'&&n++<1000)t=stepPush(s,dt,{open:false,notch});
+  assert(t==='shatter'&&close(n*dt,PUSH.dissolve,dt*2)&&s.active===false&&s.hidden,'it goes to pieces after the reaction, and is gone');
+  n=0;while(t!=='respawn'&&n++<1000)t=stepPush(s,dt,{open:false,notch,clear:n>30});
+  assert(t==='respawn'&&n*dt>=PUSH.gone-dt&&s.x===s.baseX&&s.y===s.baseY&&s.active&&!s.hidden&&s.pop===1&&s.pushPhase==='free','it comes back where it started, once the ground is clear');
+  s.x=notch.x-s.w*(1-PUSH.lock)+.01;
+  assert.equal(stepPush(s,dt,{open:true,notch}),'tip','far enough over the open gap it tips in');
+  n=0;while(t!=='locked'&&n++<1000)t=stepPush(s,dt,{open:true,notch});
+  assert(t==='locked'&&close(n*dt,PUSH.drop,dt*2)&&close(s.x,notch.x)&&close(s.y,notch.floor+s.h)&&s.active===false,'and seats on the gap\'s floor, stood down');
+  assert.equal(stepPush(s,dt,{open:true,notch}),null,'seated, nothing more happens');
+  resetPush(s);assert(s.x===s.baseX&&s.pushPhase==='free'&&s.active);
+  assert(lockShare(s,notch)===0&&lockShare({...s,x:notch.x},notch)===1,'how far over the gap it is, as a share');
+}
+console.log('PASS the plug\'s pieces: a lump fitted to hold the gap\'s volume, well short of a cast and under a jump; a block a grounded walk pushes a third of a walk a tick, that walls stop, that dissolves on the rot and comes back, and that drops into the open gap and seats');
+
 // --- the bench --------------------------------------------------------------------
 {
   const ids=lab.shaping.map(s=>s.id);
-  assert.deepEqual(ids.slice(-5),NEW,'the five follow the lump');
-  assert(/ten/i.test(lab.label),'the picker says how many experiments there are');
+  assert.deepEqual(ids.slice(-6,-1),NEW,'the five follow the lump');
+  assert.equal(ids.at(-1),'fix','and the plug follows the five');
+  assert(/eleven/i.test(lab.label),'the picker says how many experiments there are');
   let prev=by.lump;
   for(const id of NEW){
     const s=by[id],m=plat(s.parts[0]);
@@ -110,8 +162,8 @@ console.log('PASS wet clay melts under boots and not under a hand, a mould is a 
     prev=s;
   }
   const bell=lab.platforms.find(p=>p.goal);
-  assert(bell.x>=by.marble.end&&lab.end>bell.x&&lab.end<bell.x+bell.w,'the bell ends the lap after the marble run');
-  assert(!lab.hazards.some(h=>h.x>=by.dig.x),'no pit under any of the five');
+  assert(bell.x>=by.fix.end&&lab.end>bell.x&&lab.end<bell.x+bell.w,'the bell ends the lap after the plug');
+  assert(!lab.hazards.some(h=>h.x>=by.dig.x&&h.x<by.fix.x),'no pit under any of the five');
 
   // 06 · Buried: five beads and a flower inside the clump, above the floor;
   // the perch out of a jump from the slab, within one from the ceiling.
@@ -195,8 +247,49 @@ console.log('PASS wet clay melts under boots and not under a hand, a mould is a 
     assert(flower&&flower.y>flowerReach(lift.y)&&flower.y<flowerReach(lift.y+lift.moveY)-.4,'the flower is reached from the top of the lift\'s run and from nowhere else on the bench');
     assert(flower.y>flowerReach(0),'not from the bench');
   }
+  // 11 · Fix the structure: a rotten corner filling a gap over a floor, a
+  // block on the dock that is a lump under a jump, a stop at the dock's end, a
+  // pit past the corner the mended corner alone crosses, and the flower beyond.
+  {
+    const s=by.fix,m=plat('fix-mass'),rot=plat(s.fix.rot),block=plat(s.fix.block),floor=plat(s.fix.floor),dock=plat('fix-dock'),corner=plat('fix-corner'),exit=plat('fix-exit'),stop=plat('fix-stop');
+    assert.equal(s.rule,'form');assert(takesHands(s));assert.equal(s.x,by.marble.end);assert(s.relax===false,'the seated plug holds what it is shaped into');
+    assert(Array.isArray(s.mould)&&Array.isArray(s.clump)&&Array.isArray(s.fix.blockClump)&&s.channel,'a mould, a clump the plug settles into, a clump the block wears, and a channel');
+    assert(lab.sections.some(t=>t.x===s.x)&&lab.hints.some(h=>h.x===s.x&&h.title===s.name),'a section and a sign');
+    for(const word of [/stomp/i,/push/i,/drag|shape/i,/\bE\b/,/dissolve/i,/\bR\b/])assert(word.test(s.hint),`fix's hint says ${word}`);
+    // The rot fills the gap exactly: same footprint as the mass, top at the
+    // bench, down to the gap's floor; permanent, and quick to go.
+    assert.equal(rot.kind,'crumble');assert(rot.rot&&rot.delay<.2,'rotten: goes for good, almost at once');
+    assert(rot.x===m.x&&rot.w===m.w&&rot.y===m.y&&close(rot.h,m.shape.from.h),'the rot fills the mass\'s gap');
+    assert(floor.x===m.x&&floor.w===m.w&&close(floor.y,m.y-m.shape.from.h),'the gap has a floor');
+    // The dock's last column is carved around the bite: a stone deck of its
+    // own, flush with the dock and ending where the gap begins, wearing the
+    // rot's bite, which is the gap and a ragged bulge eaten into that column.
+    assert(corner.kind==='stone'&&corner.carve===rot.id&&corner.y===dock.y,'the corner column is stone, carved around the rot');
+    assert(close(dock.x+dock.w,corner.x)&&close(corner.x+corner.w,m.x),'dock, corner, gap: no seam');
+    const bite=biteOutline(rot.w,rot.h,biteSeed(rot)),bounds=biteBounds(bite);
+    assert(close(bounds.right,rot.w)&&close(bounds.top,0)&&bounds.bottom>=-rot.h-.1&&bounds.left<-.3&&bounds.left>-corner.w+.8,`the bite is the gap plus a bulge into the corner (${bounds.left.toFixed(2)} of ${corner.w})`);
+    for(const [u,v] of [[.5,-.5],[rot.w-.2,-rot.h+.2],[-.2,-rot.h*.5]])assert(insideBite(bite,u,v),`(${u},${v}) is in the bite`);
+    for(const [u,v] of [[.5,.3],[rot.w+.2,-.5],[-corner.w,-1],[.5,-rot.h-.4]])assert(!insideBite(bite,u,v),`(${u},${v}) is not`);
+    assert(!bite.some(([x,y])=>x<0&&y>-.05),'the bulge stays below the walking surface');
+    // The block: a pushed stone on the dock, left of the gap, with room to
+    // stand behind it and a stop at the dock's end it cannot pass.
+    assert(block.kind==='stone'&&block.push&&block.w===m.w&&close(block.h,m.shape.from.h),'the block is the gap\'s size');
+    assert(m.shape.from.h>PLAYER.height+.4&&m.shape.from.h<JUMP-.2,`the gap (${m.shape.from.h}) is deeper than the player and shallow enough to jump out of`);
+    assert(block.x>dock.x+2&&block.x+block.w<m.x-1,'on the dock, left of the gap, with the dock behind it');
+    assert(close(block.y-block.h,dock.y),'standing on the dock');
+    assert(stop.kind==='wall'&&stop.x===dock.x&&stop.y<=1.2,'a low stop at the dock\'s end');
+    assert(s.spawn.x>stop.x+stop.w&&s.spawn.x<block.x,'the spawn stands between the stop and the block');
+    // The pit: the corner alone crosses it. From the gap's floor a jump falls
+    // short; from the mended corner a running one makes it.
+    const pit=lab.hazards.find(h=>h.x>=m.x+m.w-1e-9);
+    assert(pit&&close(pit.x,m.x+m.w)&&close(pit.x+pit.w,exit.x),'a pit from the corner to the far bench');
+    assert(pit.w>4.9+.64+.3&&pit.w<5.92+.64-.2,`the pit (${pit.w}) is out of a jump from the gap's floor and in a running one from the corner`);
+    const flower=lab.stamps.find(c=>c.x>exit.x&&c.x<exit.x+exit.w);
+    assert(flower&&flower.y<flowerReach(exit.y),'the flower waits on the far bench');
+    assert(lab.coins.filter(c=>c.x>pit.x&&c.x<pit.x+pit.w).length>=3,'beads trace the jump');
+  }
 }
-console.log('PASS the five benches are wired: buried treasure, a lintel with the far bench at the ceiling, a mould with a sealed vault, wet clay with a perch for a pillar and a throw, and a marble run with a lift');
+console.log('PASS the benches are wired: buried treasure, a lintel with the far bench at the ceiling, a mould with a sealed vault, wet clay with a perch for a pillar and a throw, a marble run with a lift, and a rotten corner with a block to plug it');
 
 // --- a rig around one station ----------------------------------------------------
 function rig(id){
@@ -207,7 +300,8 @@ function rig(id){
   const tick=(input={})=>{
     g.tick(dt,input);ticks++;
     assert(Math.abs(p.x-last)<=6.7*dt+1e-3,`${id}: x moves continuously (tick ${ticks}: ${last.toFixed(3)} -> ${p.x.toFixed(3)})`);last=p.x;
-    if(p.x>s.x&&p.x<s.x+s.w&&p.y<base+FORM.maxHeight){
+    // A plug's mass is no clay at all until it is seated: nothing to be inside.
+    if(s.active!==false&&p.x>s.x&&p.x<s.x+s.w&&p.y<base+FORM.maxHeight){
       assert(p.y>=surfaceAt(s,p.x)-.12-1e-9,`${id}: feet never end a tick inside the clay (tick ${ticks}: ${p.y.toFixed(3)} under ${surfaceAt(s,p.x).toFixed(3)})`);
       if(p.groundId===s.id)assert(Math.abs(p.y-surfaceAt(s,p.x))<1e-9,`${id}: a rider stands exactly on the surface (tick ${ticks})`);
     }
@@ -449,6 +543,154 @@ console.log('PASS wet clay: E builds the step to the far bench in time and it me
 }
 console.log('PASS the marble run: the marble ignores the player and answers only the ground, a stomp just ahead of it draws it into the crater, lifting the ground behind it herds it home, the lift rises to the flower, and R resets it all');
 
+// --- 11 · fix the structure: rot, stomp, push, seat, cast, mend ---------------------
+{
+  const {g,st,s,p,tick,hold,walk,place,drag,taken}=rig('fix');
+  const P=id=>g.level.platforms.find(q=>q.id===id),rot=P(st.fix.rot),block=P(st.fix.block),floor=P(st.fix.floor),exit=P('fix-exit');
+  const events=[];g.onEvent=e=>{if(!['step','land','knead','section','checkpoint','jump','stomp','skid','coin'].includes(e.type))events.push(e);};
+  const heard=type=>events.some(e=>e.type===type),flush=()=>{events.length=0;};
+  // At rest: the rot stands, the block is on the dock as a lump the player can
+  // hop onto, the mass is nowhere, and nothing reads as shaped.
+  assert(st.fix.phase==='rot'&&s.active===false&&s.outline&&!s.mouldMatch,'the plug\'s mass is dormant, its outline authored');
+  assert(rot.active&&!rot.broken&&block.active&&block.pushPhase==='free'&&block.form,'the rot stands, the block is free and wears the lump');
+  assert.equal(shapedShare(st),0);
+  assert(!takesHands(st)===false&&st.fix.phase!=='shaping','it takes hands in general, but not yet');
+  hold(3);walk(block.x-.8,frames(2));hold(3);
+  const before=block.x;hold(1,{jumpPressed:true,jumpHeld:true,moveAxis:1});
+  for(let i=0;i<frames(1.2);i++){tick({moveAxis:p.x<block.x+block.w/2?1:.2,jumpHeld:true});if(p.groundId===block.id)break;}
+  assert.equal(p.groundId,block.id,'a hop lands on the block');
+  assert(close(p.y,surfaceAt(block,p.x))&&p.y>block.y-block.h+2,'standing on the lump\'s own surface, well over the dock');
+  assert(close(block.x,before,.05),'landing on it does not move it');
+  walk(block.x+block.w+1.2,frames(3));hold(frames(.5));assert.equal(p.groundId,'fix-dock','and walks off it onto the dock beyond');
+
+  // The rot: a stand brings it down almost at once, for good, and the player
+  // drops onto the gap's floor; the corner is no take-off — a stand on it has
+  // no jump — and from the gap's floor the far bench is out of reach.
+  walk(rot.x+1.2,frames(4));let fell=0;for(let i=0;i<frames(1);i++){tick();if(!rot.active&&!fell)fell=i;}
+  assert(rot.broken&&!rot.active&&fell*dt<rot.delay+.2,`the rot gives within ${(fell*dt).toFixed(2)}s of a stand`);
+  assert(heard('crumble')&&heard('crumble-collapse'),'heard going');flush();
+  assert.equal(p.groundId,floor.id,'the player is down on the gap\'s floor');
+  assert(st.fix.phase==='open'&&close(shapedShare(st),.2),'the gap is open, a fifth of the work');
+  for(let i=0;i<frames(4.5);i++)tick();
+  assert(rot.broken&&!rot.active,'the rot does not grow back');
+  g.respawn();place(p.x,p.y);hold(3);assert(rot.broken&&!rot.active,'nor with the player');
+  // From the gap's floor, a running jump at the far bench falls into the pit.
+  {const g2=new Game();g2.start(3,lab);visitStation(g2,'fix');const q=g2.player;Object.assign(q,{x:floor.x+.3,y:floor.y,vx:0,vy:0,groundId:floor.id,coyote:.135});
+    for(let i=0;i<frames(3);i++){const go=q.x>=floor.x+floor.w-.05&&q.groundId;g2.tick(dt,{moveAxis:1,jumpPressed:go,jumpHeld:true});if(go)break;}
+    let landed=null;for(let i=0;i<frames(2.5);i++){g2.tick(dt,{moveAxis:1,jumpHeld:true});if(q.groundId){landed=q.groundId;break;}if(g2.deaths)break;}
+    assert(landed!==exit.id,`a running jump from the gap's floor never reaches the far bench (${landed??'fell'})`);}
+  // Nor is the rot itself a take-off: a jump pressed while standing on it does
+  // not lift, since the corner gives no coyote.
+  tick({shapeReset:true});hold(frames(.5));
+  assert(!rot.broken&&rot.active&&st.fix.phase==='rot'&&shapedShare(st)===0,'R stands the rot back up');
+  place(rot.x-1.5,0);hold(5);
+  for(let i=0;i<frames(1);i++){const on=p.groundId===rot.id;tick({moveAxis:on?0:1,jumpPressed:on,jumpHeld:on});if(on)break;}
+  assert(p.vy<=0||rot.broken,'a jump pressed on the rot does not lift');
+  hold(frames(1));assert(rot.broken&&p.groundId===floor.id,'it goes, and the player is down in the gap');flush();
+
+  // A stomp brings it down at once and throws the stomper back up a little.
+  tick({shapeReset:true});hold(frames(.5));place(rot.x-1.2,0);hold(5);
+  hold(1,{jumpPressed:true,jumpHeld:true,moveAxis:1});for(let i=0;i<frames(.35);i++)tick({moveAxis:1,jumpHeld:true});
+  hold(1,{stompPressed:true,moveAxis:.2});
+  let bounced=false,broke=-1;for(let i=0;i<frames(2);i++){tick({moveAxis:-.6});if(rot.broken&&broke<0)broke=i;if(rot.broken&&p.vy>0)bounced=true;if(p.groundId&&i>20)break;}
+  assert(rot.broken&&broke>=0&&bounced,'the stomp brings the rot down at once and the stomper bounces');
+  assert(events.some(e=>e.type==='crumble-collapse'&&e.stomped&&e.rot),'heard as a stomped collapse');flush();
+  assert.equal(g.deaths,0);
+
+  // The push: a grounded walk into the block carries it at a walk's third, the
+  // walker flush behind it. Over the open gap it drops in and seats, and the
+  // mass stands in its place as the very lump, live to the hand.
+  place(block.x-1,0);hold(5);
+  let x0=block.x,maxStep=0,last=block.x;
+  assert(!p.pushing,'not pushing yet');
+  for(let i=0;i<frames(6)&&block.pushPhase==='free';i++){tick({moveAxis:1});maxStep=Math.max(maxStep,block.x-last);last=block.x;if(block.x>x0+.5&&block.pushPhase==='free'){assert(close(p.x,block.x-PLAYER.radius,.05),'the pusher stays flush behind the block');assert.equal(p.pushing,1,'and reads as pushing, to the right');}}
+  assert(block.x>x0+3&&maxStep<=PUSH.speed*dt+1e-9,`pushed ${(block.x-x0).toFixed(2)} at no more than ${PUSH.speed} a second`);
+  assert(heard('push-lock'),'and it tips into the gap');flush();
+  hold(frames(PUSH.drop+.1));
+  assert(block.pushPhase==='locked'&&block.active===false&&block.hidden&&close(block.x,s.x)&&close(block.y,s.y),'seated, and stood down');
+  assert(!p.pushing,'nothing left to push against');
+  assert(s.active&&!s.hidden&&st.fix.phase==='settling'&&heard('push-locked'),'the mass is live in its place, settling');flush();
+  // Seated as the very lump the block was, it settles into its own bulge: on
+  // the way every column lies between the two shapes, the volume holds, and
+  // no hand is taken; arrived, it is the clump exactly.
+  const between=(h,a,b)=>h>=Math.min(a,b)-1e-9&&h<=Math.max(a,b)+1e-9;
+  assert(s.form.h.every((h,i)=>between(h,block.form.rest[i],s.form.rest[i])),'settling from the block\'s shape towards the bulge');
+  assert(!s.form.h.every((h,i)=>close(h,s.form.rest[i],1e-6)),'not there yet');
+  assert(close(formVolume(s.form),s.form.volume,1e-9),'the volume holds while it settles');
+  drag(s.w/2,.5);
+  assert(s.form.h.every((h,i)=>between(h,block.form.rest[i],s.form.rest[i])),'a hand on a settling lump does nothing');
+  assert(!st.done&&s.mouldMatch<.7,`the outline reads the bulge it settles into, not the pass (${s.mouldMatch.toFixed(2)})`);
+  hold(frames(PUSH.settle));
+  assert(st.fix.phase==='shaping'&&s.form.h.every((h,i)=>h===s.form.rest[i]),'settled: the lump is its clump, and clay to the hand');
+  assert(close(formVolume(s.form),s.form.volume,1e-9));
+  assert(s.mouldMatch<.7&&close(shapedShare(st),.2,.02),`seated, it reads short of the mould (${s.mouldMatch.toFixed(2)}) and a fifth shaped (${shapedShare(st).toFixed(2)}): the cast's progress starts from the seated lump`);
+
+  // The cast: strokes to the line, and the corner is mended — the surface is
+  // the mould exactly, the channel is open, and the clay is sealed to every
+  // hand, boot and stomp from here on.
+  const f=s.form,cast=st.cast,gap=()=>{let e=0;for(let i=0;i<f.n;i++)e+=Math.abs(f.h[i]-cast[i]);return e/f.n;};
+  place(s.x-2,0);hold(5);
+  let pass=0;for(;pass<12&&!st.done;pass++){for(let i=1;i<f.n-1;i+=2){const d=cast[i]-f.h[i];if(Math.abs(d)<.05)continue;drag(i*f.dx,Math.sign(d)*Math.min(Math.abs(d),.6));}}
+  hold(5);
+  assert(st.done&&st.sealed&&st.fix.phase==='healed',`cast within ${pass} passes`);
+  assert(f.h.every((h,i)=>h===cast[i])&&gap()===0,'the surface is the mould exactly');
+  assert(close(formVolume(f),f.volume,1e-9),'and holds its volume');
+  assert(shapedShare(st)===1&&s.mouldMatch===1&&g.latched['fix-repaired'],'read as done, the corner\'s channel open');
+  assert(heard('shape')&&events.some(e=>e.type==='activate'&&e.channel==='fix-repaired'),'announced');flush();
+  hold(frames(.6));assert(s.heal>.4&&s.heal<=1,'the mend ramps up for the view');
+  const held=Array.from(f.h);
+  drag(f.w/2,-.6);hold(frames(.5),{shapeHeld:true});
+  place(s.x+1,s.y+1.5);hold(1,{stompPressed:true});hold(frames(.6));
+  assert(held.every((h,i)=>h===f.h[i]),'sealed: a drag, E and a stomp change nothing');
+  assert(p.groundId===s.id&&close(p.y,s.y),'the stomper stands on the mended corner at the bench\'s height');
+  // The jump: from the mended corner at a run, the far bench and its flower.
+  place(s.x-3,0);hold(5);
+  for(let i=0;i<frames(3);i++){const go=p.x>=s.x+s.w-.25&&p.groundId;tick({moveAxis:1,jumpPressed:go,jumpHeld:true});if(go)break;}
+  for(let i=0;i<frames(2);i++){tick({moveAxis:1,jumpHeld:true});if(p.groundId&&p.vy===0&&i>10)break;}
+  assert.equal(p.groundId,exit.id,'a running jump from the corner lands on the far bench');
+  walk(exit.x+5.3,frames(3));hold(5);assert.equal(taken().flowers,1,'and the flower is taken');
+  assert.equal(g.deaths,0);
+
+  // A save made of the mended corner comes back mended, silently.
+  const snap=g.snapshot();assert(snap.shaped.includes('fix')&&snap.broken.includes(rot.id));
+  {const g2=new Game();g2.start(3,lab);let emitted=0;g2.onEvent=()=>emitted++;
+    assert(g2.restore(snap)&&emitted===0,'restored without a sound');
+    const st2=g2.level.shaping.find(q=>q.id==='fix'),s2=g2.level.platforms.find(q=>q.id==='fix-mass'),rot2=g2.level.platforms.find(q=>q.id===st2.fix.rot),block2=g2.level.platforms.find(q=>q.id===st2.fix.block);
+    assert(st2.fix.phase==='healed'&&st2.sealed&&st2.done&&s2.active&&s2.form.h.every((h,i)=>h===st2.cast[i]),'mended');
+    assert(rot2.broken&&!rot2.active&&block2.active===false&&g2.latched['fix-repaired']&&shapedShare(st2)===1,'rot down, block stood down, channel open');
+    g2.tick(dt,{});assert(st2.fix.phase==='healed'&&s2.form.h.every((h,i)=>h===st2.cast[i]),'and it stays mended');}
+  // A save with only the rot down comes back with the gap open.
+  {const g2=new Game();g2.start(3,lab);const st2=g2.level.shaping.find(q=>q.id==='fix'),rot2=g2.level.platforms.find(q=>q.id===st2.fix.rot);
+    assert(g2.restore({...snap,shaped:[],latched:[]}));g2.tick(dt,{});
+    assert(rot2.broken&&!rot2.active&&st2.fix.phase==='open'&&!st2.done,'the gap is open, the plug still to seat');}
+
+  // R: the rot stands, the block is back on the dock, the mass is dormant and
+  // the channel shut.
+  place(exit.x+2,0);hold(5);tick({shapeReset:true});hold(frames(.5));
+  assert(rot.active&&!rot.broken&&rot.timer===0,'the rot stands again');
+  assert(block.active&&!block.hidden&&block.pushPhase==='free'&&block.x===block.baseX&&block.y===block.baseY,'the block is back on the dock');
+  assert(s.active===false&&st.fix.phase==='rot'&&!st.sealed&&!st.done&&s.heal===0&&shapedShare(st)===0,'the mass is dormant, nothing shaped');
+  assert(!g.latched['fix-repaired'],'and the channel is shut');
+
+  // The block onto the standing rot: it reacts, hisses, goes to pieces and
+  // comes back on the dock; the rot is untouched.
+  place(block.x-1,0);hold(5);
+  for(let i=0;i<frames(6)&&block.pushPhase==='free';i++)tick({moveAxis:1});
+  assert(block.pushPhase==='dissolving'&&heard('push-dissolve'),'reaching onto the rot, the block reacts');
+  assert(rot.active&&!rot.broken,'the rot stands');flush();
+  for(let i=0;i<frames(PUSH.dissolve+.05);i++)tick();
+  assert(block.pushPhase==='gone'&&block.active===false&&heard('push-shatter'),'it goes to pieces');flush();
+  place(s.x-4,0);hold(5);
+  for(let i=0;i<frames(PUSH.gone+.2);i++)tick();
+  assert(block.pushPhase==='free'&&block.active&&block.x===block.baseX&&heard('push-respawn'),'and comes back where it started');flush();
+  // Pushed the other way it stops at the dock's end.
+  place(block.x+block.w+1,0);hold(5);for(let i=0;i<frames(4);i++)tick({moveAxis:-1});
+  const stop=P('fix-stop');assert(close(block.x,stop.x+stop.w,.02),'pushed left it stops against the stop');
+  assert.equal(p.pushing,-1,'and a lean on a stopped block still reads as a push, to the left');
+  assert.equal(g.deaths,0);
+}
+console.log('PASS fix the structure: the rot drops whoever stands on it and is no take-off, a stomp clears it and bounces the stomper, the block is a lump to hop onto and a stone to push, over the open gap it seats and is clay to the hand, cast to the line it is the corner again — sealed, saved, and the jump is on — and pushed onto the rot it dissolves and comes back; R undoes all of it');
+
 // A lab session edits neither the shipped chapters nor its own source.
 assert.equal(JSON.stringify(LEVELS),chapters);assert.equal(JSON.stringify(lab),source);
-console.log('PASS the five benches leave the chapters and their own source alone');
+console.log('PASS the benches leave the chapters and their own source alone');

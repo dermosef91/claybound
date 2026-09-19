@@ -30,6 +30,8 @@ export class ShapingControls {
       // press in from outside is one of the things a hand does to it.
       if(station.rule==='form'){
         const s=game.level.platforms.find(p=>station.parts.includes(p.id));if(!s)return;
+        // A plug takes no pointer until it sits in its gap, and none once cast.
+        if(station.fix&&station.fix.phase!=='shaping')return;
         const grab=1.1;
         if(point.x<s.x-grab||point.x>s.x+s.w+grab||point.y<s.y-s.h-grab||point.y>s.y-s.h+12)return;
         e.preventDefault();this.take();

@@ -13,7 +13,11 @@ const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
 // expressed in. A taller character carries all of them up with it.
 const MODEL_HEIGHT=1.78;
 const SOURCE={idle:'Armature|Idle_9|baselayer',longIdle:'Idle_03',walk:'Walking',run:'Running',jump:'Regular_Jump',leap:'Jump_Over_Obstacle_2',hurt:'Face_Punch_Reaction_2',death:'Knock_Down',victory:'Skip_Forward'};
-const LOOPING=new Set(['idle','walk','run','victory']);
+// The push is the one state a rig may lack: it arrived after the set, as a
+// clip of its own, so it is whichever supplied clip names a push, and a
+// character without one walks against a block the way it walks anywhere.
+const pushSource=names=>names.find(name=>/push/i.test(name));
+const LOOPING=new Set(['idle','walk','run','victory','push']);
 // The impact response. A landing sets the deformation outright, so its peak is
 // on the frame of contact rather than a twentieth of a second after it, and a
 // damped spring relaxes it with the rebound clay gives back. Jump, spring and
@@ -84,13 +88,15 @@ export function makeHeroClips(animations,motion,animation){
     }
     const result=excerpt(clip,name,start,end);result.userData={source,mode};return result;
   }
+  const push=pushSource([...originals.keys()]);
   return {
     idle:prepare(SOURCE.idle,'idle','ground'),longIdle:prepare(SOURCE.longIdle,'longIdle','ground'),walk:prepare(SOURCE.walk,'walk','ground'),run:prepare(SOURCE.run,'run','ground'),
     jumpRise:prepare(SOURCE.jump,'jumpRise','air',.53,.86),jumpFall:prepare(SOURCE.jump,'jumpFall','air',.88,1.13),
     leapRise:prepare(SOURCE.leap,'leapRise','air',.1,.39),leapFall:prepare(SOURCE.leap,'leapFall','air',.43,.60),
     stomp:prepare(SOURCE.jump,'stomp','air',1.03,1.13),land:prepare(SOURCE.jump,'land','ground',1.2,1.7),
     hurt:prepare(SOURCE.hurt,'hurt','ground',.70,1.40),death:prepare(SOURCE.death,'death','ground',.08,1.1),
-    victory:prepare(SOURCE.victory,'victory','ground')
+    victory:prepare(SOURCE.victory,'victory','ground'),
+    ...(push?{push:prepare(push,'push','ground')}:{})
   };
 }
 
@@ -241,6 +247,8 @@ export function animateHero(w,game,dt,alpha=1){
     else if(c.hurt>0||p.stunTime>0)state='hurt';
     else if(air)state=p.stomping?'stomp':`${c.jumpKind}${p.vy>0?'Rise':'Fall'}`;
     else if(c.landing>0&&speed<2.4)state='land';
+    // Leaning on a block: the push, where the rig has one; a walk otherwise.
+    else if(p.pushing&&c.actions.push)state='push';
     else state='locomotion';
     // Pausing freezes both the current pose and crossfade, even during a jump.
     if(!paused)transition(c,state);
