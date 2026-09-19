@@ -33,11 +33,11 @@ reloads do not dispose them.
 
 The heavy fog had also flattened the far summits into silhouettes, and half of
 that was worth keeping. Rather than fog the colour further, the far rank hands
-37 % of its lit response to a flat emissive floor of its own clay (`flatten`)
-and halves its baked normal map and fingerprint bump (`relief`); the middle
-rank takes 15 % / 0.8. Measured on the right-hand far butte at the ledge, the
+55 % of its lit response to a flat emissive floor of its own clay (`flatten`)
+and quarters its baked normal map and fingerprint bump (`relief`); the middle
+rank takes 22 % / 0.7. Measured on the right-hand far butte at the ledge, the
 mean colour held (`#ac889f` → `#ad8aa1`) while shading contrast (luminance
-stdev) went 8.0 → 4.9; the original cream-fog frame measured 2.6.
+stdev) went 8.0 → 3.5; the original cream-fog frame measured 2.6.
 
 **One salmon cloud → a field.** Twelve clouds at one depth, one size, sixteen
 apart, 96 % fogged: two on screen, both pink. Now three ranks

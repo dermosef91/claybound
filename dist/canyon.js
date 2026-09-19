@@ -225,8 +225,8 @@ export function buildCanyonTerrain(w,s,g){
 // `relief` scales the baked normal map and the fingerprint bump.
 const RANKS={
   low:{clay:0xec8a60,flatten:0,relief:1},
-  middle:{clay:0xd96b43,flatten:.15,relief:.8},
-  far:{clay:0xc46262,flatten:.37,relief:.5}
+  middle:{clay:0xd96b43,flatten:.22,relief:.7},
+  far:{clay:0xc46262,flatten:.55,relief:.25}
 };
 // The backdrop's lit faces render at about the clay colour and its shadow
 // faces at roughly six tenths, so the average light a face sees is ~.85.
