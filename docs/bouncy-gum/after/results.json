@@ -1,0 +1,118 @@
+{
+  "material": {
+    "type": "MeshPhysicalMaterial",
+    "color": 15622809,
+    "roughness": 0.3,
+    "clearcoat": 1,
+    "clearcoatRoughness": 0.24,
+    "bumpScale": 0.008639999999999998,
+    "fold": 0.27,
+    "program": "ball-clay-relief-v3-rest-gum-v1"
+  },
+  "frames": [
+    {
+      "name": "04-form-rest",
+      "rect": [
+        149,
+        375,
+        1202,
+        206
+      ],
+      "pixels": 247612,
+      "dark": "a23666",
+      "shadow": "be4375",
+      "mid": "e66c97",
+      "light": "f592b1",
+      "bright": "f6cfd3",
+      "white": 0.0046,
+      "saturation": 0.518
+    },
+    {
+      "name": "04-form-play",
+      "rect": [
+        145,
+        508,
+        1000,
+        172
+      ],
+      "pixels": 172000,
+      "dark": "a23666",
+      "shadow": "be4375",
+      "mid": "e66c97",
+      "light": "f592b1",
+      "bright": "f6cfd2",
+      "white": 0.0044,
+      "saturation": 0.518
+    },
+    {
+      "name": "04-form-crater",
+      "rect": [
+        149,
+        375,
+        1202,
+        206
+      ],
+      "pixels": 247612,
+      "dark": "a23666",
+      "shadow": "be4375",
+      "mid": "e66c97",
+      "light": "f592b1",
+      "bright": "f6cfd3",
+      "white": 0.0046,
+      "saturation": 0.518
+    },
+    {
+      "name": "04-form-pillar",
+      "rect": [
+        256,
+        653,
+        989,
+        42
+      ],
+      "pixels": 41538,
+      "dark": "a13565",
+      "shadow": "b33e6e",
+      "mid": "d65886",
+      "light": "ef7ba2",
+      "bright": "f394b0",
+      "white": 0,
+      "saturation": 0.577
+    },
+    {
+      "name": "05-lump-rest",
+      "rect": [
+        161,
+        681,
+        1177,
+        73
+      ],
+      "pixels": 85921,
+      "dark": "320602",
+      "shadow": "8e282e",
+      "mid": "cf4d3a",
+      "light": "f4785b",
+      "bright": "c3a8b7",
+      "white": 0,
+      "saturation": 0.751
+    },
+    {
+      "name": "06-dig-control",
+      "rect": [
+        154,
+        296,
+        1191,
+        377
+      ],
+      "pixels": 449007,
+      "dark": "321b6e",
+      "shadow": "4b2982",
+      "mid": "6b3e9c",
+      "light": "8351ac",
+      "bright": "9665b5",
+      "white": 0,
+      "saturation": 0.605
+    }
+  ],
+  "errors": [],
+  "requests": []
+}

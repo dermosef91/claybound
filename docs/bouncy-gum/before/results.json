@@ -1,0 +1,115 @@
+{
+  "material": {
+    "type": "MeshStandardMaterial",
+    "color": 14246043,
+    "roughness": 0.55,
+    "bumpScale": 0.021599999999999998,
+    "program": "ball-clay-relief-v3-rest-magic"
+  },
+  "frames": [
+    {
+      "name": "04-form-rest",
+      "rect": [
+        149,
+        403,
+        1202,
+        206
+      ],
+      "pixels": 247612,
+      "dark": "7c1c52",
+      "shadow": "a9336a",
+      "mid": "ce5387",
+      "light": "e06d9b",
+      "bright": "ea8bad",
+      "white": 0,
+      "saturation": 0.6
+    },
+    {
+      "name": "04-form-play",
+      "rect": [
+        145,
+        508,
+        1000,
+        172
+      ],
+      "pixels": 172000,
+      "dark": "7d1c52",
+      "shadow": "a9336a",
+      "mid": "ce5387",
+      "light": "df6d9b",
+      "bright": "ea8bad",
+      "white": 0,
+      "saturation": 0.6
+    },
+    {
+      "name": "04-form-crater",
+      "rect": [
+        149,
+        403,
+        1202,
+        206
+      ],
+      "pixels": 247612,
+      "dark": "7c1c52",
+      "shadow": "a9336a",
+      "mid": "ce5387",
+      "light": "e06d9b",
+      "bright": "ea8bad",
+      "white": 0,
+      "saturation": 0.6
+    },
+    {
+      "name": "04-form-pillar",
+      "rect": [
+        149,
+        559,
+        1202,
+        51
+      ],
+      "pixels": 61302,
+      "dark": "801d54",
+      "shadow": "a32f66",
+      "mid": "c44a7e",
+      "light": "dc6a97",
+      "bright": "e88dab",
+      "white": 0,
+      "saturation": 0.618
+    },
+    {
+      "name": "05-lump-rest",
+      "rect": [
+        161,
+        457,
+        1177,
+        73
+      ],
+      "pixels": 85921,
+      "dark": "310601",
+      "shadow": "5b102c",
+      "mid": "cb442f",
+      "light": "f27748",
+      "bright": "be989f",
+      "white": 0,
+      "saturation": 0.796
+    },
+    {
+      "name": "06-dig-control",
+      "rect": [
+        154,
+        316,
+        1191,
+        377
+      ],
+      "pixels": 449007,
+      "dark": "321b6e",
+      "shadow": "4b2982",
+      "mid": "6b3e9c",
+      "light": "8351ac",
+      "bright": "9665b5",
+      "white": 0,
+      "saturation": 0.605
+    }
+  ],
+  "errors": [],
+  "requests": []
+}
