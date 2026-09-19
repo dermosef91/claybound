@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {LEVELS} from '../dist/levels.js';
-import {chapterCollections,settingsMarkup} from '../dist/title-menu.js';
+import {chapterCollections,settingsMarkup,stopMotionTuningMarkup} from '../dist/title-menu.js';
 import {CHARACTERS} from '../dist/characters.js';
 
 const level=LEVELS[0];
@@ -45,3 +45,21 @@ for(const stopMotion of [false,true]){
 }
 assert(settingsMarkup(true,false).includes('data-action="settings-stopmotion" role="switch" aria-checked="false"'),'off by default');
 console.log('PASS settings stop motion: a switch beside rumble, off until chosen, showing the saved state');
+
+// The look's tuning unfolds under the switch only while it is on, every number
+// in its own unit at its saved value, the two switches showing their state.
+assert(!settingsMarkup(true,false,{stopMotion:false,stopMotionTuning:{fps:12}}).includes('data-tuning'),'folded away while off');
+const tuned=settingsMarkup(true,false,{stopMotion:true,stopMotionTuning:{fps:12,boil:9,wobble:3,flicker:2,creatures:false,hold:true}});
+const block=tuned.match(/<div class="title-tuning" data-tuning="stopmotion">[\s\S]*?<\/button>\s*<\/div>/)?.[0];
+assert(block,'the tuning block is there while on');
+assert(tuned.indexOf('data-action="settings-stopmotion"')<tuned.indexOf('data-tuning')&&tuned.indexOf('data-tuning')<tuned.indexOf('data-action="fullscreen"'),'right under the switch');
+for(const [key,value,unit] of [['fps',12,'/s'],['boil',9,'‰'],['wobble',3,'‰'],['flicker',2,'%']]){
+  assert(block.includes(`data-tune="${key}"`)&&block.includes(`value="${value}"`),`${key} slider at its saved value`);
+  assert(block.includes(`data-readout="tune-${key}">${value}${unit}<`),`${key} readout in its unit`);
+  assert(!block.includes(`data-action="tune-${key}"`),'a tuner never wears the audio sliders\' data-action');
+}
+assert(block.includes('data-action="settings-stopmotion-creatures" role="switch" aria-checked="false"'));
+assert(block.includes('data-action="settings-stopmotion-hold" role="switch" aria-checked="true"'));
+assert(stopMotionTuningMarkup({fps:99,boil:-4}).includes('value="24"')&&stopMotionTuningMarkup({fps:99,boil:-4}).includes('data-tune="boil" data-unit="‰"'),'out-of-range saves are clamped into the sliders');
+assert(stopMotionTuningMarkup().includes('value="8"')&&stopMotionTuningMarkup().includes('data-readout="tune-boil">6‰<'),'defaults are the shipped look');
+console.log('PASS settings stop-motion tuning: unfolds under the switch while on, six controls at their saved values in their units, clamped');

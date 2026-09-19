@@ -1,3 +1,5 @@
+import {TUNING_RANGES,normalizeTuning} from './stop-motion.js';
+
 // Names must come from the curated set bundled in lib/lucide.min.js —
 // an unknown name renders as an empty element with no warning.
 const icon=name=>`<i data-lucide="${name}" aria-hidden="true"></i>`;
@@ -48,7 +50,35 @@ export function characterMarkup(characters,current){
     </div>`;
 }
 
-export function settingsMarkup(soundEnabled,fullscreenActive,{music=.55,effects=1,rumble=true,stopMotion=false,characters=[],character='',charactersUnlocked=false}={}){
+// A tuning slider: a real range in its own unit, for the numbers behind a look
+// that is still being judged. It wears the volume sliders' box, but not their
+// `data-action`, so the audio handler never mistakes it for a level.
+function tuner(key,label,iconName,value,unit){
+  const [min,max]=TUNING_RANGES[key];
+  return `<div class="title-slider">
+      <label for="tune-${key}">${icon(iconName)}<span>${label}</span><strong data-readout="tune-${key}">${value}${unit}</strong></label>
+      <input id="tune-${key}" type="range" min="${min}" max="${max}" step="1" value="${value}"
+        data-tune="${key}" data-unit="${unit}" aria-label="${label}" aria-valuetext="${value}${unit}">
+    </div>`;
+}
+// Everything the stop-motion look is made of, unfolded under its switch while
+// it is on: exposures a second; the boil of the prints and the wobble of the
+// puppet's registration, both in thousandths of a world unit; the lamp's
+// flicker in per cent; and whether the creatures step and whether a puppet's
+// position holds between exposures along with its pose.
+export function stopMotionTuningMarkup(tuning){
+  const t=normalizeTuning(tuning);
+  return `<div class="title-tuning" data-tuning="stopmotion">
+      ${tuner('fps','Exposures a second','timer',t.fps,'/s')}
+      ${tuner('boil','Boil','hand',t.boil,'‰')}
+      ${tuner('wobble','Wobble','move',t.wobble,'‰')}
+      ${tuner('flicker','Flicker','sun',t.flicker,'%')}
+      <button class="title-setting" data-action="settings-stopmotion-creatures" role="switch" aria-checked="${t.creatures}" aria-label="Creatures step too">${icon('bug')}<span>Creatures too</span><strong>${t.creatures?'On':'Off'}</strong></button>
+      <button class="title-setting" data-action="settings-stopmotion-hold" role="switch" aria-checked="${t.hold}" aria-label="Hold position between exposures">${icon('grab')}<span>Hold position</span><strong>${t.hold?'On':'Off'}</strong></button>
+    </div>`;
+}
+
+export function settingsMarkup(soundEnabled,fullscreenActive,{music=.55,effects=1,rumble=true,stopMotion=false,stopMotionTuning,characters=[],character='',charactersUnlocked=false}={}){
   return `<button class="dialog-close" data-action="close" aria-label="Close settings">${icon('x')}</button>
     <span class="eyebrow">SETTINGS</span><h2>Make yourself at home.</h2>
     <div class="title-levels">
@@ -60,6 +90,7 @@ export function settingsMarkup(soundEnabled,fullscreenActive,{music=.55,effects=
       <button class="title-setting" data-action="settings-sound" role="switch" aria-checked="${soundEnabled}" aria-label="Game sound">${icon(soundEnabled?'volume-2':'volume-x')}<span>Sound</span><strong>${soundEnabled?'On':'Off'}</strong></button>
       <button class="title-setting" data-action="settings-rumble" role="switch" aria-checked="${rumble}" aria-label="Vibration and controller rumble">${icon('move-vertical')}<span>Rumble</span><strong>${rumble?'On':'Off'}</strong></button>
       <button class="title-setting" data-action="settings-stopmotion" role="switch" aria-checked="${stopMotion}" aria-label="Stop-motion animation, eight poses a second">${icon('camera')}<span>Stop motion</span><strong>${stopMotion?'On':'Off'}</strong></button>
+      ${stopMotion?stopMotionTuningMarkup(stopMotionTuning):''}
       <button class="title-setting" data-action="fullscreen" data-fullscreen="label" aria-pressed="${fullscreenActive}">${icon(fullscreenActive?'minimize':'expand')}<span>${fullscreenActive?'Exit fullscreen':'Fullscreen'}</span></button>
       <button class="title-setting" data-action="help">${icon('gamepad-2')}<span>How to play</span></button>
       <button class="title-setting" data-action="editor">${icon('pencil-ruler')}<span>Level editor</span></button>

@@ -1,7 +1,7 @@
 import * as THREE from './lib/three.module.js';
 import {applyFlatten} from './clay-feel.js';
 import {BLINKER,DRIP} from './dream-enemy-rules.js';
-import {puppetStep,heldSample,boilPuppet} from './stop-motion.js';
+import {puppetStep,heldSample,boilPuppet,placePuppet} from './stop-motion.js';
 
 // The Soft Dream's creatures, sculpted in code from the world's clay
 // primitives — no model to load. The blinker and the drip take the theme's
@@ -134,8 +134,8 @@ function animateDrip(view,e,step){
 }
 
 export function animateDreamEnemy(view,e,dt,status){
-  const step=status==='playing'?puppetStep(view.clock,dt):0;view.time+=step;
-  const root=view.root;root.position.set(e.x,e.y,.35);
+  const step=status==='playing'?puppetStep(view.clock,dt,true):0;view.time+=step;
+  const root=view.root,at=e.alive?placePuppet(view.clock,view,e.x,e.y,true):{x:e.x,y:e.y};root.position.set(at.x,at.y,.35);
   if(!e.alive){
     // Pressed flat where it was hit, like every other creature; the shatter
     // follows from world.render. A popped eye has nothing holding it up, so
@@ -151,10 +151,10 @@ export function animateDreamEnemy(view,e,dt,status){
   view.deathTime=0;root.visible=true;root.scale.setScalar(1);
   // Under stop motion the pose reads the creature as it was at the last
   // exposure; where it is, and whether it lives, are read live above.
-  const s=heldSample(view.clock,view,step,()=>({...e}));
+  const s=heldSample(view.clock,view,step,()=>({...e}),true);
   if(view.kind==='hatworm')animateHatworm(view,s,step);
   else if(view.kind==='blinker')animateBlinker(view,s,step);
   else if(view.kind==='drip')animateDrip(view,s,step);
-  boilPuppet(root,view.clock);
+  boilPuppet(root,view.clock,true);
   return null;
 }

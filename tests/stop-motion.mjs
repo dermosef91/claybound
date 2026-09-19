@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import * as THREE from '../dist/lib/three.module.js';
-import {STOP_MOTION_FPS,createPuppetClock,tickPuppets,puppetStep,heldSample,boilPuppet,BOIL} from '../dist/stop-motion.js';
+import {STOP_MOTION_FPS,createPuppetClock,tickPuppets,puppetStep,heldSample,boilPuppet,placePuppet,exposeLight,applyStopMotionTuning,normalizeTuning,TUNING_DEFAULTS,BOIL} from '../dist/stop-motion.js';
 import {createHero,attachHero,animateHero,heroEvent} from '../dist/hero.js';
 import {CHARACTERS} from '../dist/characters.js';
 import {readGLB} from './load-player.mjs';
@@ -32,7 +32,7 @@ import {Game} from '../dist/simulation.js';
   c=tickPuppets(w,0);assert.equal(c.step,0);assert(!c.stepped,'a paused frame exposes nothing');
   w.stopMotion=false;c=tickPuppets(w,1/60);assert(!c.on);assert.equal(c.held,0,'turning it off drops the held time');
   // A pose that reads the simulation reads it as it stood at the last exposure.
-  const view={},live={angle:0},on={on:true},off={on:false};
+  const view={},live={angle:0},on={...createPuppetClock(),on:true},off=createPuppetClock();
   assert.equal(heldSample(on,view,1/60,()=>({...live})).angle,0);
   live.angle=1;assert.equal(heldSample(on,view,0,()=>({...live})).angle,0,'held: the old reading');
   assert.equal(heldSample(on,view,1/8,()=>({...live})).angle,1,'exposed: the fresh one');
@@ -110,5 +110,56 @@ import {Game} from '../dist/simulation.js';
   for(let i=0;i<3;i++)frame(1/60);
   assert.notDeepEqual(head(),wound,'and cuts to the wound-up pose on the exposure');
   w.stopMotion=false;frame(1/60);const a=head();frame(1/60);assert.notDeepEqual(head(),a,'off, the wind-up eases every frame');
+
+  // The Creatures switch: off, this creature eases every frame while the clock
+  // still runs for the hero; on again, it holds. The clock carries the switch,
+  // so a view that cached it follows the panel at once.
+  applyStopMotionTuning(w,{...TUNING_DEFAULTS,creatures:false});w.stopMotion=true;
+  frame(1/60);const easedA=head();frame(1/60);assert.notDeepEqual(head(),easedA,'creatures off: the spitter eases while the setting is on');
+  assert.equal(puppetStep(w.puppetClock,1/60),0,'and the hero still holds');
+  assert(!v.root.userData.boiled,'a creature off the clock is not boiled');
+  applyStopMotionTuning(w,TUNING_DEFAULTS);
+  frame(1/60);const heldB=head();frame(1/60);frame(1/60);assert.deepEqual(head(),heldB,'creatures on: it holds again');
 }
-console.log('PASS stop motion: the clock holds seven frames and spends the eighth, the hero cuts pose, blends and skin together while its feet keep moving, a landing settles, a creature holds its wind-up, and off is exactly what it was');
+
+// The tuning knobs, each on the clock it drives.
+{
+  const w={stopMotion:true,puppetClock:createPuppetClock()};
+  // Exposures a second: twelve is four frames held and the fifth spent.
+  applyStopMotionTuning(w,{...TUNING_DEFAULTS,fps:12});
+  const advanced=[];for(let i=0;i<10;i++){tickPuppets(w,1/60);advanced.push(puppetStep(w.puppetClock,1/60));}
+  assert.deepEqual(advanced.map(a=>a>0?1:0),[0,0,0,0,1,0,0,0,0,1],'at twelve a second the fifth frame exposes');
+  assert.equal(normalizeTuning({fps:99}).fps,24);assert.equal(normalizeTuning({boil:'x'}).boil,6);assert.equal(normalizeTuning({hold:'yes'}).hold,false,'saves are clamped and typed');
+  // Boil: the amount is the clock's, and nought puts the prints back.
+  const m=new THREE.MeshStandardMaterial({name:'skin'});m.userData.clay={offset:new THREE.Vector3()};
+  const root=new THREE.Group();root.add(new THREE.Mesh(new THREE.BoxGeometry(),m));
+  applyStopMotionTuning(w,{...TUNING_DEFAULTS,boil:20});tickPuppets(w,1/60);w.puppetClock.stepped=true;
+  boilPuppet(root,w.puppetClock);assert(m.userData.clay.offset.length()>BOIL*1.5&&m.userData.clay.offset.length()<.02*2,'a bigger boil moves the prints further');
+  applyStopMotionTuning(w,{...TUNING_DEFAULTS,boil:0});boilPuppet(root,w.puppetClock);
+  assert.deepEqual(m.userData.clay.offset.toArray(),[0,0,0],'boil nought puts them back');
+  // Hold position: the drawn point stays where the last exposure put it.
+  w.puppetClock=createPuppetClock();applyStopMotionTuning(w,{...TUNING_DEFAULTS,hold:true});
+  const view={id:'test'};let placed;
+  const place=(x,dt)=>{tickPuppets(w,dt);placed=placePuppet(w.puppetClock,view,x,0,false);return placed.x;};
+  const first=place(1,1/60);
+  for(let i=0;i<6;i++)assert.equal(place(1+(i+1)*.1,1/60),first,'held frames keep the exposure\'s position');
+  assert(place(1.8,1/60)>first,'the exposure moves it on');
+  applyStopMotionTuning(w,{...TUNING_DEFAULTS,hold:false});
+  assert.equal(place(3,1/60),3,'hold off: the live position every frame');
+  // Wobble: an offset within the amount, new each exposure, still within a hold.
+  applyStopMotionTuning(w,{...TUNING_DEFAULTS,wobble:30});
+  const offsets=[];for(let i=0;i<16;i++){tickPuppets(w,1/60);const at=placePuppet(w.puppetClock,view,5,0,false);offsets.push([+(at.x-5).toFixed(6),+at.y.toFixed(6)]);}
+  assert(offsets.every(([x,y])=>Math.abs(x)<=.03+1e-9&&Math.abs(y)<=.03+1e-9),'the wobble stays within its amount');
+  assert(offsets.some(([x,y])=>x!==0||y!==0),'and is not nothing');
+  const distinct=new Set(offsets.map(o=>o.join()));assert(distinct.size>=2&&distinct.size<=3,`one offset per exposure, not per frame (${distinct.size})`);
+  applyStopMotionTuning(w,TUNING_DEFAULTS);tickPuppets(w,1/60);assert.deepEqual([placePuppet(w.puppetClock,view,5,0,false).x,placePuppet(w.puppetClock,view,5,0,false).y],[5,0],'wobble nought: no offset');
+  // Flicker: the lamp scales about the theme's power, new each exposure, and
+  // is handed back when the flicker is nought.
+  const lit={stopMotion:true,puppetClock:createPuppetClock(),sun:{intensity:3},theme:{sunPower:3}};
+  applyStopMotionTuning(lit,{...TUNING_DEFAULTS,flicker:8});
+  const seen=new Set();for(let i=0;i<16;i++){tickPuppets(lit,1/60);exposeLight(lit);seen.add(lit.sun.intensity);assert(Math.abs(lit.sun.intensity-3)<=3*.08+1e-9,'within eight per cent');}
+  assert(seen.size>=2&&seen.size<=3,`one light per exposure (${seen.size})`);
+  applyStopMotionTuning(lit,TUNING_DEFAULTS);tickPuppets(lit,1/60);exposeLight(lit);assert.equal(lit.sun.intensity,3,'flicker nought: the theme\'s own power');
+  lit.stopMotion=false;lit.sun.intensity=2.5;tickPuppets(lit,1/60);exposeLight(lit);assert.equal(lit.sun.intensity,2.5,'off the clock the lamp is left alone');
+}
+console.log('PASS stop motion: the clock holds seven frames and spends the eighth, the hero cuts pose, blends and skin together while its feet keep moving, a landing settles, a creature holds its wind-up, every knob reaches the clock, and off is exactly what it was');

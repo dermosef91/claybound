@@ -2,7 +2,7 @@ import * as THREE from './lib/three.module.js';
 import {clone} from './lib/SkeletonUtils.js';
 import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel} from './clay.js';
-import {puppetStep,boilPuppet} from './stop-motion.js';
+import {puppetStep,boilPuppet,placePuppet} from './stop-motion.js';
 import {BAT} from './enemy-rules.js';
 import {createBatEcho,animateBatEcho,batLookVector} from './bat-echo.js';
 import {applyFlatten} from './clay-feel.js';
@@ -45,8 +45,8 @@ function attachBatView(w,view){
   mixer.update(0);Object.assign(view,{model,mixer,actions,loaded:true});
 }
 export function animateBat(view,e,dt,status){
-  const step=status==='playing'?puppetStep(view.clock,dt):0;
-  view.root.position.set(e.x,e.y+BAT.modelOffsetY,.35);if(!view.loaded)return;
+  const step=status==='playing'?puppetStep(view.clock,dt,true):0;
+  const at=e.alive?placePuppet(view.clock,view,e.x,e.y+BAT.modelOffsetY,true):{x:e.x,y:e.y+BAT.modelOffsetY};view.root.position.set(at.x,at.y,.35);if(!view.loaded)return;
   if(e.alive){
     view.root.visible=true;view.root.scale.setScalar(1);view.deathTime=0;
     const state=e.aiState||'patrol',charging=state==='charge',diving=state==='dive';
@@ -61,7 +61,7 @@ export function animateBat(view,e,dt,status){
     view.actions.Fly.setEffectiveTimeScale(state==='retreat'?1.35:1);
     view.actions.Swoop.setEffectiveTimeScale(diving?view.actions.Swoop.getClip().duration/(e.diveDuration||.5):1);
     animateBatEcho(view.echo,e,status);
-    view.mixer.update(step);boilPuppet(view.root,view.clock);
+    view.mixer.update(step);boilPuppet(view.root,view.clock,true);
     view.root.rotation.set(0,0,0);
     if(state==='retreat'||charging||diving){
       batLookVector(e,view.look);

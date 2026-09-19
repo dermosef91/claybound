@@ -8,7 +8,8 @@ import {VirtualJoystick} from './controls.js';
 import {completionMarkup,completionRecord,warmCompletionAssets} from './completion.js';
 import {DraftLibrary} from './editor-model.js';
 import {LevelEditor} from './editor.js';
-import {chapterCollections,settingsMarkup,characterMarkup} from './title-menu.js';
+import {chapterCollections,settingsMarkup,characterMarkup,stopMotionTuningMarkup} from './title-menu.js';
+import {normalizeTuning,applyStopMotionTuning} from './stop-motion.js';
 import clayLab from './routes/clay-lab.js';
 import {CHARACTERS,characterChoice} from './characters.js';
 import {TitleScene} from './title-scene.js';
@@ -57,6 +58,8 @@ const level=(value,fallback)=>Number.isFinite(Number(value))?Math.min(1,Math.max
 saved.music=level(saved.music,Sound.DEFAULT_MUSIC);saved.effects=level(saved.effects,Sound.DEFAULT_EFFECTS);saved.rumble=saved.rumble!==false;
 // Off unless chosen: the stepped look is offered, not imposed, while it is judged.
 saved.stopMotion=saved.stopMotion===true;
+// The look's numbers, clamped to their sliders' ranges; a missing one is the default.
+saved.stopMotionTuning=normalizeTuning(saved.stopMotionTuning);
 // A character that has since been withdrawn falls back to the original rather
 // than leaving the world with nobody in it.
 saved.character=characterChoice(saved.character).id;
@@ -138,7 +141,7 @@ async function ensureWorld(blocking=true){
   if(worldError){if(blocking){hideLoading();show('error',true);$('error-home').focus();}return false;}
   if(worldLoading)return worldLoading;
   worldLoading=Promise.resolve().then(async()=>{
-    if(!world)world=new World($('world'),{character:saved.character,stopMotion:saved.stopMotion,onProgress(ratio){
+    if(!world)world=new World($('world'),{character:saved.character,stopMotion:saved.stopMotion,stopMotionTuning:saved.stopMotionTuning,onProgress(ratio){
       if(ratio===null)return;
       $('loading-progress').classList.add('determinate');$('loading-fill').style.width=`${Math.round(ratio*100)}%`;
       $('loading-status').textContent=ratio<1?`Shaping the clay world · ${Math.round(ratio*100)}%`:'Finding our feet…';
@@ -262,7 +265,7 @@ const labMarkup=()=>`<button class="chapter-choice playground-choice" data-actio
 function help(){
   openDialog(`<button class="dialog-close" data-action="close" aria-label="Close help">${icon('x')}</button><span class="eyebrow">HOW TO PLAY</span><h2>Controls.</h2><div class="control-list"><div class="control-row">${hintIcon('walk')}<div><strong>A / D or ← / → to move</strong><span>On a phone, drag the joystick — farther to run. A controller's left stick or d-pad steers too.</span></div></div><div class="control-row">${hintIcon('jump')}<div><strong>Space, W or ↑ to jump</strong><span>Hold for a longer leap. Land on claylings to squish them. On a controller, A or Y.</span></div></div><div class="control-row">${hintIcon('drop')}<div><strong>S or ↓ to stomp in the air</strong><span>Breaks sealed caps, drops you through thin ledges, bounces you higher off mushrooms. On a controller, B, X or a trigger.</span></div></div><div class="control-row">${hintIcon('knead')}<div><strong>Violet clay can be shaped</strong><span>Tap or drag it, hold E, or stomp it — violet clay breathes when you are beside it and stretches into ramps, stairs and bridges. R softens it back.</span></div></div><div class="control-row">${hintIcon('menu')}<div><strong>Arrows or W / A / S / D steer the menus</strong><span>Enter or Space chooses, Escape backs out. On a controller: d-pad or stick, A to choose, B to go back.</span></div></div><div class="control-row">${hintIcon('bell')}<div><strong>Ring the bell at the end of each chapter</strong><span>Orange flags save your place. Collect beads and hidden flowers.</span></div></div></div><button class="primary" data-action="${menu?'play':'resume'}">${menu?"Let's leap":'Keep going'} ${icon('arrow-right')}</button>`);
 }
-function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active,{music:saved.music,effects:saved.effects,rumble:saved.rumble,stopMotion:saved.stopMotion,characters:CHARACTERS,character:saved.character,charactersUnlocked:saved.charactersUnlocked}));}
+function settings(){openDialog(settingsMarkup(sound.enabled,fullscreen.active,{music:saved.music,effects:saved.effects,rumble:saved.rumble,stopMotion:saved.stopMotion,stopMotionTuning:saved.stopMotionTuning,characters:CHARACTERS,character:saved.character,charactersUnlocked:saved.charactersUnlocked}));}
 // The cast is not part of the game a first-time player meets, so the picker is
 // hidden until someone types ß with the settings panel open. Found once, it
 // stays: an unlock you have to rediscover on every visit is a nuisance, not a
@@ -314,6 +317,15 @@ async function chooseCharacter(id){
 // Sliders report while they are being dragged, so a player can hear the level
 // they are choosing instead of setting it blind and checking afterwards.
 $('dialog-content').addEventListener('input',e=>{
+  // A stop-motion tuner: a whole number in its own unit, onto the running world at once.
+  const tune=e.target.closest('input[type="range"][data-tune]');
+  if(tune){
+    const key=tune.dataset.tune,unit=tune.dataset.unit||'',t=saved.stopMotionTuning;
+    t[key]=Number(tune.value);saved.stopMotionTuning=normalizeTuning(t);
+    const value=saved.stopMotionTuning[key],readout=$('dialog-content').querySelector(`[data-readout="tune-${key}"]`);
+    if(readout)readout.textContent=`${value}${unit}`;tune.setAttribute('aria-valuetext',`${value}${unit}`);
+    if(world)applyStopMotionTuning(world,saved.stopMotionTuning);persist();return;
+  }
   const control=e.target.closest('input[type="range"][data-action]');if(!control)return;
   const value=Math.min(1,Math.max(0,Number(control.value)/100));
   const readout=$('dialog-content').querySelector(`[data-readout="${control.dataset.action}"]`);
@@ -385,7 +397,18 @@ $('dialog-content').addEventListener('click',e=>{
     // and the completion stage read the same flag through the world.
     saved.stopMotion=!saved.stopMotion;if(world)world.stopMotion=saved.stopMotion;persist();
     b.setAttribute('aria-checked',String(saved.stopMotion));
-    b.innerHTML=`${icon('camera')}<span>Stop motion</span><strong>${saved.stopMotion?'On':'Off'}</strong>`;icons();
+    b.innerHTML=`${icon('camera')}<span>Stop motion</span><strong>${saved.stopMotion?'On':'Off'}</strong>`;
+    // The look's tuning unfolds under the switch while it is on.
+    $('dialog-content').querySelector('[data-tuning="stopmotion"]')?.remove();
+    if(saved.stopMotion)b.insertAdjacentHTML('afterend',stopMotionTuningMarkup(saved.stopMotionTuning));
+    icons();
+  }
+  if(a==='settings-stopmotion-creatures'||a==='settings-stopmotion-hold'){
+    const key=a==='settings-stopmotion-creatures'?'creatures':'hold',t=saved.stopMotionTuning;
+    t[key]=!t[key];if(world)applyStopMotionTuning(world,t);persist();
+    b.setAttribute('aria-checked',String(t[key]));
+    b.innerHTML=key==='creatures'?`${icon('bug')}<span>Creatures too</span><strong>${t.creatures?'On':'Off'}</strong>`
+      :`${icon('grab')}<span>Hold position</span><strong>${t.hold?'On':'Off'}</strong>`;icons();
   }
   if(a==='settings-character')chooseCharacter(b.dataset.character);
   if(a==='help')help();

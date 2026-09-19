@@ -5,7 +5,7 @@ import {assetURL} from './model-assets.js';
 import {animateFlowerCelebration} from './flower-celebration.js';
 import {CHARACTERS} from './characters.js';
 import {between} from './camera.js';
-import {puppetStep,boilPuppet} from './stop-motion.js';
+import {puppetStep,boilPuppet,placePuppet} from './stop-motion.js';
 
 const clamp=THREE.MathUtils.clamp;
 const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
@@ -229,11 +229,12 @@ export function animateHero(w,game,dt,alpha=1){
   // Every eased quantity below — the turn, the gait, the crossfades, the impact
   // spring, the lean — takes this one step, so under stop motion the whole pose
   // holds and cuts together rather than the clips stepping inside a body that
-  // still glides. The root's position is set from the simulation and stays smooth.
+  // still glides. The root's position is set from the simulation and stays smooth,
+  // unless the Hold position setting asks for it to step too (placePuppet).
   const step=paused?0:puppetStep(w.puppetClock,dt),air=!p.groundId;
   // Drawn `alpha` of the way between the last two ticks (camera.js `between`),
   // as the decks are, so a rider and their deck move as one.
-  const x=between(p.prevX,p.x,alpha),y=between(p.prevY,p.y,alpha);
+  const drawn=placePuppet(w.puppetClock,c,between(p.prevX,p.x,alpha),between(p.prevY,p.y,alpha)),x=drawn.x,y=drawn.y;
   c.clock+=step;c.root.position.set(x,y,.48);c.lastVx=p.vx;
   c.turn=damp(c.turn,p.facing<0?Math.PI:0,26,step);c.root.rotation.y=c.turn;
   if(c.loaded){

@@ -4,7 +4,7 @@ import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel,clayMaterial} from './clay.js';
 import {SPORE} from './spore-rules.js';
 import {applyFlatten} from './clay-feel.js';
-import {puppetStep,heldSample,boilPuppet} from './stop-motion.js';
+import {puppetStep,heldSample,boilPuppet,placePuppet} from './stop-motion.js';
 export async function loadSpores(w,onProgress){
   if(w.sporeAsset){onProgress?.(1);return;}
   if(!w.sporeLoading)w.sporeLoading=loadModel('spore-puff.glb',onProgress).then(g=>prepareSporeAsset(w,g)).catch(e=>{w.sporeLoading=null;throw e;});
@@ -50,7 +50,8 @@ function poseCloud(v,age,forward){
   }
 }
 export function animateSpore(v,e,dt,status){
-  const step=status==='playing'?puppetStep(v.puppet,dt):0;v.clock+=step;v.root.position.set(e.x,e.y,.3);
+  const step=status==='playing'?puppetStep(v.puppet,dt,true):0;v.clock+=step;
+  const at=e.alive?placePuppet(v.puppet,v,e.x,e.y,true):{x:e.x,y:e.y};v.root.position.set(at.x,at.y,.3);
   if(!e.alive){
     v.deathTime+=step;
     // Only the body is pressed flat — straight down whatever wiggle or leap it
@@ -65,7 +66,7 @@ export function animateSpore(v,e,dt,status){
   v.root.visible=true;v.root.scale.setScalar(1);v.pose.visible=true;v.deathTime=0;
   // Under stop motion the body reads the creature as it was at the last
   // exposure; where it is, its life and the cloud it left are read live.
-  const s=heldSample(v.puppet,v,step,()=>({...e}));
+  const s=heldSample(v.puppet,v,step,()=>({...e}),true);
   const state=s.aiState||'idle',wiggle=state==='wiggle',crouch=state==='crouch',jump=state==='leap',puff=state==='puff';
   const t=s.stateTime||0,wave=wiggle?Math.sin(t*35):0;
   v.turn+=(s.dir*.95-v.turn)*(1-Math.exp(-step*12));v.pose.rotation.set(0,v.turn,wiggle?wave*.105:jump?-s.dir*.16:0);
@@ -82,7 +83,7 @@ export function animateSpore(v,e,dt,status){
     const angle=wiggle?Math.sin(t*35+i*Math.PI)*.09:jump?(i<2?-.2:.24):Math.sin(v.clock*6+i*Math.PI)*Math.min(.075,Math.abs(s.vx||0)*.1);
     f.bone.rotateX(angle);
   }
-  boilPuppet(v.root,v.puppet);
+  boilPuppet(v.root,v.puppet,true);
   const age=e.puffAge??10;v.cloud.visible=age<PUFF.life&&status!=='editing';
   if(v.cloud.visible){
     // Fixed world origin keeps the cloud behind when the enemy lunges.

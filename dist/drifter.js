@@ -3,7 +3,7 @@ import {loadModel,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel} from './clay.js';
 import {DRIFTER} from './drifter-rules.js';
 import {applyFlatten} from './clay-feel.js';
-import {puppetStep,heldSample,boilPuppet} from './stop-motion.js';
+import {puppetStep,heldSample,boilPuppet,placePuppet} from './stop-motion.js';
 
 export async function loadDrifters(w,onProgress){
   if(w.drifterAsset){onProgress?.(1);return;}
@@ -44,8 +44,8 @@ function attachDrifter(w,view){
   view.model=model;view.support=support;view.loaded=true;
 }
 export function animateDrifter(view,e,dt,status){
-  const step=status==='playing'?puppetStep(view.clock,dt):0;
-  view.root.position.set(e.x,e.y,.35);
+  const step=status==='playing'?puppetStep(view.clock,dt,true):0;
+  const at=e.alive?placePuppet(view.clock,view,e.x,e.y,true):{x:e.x,y:e.y};view.root.position.set(at.x,at.y,.35);
   if(!e.alive){
     // Pressed flat about its centre like every other creature. The root is
     // squashed, not the rolling pose, so the press is straight down whatever
@@ -66,7 +66,7 @@ export function animateDrifter(view,e,dt,status){
   if(!view.loaded)return;
   // Under stop motion the roll, the hover and the bump read the creature as it
   // was at the last exposure; where it is, and whether it lives, are live above.
-  const s=heldSample(view.clock,view,step,()=>({...e})),t=s.animationTime??s.phase??0;
+  const s=heldSample(view.clock,view,step,()=>({...e}),true),t=s.animationTime??s.phase??0;
   const direction=Math.abs(s.vx)>.08?Math.sign(s.vx):s.dir;
   view.turn+=(direction*.28-view.turn)*(1-Math.exp(-step*5.5));
   view.trail+=(direction-view.trail)*(1-Math.exp(-step*5.5));
@@ -82,5 +82,5 @@ export function animateDrifter(view,e,dt,status){
     const size=Math.sin(u*Math.PI)*(.7+i*.07)*(.7+air*.3);
     m.rotation.set(t+i,t*.7+i,0);m.scale.set(.052*size,.066*size,.048*size);
   }
-  boilPuppet(view.root,view.clock);
+  boilPuppet(view.root,view.clock,true);
 }

@@ -3,7 +3,7 @@ import {SPITTER} from './spitter-rules.js';
 import {applyFlatten} from './clay-feel.js';
 import {disposeBranch} from './streaming.js';
 import {spitterModel} from './spitter-asset.js';
-import {puppetStep,heldSample,boilPuppet} from './stop-motion.js';
+import {puppetStep,heldSample,boilPuppet,placePuppet} from './stop-motion.js';
 
 const pitchAxis=new THREE.Vector3(1,0,0),swayAxis=new THREE.Vector3(0,0,1),rotation=new THREE.Quaternion();
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
@@ -21,12 +21,12 @@ export function createSpitterView(w,e){
   animateSpitter(view,e,0,'playing');return view;
 }
 export function animateSpitter(v,e,dt,status){
-  const step=status==='playing'?puppetStep(v.clock,dt):0;
-  v.root.position.set(e.x,e.y,.12);
+  const step=status==='playing'?puppetStep(v.clock,dt,true):0;
+  const at=e.alive?placePuppet(v.clock,v,e.x,e.y,true):{x:e.x,y:e.y};v.root.position.set(at.x,at.y,.12);
   if(!e.alive){v.deathTime+=step;applyFlatten(v.root,v.deathTime,{reducedMotion:v.reducedMotion});return;}
   // Under stop motion the pose reads the creature as it was at the last
   // exposure; where it stands, and whether it lives, are read live above.
-  const s=heldSample(v.clock,v,step,()=>({...e}));
+  const s=heldSample(v.clock,v,step,()=>({...e}),true);
   v.deathTime=0;v.root.visible=true;v.root.scale.setScalar(1);v.body.rotation.y=s.dir*SPITTER.turn;
   const travel=Math.abs(e.x-v.lastX),speed=step>0&&travel<.4?travel/step:0;
   if(step){v.lastX=e.x;v.time+=step;v.walkWeight+=((speed>.03&&['watch','patrol'].includes(s.aiState)?1:0)-v.walkWeight)*(1-Math.exp(-step*12));v.walkWeight=Math.min(1,v.walkWeight);}
@@ -57,7 +57,7 @@ export function animateSpitter(v,e,dt,status){
     v.head.scale.multiplyScalar(1+Math.max(0,pose)*.045);
   }
   if(v.tail&&!v.reducedMotion)v.tail.quaternion.multiply(rotation.setFromAxisAngle(swayAxis,Math.sin(v.time*1.3+e.id)*.025*(1-charge)));
-  boilPuppet(v.root,v.clock);
+  boilPuppet(v.root,v.clock,true);
 }
 export function syncShots(w,game){
   w.shotViews??=new Map();const ids=new Set();

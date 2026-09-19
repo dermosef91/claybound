@@ -2,7 +2,7 @@ import * as THREE from './lib/three.module.js';
 import {clone} from './lib/SkeletonUtils.js';
 import {loadModel,loadData,retainModel,clayMaterials} from './model-assets.js';
 import {clayModel} from './clay.js';
-import {puppetStep,boilPuppet} from './stop-motion.js';
+import {puppetStep,boilPuppet,placePuppet} from './stop-motion.js';
 import {createBatView,animateBat} from './bats.js';
 import {createSporeView,animateSpore} from './spore-puff.js';
 import {createDrifterView,animateDrifter} from './drifter.js';
@@ -58,13 +58,13 @@ export function animateEnemy(view,e,dt,status){
   if(view.kind==='bat'){animateBat(view,e,dt,status);return;}
   if(view.kind==='drifter'){animateDrifter(view,e,dt,status);return;}
   if(DREAM_KINDS.includes(view.kind)){animateDreamEnemy(view,e,dt,status);return;}
-  const step=status==='paused'||status==='complete'?0:puppetStep(view.clock,dt);
-  view.root.position.set(e.x,e.y+.065,.35);
+  const step=status==='paused'||status==='complete'?0:puppetStep(view.clock,dt,true);
+  const at=e.alive?placePuppet(view.clock,view,e.x,e.y+.065,true):{x:e.x,y:e.y+.065};view.root.position.set(at.x,at.y,.35);
   if(!view.loaded)return;
   if(e.alive){
     view.deathTime=0;view.root.visible=true;view.root.scale.setScalar(1);
     const angle=e.dir>0?0:Math.PI;view.turn+=(angle-view.turn)*(1-Math.exp(-22*step));view.root.rotation.y=view.turn;
-    view.action.setEffectiveTimeScale(e.speed/1.65);view.mixer.update(step);boilPuppet(view.root,view.clock);
+    view.action.setEffectiveTimeScale(e.speed/1.65);view.mixer.update(step);boilPuppet(view.root,view.clock,true);
   }else{
     // Pressed flat on the deck; clay-shatter.js breaks the disc from world.render.
     view.deathTime+=step;applyFlatten(view.root,view.deathTime,{reducedMotion:view.reducedMotion});

@@ -85,6 +85,8 @@ body.is-menu .toast {z-index:25;max-width:90vw;white-space:normal;text-align:cen
 .title-setting strong {font-size:14px;font-weight:500;color:#86512e;}
 .title-setting:hover {background:#f2dfbe;}
 .title-setting[aria-checked="true"] strong {color:#386750;}
+/* The stop-motion tuning, indented under its switch while that is on. */
+.title-tuning {display:grid;gap:12px;margin:-4px 0 12px 16px;}
 
 /* Who you play as wears the same clay card as the switches, but only one can be
    worn at a time, so each option is a radio with its own name and a check. */
