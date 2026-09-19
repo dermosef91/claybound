@@ -378,9 +378,13 @@ function cloudField(w,end){
 const SKY_STOPS=[[30,0x71a8e3],[5,0x75ade5],[1.5,0x7eb4e7],[-1.5,0x8bbde9],[-5,0x98c6ec],[-30,0xa0caed]];
 
 export function buildCanyonBackdrop(w){
-  const sky=group(w.backRoot);sky.name='Canyon sky';w.parallax.push({group:sky,factor:0,heightFollow:1});
+  // `sky` keeps the gradient quad out of the depth pass's probe, which needs
+  // to see clay; `sharp` keeps the nearest rank out of its blur — it stands
+  // just behind the route and blurring it would soften the play plane's edge.
+  const sky=group(w.backRoot);sky.name='Canyon sky';sky.userData.sky=true;w.parallax.push({group:sky,factor:0,heightFollow:1});
   skyGradient(w,sky,SKY_STOPS,{name:'Canyon sky gradient'});
-  const far=group(w.backRoot),middle=group(w.backRoot),low=group(w.backRoot);
+  const far=group(w.backRoot),middle=group(w.backRoot),low=group(w.backRoot);low.userData.sharp=true;
+  far.name='Canyon far buttes';middle.name='Canyon middle buttes';low.name='Canyon near buttes';
   w.parallax.push({group:far,factor:.17,heightFollow:1},{group:middle,factor:.36,heightFollow:1},{group:low,factor:.62,heightFollow:1});
   for(let i=-2;i<10;i++){
     const x=i*16;

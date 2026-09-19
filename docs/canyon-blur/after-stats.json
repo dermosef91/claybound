@@ -1,0 +1,91 @@
+{
+  "last-well": {
+    "calls": 395,
+    "triangles": 403568,
+    "clouds": 15,
+    "cameraX": 183.37,
+    "cameraY": 18.1,
+    "fog": "#9ea8d2",
+    "fogNear": 36,
+    "fogFar": 110,
+    "depthPass": {
+      "verdict": {
+        "desert": true
+      },
+      "probe": {
+        "lit": 3406,
+        "size": [
+          836,
+          471
+        ]
+      }
+    }
+  },
+  "start": {
+    "calls": 316,
+    "triangles": 364962,
+    "clouds": 15,
+    "cameraX": 3.77,
+    "cameraY": 13.7,
+    "fog": "#9ea8d2",
+    "fogNear": 36,
+    "fogFar": 110,
+    "depthPass": {
+      "verdict": {
+        "desert": true
+      },
+      "probe": {
+        "lit": 3406,
+        "size": [
+          836,
+          471
+        ]
+      }
+    }
+  },
+  "arch-drop": {
+    "calls": 444,
+    "triangles": 830580,
+    "clouds": 15,
+    "cameraX": 231.12,
+    "cameraY": 27.2,
+    "fog": "#9ea8d2",
+    "fogNear": 36,
+    "fogFar": 110,
+    "depthPass": {
+      "verdict": {
+        "desert": true
+      },
+      "probe": {
+        "lit": 3406,
+        "size": [
+          836,
+          471
+        ]
+      }
+    }
+  },
+  "summit": {
+    "calls": 282,
+    "triangles": 398542,
+    "clouds": 15,
+    "cameraX": 332.37,
+    "cameraY": 35.3,
+    "fog": "#9ea8d2",
+    "fogNear": 36,
+    "fogFar": 110,
+    "depthPass": {
+      "verdict": {
+        "desert": true
+      },
+      "probe": {
+        "lit": 3406,
+        "size": [
+          836,
+          471
+        ]
+      }
+    }
+  },
+  "errors": []
+}
