@@ -44,7 +44,7 @@ function hideLoading(fade=false){
 }
 let draftStorage;try{draftStorage=localStorage;}catch{}
 const drafts=new DraftLibrary(LEVELS,draftStorage);
-let saved={last:0,best:{},runs:{},customBest:{},customRuns:{},sound:true,music:Sound.DEFAULT_MUSIC,effects:Sound.DEFAULT_EFFECTS,rumble:true,stopMotion:false,clayDone:[]};
+let saved={last:0,best:{},runs:{},customBest:{},customRuns:{},sound:true,music:Sound.DEFAULT_MUSIC,effects:Sound.DEFAULT_EFFECTS,rumble:true,stopMotion:true,stopMotionChosen:false,clayDone:[]};
 try{const s=JSON.parse(localStorage.getItem('claybound-v1'));if(s&&typeof s==='object')saved={...saved,...s,best:s.best||{}};}catch{}
 const persist=()=>{try{localStorage.setItem('claybound-v1',JSON.stringify(saved));}catch{}};
 saved.runs??={};
@@ -56,8 +56,11 @@ const runStore=()=>game.level.custom?saved.customRuns:saved.runs;
 const saveJourney=()=>{if(game&&!game.level.playground&&!editor?.active&&!editor?.testing&&game.status!=='complete'&&game.checkpointId!=='start'){runStore()[game.index]=game.snapshot();persist();}};
 const level=(value,fallback)=>Number.isFinite(Number(value))?Math.min(1,Math.max(0,Number(value))):fallback;
 saved.music=level(saved.music,Sound.DEFAULT_MUSIC);saved.effects=level(saved.effects,Sound.DEFAULT_EFFECTS);saved.rumble=saved.rumble!==false;
-// Off unless chosen: the stepped look is offered, not imposed, while it is judged.
-saved.stopMotion=saved.stopMotion===true;
+// On unless the player has turned it off. Every save carried a false written by
+// the earlier default, so the switch records that it was actually used, and a
+// save it never touched takes the default — which is how the look reached the
+// players who had never opened Settings when it went on by default.
+saved.stopMotion=saved.stopMotionChosen===true?saved.stopMotion===true:true;
 // The look's numbers, clamped to their sliders' ranges; a missing one is the default.
 saved.stopMotionTuning=normalizeTuning(saved.stopMotionTuning);
 // A character that has since been withdrawn falls back to the original rather
@@ -399,7 +402,7 @@ $('dialog-content').addEventListener('click',e=>{
   if(a==='settings-stopmotion'){
     // Takes effect on the running world at its next frame; the title's hero
     // and the completion stage read the same flag through the world.
-    saved.stopMotion=!saved.stopMotion;if(world)world.stopMotion=saved.stopMotion;persist();
+    saved.stopMotion=!saved.stopMotion;saved.stopMotionChosen=true;if(world)world.stopMotion=saved.stopMotion;persist();
     b.setAttribute('aria-checked',String(saved.stopMotion));
     b.innerHTML=`${icon('camera')}<span>Stop motion</span><strong>${saved.stopMotion?'On':'Off'}</strong>`;
     // The look's tuning unfolds under the switch while it is on.

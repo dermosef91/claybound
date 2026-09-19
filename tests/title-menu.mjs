@@ -43,8 +43,8 @@ for(const stopMotion of [false,true]){
   assert(row.includes(stopMotion?'<strong>On</strong>':'<strong>Off</strong>'));
   assert(row.includes('data-lucide="camera"'),'with a glyph from the committed subset');
 }
-assert(settingsMarkup(true,false).includes('data-action="settings-stopmotion" role="switch" aria-checked="false"'),'off by default');
-console.log('PASS settings stop motion: a switch beside rumble, off until chosen, showing the saved state');
+assert(settingsMarkup(true,false).includes('data-action="settings-stopmotion" role="switch" aria-checked="true"'),'on by default');
+console.log('PASS settings stop motion: a switch beside rumble, on until turned off, showing the saved state');
 
 // The look's tuning unfolds under the switch only while it is on, every number
 // in its own unit at its saved value, the two switches showing their state.
