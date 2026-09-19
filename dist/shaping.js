@@ -5,9 +5,16 @@
 // one. One chapter does: the canyon's Sandwright's Pocket is a `form` mass,
 // the one rule that has left the lab.
 import {giveDepth,resetGive} from './clay-give.js';
-import {initializeRule,applyRule,stepAmounts,partAmount,perPart,stompRule,standingOn,handRule,nudgeRule,resetFormStation} from './clay-rules.js';
+import {initializeRule,applyRule,stepAmounts,partAmount,perPart,stompRule,standingOn,handRule,nudgeRule,resetFormStation,fixWorkable,leanOn} from './clay-rules.js';
 import {FORM,formHeight} from './clay-form.js';
 export const clampShape=n=>Math.max(0,Math.min(1,n));
+// How fast a walker leaning on hand-worked clay pulls it towards its pose, as
+// a share a second at the stick's full throw. Walking into the clay counts as
+// the swipe towards it, so it is sized like one: a swipe takes the clay most
+// of the way in one stroke, and a lean of well under a second does the same —
+// the clay itself only ever follows at the chase below, so what is seen is
+// the clay going as fast as it goes, not a pose snapping.
+export const LEAN=1.5;
 // Working any violet clay is heard. A station that has been worked this tick —
 // by a hand, a key, a tap, a boot or a stomp, whatever its rule — raises a
 // `knead` event, and no oftener than this while the work goes on, so a long
@@ -93,6 +100,11 @@ export function updateShaping(game,dt,input){
         const before=station.target;
         if(input.shapeHeld)station.target=clampShape(station.target+dt*.65);
         if(input.shapeId===station.id&&Number.isFinite(input.shapeAmount))station.target=clampShape(input.shapeAmount);
+        // A walker leaning on the clay the way it is pulled is swiping it that
+        // way: the simulation leaves the lean on the player only where the
+        // walk and the pull agree (`leanStation`), so here it is simply taken.
+        const lean=leanOn(game,station);
+        if(lean)station.target=clampShape(station.target+dt*LEAN*lean.push);
         if(station.target!==before)station.worked=true;
       }
     }
@@ -195,6 +207,45 @@ export function formWallAhead(s,p,prevX,prevY,radius){
   // the layer's depth added back at both ends.
   const give=s.give?x=>giveDepth(s.give,x-s.x):()=>0;
   return claySurface(s,lead)+give(lead)-(prevY+give(prevX))>FORM.step;
+}
+// Where a step that has run into a wall stops: the furthest the walker may go
+// towards where they meant to, before the rise ahead becomes a wall — the foot
+// of the wall itself, not a whole step short of it. So a walker leaning on
+// clay that gives ahead of them follows it flush, the way a pusher follows a
+// block, rather than by stops and starts as the wall gets a step away.
+export function formWallStop(s,p,prevX,prevY,radius){
+  let lo=prevX,hi=p.x;
+  for(let k=0;k<10;k++){const mid=(lo+hi)/2;if(formWallAhead(s,{x:mid},prevX,prevY,radius))hi=mid;else lo=mid;}
+  return lo;
+}
+// Whether a grounded walker at p pressing `dir`, with `reach` of walk still to
+// come, has this clay standing in their way: a wall of the formable mass
+// ahead of their feet, or the side of a posed piece their body would run
+// into. `radius` and `height` are the walker's.
+export function clayInWay(s,p,dir,reach,radius,height){
+  if(s.active===false||s.broken)return false;
+  if(s.form)return formWallAhead(s,{x:p.x+dir*reach},p.x,p.y,radius);
+  if(!s.shape)return false;
+  const x=p.x+dir*reach,bounds=clayWallBounds(s,p.y+height);
+  return x+radius>bounds.left&&x-radius<bounds.right&&p.y<claySurface(s,x)-.12&&p.y+height>s.y-s.h;
+}
+// The way a station's clay is pulled, as a sign along x — the one direction a
+// walk can lean in. Clay pulled up, down or outward is pulled no way a walk
+// goes: leaning on the side of a widening landing presses it in, which is
+// the pull undone, not made.
+const leanWay=station=>station.gesture==='right'?1:station.gesture==='left'?-1:0;
+// The station whose clay a walker pressing `dir` against platform `s` is
+// leaning on, or null where the lean does nothing: clay the level works on
+// its own, a station they are not at, a bench whose whole idea is weight or a
+// plug not yet seated take no lean; the formable mass takes one from either
+// side, and hand-worked clay only the way it is pulled — and only while there
+// is pull left in it, so a walk into a finished piece is a walk into a wall.
+export function leanStation(game,s,dir){
+  const station=(game.level.shaping||[]).find(t=>t.parts.includes(s.id));
+  if(!station||station.auto||nearbyStation(game)!==station)return null;
+  if(station.rule==='form')return fixWorkable(station)?station:null;
+  if(station.rule)return null;
+  return leanWay(station)===dir&&station.target<1?station:null;
 }
 // Whether the feet at x are on a face too steep to stand on: the clay climbs
 // past `walk` under both feet, the same way. The foot of a wall and the bottom
