@@ -22,17 +22,33 @@ function roundedGrid(radius){
 // than the lilac that ended up on screen, which read washed out against the sky.
 export const MAGIC_CLAY=0x7a55b5;
 // Bouncy clay — a formable mass whose station throws a stomper back up
-// (clay-rules.js) — is the same material in pink: a raspberry a step darker
-// than the river's hot pink, so the prints and the glitter still read, and
-// unmistakably not the violet, so the throw is never expected of clay that
-// only takes the crater. The chapters meet it later; the lab has it now.
-export const BOUNCY_CLAY=0xd9609b;
+// (clay-rules.js) — is a different substance, not the violet in pink: bubble
+// gum, hard and lacquered, so the throw reads off the surface before it is
+// ever tried and is never expected of clay that only takes the crater. The
+// colour is the gum's hot pink, a band darker and redder than the frame it is
+// wanted at, since the sun and the tone mapping lift and thin whatever they are
+// given. The chapters meet it later; the lab has it now.
+export const BOUNCY_CLAY=0xee6299;
 // The two tints the skin needs beyond the colour itself: the turned-away tone
 // the light bouncing inside the clay gives it, and the glow that scatters back
-// out at the rims. The violet pair is the one the skin was tuned with.
+// out at the rims. The violet pair is the one the skin was tuned with; the
+// gum's keeps its shadow a saturated raspberry, and its rim a pale pink-white.
 const VIOLET_TINTS=Object.freeze({deep:new THREE.Vector3(.62,.5,.95),rim:new THREE.Vector3(.32,.16,.8)});
-const PINK_TINTS=Object.freeze({deep:new THREE.Vector3(.96,.5,.74),rim:new THREE.Vector3(.8,.16,.44)});
-const BOUNCY_BLOCK=Object.freeze({name:'magicBlockBouncy',hex:BOUNCY_CLAY,tints:PINK_TINTS});
+const PINK_TINTS=Object.freeze({deep:new THREE.Vector3(.95,.48,.68),rim:new THREE.Vector3(.98,.6,.78)});
+// What makes the gum: a satin body under a thin hard lacquer (a physical
+// material's clearcoat, the bell's gold precedent), next to no kneaded grain,
+// and the folds a pulled bar keeps, as crest height in world units.
+const GUM=Object.freeze({roughness:.3,coat:.24,depth:.018,fold:.27});
+const BOUNCY_BLOCK=Object.freeze({name:'magicBlockBouncy',hex:BOUNCY_CLAY,tints:PINK_TINTS,gum:true});
+const WHITE=new THREE.Color(0xffffff);
+// The wet glaze the gum shows where the clay would show the sky: a pale
+// version of its own colour, standing in for the environment reflection the
+// scene has no map for. Derived from the colour so a retint carries it along.
+export function gumSheen(color,target=new THREE.Vector3()){
+  const c=color.clone(),peak=Math.max(c.r,c.g,c.b,1e-4);
+  c.multiplyScalar(1/peak).lerp(WHITE,.68).multiplyScalar(.96);
+  return target.set(c.r,c.g,c.b);
+}
 function magicMaterials(w){
   if(w.mat.magicClay)return;
   const m=new THREE.MeshStandardMaterial({color:MAGIC_CLAY,roughness:.55,metalness:0,emissive:MAGIC_CLAY,emissiveIntensity:.04});
@@ -173,6 +189,12 @@ function thumbRelief(list,x,y){
   }
   return r;
 }
+// The front of a bar of gum: no press holds in something this hard, only the
+// slow swells a pull leaves, bowing the face and rippling the rounded edge just
+// under the walking surface. Smooth and low, so the skin's folds read over it.
+function gumSwell(x,y){
+  return .1*Math.sin(x*.55+y*.9+1.3)+.07*Math.sin(x*1.15-y*.6+.4)+.05*Math.sin(x*.32+2.1)*Math.cos(y*1.7);
+}
 
 function createBlockView(w,s,root,{form=false}={}){
   // The mass is built to the height of its clump and stretched from there; a
@@ -224,12 +246,14 @@ function createBlockView(w,s,root,{form=false}={}){
   face(NY,NZ,(a,b)=>vertex(NX-1,a,b),[1,0,0]);
   // Hand-pressed relief, pushed along each rest normal. It fades out towards the
   // top so the rounded upper edge is never lifted above the walking surface.
-  const list=thumbs(s,H),count=rest.length/3,push=new Float32Array(count*3),down=new Float32Array(count);
+  // Gum takes no thumb: hard, it keeps only the broad swells of the bar it was
+  // pulled into, and the folds themselves are drawn by its skin.
+  const list=s.bouncy?null:thumbs(s,H),count=rest.length/3,push=new Float32Array(count*3),down=new Float32Array(count);
   for(let i=0;i<count;i++){
     const x=rest[i*3],y=rest[i*3+1],z=rest[i*3+2],nz=normal[i*3+2];
     const band=Math.max(0,Math.min(1,(-y-.15)/.65)),facing=Math.abs(nz)>.2?Math.abs(nz):.35;
     // The front carries the thumbs; the ends and the back are only lumpy.
-    const amount=band*facing*(nz>.2?thumbRelief(list,x,y):Math.sin(x*1.3+y*.7+z)*.05);
+    const amount=band*facing*(nz>.2?(list?thumbRelief(list,x,y):gumSwell(x,y)):Math.sin(x*1.3+y*.7+z)*.05);
     // A soft belly: the body bows out a little below the top and tucks in at
     // the foot, the way a heavy lump settles.
     const belly=band*Math.sin(Math.min(1,-y/H)*Math.PI)*.12;
@@ -490,26 +514,93 @@ vec3 magicGlitter(vec3 p, vec3 n, float pixel) {
 }
 `;
 
+// The gum's own skin, over the magic skin's hashes and noise: the folds a
+// pulled bar keeps, as a height for the relief's bump and a crest signal for
+// the shading. A few broad ridges run about 25° off the bar's length, bent and
+// pinched by a slow warp so no two read alike and gathered in places by a
+// coarser field so stretches of the face lie smooth between them; along them
+// run the fine streaks a pull leaves, faint enough to show only in a
+// highlight. Heights are world units: at four or five ridges across the slab a
+// crest of `gumHeight` 0.16 tilts the surface about seventeen degrees.
+const GUM_SKIN=`
+uniform vec3 magicSheen;
+uniform float gumHeight;
+vec2 gumFold(vec2 p) {
+  vec2 warp = vec2(magicNoise(p * vec2(0.11, 0.2) + 3.7), magicNoise(p * vec2(0.14, 0.26) + 11.3)) - 0.5;
+  vec2 q = p + warp * vec2(3.4, 1.7);
+  float c = cos(0.44), s = sin(0.44);
+  float f = q.y * c - q.x * s, along = q.x * c + q.y * s;
+  float wave = sin(f * 2.4 + 0.9 * sin(along * 0.31 + 2.0));
+  float ridge = wave - 0.15 * wave * wave;
+  float amp = 0.55 + 0.45 * smoothstep(0.25, 0.75, magicNoise(vec2(along * 0.26, f * 0.6) + 5.1));
+  float streak = 0.002 * sin(f * 24.0 + 6.2832 * magicNoise(vec2(along * 0.6, f * 3.0)));
+  return vec2(gumHeight * amp * ridge + streak, ridge * amp);
+}
+// The folds bend the normal by their own slope, taken in the clay's coordinates
+// rather than off the screen. The relief's bump reads its height's screen
+// derivative, which jumps wherever neighbouring columns stand at different
+// stretches — nothing at the relief's depth, but at a fold's every column of a
+// lump pulled into a hill came out as a band. The slope is mapped through the
+// face's own axes as if unstretched: a shear too small to see, and continuous.
+vec3 gumBend(vec3 n, vec3 clayN, vec2 uv, float fade) {
+  const float e = 0.02;
+  vec2 slope = vec2(gumFold(uv + vec2(e, 0.0)).x - gumFold(uv - vec2(e, 0.0)).x, gumFold(uv + vec2(0.0, e)).x - gumFold(uv - vec2(0.0, e)).x) * (fade / (2.0 * e));
+  // The plane magicPlane reads for this facing, and its axes: xy, xz or zy.
+  vec3 a = abs(clayN);
+  bool z = a.z >= max(a.x, a.y), y = !z && a.y >= a.x;
+  vec3 tu = z || y ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 0.0, 1.0), tv = y ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+  return normalize(n - mat3(viewMatrix) * (tu * slope.x + tv * slope.y));
+}
+`;
+
+// A shader anchor that has moved (a three.js bump, a change to the clay hook)
+// must not leave a silently matte or printless skin: report it where the
+// review capture collects errors, and keep drawing.
+function swap(source,anchor,text){
+  if(!source.includes(anchor)){console.error('magic skin: shader anchor missing: '+anchor.slice(0,48));return source;}
+  return source.replace(anchor,text);
+}
+
 // Layers the magic skin over a material the clay relief is already installed
 // on. `source` names the clay's own coordinates and `height` how far below its
 // top a point sits, both as vertex-shader expressions; `tints` are the deep and
-// rim tones (violet unless a bouncy pink asks otherwise), carried as uniforms
-// so the two colours share one program.
-function magicSkin(m,source,height,declare='',tints=VIOLET_TINTS){
+// rim tones (violet unless a pink asks otherwise), carried as uniforms so
+// colours share one program. `gum` forks that program for bouncy clay: no
+// prints, no glitter and next to no grain, the relief's matte clamp opened so
+// the lacquer can shine, the folds bumped in, the clearcoat following them, and
+// a pale sheen where the sky would reflect.
+function magicSkin(m,source,height,declare='',tints=VIOLET_TINTS,{gum=false}={}){
   if(!m.userData.clay)return m;
   const compile=m.onBeforeCompile,key=m.customProgramCacheKey;
+  // The gum's uniforms live on the material, so a retint or a retune reaches
+  // the drawn frame without a recompile.
+  if(gum)m.userData.magic={sheen:{value:gumSheen(m.color)},fold:{value:GUM.fold}};
   m.onBeforeCompile=(shader,renderer)=>{
     compile.call(m,shader,renderer);
     shader.uniforms.magicDeep={value:tints.deep};
     shader.uniforms.magicRim={value:tints.rim};
+    if(gum){shader.uniforms.magicSheen=m.userData.magic.sheen;shader.uniforms.gumHeight=m.userData.magic.fold;}
     shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
 ${declare}
 varying vec3 vMagicPosition;
 varying float vMagicHeight;`).replace('#include <project_vertex>',`vMagicPosition = ${source};
 vMagicHeight = ${height};
 #include <project_vertex>`);
-    shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vMagicPosition;\nvarying float vMagicHeight;\nuniform vec3 magicDeep;\nuniform vec3 magicRim;'+MAGIC_SKIN)
-      .replace('diffuseColor.rgb *= mix(1.0, clayData.b / 0.94, 0.55);',`diffuseColor.rgb *= mix(1.0, clayData.b / 0.94, 0.55);
+    let f=swap(shader.fragmentShader,'#include <common>','#include <common>\nvarying vec3 vMagicPosition;\nvarying float vMagicHeight;\nuniform vec3 magicDeep;\nuniform vec3 magicRim;'+MAGIC_SKIN+(gum?GUM_SKIN:''));
+    f=swap(f,'diffuseColor.rgb *= mix(1.0, clayData.b / 0.94, 0.55);',gum?`diffuseColor.rgb *= mix(1.0, clayData.b / 0.94, 0.2);
+vec2 magicUV = magicPlane(vMagicPosition, vClayNormal);
+// The folds fade where the triplanar blend mixes faces — a fold's slope read
+// on one plane and its neighbour's on another would meet in a line down every
+// rounded edge — and are halved on the top, which is walked on and seen
+// nearly edge-on. The crest signal shades; the slope bends the normal below.
+vec3 gumN = normalize(vClayNormal), gumW = pow(abs(gumN), vec3(4.0));
+float gumSingle = max(gumW.x, max(gumW.y, gumW.z)) / max(dot(gumW, vec3(1.0)), 0.0001);
+float gumFade = smoothstep(0.55, 0.9, gumSingle) * (1.0 - 0.5 * smoothstep(0.4, 0.9, gumN.y)) * vClayRelief;
+vec2 gum = gumFold(magicUV);
+// Crests a touch lighter than valleys, and the foot of a tall piece a little
+// darker than its top: gum is dense, so less so than the clay.
+diffuseColor.rgb *= mix(0.94, 1.04, 0.5 + 0.5 * gum.y);
+diffuseColor.rgb *= mix(0.8, 1.0, smoothstep(-7.5, -1.0, vMagicHeight));`:`diffuseColor.rgb *= mix(1.0, clayData.b / 0.94, 0.55);
 vec2 magicUV = magicPlane(vMagicPosition, vClayNormal);
 float magicPixel = max(length(dFdx(magicUV)), length(dFdy(magicUV)));
 // Prints on a tenth of the skin, fading where ridges would be finer than about
@@ -518,9 +609,37 @@ float magicMask = magicSpots(magicUV + vec2(1.0, -2.0), 0.45, 0.71) * (1.0 - smo
 if (magicMask > 0.0) magicPrint = magicPrints(magicUV, 1.15);
 diffuseColor.rgb *= 1.0 - 0.06 * magicMask * smoothstep(0.1, 0.9, -magicPrint);
 // The foot of a tall piece sits darker than its top.
-diffuseColor.rgb *= mix(0.66, 1.0, smoothstep(-7.5, -1.0, vMagicHeight));`)
-      .replace('clayData.r * bumpScale, faceDirection','clayData.r * bumpScale + magicPrint * magicMask * 0.0019, faceDirection')
-      .replace('#include <lights_fragment_end>',`#include <lights_fragment_end>
+diffuseColor.rgb *= mix(0.66, 1.0, smoothstep(-7.5, -1.0, vMagicHeight));`);
+    f=gum
+      ?swap(f,'normal = clayPerturbNormal(-vViewPosition, normal, clayData.r * bumpScale, faceDirection);','normal = gumBend(clayPerturbNormal(-vViewPosition, normal, clayData.r * bumpScale, faceDirection), vClayNormal, magicUV, gumFade);')
+      :swap(f,'clayData.r * bumpScale, faceDirection','clayData.r * bumpScale + magicPrint * magicMask * 0.0019, faceDirection');
+    if(gum){
+      // The relief clamps every clay matte; gum opens that to a satin, the
+      // crests a shade glossier than the valleys. Then the lacquer: three draws
+      // the clearcoat over the unbumped normal unless told otherwise, and a coat
+      // that ignored the folds would lie over them as a flat sheet.
+      f=swap(f,'roughnessFactor = clamp(roughnessFactor * clayData.g, 0.52, 0.98);','roughnessFactor = clamp(roughnessFactor * mix(1.0, clayData.g, 0.35) - 0.05 * gum.y, 0.26, 0.5);');
+      f=swap(f,'#include <clearcoat_normal_fragment_begin>','#include <clearcoat_normal_fragment_begin>\n#ifdef USE_CLEARCOAT\nclearcoatNormal = normal;\n#endif');
+    }
+    f=swap(f,'#include <lights_fragment_end>',gum?`#include <lights_fragment_end>
+// Light bouncing inside keeps the turned-away sides a deep, saturated tone of
+// the gum's own colour — and gum lets more of it through than clay does, so a
+// fold's far flank is lit from within rather than dropping to the sky's grey:
+// the reference's shadows stand at about two thirds of its mid tone, where the
+// sun alone leaves them at a third. The sheen is the sky the lacquer would reflect, given
+// to the coat as what it reflects: a coat takes light away by its Fresnel
+// term at the rims, and with no environment map has nothing to give back
+// there, so anything added under it — emissive included — goes dark at every
+// edge. Given as the coat's own reflection it arrives whole, by the same
+// Fresnel: a glaze over the face, a pale glow at the rims, more on the top.
+vec3 magicUp = transformNormalByInverseViewMatrix(geometryNormal, viewMatrix);
+reflectedLight.indirectDiffuse *= mix(magicDeep, vec3(1.0), smoothstep(-0.8, 0.6, magicUp.y));
+reflectedLight.indirectDiffuse += BRDF_Lambert(diffuseColor.rgb) * magicDeep * 0.55;
+#ifdef USE_CLEARCOAT
+float gumView = saturate(dot(geometryClearcoatNormal, geometryViewDir));
+vec3 gumGlaze = F_Schlick(material.clearcoatF0, material.clearcoatF90, gumView) + 0.3 * pow(1.0 - gumView, 2.0);
+clearcoatSpecularIndirect += magicSheen * gumGlaze * (0.7 + 0.3 * smoothstep(-0.2, 0.8, magicUp.y));
+#endif`:`#include <lights_fragment_end>
 // Light bouncing inside the clay keeps its turned-away sides a deep, saturated
 // tone of its own colour rather than the grey the sky's ground colour would
 // give them, and a little of it scatters back out at the rims.
@@ -532,8 +651,9 @@ totalEmissiveRadiance += magicRim * pow(1.0 - saturate(dot(geometryNormal, geome
 // half as bright on screen.
 float magicSparkle = magicSpots(magicUV + vec2(32.7, 20.9), 0.35, 0.59);
 if (magicSparkle > 0.0) totalEmissiveRadiance += magicGlitter(vMagicPosition, normalize(vClayNormal), magicPixel) * magicSparkle * 0.45;`);
+    shader.fragmentShader=f;
   };
-  m.customProgramCacheKey=()=>key.call(m)+'-magic';
+  m.customProgramCacheKey=()=>key.call(m)+(gum?'-gum-v1':'-magic');
   return m;
 }
 
@@ -547,13 +667,17 @@ export const BLOCK_SQUASH=2;
 
 // The shared magic clay, taught to read its relief from the rest shape. Each
 // colour lives under its own slot in w.mat, so the streaming disposer and the
-// level rebuild treat it as shared, the way the river's streams are.
-function blockMaterial(w,{name='magicBlock',hex=MAGIC_CLAY,tints=VIOLET_TINTS}={}){
+// level rebuild treat it as shared, the way the river's streams are. Gum is a
+// physical material for its clearcoat — a thin hard lacquer with its own
+// highlight over the satin body — pressed with next to no grain.
+function blockMaterial(w,{name='magicBlock',hex=MAGIC_CLAY,tints=VIOLET_TINTS,gum=false}={}){
   if(w.mat[name])return w.mat[name];
   // A fresh material rather than a clone: a clone shares the relief's settings
   // but not its shader hook, and would come out perfectly smooth.
-  const m=new THREE.MeshStandardMaterial({color:hex,roughness:.55,metalness:0,emissive:hex,emissiveIntensity:.04});
-  clayMaterial(w,m,.045);
+  const m=gum
+    ?new THREE.MeshPhysicalMaterial({color:hex,roughness:GUM.roughness,metalness:0,emissive:hex,emissiveIntensity:.04,clearcoat:1,clearcoatRoughness:GUM.coat})
+    :new THREE.MeshStandardMaterial({color:hex,roughness:.55,metalness:0,emissive:hex,emissiveIntensity:.04});
+  clayMaterial(w,m,gum?GUM.depth:.045);
   const cap=BLOCK_SQUASH.toFixed(1),compile=m.onBeforeCompile,key=m.customProgramCacheKey;
   m.onBeforeCompile=(shader,renderer)=>{
     compile.call(m,shader,renderer);
@@ -587,7 +711,7 @@ vClayPosition = clayFlat * claySize`)
   };
   m.customProgramCacheKey=()=>key.call(m)+'-rest';
   // The block's top is its rest shape's zero, so its rest height is the depth.
-  return w.mat[name]=magicSkin(m,'clayFlat','clayFlat.y','',tints);
+  return w.mat[name]=magicSkin(m,'clayFlat','clayFlat.y','',tints,{gum});
 }
 
 // Rebuilds the buffer only when the heightfield has actually moved, and

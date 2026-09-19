@@ -238,11 +238,12 @@ console.log('PASS all clay poses: finite geometry/normals, stable buffers, colli
   assert(vertex.includes('vClayPosition = clayFlat * claySize + clayOffset;'),'the relief reads the flattened rest shape');
   assert(vertex.includes('vClayNormal = normalize(normal * vec3(1.0, clayFit, 1.0) / max(claySize, vec3(0.0001)));'),
     'and the blend normal is carried into the same shape, or a rounded edge turns over in a pixel while its coordinates are still a third of a unit from the corner');
-  assert(vertex.indexOf('vec3 clayFlat =')<vertex.indexOf('vMagicPosition = clayFlat;'),'prints and glitter follow the clay, declared before they read it');
+  assert(vertex.indexOf('vec3 clayFlat =')<vertex.indexOf('vMagicPosition = clayFlat;'),'the skin\'s folds follow the clay, declared before they read it');
   assert(fragment.includes('clayData.r = (clayData.r - 0.5) * vClayRelief + 0.5;'),'what squashing is left is taken back out of the relief, about the field middle');
   assert(fragment.indexOf('vec3 clayData = claySurface(')<fragment.indexOf('clayData.r = (clayData.r - 0.5)'),'after it is sampled');
   assert(fragment.indexOf('clayData.r = (clayData.r - 0.5)')<fragment.indexOf('clayData.r * bumpScale'),'and before it is read as a height');
-  assert(fragment.includes('clayData.r * bumpScale + magicPrint * magicMask * 0.0019'),'the magic skin still found the site this override rewrites');
+  // The slab is bouncy, so its skin is the gum's; the violet site is checked below.
+  assert(fragment.includes('normal = gumBend(clayPerturbNormal(-vViewPosition, normal, clayData.r * bumpScale, faceDirection), vClayNormal, magicUV, gumFade);'),'the magic skin still found the site this override rewrites');
   console.log('PASS squashed clay: bounded surface squash at any thickness, untouched at rest, carried blend normal, softened relief, intact magic skin');
 }
 
@@ -270,10 +271,11 @@ console.log('PASS all clay poses: finite geometry/normals, stable buffers, colli
   console.log('PASS every input moves clay: taps press it, stomps work any gesture, finished clay stops responding');
 }
 
-// Bouncy clay — a station whose stomp throws the player back up — is drawn in
-// pink, on a material of its own kept beside the violet one, so the throw is
-// read off the colour: the bench's slab, lump and wet clay are pink, the dig
-// bench and every chapter's mass are violet.
+// Bouncy clay — a station whose stomp throws the player back up — is bubble
+// gum: pink, and a different substance from the violet, hard and lacquered, on
+// a material of its own kept beside the violet one, so the throw is read off
+// the surface. The bench's slab, lump and wet clay are gum, the dig bench and
+// every chapter's mass are violet clay.
 {
   const bw=Object.create(World.prototype);bw.mat={};
   for(const name of ['top','terrain','cream'])bw.mat[name]=new THREE.MeshStandardMaterial();
@@ -288,10 +290,51 @@ console.log('PASS all clay poses: finite geometry/normals, stable buffers, colli
   assert.equal(dig.material.color.getHex(),MAGIC_CLAY,'the dig bench stays violet');
   assert(form.material!==dig.material,'two materials');assert.equal(lump.material,form.material,'one pink shared by every bouncy mass');
   assert.equal(bw.mat.magicBlockBouncy,form.material);assert.equal(bw.mat.magicBlock,dig.material,'each under its own slot in w.mat');
-  assert.equal(form.material.roughness,dig.material.roughness,'the same clay, a different colour');
   assert(form.material.emissive.getHex()===BOUNCY_CLAY&&dig.material.emissive.getHex()===MAGIC_CLAY,'the glow follows the colour');
+  // Harder and shinier: a satin body under a thin hard lacquer, with next to
+  // none of the kneaded grain, where the violet stays matte clay.
+  assert(form.material.isMeshPhysicalMaterial&&!dig.material.isMeshPhysicalMaterial,'gum is a lacquered physical material; the violet stays standard');
+  assert.equal(form.material.clearcoat,1,'a full coat');
+  assert(form.material.clearcoatRoughness>.05&&form.material.clearcoatRoughness<.3,'a thin hard lacquer');
+  assert(form.material.roughness<dig.material.roughness-.15,'a satin body, well under the clay');
+  assert(form.material.bumpScale<dig.material.bumpScale*.5,'next to no grain under the gloss');
+  assert.equal(form.material.metalness,0,'gum is not metal');
+  assert(form.material.userData.clay?.type==='relief','still pressed by the clay relief, so it sits in the same world');
+  assert(form.material.userData.magic?.sheen&&form.material.userData.magic.fold,'its sheen and fold height are reachable without a recompile');
+  assert(form.material.userData.magic.sheen.value.x>.9&&form.material.userData.magic.sheen.value.y>.6,'the sheen is a pale pink-white, derived from the colour');
+  assert.notEqual(form.material.customProgramCacheKey(),dig.material.customProgramCacheKey(),'its own program, not the violet\'s under a pink');
+  assert(form.material.customProgramCacheKey().endsWith('-gum-v1')&&dig.material.customProgramCacheKey().endsWith('-magic'));
+  // What each program does, read off the shader the hook builds.
+  const compile=m=>{const s={vertexShader:THREE.ShaderLib.physical.vertexShader,fragmentShader:THREE.ShaderLib.physical.fragmentShader,uniforms:{}};m.onBeforeCompile(s,{});return s;};
+  const gum=compile(form.material),violet=compile(dig.material);
+  const CLAMP='roughnessFactor = clamp(roughnessFactor * clayData.g, 0.52, 0.98);';
+  assert(violet.fragmentShader.includes(CLAMP)&&!gum.fragmentShader.includes(CLAMP),'the relief\'s matte clamp is opened for gum alone');
+  assert(gum.fragmentShader.includes('roughnessFactor = clamp(')&&gum.fragmentShader.indexOf('roughnessFactor = clamp(')<gum.fragmentShader.indexOf('#include <lights_physical_fragment>'),'and its own clamp lands before the roughness is read');
+  for(const site of ['magicPrint = magicPrints(','magicGlitter(vMagicPosition'])assert(violet.fragmentShader.includes(site)&&!gum.fragmentShader.includes(site),`no thumbprints or glitter in gum: ${site}`);
+  assert(gum.fragmentShader.includes('gumFold(')&&!violet.fragmentShader.includes('gumFold('),'the folds are the gum\'s');
+  const begin=gum.fragmentShader.indexOf('#include <clearcoat_normal_fragment_begin>'),route=gum.fragmentShader.indexOf('clearcoatNormal = normal;');
+  assert(begin>=0&&route>begin&&route<gum.fragmentShader.indexOf('#include <lights_physical_fragment>'),'the lacquer follows the folds: its normal is the bumped one, taken before the lights read it');
+  assert(!violet.fragmentShader.includes('clearcoatNormal = normal;'),'the violet has no coat to route');
+  assert(gum.uniforms.magicSheen===form.material.userData.magic.sheen&&gum.uniforms.gumHeight===form.material.userData.magic.fold&&gum.uniforms.magicDeep,'the gum\'s uniforms are the material\'s own objects');
+  assert(!('magicSheen' in violet.uniforms)&&violet.uniforms.magicDeep&&violet.uniforms.magicRim,'the violet keeps its two tints');
+  // Every include either program names must still exist in this three.
+  const expand=s=>s.replace(/#include <([\w_]+)>/g,(_,key)=>{assert(THREE.ShaderChunk[key],`missing shader chunk ${key}`);return expand(THREE.ShaderChunk[key]);});
+  const whole=expand(gum.fragmentShader);expand(gum.vertexShader);expand(violet.fragmentShader);
+  // A uniform named like one of the skin's functions is a redefinition the GPU
+  // refuses and the CPU never sees.
+  const names=[...whole.matchAll(/^uniform\s+\w+\s+(\w+)\s*;/gm)].map(m=>m[1]),functions=new Set([...whole.matchAll(/^\w+\s+(\w+)\s*\(/gm)].map(m=>m[1]));
+  for(const name of names)assert(!functions.has(name),`uniform ${name} is also a function`);
+  assert.equal(new Set(names).size,names.length,'no uniform is declared twice');
+  // A moved anchor is reported, not swallowed.
+  const reports=[],error=console.error;console.error=(...a)=>reports.push(a.join(' '));
+  try{form.material.onBeforeCompile({vertexShader:THREE.ShaderLib.physical.vertexShader,fragmentShader:THREE.ShaderLib.physical.fragmentShader.replace('#include <clearcoat_normal_fragment_begin>','// gone'),uniforms:{}},{});}
+  finally{console.error=error;}
+  assert.equal(reports.length,1);assert(reports[0].startsWith('magic skin: shader anchor missing: #include <clearcoat_normal'),'a missing anchor is named where the review collects errors');
+  // The gum's geometry takes no thumb: a hard bar keeps only broad swells.
+  const frontDepth=mesh=>{const p=mesh.geometry.attributes.position,n=mesh.geometry.attributes.normal,rest=mesh.geometry.attributes.clayRest;let lo=Infinity,hi=-Infinity;for(let i=0;i<p.count;i++)if(n.getZ(i)>.9&&rest.getY(i)<-1&&rest.getY(i)>-3.5){lo=Math.min(lo,p.getZ(i));hi=Math.max(hi,p.getZ(i));}return hi-lo;};
+  assert(frontDepth(form)<frontDepth(dig)*.85,'the gum\'s front is the smoother: swells, no presses');
   const canyon=new Game();canyon.start(0);
   const masses=canyon.level.platforms.filter(p=>p.form);
   assert(masses.length>0&&masses.every(p=>!p.bouncy),'no chapter clay is bouncy: the canyon\'s masses are violet');
 }
-console.log('PASS bouncy clay is pink on its own shared material, everything else keeps the violet, and no chapter clay is bouncy');
+console.log('PASS bouncy clay is bubble gum on its own shared, lacquered material with folds and no prints, everything else keeps the violet clay, and no chapter clay is bouncy');
