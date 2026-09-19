@@ -16,10 +16,14 @@ export const KNEAD_GAP=.5;
 const lerp=(a,b,t)=>t===1?b:t===0?a:a+(b-a)*t;
 export const rampProfile=u=>u*u*(3-2*u);
 export function claySurface(s,x,previous=false){
+  // A mass with no pose carries its surface as columns over its base — less
+  // however far a give layer riding the columns is pressed in, where it has one.
+  if(s.form){
+    const lx=x-(previous?s.prevX:s.x);
+    return (previous?s.prevY:s.y)-s.h+formHeight(s.form,lx,previous)-(s.give?giveDepth(s.give,lx,previous):0);
+  }
   // A block that gives under weight carries its own surface.
   if(s.give)return (previous?s.prevY:s.y)-giveDepth(s.give,x-(previous?s.prevX:s.x),previous);
-  // A mass with no pose carries its surface as columns over its base.
-  if(s.form)return (previous?s.prevY:s.y)-s.h+formHeight(s.form,x-(previous?s.prevX:s.x),previous);
   const y=previous?s.prevY:s.y,w=previous?(s.prevW??s.w):s.w,left=previous?s.prevX:s.x;
   const slope=previous?(s.prevSlope??s.slope??0):(s.slope||0);
   const u=clampShape((x-left)/w);
@@ -160,7 +164,7 @@ export function resetStation(station,game=null){
   station.target=0;station.amount=0;station.announced=false;
   station.charge=0;station.launched=0;
   if(perPart(station)){station.targets.fill(0);station.amounts.fill(0);}
-  if(station.give){resetGive(station.give);station.pressed=false;station.press=0;station.fall=0;station.punch=0;}
+  if(station.give){resetGive(station.give);station.pressed=false;station.press=0;station.fall=0;station.punch=0;station.force=0;}
   if(station.rule==='form')resetFormStation(station);
   if(station.channel&&game?.level.playground){game.latched[station.channel]=false;game.channels[station.channel]=0;}
 }
@@ -179,7 +183,12 @@ export function formWallAhead(s,p,prevX,prevY,radius){
   if(!s.form||p.x===prevX)return false;
   const dir=Math.sign(p.x-prevX),lead=p.x+dir*radius;
   if(lead<=s.x||lead>=s.x+s.w)return false;
-  return claySurface(s,lead)-prevY>FORM.step;
+  // Only the columns make walls. On a mass that gives, the feet stand in a
+  // dent of their own pressing, and the clay ahead, which is not pressed, would
+  // read as a step up out of it: so the rise is taken between the columns, with
+  // the layer's depth added back at both ends.
+  const give=s.give?x=>giveDepth(s.give,x-s.x):()=>0;
+  return claySurface(s,lead)+give(lead)-(prevY+give(prevX))>FORM.step;
 }
 // Whether the feet at x are on a face too steep to stand on: the clay climbs
 // past `walk` under both feet, the same way. The foot of a wall and the bottom

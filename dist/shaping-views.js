@@ -593,7 +593,9 @@ vClayPosition = clayFlat * claySize`)
 // Rebuilds the buffer only when the heightfield has actually moved, and
 // recomputes normals only then.
 function updateBlockView(view,s){
-  const b=view.clay.block,f=b.form?s.form:s.give,version=f?f.version:0;
+  // A mass wearing a give layer moves when either moves: two counters that
+  // only ever grow, so their sum only ever grows too.
+  const b=view.clay.block,f=b.form?s.form:s.give,give=b.form&&f?s.give:null,version=f?f.version+(give?give.version:0):0;
   if(b.version===version&&b.x===s.x&&b.y===s.y)return false;
   b.version=version;b.x=s.x;b.y=s.y;
   const {mesh}=view.clay.pieces[0],a=mesh.geometry.attributes.position,out=a.array,{rest,push,down,columns,xs,lift,H,base}=b;
@@ -606,9 +608,10 @@ function updateBlockView(view,s){
     // vertex sits inside its line, and on a squashed column beside a steep
     // face that difference is the whole of its height. That scale is also the
     // whole of how far the clay stands from its rest height, so it is what the
-    // surface has to follow.
+    // surface has to follow — the column less the give pressed into it, where
+    // the mass wears a layer, so the drawn top is the one the feet stand on.
     for(let i=0,count=a.count;i<count;i++){
-      const j=i*3,k=(f?formHeight(f,rest[j]):H)/H;
+      const j=i*3,k=(f?formHeight(f,rest[j])-(give?giveDepth(give,rest[j]):0):H)/H;
       out[j]=rest[j]+push[j]*k;
       out[j+1]=base+(rest[j+1]+H+push[j+1])*k;
       out[j+2]=rest[j+2]+push[j+2]*k;

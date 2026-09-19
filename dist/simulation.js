@@ -457,8 +457,9 @@ export class Game {
       if(p.x+RULES.radius>bounds.left&&p.x-RULES.radius<bounds.right){
         // A block of soft clay has no sides above the deepest it can give. Feet
         // its moving surface has overtaken are lifted back onto it, never thrown
-        // out to the block's edge.
-        if(s.give&&p.y>=s.y-s.give.deepest-.12){p.y=surfaceAt(s,p.x);continue;}
+        // out to the block's edge. (A mass that gives is still a mass: its
+        // columns decide below.)
+        if(s.give&&!s.form&&p.y>=s.y-s.give.deepest-.12){p.y=surfaceAt(s,p.x);continue;}
         // Formable clay pushes a visitor back the way they came, wall or not.
         if(s.form){resolveFormBody(s,p,prevX,RULES.radius);continue;}
         const mid=(bounds.left+bounds.right)/2;

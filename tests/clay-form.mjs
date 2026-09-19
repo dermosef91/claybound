@@ -621,5 +621,33 @@ console.log('PASS pointer: grab-and-drag raises and lowers, a press from the air
     for(let i=0;i<120;i++)animateClayView(view,s,1/60,{near:true});
     assert(view.root.scale.x===1&&view.root.scale.y===1,`${id}: a mass this size does not breathe`);
   }
+  // A mass wearing a give layer — the canyon's pocket — is drawn from the
+  // columns less the give, in the ordinary violet, and redraws when only the
+  // give has moved.
+  {
+    const {pressGive,stepGive}=await import('../dist/clay-give.js');
+    const c=new Game();c.start(0);const s=c.level.platforms.find(q=>q.id==='pocket-clay');
+    assert(s.form&&s.give&&!s.bouncy,'the pocket is a mass that gives, and not bouncy');
+    const view=createClayView(w,s,new THREE.Group()),mesh=view.clay.pieces[0].mesh,position=mesh.geometry.attributes.position;
+    assert.equal(mesh.material.color.getHex(),MAGIC_CLAY,'the river clay keeps the violet');
+    const check=label=>{
+      updateClayView(view,s);
+      const rest=view.clay.pieces[0].rest;let tops=0;
+      for(let i=0;i<position.count;i++){
+        const x=position.getX(i),y=position.getY(i),lx=Math.min(Math.max(x,0),s.w);
+        if(rest[i*3+1]===0){tops++;assert(Math.abs(y-(surfaceAt(s,s.x+x)-s.y))<1e-4,`pocket ${label}: the top of the clay is exactly where the feet stand (${y.toFixed(3)} vs ${(surfaceAt(s,s.x+x)-s.y).toFixed(3)} at ${x.toFixed(2)})`);}
+        assert(y<=surfaceAt(s,s.x+lx)-s.y+5e-3,`pocket ${label}: nothing drawn rises above the walking surface`);
+        assert(mesh.geometry.boundingSphere.containsPoint(new THREE.Vector3(x,y,position.getZ(i))),`pocket ${label}: inside the bounding sphere`);
+      }
+      assert(tops>=s.form.n,`pocket ${label}: a vertex on every column`);
+    };
+    check('at rest');
+    for(let i=0;i<120;i++){pressGive(s.give,s.w/2);stepGive(s.give,dt);}
+    assert(surfaceAt(s,s.x+s.w/2)<s.y-.5,'a stand has pressed the give in');
+    check('pressed in, with shoulders');
+    position.array[1]=123;updateClayView(view,s);assert.equal(position.array[1],123,'pocket: an unchanged surface is not rebuilt');
+    pressGive(s.give,s.w/2+3);stepGive(s.give,dt);updateClayView(view,s);
+    assert.notEqual(position.array[1],123,'pocket: a give that moved alone is redrawn');
+  }
 }
-console.log('PASS both masses are drawn from the columns the feet stand on, top exactly on the surface, nothing above it, one buffer, rebuilt only when they move');
+console.log('PASS both masses are drawn from the columns the feet stand on, top exactly on the surface, nothing above it, one buffer, rebuilt only when they move; the river clay draws its give too');
