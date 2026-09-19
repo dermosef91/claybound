@@ -2,6 +2,7 @@ import * as THREE from './lib/three.module.js';
 import {applyEnvironment} from './environments.js';
 import {clayMaterial} from './clay.js';
 import {animateHero,heroEvent} from './hero.js';
+import {tickPuppets} from './stop-motion.js';
 import {parentAxis,rotateAbout} from './dream-rigs.js';
 import {DIORAMAS} from './completion-dioramas.js';
 
@@ -259,7 +260,7 @@ export class CompletionScene{
   update(dt){
     const w=this.view,entry=this.built.get(this.key);
     const step=this.world.reducedMotion?0:Math.min(dt,.05);
-    this.time+=step;w.time=this.time;w.reducedMotion=this.world.reducedMotion;
+    this.time+=step;w.time=this.time;w.reducedMotion=this.world.reducedMotion;w.puppetClock=tickPuppets(this.world,step);
     animateHero(w,this.game,step);
     const c=w.character;
     c.root.rotation.y=this.heroYaw;c.root.scale.setScalar(this.heroScale);

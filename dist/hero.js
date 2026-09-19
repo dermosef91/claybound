@@ -5,6 +5,7 @@ import {assetURL} from './model-assets.js';
 import {animateFlowerCelebration} from './flower-celebration.js';
 import {CHARACTERS} from './characters.js';
 import {between} from './camera.js';
+import {puppetStep,boilPuppet} from './stop-motion.js';
 
 const clamp=THREE.MathUtils.clamp;
 const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
@@ -30,6 +31,8 @@ const LOOPING=new Set(['idle','walk','run','victory','push']);
 // hurt still arrive as velocity; the stiffer spring shortens their reach, so
 // their impulses carry a matching scale and keep the stretch they always had.
 const IMPACT_K=620,IMPACT_DAMP=18,IMPACT_LIMIT=.46,IMPACT_GAIN=.45,IMPULSE=1.115;
+// The longest step the impact spring is integrated with: the simulation's tick.
+const SPRING_DT=1/120;
 // Clay keeps its volume, so a body squashed thinner spreads wider by about the
 // same amount: 1/sqrt(1-q) over this range is within a thousandth of 1+.55q.
 const IMPACT_SPREAD=.55;
@@ -223,7 +226,11 @@ export function animateHero(w,game,dt,alpha=1){
   // Remove last frame's procedural pose before the mixer evaluates its clips.
   if(c.flower?.basePose){for(const [bone,q] of c.flower.basePose)bone.quaternion.copy(q);c.flower.basePose=null;}
   // Normal locomotion keeps running; the reward clock drives only the arm/head overlay.
-  const step=paused?0:Math.min(dt,.05),air=!p.groundId;
+  // Every eased quantity below — the turn, the gait, the crossfades, the impact
+  // spring, the lean — takes this one step, so under stop motion the whole pose
+  // holds and cuts together rather than the clips stepping inside a body that
+  // still glides. The root's position is set from the simulation and stays smooth.
+  const step=paused?0:puppetStep(w.puppetClock,dt),air=!p.groundId;
   // Drawn `alpha` of the way between the last two ticks (camera.js `between`),
   // as the decks are, so a rider and their deck move as one.
   const x=between(p.prevX,p.x,alpha),y=between(p.prevY,p.y,alpha);
@@ -280,8 +287,16 @@ export function animateHero(w,game,dt,alpha=1){
       action.setEffectiveWeight(c.weights[name]<.00001?0:c.weights[name]);
     }
     c.mixer.update(step);
+    if(!paused)boilPuppet(c.asset,w.puppetClock);
     // A small foot-anchored response complements, rather than distorts, the rig.
-    c.springV+=(-IMPACT_K*c.spring-IMPACT_DAMP*c.springV)*step;c.spring+=c.springV*step;c.spring=clamp(c.spring,-IMPACT_LIMIT,IMPACT_LIMIT);
+    // The spring is stiff enough that one Euler step of an eighth of a second
+    // — a stop-motion exposure — rings it against its clamp for good, so it
+    // is walked in the simulation's own ticks however long the frame held.
+    for(let left=step;left>0;left-=SPRING_DT){
+      const h=Math.min(left,SPRING_DT);
+      c.springV+=(-IMPACT_K*c.spring-IMPACT_DAMP*c.springV)*h;c.spring+=c.springV*h;
+    }
+    c.spring=clamp(c.spring,-IMPACT_LIMIT,IMPACT_LIMIT);
     const strength=w.reducedMotion?.25:1,windup=p.stompWindup>0?.07:0;
     const squash=(c.spring*IMPACT_GAIN+windup)*strength;
     c.body.scale.set(1+squash*IMPACT_SPREAD,1-squash,1+squash*IMPACT_SPREAD);
