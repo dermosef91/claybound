@@ -63,12 +63,19 @@ void main(){
 // the idle is doing that frame — the same way the parade's giraffe is posed.
 const CHEER={arm:2.35,forearm:.42,shoulder:.18};
 const FORWARD=new THREE.Vector3(0,0,1);
+// Everything from the hips down, which the diorama stands still rather than
+// letting the idle walk it about. The hips are held outright — turn as well as
+// position — because a leg held against a hip that sways is still a foot that
+// slides; with the hip still, the whole chain below it is.
+const STANCE=['LeftUpLeg','LeftLeg','LeftFoot','LeftToeBase','RightUpLeg','RightLeg','RightFoot','RightToeBase'];
 
 export class CompletionScene{
   constructor(world){
     this.world=world;this.time=0;this.active=false;this.key=null;this.built=new Map();
     // The bones last frame's cheer turned, and what they held before it did.
     this.cheerBase=null;
+    // The standing pose the lower body is kept in, taken once per opening.
+    this.stance=null;
     // Object.create keeps World's builders — box, ball, cylinder, mesh, rope,
     // flag — while every cache they write to is this scene's own, so a diorama
     // never hands the running chapter a mesh or a material it did not make.
@@ -229,6 +236,9 @@ export class CompletionScene{
 
   show(){
     if(this.active)return;this.active=true;this.time=0;
+    // A fresh stance is taken from the first frame of this opening, not kept
+    // from the last one, which was another chapter's rig at another scale.
+    this.stance=null;
     const c=this.world.character;
     this.heroMount.add(c.root);
     heroEvent(c,{type:'respawn'});
@@ -240,8 +250,10 @@ export class CompletionScene{
     if(!this.active)return;this.active=false;
     // The rig goes back to the game wearing whatever it was last posed into,
     // and on a held frame the mixer will not write over it for a while — so
-    // the cheer comes off before it is handed back.
-    this.clearCheer();
+    // the cheer comes off before it is handed back. The stance is only ever
+    // copied on, never added, so it needs no undoing — the running game's own
+    // idle writes over it — but it is dropped so the next opening takes its own.
+    this.clearCheer();this.stance=null;
     const c=this.world.character;
     this.world.scene.add(c.root);
     c.root.rotation.y=0;c.root.scale.setScalar(1);
@@ -280,6 +292,38 @@ export class CompletionScene{
     }
   }
 
+  // Feet planted, body alive.
+  //
+  // The idle underneath is a gameplay idle: it rocks the weight from one foot
+  // to the other, and after four seconds standing it plays a fidget over the
+  // top. Out on the playfield that reads as life. Held as a celebration shot
+  // it reads as a fault — a few centimetres of foot sliding about under arms
+  // that are raised and still.
+  //
+  // So the lower body is taken from the idle's opening frame and kept there
+  // for as long as the screen is up, and only the lower body: the spine, the
+  // arms and the head go on breathing and looking about above it. The pose is
+  // copied on rather than turned on, so a held stop-motion frame that re-runs
+  // it lands in exactly the same place — unlike the cheer, this cannot stack.
+  holdStance(c){
+    if(!c.loaded||!c.asset)return;
+    const hips=c.asset.getObjectByName('Hips');
+    if(!hips)return;
+    if(!this.stance){
+      // The frame after `show`, which is the idle's own first pose: the
+      // respawn event there has just put every action back to it.
+      this.stance={position:hips.position.clone(),quaternion:hips.quaternion.clone(),hips,turns:new Map()};
+      for(const name of STANCE){
+        const bone=c.asset.getObjectByName(name);
+        if(bone)this.stance.turns.set(bone,bone.quaternion.clone());
+      }
+      return;
+    }
+    const {position,quaternion,turns}=this.stance;
+    hips.position.copy(position);hips.quaternion.copy(quaternion);
+    for(const [bone,turn] of turns)bone.quaternion.copy(turn);
+  }
+
   // Put back what the last frame's cheer turned, so the mixer and the next
   // cheer both start from the pose the clips actually asked for.
   clearCheer(){
@@ -297,6 +341,7 @@ export class CompletionScene{
     this.clearCheer();
     animateHero(w,this.game,step);
     const c=w.character;
+    this.holdStance(c);
     c.root.rotation.y=this.heroYaw;c.root.scale.setScalar(this.heroScale);
     c.root.visible=true;c.shadow.visible=false;
     // The arms come up over the first half second and then hold, with the
