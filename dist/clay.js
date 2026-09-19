@@ -179,13 +179,16 @@ const BOX_SEGMENTS=3;
 // orthographic framing resolves.
 const MAX_EDGE=2;
 
-export function clayBox(w,width,height,depth,radius,variant=0){
+// `segments` is the corner's own subdivision: three suits the default bevels,
+// but a corner as round as a brick's (a radius near half a unit) shows its
+// facets at that count and asks for four or five.
+export function clayBox(w,width,height,depth,radius,variant=0,segments=BOX_SEGMENTS){
   const c=w.clay;if(!c)return null;
   const min=Math.min(width,height,depth),max=Math.max(width,height,depth);
-  const key=[width,height,depth,radius].map(n=>n.toFixed(3)).join(':');
+  const key=[width,height,depth,radius].map(n=>n.toFixed(3)).join(':')+(segments!==BOX_SEGMENTS?':s'+segments:'');
   const cached=cachedClayShape(w,key);
   if(cached)return cached;
-  const base=new RoundedBoxGeometry(width,height,depth,BOX_SEGMENTS,Math.min(radius,width/3,height/3,depth/3));
+  const base=new RoundedBoxGeometry(width,height,depth,segments,Math.min(radius,width/3,height/3,depth/3));
   const g=sculptClay(w,base,{amplitude:Math.min(.065,min*.055),subdivide:max>3&&min>.15,maxEdge:Math.max(MAX_EDGE,max/60)});
   base.dispose();g.computeBoundingBox();g.computeBoundingSphere();
   return retainClayShape(w,key,g);

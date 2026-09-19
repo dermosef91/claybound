@@ -1,28 +1,39 @@
 import * as THREE from './lib/three.module.js';
 import {canyonModel} from './canyon-assets.js';
 import {cloudModel} from './clouds.js';
-import {clayMaterial,clayBox,cachedClayShape,retainClayShape,positionGroups} from './clay.js';
+import {clayMaterial,clayBox,clayShape,sculptClay,cachedClayShape,retainClayShape,positionGroups} from './clay.js';
 import {archLiftCeiling} from './great-arch.js';
 import {makeMovingPlatform,braid,movingPlatformMaterials} from './moving-platform.js';
 import {porousClay} from './porous-clay.js';
 import {skyGradient} from './sky-gradient.js';
+import {pressedPlate} from './cavern.js';
 
 const random=n=>{const f=Math.sin(n*127.1+47.7)*43758.5453;return f-Math.floor(f);};
 const group=parent=>{const g=new THREE.Group();parent.add(g);return g;};
 
 // Knead neutral rounded blocks; surface relief now comes from the clay ball.
 // This bounded cache participates in the same streaming eviction as other clay.
-function block(w,parent,width,height,depth,x,y,z,material,seed){
+// A `pillow` block is a brick pressed by hand: a rounder corner, its front and
+// back faces bellied out by that much at the centre, and only a faint ripple
+// — the sharp horizontal ripple the backdrop blocks keep read, on a brick, as
+// brushed stone rather than clay.
+function block(w,parent,width,height,depth,x,y,z,material,seed,{radius=.28,segments,pillow=0}={}){
   if(!w.clay)return w.box(width,height,depth,material,parent,x,y,z,.25);
-  const variant=Math.abs(Math.floor(seed))%7,key='canyon:'+ [width,height,depth,variant].map(v=>v.toFixed(3)).join(':');
+  // Seven kneads for the backdrop's few big blocks; three for bricks, which
+  // come in many sizes already — the count of distinct shapes is what the
+  // cache and the stream step pay for.
+  const variant=Math.abs(Math.floor(seed))%(pillow?3:7),key='canyon:'+ [width,height,depth,variant,radius,pillow].map(v=>v.toFixed(3)).join(':');
   let geo=cachedClayShape(w,key);
   if(!geo){
-    geo=clayBox(w,width,height,depth,.28).clone();
-    const p=geo.attributes.position;
+    geo=clayBox(w,width,height,depth,radius,0,segments).clone();
+    const p=geo.attributes.position,hw=width/2,hh=height/2;
     for(let i=0;i<p.count;i++){
       const a=p.getX(i),b=p.getY(i),c=p.getZ(i),s=variant*1.71;
       const taper=1-.04*Math.sin(b*4+s);
-      p.setXYZ(i,a*taper,b+Math.sin(a*5+s)*.025,c+Math.sin(a*8+b*6+s)*.075+Math.sin(b*13-s)*.04);
+      if(pillow){
+        const dome=Math.max(0,1-(a/hw)**2)*Math.max(0,1-(b/hh)**2);
+        p.setXYZ(i,a*taper,b+Math.sin(a*3.1+s)*.02,c+Math.sign(c)*dome*pillow+Math.sin(a*3.3+b*2.7+s)*.03);
+      }else p.setXYZ(i,a*taper,b+Math.sin(a*5+s)*.025,c+Math.sin(a*8+b*6+s)*.075+Math.sin(b*13-s)*.04);
     }
     geo.computeVertexNormals();
     // The rounded box contains duplicated triangle corners. Join their normals
@@ -49,6 +60,15 @@ function capMaterial(w,seed){
     const m=w.mat.top.clone();m.color=w.mat.top.color;m.userData={clayOffset:[variant*1.37,variant*.81,variant*2.03]};
     clayMaterial(w,m,.07);w.assetMaterials.add(m);w.canyonCaps.set(variant,m);
   }return w.canyonCaps.get(variant);
+}
+// The pressed plate, sculpted once per half-unit of width and one of five
+// hollow patterns, then kept in the clay cache and stretched the last few
+// percent to fit: a deck streaming in pays a mesh, not a sculpture.
+function canyonCap(w,parent,width,x,seed,material){
+  if(!w.clay)return w.box(width,.57,3.63,material,parent,x,-.29,0,.22);
+  const shaped=Math.max(1,Math.round(width*2)/2),variant=Math.abs(Math.floor(seed))%5;
+  const geo=clayShape(w,`canyon-cap:${shaped.toFixed(2)}:${variant}`,()=>sculptClay(w,pressedPlate(shaped,.57,3.63,variant*3.7+1.3,.24),{amplitude:.06}));
+  const m=w.mesh(geo,material,parent,x,-.29,0);m.scale.x=width/shaped;m.name='Pressed clay cap';return m;
 }
 function cactus(w,parent,x,y,height=1.8,z=-1.05,turn=0){return canyonModel(w,'cactus',parent,x,y,z,height,turn);}
 function fence(w,parent,x,y,count=3){
@@ -132,24 +152,66 @@ export function plankSpan(w,s,g){
   }
 }
 
-// A solid wall body in the canyon: the same kneaded sandstone blocks the decks
-// stand on, laid in courses to fill exactly the box the simulation walks into,
-// so a pillar, an overhang or the rock under a pool of clay reads as the same
+// Hand-pressed courses. The cliffs used to be two or three columns of slabs a
+// storey tall — 2.9 wide, up to 4.7 high, with a bevel of .28 that at that
+// size read as a sawn edge — so a face was three rectangles. The reference
+// stacks bricks about half that size, each a cushion: rounded to nearly half
+// a unit, bellied at the centre, laid in running bond with the joints
+// showing as grooves. Rows take their heights from a short list and bricks
+// their widths from a narrow band, both snapped to a quarter, so the clay
+// cache keeps serving the same few shapes to every cliff in the chapter; the
+// last brick of a row and the last row take up the slack. Only a brick's
+// place and its slight lean are unique, and those cost no geometry.
+const ROW_HEIGHTS=[1.5,1.75,2,2.25,2.5],BRICK_W=2.25,BRICK_RADIUS=.45,BRICK_SEGMENTS=4,PILLOW=.1;
+const snap=v=>Math.round(v*4)/4;
+// Bricks of one clay, not a checkerboard: the reference's courses are one hue
+// with the joints doing the work. Three near-identical shades, each with its
+// own fingerprint offset so neighbours never share a print, and the darker
+// clay kept for one brick in twelve. Cached with the caps' variants.
+const BRICK_SHADES=[1,.95,1.04];
+function brickMaterial(w,seed){
+  if(!w.clay)return random(seed)<.08?'terrain2':'terrain';
+  if(random(seed)<.08)return w.mat.terrain2;
+  const variant=Math.abs(Math.floor(seed*7))%BRICK_SHADES.length;w.canyonBricks??=new Map();
+  if(!w.canyonBricks.has(variant)){
+    const m=w.mat.terrain.clone();m.color.copy(w.mat.terrain.color).multiplyScalar(BRICK_SHADES[variant]);
+    m.userData={clayOffset:[variant*2.13,variant*1.07,variant*.61]};
+    clayMaterial(w,m,w.mat.terrain.userData.clay?.requestedDepth);w.assetMaterials.add(m);w.canyonBricks.set(variant,m);
+  }return w.canyonBricks.get(variant);
+}
+function courses(w,g,width,height,top,seed,depth=3.35){
+  let remaining=height,y=top,row=0;
+  while(remaining>1e-3){
+    let h=ROW_HEIGHTS[Math.floor(random(seed+row*7)*ROW_HEIGHTS.length)];
+    // Near the bottom, what is left becomes one row, or two even ones, so no
+    // course is a sliver and none is tall enough to read as a slab again.
+    if(remaining<h+1.2)h=remaining>2.7?snap(remaining/2):remaining;
+    h=Math.min(h,remaining);
+    // Running bond: every other row shifts by half a brick, and each drifts a
+    // little of its own, so the joints never line up into a grid.
+    const drift=(row%2)*BRICK_W*.5+(random(seed+row*3)-.5)*.3,widths=[];
+    for(let x=-drift;x<width-1e-3;){const bw=snap(BRICK_W+(random(seed+row*13+widths.length*5)-.5)*.5);widths.push([Math.max(0,x),Math.min(width,x+bw)]);x+=bw;}
+    // A stub narrower than a hand at either end joins its neighbour.
+    if(widths.length>1&&widths[0][1]-widths[0][0]<.7){widths[1][0]=0;widths.shift();}
+    if(widths.length>1&&widths.at(-1)[1]-widths.at(-1)[0]<.7){widths.at(-2)[1]=width;widths.pop();}
+    widths.forEach(([x0,x1],i)=>{
+      const bw=snap(x1-x0),k=seed+row*17+i*29;
+      // Bricks overlap by a finger so the courses stay solid where a snapped
+      // width falls short; the rounded corners still leave the joint a groove.
+      const brick=block(w,g,bw+.06,h+.06,depth+(row%2)*.12,(x0+x1)/2,y-h/2,-.05+(random(k+1)-.5)*.1,brickMaterial(w,k),k,{radius:BRICK_RADIUS,segments:BRICK_SEGMENTS,pillow:PILLOW});
+      brick.rotation.z=(random(k+2)-.5)*.03;brick.name='Pressed brick';
+    });
+    y-=h;remaining-=h;row++;
+  }
+}
+
+// A solid wall body in the canyon: the same pressed bricks the decks stand
+// on, laid in courses to fill exactly the box the simulation walks into, so a
+// pillar, an overhang or the rock under a pool of clay reads as the same
 // stone as everything else rather than as a slab.
 export function buildCanyonWall(w,s,g){
   g.name='Canyon wall '+s.id;
-  const height=s.h??4,columns=Math.max(1,Math.ceil(s.w/2.9)),cw=s.w/columns;
-  for(let i=0;i<columns;i++){
-    const seed=Math.floor(s.x*3)+i*13,rows=[];
-    let left=height,first=Math.min(height,2.2+random(seed)*1.1);
-    rows.push(first);left-=first;
-    while(left>1e-6){const h=Math.min(left,left>4.4?3.2:left);rows.push(h);left-=h;}
-    let top=0;
-    for(let row=0;row<rows.length;row++){
-      const h=rows[row];
-      block(w,g,cw+.12,h+.12,3.35+(row%2)*.12,(i+.5)*cw,top-h/2,-.05,(i+row)%4===1?'terrain2':'terrain',seed+row*5);top-=h;
-    }
-  }
+  courses(w,g,s.w,s.h??4,0,Math.floor(s.x*3)+11);
 }
 
 export function buildCanyonTerrain(w,s,g){
@@ -159,14 +221,7 @@ export function buildCanyonTerrain(w,s,g){
     block(w,g,s.w+.1,10.5,3.42,s.w/2,-5.25,-.06,'terrain',s.x*7);
     return;
   }
-  const columns=Math.max(2,Math.ceil(s.w/2.9)),cw=s.w/columns;
-  for(let i=0;i<columns;i++){
-    const seed=Math.floor(s.x*3)+i*11,split=2.5+random(seed)*1.05;
-    const rows=[split,3.2,10.4-split-3.2];let top=-.45;
-    for(let row=0;row<rows.length;row++){
-      const h=rows[row];block(w,g,cw+.15,h+.2,3.35+(row%2)*.12,(i+.5)*cw,top-h/2,-.05,(i+row)%4===1?'terrain2':'terrain',seed+row*5);top-=h;
-    }
-  }
+  courses(w,g,s.w,10.4,-.45,Math.floor(s.x*3));
   // A timber deck is laid over the sandstone instead of a torn stone cap: a
   // boarded platform on posts, the way the caravan finishes a landing it means
   // to stand on. The collision plane is still the deck top, so the boards sit
@@ -177,14 +232,18 @@ export function buildCanyonTerrain(w,s,g){
     if(s.goal)w.makeBell(g,s.bellX??s.w-3.5,.1);
     return;
   }
-  // Flat tops still agree with collision; separate cap pieces expose soft,
-  // torn edges and irregular rock chips along the front of the cliff.
-  const caps=Math.max(1,Math.ceil(s.w/2.5)),capW=s.w/caps;
+  // Flat tops still agree with collision. The cap is the cave's hand-pressed
+  // plate — thumb hollows, a rolled rim — in the canyon's own cap clay and
+  // with a softer edge, in pieces no wider than a hand span so the hollows
+  // resolve on a wide deck and the joins read as torn edges. Rock chips still
+  // line the front.
+  const caps=Math.max(1,Math.ceil(s.w/6)),capW=s.w/caps;
   for(let i=0;i<caps;i++){
     const material=capMaterial(w,i+s.x);
-    w.box(capW+.16,.57,3.63,material,g,(i+.5)*capW,-.29,0,.22);
-    for(let j=0;j<3;j++){
-      const seed=i*9+j+Math.floor(s.x),x=i*capW+(j+.5)*capW/3;
+    canyonCap(w,g,capW+.16,(i+.5)*capW,Math.floor(s.x)+i*7,material);
+    const chips=Math.max(2,Math.round(capW/.85));
+    for(let j=0;j<chips;j++){
+      const seed=i*9+j+Math.floor(s.x),x=i*capW+(j+.5)*capW/chips;
       const chip=w.box(.42+random(seed)*.3,.19+random(seed+3)*.14,.3,material,g,x,-.39-random(seed+1)*.07,1.68,.115);chip.rotation.z=(random(seed+5)-.5)*.25;
     }
   }

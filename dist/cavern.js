@@ -360,8 +360,11 @@ export function bakeStatic(w,g){
 // vertex moves down or not at all, so the highest point of the plate is still
 // exactly the collision height and nothing stands proud of the walk line; the
 // rim never rolls more than a hand past the collider.
-export function caveCap(w,parent,width,height,depth,x,y,z,seed=0){
-  const geo=new RoundedBoxGeometry(width,height,depth,6,Math.min(height*.42,.15)),p=geo.attributes.position,hw=width/2,hd=depth/2,hh=height/2;
+// The plate's shape on its own, for the canyon to cache and lay over its brick
+// courses: the cave builds one per deck as it streams in, which a cave can
+// afford, but a canyon deck carries up to three and pays ~2.5 ms for each.
+export function pressedPlate(width,height,depth,seed=0,radius=Math.min(height*.42,.15)){
+  const geo=new RoundedBoxGeometry(width,height,depth,6,radius),p=geo.attributes.position,hw=width/2,hd=depth/2,hh=height/2;
   const hollows=[[-.55,.2,.5],[.05,-.3,.42],[.6,.15,.48]].map(([tx,tz,r],k)=>[hw*(tx+(rand(seed+k)-.5)*.25),hd*(tz+(rand(seed*2+k)-.5)*.4),r+rand(seed+k*5)*.2]);
   for(let i=0;i<p.count;i++){
     const a=p.getX(i),b=p.getY(i),c=p.getZ(i);
@@ -373,7 +376,10 @@ export function caveCap(w,parent,width,height,depth,x,y,z,seed=0){
     const top=Math.max(0,b/hh-.3)/.7;
     p.setXYZ(i,a+Math.sign(a)*roll*edge,b-top*(dent*.07+.012*(1+Math.sin(a*9+c*7+seed))),c+Math.sign(c)*roll*front*.6);
   }
-  geo.computeVertexNormals();const m=w.mesh(geo,'top',parent,x,y,z);m.name='Pressed clay cap';return m;
+  geo.computeVertexNormals();return geo;
+}
+export function caveCap(w,parent,width,height,depth,x,y,z,seed=0){
+  const m=w.mesh(pressedPlate(width,height,depth,seed),'top',parent,x,y,z);m.name='Pressed clay cap';return m;
 }
 // A playable ledge is a pinched lump of clay, not a sawn slab. The cap is a
 // pressed plate whose top is the collision height exactly, over a darker
