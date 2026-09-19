@@ -136,8 +136,10 @@ const anchor=[0,restHipsLocal.y,restHipsLocal.z];
 // The supplied set beside the original: its idle, and the push once one has
 // been prepared (scripts/prepare-push.mjs), which is carried across like the
 // rest, grounded, under the name hero.js finds it by.
-const sources=new Map([...donor.animations,...(idle.clips||[idle.clip]).map(clip=>THREE.AnimationClip.parse(clip))].map(clip=>[clip.name,clip]));
-const pushName=[...sources.keys()].find(name=>/push/i.test(name));
+const suppliedClips=(idle.clips||[idle.clip]).map(clip=>THREE.AnimationClip.parse(clip));
+const sources=new Map([...donor.animations,...suppliedClips].map(clip=>[clip.name,clip]));
+// A supplied push before any the model shipped with, as hero.js chooses.
+const pushName=suppliedClips.map(c=>c.name).find(name=>/push/i.test(name))||[...sources.keys()].find(name=>/push/i.test(name));
 if(pushName){WANTED.push(pushName);GROUNDED.add(pushName);}
 const mixer=new THREE.AnimationMixer(donor.scene);
 const world=new Map(),scratch=new THREE.Quaternion(),local=new THREE.Quaternion(),hipsWorld=new THREE.Vector3();
@@ -223,6 +225,8 @@ await writeFile(asset(`${name}-motion.json`),JSON.stringify({
 }));
 await writeFile(asset(`${name}-animation.json`),JSON.stringify({
   sourceSha256:createHash('sha256').update(await readFile(asset('player.glb'))).digest('hex'),
-  playerSha256:manifest.sourceSha256,clips
+  playerSha256:manifest.sourceSha256,clips,
+  // The seam between the push and its stop travels with the push.
+  ...(pushName&&Number.isFinite(idle.pushSplit)?{pushSplit:idle.pushSplit}:{})
 }));
 console.log(`Retargeted ${clips.length} clips onto ${manifest.source}; that file and its geometry are unchanged.`);
