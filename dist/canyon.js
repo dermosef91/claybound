@@ -26,32 +26,15 @@ function block(w,parent,width,height,depth,x,y,z,material,seed,{radius=.28,segme
   let geo=cachedClayShape(w,key);
   if(!geo){
     geo=clayBox(w,width,height,depth,radius,0,segments).clone();
-    // A clone shares the base box's userData object and with it the base's
-    // byte count; this shape grows an attribute below, so it gets its own
-    // record, measured afresh when the cache keeps it.
-    geo.userData={...geo.userData};delete geo.userData.clayBytes;
     const p=geo.attributes.position,hw=width/2,hh=height/2;
-    // A pillow brick carries its own shade: there is no ambient occlusion in
-    // the game, and the joints between cushions read as light as their faces.
-    // Vertices in the rounded margin darken toward the edge — the groove a
-    // neighbour sits in — more so along the bottom, where the brick meets the
-    // course below and the light from above never reaches. Baked as vertex
-    // colour, which the brick materials multiply in; the shared shape costs
-    // nothing more per brick.
-    const shade=pillow?new Float32Array(p.count*3):null;
     for(let i=0;i<p.count;i++){
       const a=p.getX(i),b=p.getY(i),c=p.getZ(i),s=variant*1.71;
       const taper=1-.04*Math.sin(b*4+s);
       if(pillow){
         const dome=Math.max(0,1-(a/hw)**2)*Math.max(0,1-(b/hh)**2);
         p.setXYZ(i,a*taper,b+Math.sin(a*3.1+s)*.02,c+Math.sign(c)*dome*pillow+Math.sin(a*3.3+b*2.7+s)*.03);
-        const edgeX=THREE.MathUtils.smoothstep(Math.abs(a),hw-radius-.1,hw),edgeY=THREE.MathUtils.smoothstep(Math.abs(b),hh-radius-.1,hh);
-        const rim=Math.max(edgeX,edgeY),under=b<0?edgeY:0;
-        const k=1-.22*rim-.16*under-(b<0?.05*(1-(b+hh)/hh):0);
-        shade[i*3]=shade[i*3+1]=shade[i*3+2]=k;
       }else p.setXYZ(i,a*taper,b+Math.sin(a*5+s)*.025,c+Math.sin(a*8+b*6+s)*.075+Math.sin(b*13-s)*.04);
     }
-    if(shade)geo.setAttribute('color',new THREE.BufferAttribute(shade,3));
     geo.computeVertexNormals();
     // The rounded box contains duplicated triangle corners. Join their normals
     // after kneading so tessellation diagonals cannot become hard seams.
@@ -70,33 +53,21 @@ function block(w,parent,width,height,depth,x,y,z,material,seed,{radius=.28,segme
 function rock(w,parent,x,y,z,size=1,seed=0,material='terrain'){
   const m=w.ball(.39*size,.23*size,.31*size,material,parent,x,y+.16*size,z);m.rotation.y=seed*.73;m.rotation.z=(random(seed)-.5)*.18;return m;
 }
-// `shaded` is the plate's own variant: it multiplies in the plate's baked
-// shade, which the chips' plain boxes do not carry.
-function capMaterial(w,seed,shaded=false){
+function capMaterial(w,seed){
   if(!w.clay)return 'top';
-  const variant=Math.abs(Math.floor(seed))%5,key=shaded?'shaded:'+variant:variant;w.canyonCaps??=new Map();
-  if(!w.canyonCaps.has(key)){
-    const m=w.mat.top.clone();m.color=w.mat.top.color;m.vertexColors=shaded;m.userData={clayOffset:[variant*1.37,variant*.81,variant*2.03]};
-    clayMaterial(w,m,.07);w.assetMaterials.add(m);w.canyonCaps.set(key,m);
-  }return w.canyonCaps.get(key);
+  const variant=Math.abs(Math.floor(seed))%5;w.canyonCaps??=new Map();
+  if(!w.canyonCaps.has(variant)){
+    const m=w.mat.top.clone();m.color=w.mat.top.color;m.userData={clayOffset:[variant*1.37,variant*.81,variant*2.03]};
+    clayMaterial(w,m,.07);w.assetMaterials.add(m);w.canyonCaps.set(variant,m);
+  }return w.canyonCaps.get(variant);
 }
 // The pressed plate, sculpted once per half-unit of width and one of five
 // hollow patterns, then kept in the clay cache and stretched the last few
-// percent to fit: a deck streaming in pays a mesh, not a sculpture. Its
-// underside and the lower half of its rolled rim are shaded dark — the lip's
-// shadow onto the first course, which nothing else in the game would cast.
-function shadedPlate(geo,height){
-  const p=geo.attributes.position,shade=new Float32Array(p.count*3),hh=height/2;
-  for(let i=0;i<p.count;i++){
-    const under=THREE.MathUtils.smoothstep(-p.getY(i),-.1*hh,hh*.9),k=1-.3*under;
-    shade[i*3]=shade[i*3+1]=shade[i*3+2]=k;
-  }
-  geo.setAttribute('color',new THREE.BufferAttribute(shade,3));return geo;
-}
+// percent to fit: a deck streaming in pays a mesh, not a sculpture.
 function canyonCap(w,parent,width,x,seed,material){
   if(!w.clay)return w.box(width,.57,3.63,material,parent,x,-.29,0,.22);
   const shaped=Math.max(1,Math.round(width*2)/2),variant=Math.abs(Math.floor(seed))%5;
-  const geo=clayShape(w,`canyon-cap:${shaped.toFixed(2)}:${variant}`,()=>sculptClay(w,shadedPlate(pressedPlate(shaped,.57,3.63,variant*3.7+1.3,.24),.57),{amplitude:.06}));
+  const geo=clayShape(w,`canyon-cap:${shaped.toFixed(2)}:${variant}`,()=>sculptClay(w,pressedPlate(shaped,.57,3.63,variant*3.7+1.3,.24),{amplitude:.06}));
   const m=w.mesh(geo,material,parent,x,-.29,0);m.scale.x=width/shaped;m.name='Pressed clay cap';return m;
 }
 function cactus(w,parent,x,y,height=1.8,z=-1.05,turn=0){return canyonModel(w,'cactus',parent,x,y,z,height,turn);}
@@ -209,18 +180,14 @@ const snap=v=>Math.round(v*4)/4;
 // neighbours never share a print, and the darker clay for one brick in
 // seven. Cached with the caps' variants.
 const BRICK_SHADES=[[0,0,0],[.006,0,.025],[-.006,.015,-.025],[.003,-.03,.035],[-.004,.02,-.04],[.002,.01,-.012]];
-// Every brick material is the canyon's own clone, dark clay included, because
-// each multiplies in the brick's baked shade (`vertexColors`) — a shared
-// theme material would read the missing attribute as black on every other
-// mesh it dresses.
 function brickMaterial(w,seed){
   if(!w.clay)return random(seed)<.14?'terrain2':'terrain';
-  const dark=random(seed)<.14,variant=dark?'dark':Math.abs(Math.floor(seed*7))%BRICK_SHADES.length;w.canyonBricks??=new Map();
+  if(random(seed)<.14)return w.mat.terrain2;
+  const variant=Math.abs(Math.floor(seed*7))%BRICK_SHADES.length;w.canyonBricks??=new Map();
   if(!w.canyonBricks.has(variant)){
-    const base=dark?w.mat.terrain2:w.mat.terrain,m=base.clone();m.color.copy(base.color);
-    if(!dark){const [h,s,l]=BRICK_SHADES[variant];m.color.offsetHSL(h,s,l);}
-    m.vertexColors=true;m.userData={clayOffset:dark?[3.1,.7,1.9]:[variant*2.13,variant*1.07,variant*.61]};
-    clayMaterial(w,m,base.userData.clay?.requestedDepth);w.assetMaterials.add(m);w.canyonBricks.set(variant,m);
+    const [h,s,l]=BRICK_SHADES[variant],m=w.mat.terrain.clone();m.color.copy(w.mat.terrain.color).offsetHSL(h,s,l);
+    m.userData={clayOffset:[variant*2.13,variant*1.07,variant*.61]};
+    clayMaterial(w,m,w.mat.terrain.userData.clay?.requestedDepth);w.assetMaterials.add(m);w.canyonBricks.set(variant,m);
   }return w.canyonBricks.get(variant);
 }
 function courses(w,g,width,height,top,seed,depth=3.35){
@@ -285,7 +252,7 @@ export function buildCanyonTerrain(w,s,g){
   const caps=Math.max(1,Math.ceil(s.w/6)),capW=s.w/caps;
   for(let i=0;i<caps;i++){
     const material=capMaterial(w,i+s.x);
-    canyonCap(w,g,capW+.16,(i+.5)*capW,Math.floor(s.x)+i*7,capMaterial(w,i+s.x,true));
+    canyonCap(w,g,capW+.16,(i+.5)*capW,Math.floor(s.x)+i*7,material);
     const chips=Math.max(2,Math.round(capW/.85));
     for(let j=0;j<chips;j++){
       const seed=i*9+j+Math.floor(s.x),x=i*capW+(j+.5)*capW/chips;
