@@ -430,50 +430,35 @@ export default {
     (L.crushers||[]).filter(c=>c.x>=left&&c.x<right).forEach((c,i)=>list.push({key:'molar-'+i,x:c.x,w:3,y:0,z:0,make(w,parent){molar(w,parent,c,under(c.x)+.25);}}));
     return list;
   },
-  // Far scenery: the supplied cavern wall, repeated at two depths, standing in
-  // for the chapter's placeholder columns — the painting's backdrop is a deep
-  // organic tunnel receding, not masonry. Copies are laid so they overlap by
-  // about a third, each turned a little and every other one mirrored, so a
-  // single slab reads as one continuous wall of flesh rather than a row.
+  // Far scenery: the supplied cavern wall, standing in for the chapter's
+  // placeholder columns — the painting's backdrop is a deep organic tunnel
+  // receding, not masonry. One slab, on the corridor's middle, lit by the
+  // scene and taking its fog, which is what pales it toward the palette's
+  // pink.
   //
-  // The near rank is the wall the corridor is cut through; the far rank is
-  // bigger, dimmer and set low, so the gap between them reads as depth. Both
-  // are lit by the scene and take its fog, which is what pales them toward the
-  // palette's pink the further back they stand.
+  // One copy, and it stays inside this section. The first pass laid nine — a
+  // near rank of four at ×.45 and a far rank of five at ×.22, overlapping by
+  // a third so they would read as one continuous wall. On screen they read as
+  // the same shape stamped three deep, and at those slow factors they hung in
+  // frame for ±70 units around their places: the Orchard's last stretch and
+  // the Colour River's first deck were both played out in front of this
+  // crimson wall, not their own skies.
+  //
+  // A parallax item stands factor·(place − cameraX) from the frame's centre,
+  // so a slab W across is out of a frame of half-width `half` once the camera
+  // is (half + W/2)/factor from its place. At 44 across and ×.8 that is 40
+  // units either side on a 16:9 frame (half 10.3): the corridor is 83 long,
+  // so the wall slides in from the right as the player steps in from the
+  // Orchard and has left by the left edge before the river's entry deck. It
+  // fills the frame only through the middle ~30 units; either side of that
+  // the pale sky shows past one edge, which is what reads as a lit tunnel
+  // mouth rather than wallpaper. `until` retires it at the section's end for
+  // frames wide enough to still hold a sliver of it there.
   backdrop(w,L,section,layers){
-    const near=layers.at(.45),far=layers.at(.22);
     if(!w.dreamAssets?.cavern)return this.placeholderBackdrop(w,L,section,layers);
-    // Near rank: four slabs about 52 across, alternately high and low. They
-    // are spaced wider than they need to be on purpose — the ragged gaps the
-    // copies leave are the point, because the pale sky behind them is what
-    // reads as a lit tunnel mouth. Covering the frame edge to edge was the
-    // first thing tried and it flattened the whole backdrop into wallpaper.
-    //
-    // Both ranks stop short of the corridor's exit. They ran 25 units past it
-    // at first, and the Colour River then opened on this crimson wall instead
-    // of its own pillars and pink hills — a section's backdrop belongs to its
-    // section, and the river brings a whole sky of its own.
-    const last=section.x+section.length;
-    for(let i=0;i<4;i++){
-      const x=Math.min(section.x-16+i*26+rand(i+50)*4,last-30),y=(i%2?2.6:6.4)+rand(i+53)*2;
-      const g=layers.place(near,x,y,-30);g.name='Cavern wall';
-      dreamCavern(w,g,52+rand(i+51)*12,{turn:(rand(i+52)-.5)*.5,flip:i%2===1});
-    }
-    // Far rank: higher and set back, backing the near rank's gaps without
-    // closing them — depth behind the mouths, not a lid.
-    //
-    // These are small on purpose. A parallax item sits at factor*(worldX −
-    // cameraX) on screen, so at .22 it only leaves frame once the camera is
-    // (halfWidth + halfView)/.22 away: the 84-wide slabs tried first were
-    // still filling the sky 200 units later, painting this crimson over the
-    // Colour River's own pillars and pink hills. Kept near 24 across, they
-    // fade out roughly where the corridor does.
-    for(let i=0;i<5;i++){
-      const x=Math.min(section.x-14+i*20+rand(i+60)*4,last-16);
-      const g=layers.place(far,x,7+rand(i+63)*3,-52);
-      g.name='Cavern deep';
-      dreamCavern(w,g,22+rand(i+61)*6,{turn:(rand(i+62)-.5)*.3,flip:i%2===0});
-    }
+    const g=layers.place(layers.at(.8),section.x+section.length/2,4.5,-30,{until:section.x+section.length});
+    g.name='Cavern wall';
+    dreamCavern(w,g,44);
   },
   // The look before the cavern was supplied, kept for a rig that builds the
   // section without the dream models (tests/dream-sections.mjs runs one).

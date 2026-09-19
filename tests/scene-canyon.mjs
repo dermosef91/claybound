@@ -37,9 +37,11 @@ let sharedDisposals=0;for(const resource of [...w.assetGeometry,...w.assetMateri
 }
 console.log('PASS removed foreground huts and middle scenery, retained rooftop cottages, foreground parallax, player clearance fading, unchanged gameplay data and scenery disposal');
 
-// Reproduce the canyon draw boundary after a blurred chapter, at the opening
-// and both windwells. The actual formations must reach the default framebuffer
-// together with gameplay, and the previous composite must stay hidden.
+// Reproduce the canyon's draw passes after a blurred chapter, at the opening
+// and both windwells. The canyon takes the strong blur: its formations draw
+// alone into the offscreen target, that target is blurred across into a
+// second, and the frame pass draws the playfield over the composite quad with
+// only the near rank of buttes — the backdrop group marked sharp — beside it.
 // Where to stand is read off the chapter's own landmarks rather than written
 // down, so a reprofiled canyon is still sampled at its basin and every one of
 // its windwells — the two on the climb and the Boulder Drop's mill — instead
@@ -65,10 +67,18 @@ for(const x of sampled){
         assert(o.material.visible&&o.material.opacity===1&&o.material.map&&o.material.normalMap);formations++;
       }
     });
-    calls.push({target,back:w.backRoot.visible,path:w.levelRoot.visible,formations,composite:w.citadelDepth?.quad.visible});
+    calls.push({target,scene,back:w.backRoot.visible,path:w.levelRoot.visible,formations,composite:w.citadelDepth?.quad.visible,
+      sharpOnly:w.backRoot.children.every(o=>o.visible===!!o.userData.sharp)});
   };
   w.render(g,1/60);w.renderer.render=render;w.renderer.setRenderTarget=setTarget;
-  assert.equal(calls.length,1);assert.equal(calls[0].target,null);assert(calls[0].back&&calls[0].path&&!calls[0].composite);assert(calls[0].formations>=2);
+  assert.equal(calls.length,3,'the backdrop into the target, blurred across, then the frame');
+  const [backdrop,across,frame]=calls;
+  assert(backdrop.target?.isWebGLRenderTarget&&backdrop.scene===w.scene&&backdrop.back&&!backdrop.path&&!backdrop.composite,'the formations draw alone into the offscreen target');
+  assert(backdrop.formations>=2);
+  assert(across.target?.isWebGLRenderTarget&&across.target!==backdrop.target&&across.scene!==w.scene,'the target is blurred across into a second one');
+  assert.equal(frame.target,null);assert(frame.path&&frame.composite,'the playfield draws over the composite');
+  assert(frame.back&&frame.sharpOnly,'only the near rank of buttes draws sharp beside it');
+  assert(w.backRoot.children.every(o=>o.visible),'every backdrop group is visible again afterwards');
   assert(!w.scene.getObjectByName('Clay cottage with laundry'),'no blue cottages anywhere in the canyon');
   if(floor?.landmark==='sandwheel')assert(w.levelRoot.getObjectByName('Eroded sandstone basin'),'the sinking shortcut has its own ruin landmark');
   if(floor?.landmark==='windmill'){
@@ -79,7 +89,7 @@ for(const x of sampled){
   }
 }
 assert.equal(sharedDisposals,0);
-console.log('PASS canyon formations in the direct draw pass, chapter return, no canyon cottages, two functional windmills, sandstone basin, stable rotor hubs and pause');
+console.log('PASS canyon formations through the blurred composite with the near rank sharp, chapter return, no canyon cottages, two functional windmills, sandstone basin, stable rotor hubs and pause');
 
 {
   const g=new Game();g.start(0);

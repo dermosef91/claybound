@@ -358,6 +358,9 @@ function cloudField(w,end){
   const anchors=(w.currentLevel?.platforms||[]).filter(s=>s.id==='arch-drop'&&s.kind==='bridge').map(s=>({x:s.x+s.w*.38,y:s.y+.72,scale:4.1/(w.cloudAsset?.width||1)}));
   CLOUD_RANKS.forEach((rank,r)=>{
     const g=group(w.backRoot);g.name='Canyon clouds '+r;
+    // Only the farthest rank takes the depth pass's blur, with the far buttes
+    // it stands among; the two nearer ranks draw crisp.
+    if(r>0)g.userData.sharp=true;
     // The middle rank lends a cloud to the Boulder Drop's authored composition:
     // the nearest unfogged, unflattened rank, so the piece stays a white cloud.
     w.parallax.push({group:g,factor:rank.factor,heightFollow:1,...(r===1?{anchors}:{})});
@@ -378,9 +381,15 @@ function cloudField(w,end){
 const SKY_STOPS=[[30,0x71a8e3],[5,0x75ade5],[1.5,0x7eb4e7],[-1.5,0x8bbde9],[-5,0x98c6ec],[-30,0xa0caed]];
 
 export function buildCanyonBackdrop(w){
-  const sky=group(w.backRoot);sky.name='Canyon sky';w.parallax.push({group:sky,factor:0,heightFollow:1});
+  // `sky` keeps the gradient quad out of the depth pass's probe, which needs
+  // to see clay; `sharp` keeps a rank out of its blur. Only the far rank is
+  // blurred — the depth of field belongs to what is far away — and the two
+  // nearer ranks draw crisp with the playfield, the nearest of them standing
+  // just behind the route.
+  const sky=group(w.backRoot);sky.name='Canyon sky';sky.userData.sky=true;w.parallax.push({group:sky,factor:0,heightFollow:1});
   skyGradient(w,sky,SKY_STOPS,{name:'Canyon sky gradient'});
-  const far=group(w.backRoot),middle=group(w.backRoot),low=group(w.backRoot);
+  const far=group(w.backRoot),middle=group(w.backRoot),low=group(w.backRoot);middle.userData.sharp=low.userData.sharp=true;
+  far.name='Canyon far buttes';middle.name='Canyon middle buttes';low.name='Canyon near buttes';
   w.parallax.push({group:far,factor:.17,heightFollow:1},{group:middle,factor:.36,heightFollow:1},{group:low,factor:.62,heightFollow:1});
   for(let i=-2;i<10;i++){
     const x=i*16;
