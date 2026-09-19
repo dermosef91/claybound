@@ -3,7 +3,7 @@
 // only the one promoted on purpose — the formable mass, which the canyon's
 // Sandwright's Pocket carries — may reach a chapter.
 import assert from 'node:assert/strict';
-import {Game,FIXED_DT as dt,surfaceAt} from '../dist/simulation.js';
+import {Game,FIXED_DT as dt,surfaceAt,SLOPE} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
 import lab from '../dist/routes/clay-lab.js';
 import {nearbyStation,visitStation,resetStation} from '../dist/shaping.js';
@@ -70,7 +70,9 @@ console.log('PASS the bench is well formed, its stations are ruled, and the chap
     const b=part(g,'sag-block');let last=g.player.x,ticks=0;
     const tick=(input={})=>{
       g.tick(dt,input);const p=g.player;ticks++;
-      assert(Math.abs(p.x-last)<=6.7*dt+1e-9,`x moves continuously (tick ${ticks}: ${last.toFixed(3)} -> ${p.x.toFixed(3)})`);last=p.x;
+      // Walking pace, or what a slope may add to it: a descent gathers up to
+      // `downhill` more, and a face too steep to walk is slid down as far as `top`.
+      assert(Math.abs(p.x-last)<=(p.sliding?SLOPE.top:6.7*(1+SLOPE.downhill))*dt+1e-9,`x moves continuously (tick ${ticks}: ${last.toFixed(3)} -> ${p.x.toFixed(3)})`);last=p.x;
       if(p.x>b.x&&p.x<b.x+b.w){
         assert(p.y>=surfaceAt(b,p.x)-.12-1e-9,`feet never end a tick inside the clay (tick ${ticks})`);
         if(p.groundId===b.id)assert(Math.abs(p.y-surfaceAt(b,p.x))<1e-9,`a rider stands exactly on the surface (tick ${ticks})`);

@@ -69,8 +69,8 @@ const PREFIX='mixamorig';
 // Every clip hero.js names, plus the floor-corrected subset. Airborne excerpts
 // are cut from Regular_Jump and Jump_Over_Obstacle_2, whose vertical travel the
 // game replaces with its own physics, so only the grounded ones need a floor.
-const WANTED=['Armature|Idle_9|baselayer','Idle_03','Walking','Running','Regular_Jump','Jump_Over_Obstacle_2','Face_Punch_Reaction_2','Knock_Down','Skip_Forward'];
-const GROUNDED=new Set(['Armature|Idle_9|baselayer','Idle_03','Walking','Running','Regular_Jump','Face_Punch_Reaction_2','Knock_Down','Skip_Forward']);
+const WANTED=['Armature|Idle_9|baselayer','Idle_03','Walking','Running','Regular_Jump','Jump_Over_Obstacle_2','Face_Punch_Reaction_2','Knock_Down','Skip_Forward','slide_light'];
+const GROUNDED=new Set(['Armature|Idle_9|baselayer','Idle_03','Walking','Running','Regular_Jump','Face_Punch_Reaction_2','Knock_Down','Skip_Forward','slide_light']);
 
 const [donor,target,idle,manifest]=await Promise.all([
   readPlayer(),readGLB(asset(`${name}.glb`)),

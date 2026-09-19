@@ -15,15 +15,21 @@ export const clampShape=n=>Math.max(0,Math.min(1,n));
 export const KNEAD_GAP=.5;
 const lerp=(a,b,t)=>t===1?b:t===0?a:a+(b-a)*t;
 export const rampProfile=u=>u*u*(3-2*u);
-export function claySurface(s,x,previous=false){
+// `bare` leaves out the give layer and answers with the clay the weight is
+// pressed into rather than the dent it has made. Only the grade underfoot asks
+// for it: the hollow a walker sinks into travels with them, and standing in
+// one is not the same as being on a hill, so it is left out of what counts as
+// a slope. Everything that has to know where the feet actually are — landing,
+// standing, drawing — asks for the surface as it is.
+export function claySurface(s,x,previous=false,bare=false){
   // A mass with no pose carries its surface as columns over its base — less
   // however far a give layer riding the columns is pressed in, where it has one.
   if(s.form){
     const lx=x-(previous?s.prevX:s.x);
-    return (previous?s.prevY:s.y)-s.h+formHeight(s.form,lx,previous)-(s.give?giveDepth(s.give,lx,previous):0);
+    return (previous?s.prevY:s.y)-s.h+formHeight(s.form,lx,previous)-(s.give&&!bare?giveDepth(s.give,lx,previous):0);
   }
   // A block that gives under weight carries its own surface.
-  if(s.give)return (previous?s.prevY:s.y)-giveDepth(s.give,x-(previous?s.prevX:s.x),previous);
+  if(s.give)return (previous?s.prevY:s.y)-(bare?0:giveDepth(s.give,x-(previous?s.prevX:s.x),previous));
   const y=previous?s.prevY:s.y,w=previous?(s.prevW??s.w):s.w,left=previous?s.prevX:s.x;
   const slope=previous?(s.prevSlope??s.slope??0):(s.slope||0);
   const u=clampShape((x-left)/w);

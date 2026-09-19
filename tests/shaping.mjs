@@ -24,7 +24,9 @@ for(const definition of playground.shaping){
 }
 {
   const g=boot();visitStation(g,'ramp');step(g,240,{shapeHeld:true});
-  step(g,220,{right:true});assert(g.player.x>39&&g.player.y>=4.39,'ramp is walkable without jumping');assert.equal(g.deaths,0);
+  // Long enough to walk the whole ramp at the pace a climb is taken at, which
+  // is a little under the pace on the level.
+  step(g,260,{right:true});assert(g.player.x>39&&g.player.y>=4.39,'ramp is walkable without jumping');assert.equal(g.deaths,0);
   console.log('PASS continuous ramp collision from dock to roof');
 }
 {
