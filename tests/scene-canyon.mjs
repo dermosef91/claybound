@@ -141,3 +141,74 @@ for(let index=0;index<LEVELS.length;index++){
 }
 assert.equal(sharedDisposals,0);
 console.log('PASS textured canyon tent, grounded placement, retained source mesh, streaming/editor rebuilds, and exactly one animated finish bell per chapter');
+
+// The ropeway drawn between ticks: the frame loop passes how far it falls into
+// the next tick, and the trolley, its rider and their shadow are drawn that
+// far between their last two poses, while the masts and cable — pushed back by
+// the deck's drawn position — stay exactly where the world has them. Without
+// an alpha, the picture is the simulated tick, to the bit.
+{
+  const g=new Game();g.start(0);g.level.enemies=[];g.level.crushers=[];
+  const t=g.level.platforms.find(s=>s.kind==='zip'),p=g.player;
+  Object.assign(p,{x:t.x+t.w/2,y:t.y,vx:0,vy:0,groundId:t.id,coyote:.13,invuln:0});
+  w.build(g.level,0,t.x);
+  for(let i=0;i<120;i++)g.tick(1/120,{});
+  assert.equal(p.groundId,t.id);assert(t.x>t.prevX&&t.y<t.prevY,'the trolley is moving');
+  assert(p.x>p.prevX,'and carrying its rider');
+  const view=w.platforms.get(t.id),hero=w.character.root;
+  w.render(g,1/120,false,.5);
+  assert(Math.abs(view.root.position.x-(t.prevX+t.x)/2)<1e-9&&Math.abs(view.root.position.y-(t.prevY+t.y)/2)<1e-9,'the trolley is drawn half a tick behind');
+  assert(Math.abs(view.root.position.x+view.span.position.x-t.baseX)<1e-9&&Math.abs(view.root.position.y+view.span.position.y-t.baseY)<1e-9,'the masts and cable stay at the near mast');
+  assert(Math.abs(hero.position.x-(p.prevX+p.x)/2)<1e-9&&Math.abs(hero.position.y-(p.prevY+p.y)/2)<1e-9,'the rider is drawn with the deck');
+  assert(Math.abs(hero.position.x-view.root.position.x-(p.x-t.x))<1e-9,'and stands where they stand on it');
+  assert(Math.abs(w.character.shadow.position.y-(view.root.position.y+.1))<1e-9,'their shadow sits on the drawn deck');
+  w.render(g,1/120);
+  assert.equal(view.root.position.x,t.x);assert.equal(view.root.position.y,t.y);
+  assert.equal(hero.position.x,p.x);assert.equal(hero.position.y,p.y,'no alpha draws the tick as it stands');
+  assert.equal(view.span.position.x,t.baseX-t.x);
+  const was=p.prevX;p.prevX=p.x-40;w.render(g,1/120,false,.5);
+  assert.equal(hero.position.x,p.x,'a rider who teleported is drawn where they landed');
+  p.prevX=was;
+  w.render(g,1/120,false,1);
+  assert.equal(hero.position.x,p.x);assert.equal(view.root.position.x,t.x,'alpha 1 is the simulated pose too');
+}
+assert.equal(sharedDisposals,0);
+console.log('PASS the ropeway and its rider are drawn between ticks, the cable stays still, alpha 1 is the simulated pose, and a teleport is not lerped');
+
+// The canyon's crumbling ledges are the chapter's own clay — a cracked golden
+// cap over a broken orange lower layer, seam grains and chips in the same
+// palette — not the grey porous stone the later chapters break underfoot. The
+// grey slots are still made, since the blight in the Wildwood borrows them.
+{
+  const {CLAY_PALETTE}=await import('../dist/palette.js');
+  const g=new Game();g.start(0);g.level.enemies=[];g.level.crushers=[];
+  const s=g.level.platforms.find(q=>q.id==='sand1');
+  Object.assign(g.player,{x:s.x+s.w/2,y:s.y,vx:0,vy:0,groundId:s.id,coyote:.13,invuln:0});
+  w.build(g.level,0,s.x);
+  const view=w.platforms.get(s.id),pieces=view.fracture.pieces;
+  assert.equal(view.root.name,'Fractured clay platform');
+  const caps=pieces.filter(q=>q.layer===0&&!q.grain),lower=pieces.filter(q=>q.layer===1),grains=pieces.filter(q=>q.grain);
+  assert(caps.length>1&&lower.length>0&&grains.length>0,'two fractured layers and loose grains');
+  assert(caps.every(q=>q.mesh.material===w.mat.top&&q.mesh.name==='Cracked golden cap'),'the cap is the chapter\'s light clay');
+  assert(lower.every(q=>q.mesh.material===w.mat.terrain&&q.mesh.name==='Broken lower clay layer'),'over its darker terrain');
+  assert(grains.every(q=>q.mesh.material===w.mat.top),'and the grains match the cap');
+  assert.equal(w.mat.top.color.getHex(),CLAY_PALETTE.orangeLight);assert.equal(w.mat.terrain.color.getHex(),CLAY_PALETTE.orange);
+  const grey=[w.mat.crumbleGrey,w.mat.crumbleLower,w.mat.crumbleChip];
+  assert(pieces.every(q=>!grey.includes(q.mesh.material)),'nothing on a canyon ledge is the grey stone');
+  assert(w.mat.crumbleGrey&&w.mat.crumbleGrey.color.getHex()===0x606063,'the blight\'s stone is still there to borrow');
+  // Warning crumbs while it shakes, and the debris when it goes, in the same clay.
+  const chips=()=>w.particles.filter(q=>q.kind==='clay-chip').map(q=>q.mesh.material);
+  w.particles.length=0;s.timer=.3;w.render(g,1/60);
+  assert(chips().length>0&&chips().every(m=>m===w.mat.top||m===w.mat.terrain),'warning crumbs are orange clay');
+  w.particles.length=0;w.event({type:'crumble-collapse',platformId:s.id,x:s.x+s.w/2,y:s.y,w:s.w});
+  assert(chips().length>0&&chips().every(m=>m===w.mat.top||m===w.mat.terrain),'and so is the collapse debris');
+  w.particles.length=0;
+  // The Wildwood's ledges are the grey stone, as before.
+  const f=new Game();f.start(1);const fs=f.level.platforms.find(q=>q.kind==='crumble');
+  w.build(f.level,1,fs.x);
+  const fv=w.platforms.get(fs.id);
+  assert.equal(fv.root.name,'Porous grey crumbling ledge');
+  assert(fv.fracture.pieces.filter(q=>q.layer===0&&!q.grain).every(q=>q.mesh.material===w.mat.crumbleGrey),'the forest keeps the grey stone');
+}
+assert.equal(sharedDisposals,0);
+console.log('PASS canyon ledges are the chapter\'s orange clay, crumbs and debris included; the grey porous stone stays for the chapters after it');

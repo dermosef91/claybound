@@ -126,8 +126,32 @@ const platforms=[
   bench('marble-exit',337,12,0,{checkpoint:340}),
   p('marble-lift',343,3,1.2,'lift',{channel:'marble-home',moveY:2.8,period:5}),
 
+  // 11 · FIX THE STRUCTURE — the bench's far corner has gone to rot: a grey,
+  // cracked chunk that gives the moment anyone stands on it, and no take-off
+  // for the jump over the pit beyond. A stomp clears it at once and leaves the
+  // gap outlined. The purple block on the dock is the plug: walk into it and it
+  // slides ahead of you; pushed over the open gap it drops in and locks, and
+  // from then on it is clay, shaped to the outline the way a mould is cast —
+  // and cast, it is the corner again, stone, and the jump is on. Pushed onto
+  // the rot while it still stands, the block reacts with it, dissolves, and
+  // comes back to the dock. The pit is real: the corner is the only way over.
+  // The block is a squared-off lump the player can hop onto — its top is under
+  // a jump — so it can be got behind from either side; its stop is the wall at
+  // the dock's end. The gap is a good step deeper than the player is tall,
+  // shallow enough to jump out of, too deep for a jump from its floor to reach
+  // the far bench. The dock's last column is its own piece, carved around the
+  // bite the rot has eaten into it (`carve` names the rot).
+  bench('fix-dock',350,9.6,0,{checkpoint:352}),
+  p('fix-stop',350,.5,.9,'wall',{h:.9}),
+  p('fix-block',354,3.2,2.3,'stone',{push:true,h:2.3}),
+  bench('fix-corner',359.6,2.4,0,{carve:'fix-rot'}),
+  bench('fix-floor',362,3.2,-2.3),
+  p('fix-rot',362,3.2,0,'crumble',{h:2.3,rot:true,delay:.12}),
+  part('fix-mass',{x:362,w:3.2,y:0,h:2.3},{x:362,w:3.2,y:0,h:2.3},{station:'fix',clayRole:'mass'}),
+  bench('fix-exit',371.2,8.8,0,{checkpoint:374}),
+
   // The bell sits on the bench, so a lap of the lab ends like a chapter does.
-  bench('lab-bell',351,14,0,{goal:true,bellX:8}),
+  bench('lab-bell',381,14,0,{goal:true,bellX:8}),
 ];
 
 const sections=[
@@ -141,7 +165,8 @@ const sections=[
   {x:234,name:'Cast the Mould',landmark:'workshop'},
   {x:268,name:'Wet Clay',landmark:'workshop'},
   {x:309,name:'The Marble Run',landmark:'workshop'},
-  {x:350,name:'The Lab Bell',landmark:'bellgate'},
+  {x:350,name:'Fix the Structure',landmark:'workshop'},
+  {x:380,name:'The Lab Bell',landmark:'bellgate'},
 ];
 
 const shaping=[
@@ -157,13 +182,13 @@ const shaping=[
    hint:'Size each slab: stomp it to raise it, drag it up or down, or hold E to grow the one you stand on or face. R flattens the row.'},
   // A clump is a list of [across, top] knots: across from 0 at the left end to
   // 1 at the right, top over the bench level. The slab is flat, a step down.
-  {id:'form',rule:'form',icon:'knead',name:'Fully formable clay',verb:'Grab it and drag',gesture:'up',
+  {id:'form',rule:'form',bouncy:true,icon:'knead',name:'Fully formable clay',verb:'Grab it and drag',gesture:'up',
    parts:['form-mass'],x:108,end:141,spawn:{x:111,y:0,groundId:'form-dock'},
    clump:[[0,-.8],[1,-.8]],
    hint:'Grab any point of the clay and drag: pull up a pillar or a step, push down a bowl, drag sideways to stretch a bridge. Press in from the air to dent it, hold E to work the clay ahead of you into a step. Stomp it and it craters and throws you straight back up. It keeps its volume, so what rises here sinks there, and left alone it slowly slumps back. R resets it.'},
   // The lump thins to nothing at the ends of its footprint, so it sits on the
   // bench as a square blob with the bench bare on either side.
-  {id:'lump',rule:'form',free:true,icon:'knead',name:'A lump on the bench',verb:'Grab it and drag',gesture:'up',
+  {id:'lump',rule:'form',free:true,bouncy:true,icon:'knead',name:'A lump on the bench',verb:'Grab it and drag',gesture:'up',
    parts:['form-lump'],x:141,end:166,spawn:{x:142,y:0,groundId:'form-exit'},
    clump:[[0,0],[.25,0],[.32,4.6],[.68,4.6],[.75,0],[1,0]],
    hint:'A square lump, too steep to climb and too tall to jump. Lean it over into a ramp, spread it flat, pull a step up at its foot, or draw it up into a pillar; a stomp on top throws you higher still. It keeps its volume, and left alone it slumps back into a lump. R resets it.'},
@@ -186,7 +211,7 @@ const shaping=[
    hint:'The pale outline is a mould. Pull, push and drag the clay until its surface lies along the line; the slab holds exactly enough and keeps its volume. The line turns green when cast and the grate lifts, staying open as the cast slumps. R resets both.'},
   // Wet clay: settles in well under a second, slumps in seconds, and is not
   // held by the weight of a rider, only by a hand.
-  {id:'wet',rule:'form',icon:'spark',name:'Wet clay',verb:'Build fast, climb faster',gesture:'up',
+  {id:'wet',rule:'form',bouncy:true,icon:'spark',name:'Wet clay',verb:'Build fast, climb faster',gesture:'up',
    parts:['wet-mass'],x:268,end:309,spawn:{x:271,y:0,groundId:'wet-dock'},
    clump:[[0,-.8],[1,-.8]],pace:{settle:.6,relaxTime:5,relaxMin:.4,holdUnderfoot:false},
    hint:'Wet clay slumps back in seconds unless a hand is on it. Drag a step up, or hold E, and climb before it melts. For the perch: pull a pillar up under yourself, let go, stomp from its top before it sinks. Volume is kept. R resets it.'},
@@ -197,16 +222,30 @@ const shaping=[
    clump:[[0,-.8],[.06,-.8],[.12,-1.7],[.18,-.8],[.4,-.8],[.46,.9],[.54,.9],[.6,-.8],[.85,-.8],[.9,-1.8],[.95,-.8],[1,-.8]],
    marble:{x:2.4,socket:[17,19]},channel:'marble-home',message:'The marble is home · the lift is running',
    hint:'The marble sits in the near hollow; its socket is the ringed hollow at the far end. Only the clay moves it: pull the ground up under it and lean it, hold E behind it, or stomp just ahead so it rolls into your crater. Seat it and the lift starts running. Volume is kept; it slumps back when left. R resets the marble too.'},
+  // The plug: the mass is the gap the rot leaves, dormant until the block has
+  // dropped in. The block wears `blockClump`, a squared-off lump; seated, it
+  // settles into `clump`, the bulge a lump squeezed into a hole makes — both
+  // fitted to hold exactly the gap's volume, so shaped flat to the mould it is
+  // the corner, and nothing is left over. `fix` names the rot, the block and
+  // the gap's floor; the mould is the flat top the corner had.
+  {id:'fix',rule:'form',icon:'stairs',name:'Fix the structure',verb:'Stomp, push, cast',gesture:'down',
+   parts:['fix-mass'],x:350,end:380,spawn:{x:352,y:0,groundId:'fix-dock'},relax:false,
+   fix:{rot:'fix-rot',block:'fix-block',floor:'fix-floor',blockClump:[[0,-.5],[.11,.1],[.89,.1],[1,-.5]]},
+   mould:[[0,0],[1,0]],clump:[[0,-1.8],[.2,.1],[.4,.7],[.6,.7],[.8,.1],[1,-1.8]],
+   channel:'fix-repaired',message:'Repaired · the corner holds',
+   hint:'The grey corner is rotten: it drops whoever stands on it. Stomp it once to clear it; the pale line is the missing piece. Walk into the purple block to push it over the gap; seated there, shape it to the line — drag, hold E, stomp — and the corner mends. Pushed onto the rot it dissolves, and comes back. R resets all of it.'},
 ];
 
 const L={
-  layoutVersion:2,playground:true,lab:true,
-  name:'The Clay Lab',short:'Clay lab',label:'Ten experiments in what clay does',biome:'citadel',
-  intro:'A bench of ideas that are not in the game yet. Sag it, pack it, stamp it, shape it; then dig in it, duck under it, cast it, race it and roll a marble down it.',
-  sky:'#86a6c5',fog:'#91abc3',spawn:{x:2,y:0},end:363,previousDistance:3630,cameraY:2.15,
+  layoutVersion:3,playground:true,lab:true,
+  name:'The Clay Lab',short:'Clay lab',label:'Eleven experiments in what clay does',biome:'citadel',
+  intro:'A bench of ideas that are not in the game yet. Sag it, pack it, stamp it, shape it; then dig in it, duck under it, cast it, race it, roll a marble down it, and mend a corner that has rotted through.',
+  sky:'#86a6c5',fog:'#91abc3',spawn:{x:2,y:0},end:393,previousDistance:3930,cameraY:2.15,
   platforms,sections,shaping,
   winds:[],crushers:[],circuits:[],guides:[],detours:[],recoveries:[],enemies:[],
-  hazards:[{x:52.5,w:5.4,y:-9}],
+  // The catapult's pit, and the pit past the rotten corner: the jump over it
+  // is only on from the corner once it is mended.
+  hazards:[{x:52.5,w:5.4,y:-9},{x:365.2,w:6,y:-9}],
   // The sag beads trace the running jump from the bench onto the perch.
   coins:[{x:18.6,y:2},{x:19.7,y:3},{x:20.8,y:3.2},{x:21.9,y:2.8},...row(53,11,3),...row(79,2.2,4),
     // The form beads run a hop above the slab; the lump's follow its shoulders.
@@ -218,13 +257,16 @@ const L={
     // Wet clay: a column beside the perch, climbed by the throw from the pillar.
     {x:286.5,y:2},{x:286.5,y:4},{x:286.5,y:6},{x:286.5,y:8},
     // The marble run: along the flat the marble crosses, and two in the socket.
-    ...row(322,.4,3,2),{x:334.6,y:-1.4},{x:335.4,y:-1.4},...row(352,1.6,4)],
+    ...row(322,.4,3,2),{x:334.6,y:-1.4},{x:335.4,y:-1.4},
+    // Fix the structure: the arc of the jump the mended corner makes possible.
+    {x:366.9,y:1.6},{x:368.2,y:2.4},{x:369.5,y:1.6},...row(382,1.6,4)],
   // The buried flower sits just under the slab with a petal or two breaking
   // the surface, so a player knows it is there; the beads are the deep dig.
   // The lintel's sits under the lintel, so only the trench reaches it; the vault's is behind the
   // grate; the wet perch's needs the pillar and the throw; the marble's is over
-  // the lift, which only the seated marble sets running.
-  stamps:[{x:60.4,y:13},{x:22.8,y:2.9},{x:124.1,y:9},{x:151,y:13},{x:182,y:-.87},{x:214.5,y:0},{x:259,y:1.5},{x:286.5,y:10.3},{x:344.5,y:6.6}],
+  // the lift, which only the seated marble sets running; the fix's is across
+  // the pit, which only the mended corner reaches.
+  stamps:[{x:60.4,y:13},{x:22.8,y:2.9},{x:124.1,y:9},{x:151,y:13},{x:182,y:-.87},{x:214.5,y:0},{x:259,y:1.5},{x:286.5,y:10.3},{x:344.5,y:6.6},{x:376.5,y:1.5}],
   hints:shaping.map(s=>({x:s.x,end:s.end-.001,icon:s.icon,title:s.name,text:s.hint})),
   routeLinks:path([
     'lab-start','sag-perch',['sag-block','fall'],['sag-exit','walk'],
@@ -236,7 +278,8 @@ const L={
     ['lintel-dock','walk'],['lintel-mass','walk'],'lintel-exit',['lintel-steps','fall'],
     ['mould-dock','fall'],['mould-mass','fall'],'mould-roof',['mould-exit','fall'],
     ['wet-dock','walk'],['wet-mass','fall'],'wet-perch',['wet-mass','fall'],'wet-exit',['wet-steps','fall'],
-    ['marble-dock','fall'],['marble-mass','fall'],'marble-exit','marble-lift',['marble-exit','fall'],'lab-bell',
+    ['marble-dock','fall'],['marble-mass','fall'],'marble-exit','marble-lift',['marble-exit','fall'],
+    ['fix-dock','walk'],['fix-mass','walk'],'fix-exit',['lab-bell','walk'],
   ]),
 };
 

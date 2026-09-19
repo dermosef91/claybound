@@ -10,8 +10,9 @@
 // set can be driven headlessly.
 import {clampShape} from './shaping.js';
 import {GIVE,createGive,pressGive,kickGive,holdUnder,stepGive,giveDepth,giveVelocity,giveShare} from './clay-give.js';
-import {FORM,MOULD,createForm,resetForm,formHeight,formShare,pullForm,pressForm,pokeForm,sagForm,stepForm,beginForm,easeForm,mouldProfile,mouldClump,formMatch} from './clay-form.js';
+import {FORM,MOULD,createForm,resetForm,formHeight,formShare,pullForm,pressForm,pokeForm,sagForm,stepForm,beginForm,easeForm,mouldProfile,mouldClump,mouldFit,formMatch} from './clay-form.js';
 import {createMarble,resetMarble,stepMarble,stepRockFall} from './clay-marble.js';
+import {PUSH,initPush,resetPush,stepPush} from './clay-push.js';
 import {wallBox} from './cavern-machines.js';
 // The fixed tick, the same as simulation.js's FIXED_DT; named here so the
 // solver below needs nothing from the simulation.
@@ -47,13 +48,20 @@ export function initializeRule(station,L){
       if(station.mould){
         const cast=mouldProfile(f,station.mould);
         if(!station.clump)f=make(mouldClump(f,cast));
+        // A plug for a gap starts as the lump it was pushed in as, fitted to
+        // hold exactly the gap's volume: cast to the mould, nothing is over.
+        else if(station.fix)f=mouldFit(f,station.clump,cast);
         station.cast=s.mould=cast;
       }
       station.form=s.form=f;
+      // The world builds a view from the platform alone (world.makePlatform),
+      // so the station's throw is stamped on its clay: bouncy clay is drawn pink.
+      s.bouncy=!!station.bouncy;
       // A marble run: the ball starts where the station says, in the form's
       // own x, and is home in the station's socket — or, with an open end
       // named, gone over it: a rock the clay is worked to drop off the mass.
       if(station.marble){station.ball=s.marble=createMarble(station.marble.x,{radius:station.marble.radius,spill:station.marble.spill});s.socket=station.marble.socket;s.marbleLook=station.marble.look;}
+      if(station.fix)initFix(station,s,L);
     }
   }
   if(perPart(station)){
@@ -93,13 +101,17 @@ export function standingOn(station,player){
 // piece; every other rule takes the press across the whole station.
 export function stompRule(station,partIndex){
   if(!station.rule)return false;
+  // A plug not yet in its gap, or one already cast into the corner, is not
+  // clay to be worked: the boots land on it as on any deck.
+  if(!fixWorkable(station))return false;
   // A stomp is a knead, whatever the clay does with it.
   station.kneadPending=true;
   // A stomp into the soft block presses a crater where the boots land, on top
   // of what the fall alone does to it.
   if(station.rule==='sag'){station.punch=(station.punch||0)+GIVE.stomp;return true;}
-  // A stomp into the formable mass is a crater where the boots land, and the
-  // clay throws the stomper back up on the next tick, once it has them.
+  // A stomp into the formable mass is a crater where the boots land — and, on
+  // a `bouncy` station, the clay throws the stomper back up on the next tick,
+  // once it has them.
   if(station.rule==='form'){station.punch=(station.punch||0)+FORM.stomp;station.stomped=true;return true;}
   if(perPart(station)){
     if(partIndex<0)return false;
@@ -140,6 +152,8 @@ export function handRule(game,station,dt,input,{live=false}={}){
   station.hand=false;
   // The formable mass remembers its surface here, before anything moves it.
   if(station.rule==='form'&&station.form)beginForm(station.form);
+  // A plug takes no hand until it sits in its gap, and none again once cast.
+  if(!fixWorkable(station)){station.grip=null;return false;}
   const touching=!!(input.shapeHeld||input.shapeId===station.id);
   // A lump that has just thrown the player ignores the hand that armed it until
   // that hand lets go. Otherwise a held key, or a thumb resting on the clay,
@@ -167,7 +181,7 @@ export function handRule(game,station,dt,input,{live=false}={}){
 // A tap on ruled clay that takes hands: one press, on the slab that was tapped
 // where the station has slabs.
 export function nudgeRule(station,part,point){
-  if(!takesHands(station)||station.spent)return false;
+  if(!takesHands(station)||station.spent||!fixWorkable(station))return false;
   // A tap on the formable mass is a poke where it landed; it is applied on the
   // next tick, where the rule has the clay to hand.
   if(station.rule==='form'){
@@ -258,6 +272,12 @@ export function applyRule(game,station,dt,{near=false}={}){
     // slumps back towards its clump when everyone has left it alone.
     const s=game.level.platforms.find(q=>q.id===station.parts[0]);if(!s)return true;
     const f=massOf(station,s),x=p.x-s.x,base=s.y-s.h;
+    // A plug has a life of its own before it is clay to work — the rot, the
+    // block, the drop into the gap — and none after it is cast. Until it sits
+    // in its gap, and once it is the corner again, the mass holds still.
+    const workable=!station.fix||stepFix(game,station,s,dt);
+    if(!workable){station.poke=null;station.stomped=false;station.punch=0;station.pressed=on;station.fall=on?0:p.vy;}
+    else {
     if(station.poke){if(pokeForm(f,station.poke.x-s.x,station.poke.y-base))station.worked=true;station.poke=null;}
     // Arriving presses in proportion to the fall that was recorded while
     // airborne: the landing itself has already zeroed the player's speed.
@@ -267,15 +287,21 @@ export function applyRule(game,station,dt,{near=false}={}){
     if(on&&sagForm(f,x,dt,station.punch||0))station.worked=true;
     station.punch=0;
     stepForm(f,dt,{hand:!!station.hand,standing:on,relax:station.relax!==false});
-    // A stomp that has landed: the crater is pressed, and the clay throws the
-    // stomper straight back up, as the packed lump does at full — here on the
-    // first stomp, every time. Nothing rearms; the next stomp throws again.
-    if(on&&station.stomped){
-      station.stomped=false;
+    // A stomp that has landed: the crater is pressed. Only clay a station calls
+    // `bouncy` — the lab's slab, lump and wet bench — throws the stomper
+    // straight back up, as the packed lump does at full, on the first stomp
+    // and every one after; nothing rearms. Everywhere else, the chapters
+    // included, a stomp is a press and the boots stay in the crater: the throw
+    // is a mechanic of its own, introduced later, and the clay that has it is
+    // drawn pink (shaping-views.js) so it is never mistaken for the violet.
+    const thrown=on&&station.stomped&&!!station.bouncy;
+    if(on)station.stomped=false;
+    if(thrown){
       p.vy=station.launch??FORM.launch;p.groundId=null;p.coyote=0;p.springing=true;p.stomping=false;p.stompWindup=0;
       game.event('spring',{platformId:s.id,x:p.x,y:p.y});
       station.pressed=false;station.fall=p.vy;
     } else {station.pressed=on;station.fall=on?0:p.vy;}
+    }
     if(station.ball){stepMarble(station.ball,f,dt,station.marble?.socket);if(station.ball.spilled)stepSpilledRock(game,station,s,dt);}
     // What counts as progress. A mould reads how close the cast is, a marble
     // run how far the marble has come towards its socket, and everything else
@@ -287,16 +313,129 @@ export function applyRule(game,station,dt,{near=false}={}){
     // once the rock is down — on what it smashed through, or on the floor
     // under it — which may be seconds after the last stroke.
     let share;
-    if(station.cast){share=formMatch(f,station.cast);s.mouldMatch=share;if(share>=MOULD.cast)station.done=true;}
+    if(station.cast){share=formMatch(f,station.cast);s.mouldMatch=share;if(share>=MOULD.cast&&workable)station.done=true;}
     else if(station.ball?.spill){share=formShare(f,station.shaped);if(station.ball.smashed||station.ball.landed)station.done=true;}
     else if(station.ball){share=marbleShare(station);if(station.ball.home)station.done=true;}
     else share=formShare(f,station.shaped);
+    // A plug cast to its mould is the corner again: the surface snaps to the
+    // mould — it holds exactly that volume — and is sealed, stone to every
+    // hand from here on. What it read as shaped counts its phases: clearing
+    // the rot, seating the plug, and then how far the cast has come from the
+    // lump it was seated as.
+    if(station.fix){
+      if(station.done&&!station.sealed)sealFix(station,s,f);
+      // A seated lump settling into its bulge passes near the mould on the
+      // way; the outline reads the bulge it is settling into, not the pass.
+      if(station.fix.phase==='settling')s.mouldMatch=Math.min(share,station.fix.match0??share);
+      share=fixShare(station,share);
+    }
     station.open=Math.min(1,Math.max(0,station.open+(station.done?dt:-dt)*CHASE));
     if(station.done&&station.channel)game.activate(station.channel,s.x+s.w/2,s.y,station.message||station.name+' · done');
     station.amount=station.target=station.done?1:Math.min(share,station.cast||station.ball?.99:1);
+    if(station.fix)s.heal=station.open;
     return true;
   }
   return false;
+}
+
+// --- the plug: a broken corner, a block, and a cast that mends it ---------------
+// The station's `fix` names the rot that fills the gap, the block that plugs
+// it and the gap's floor. The mass is dormant until the block has dropped in,
+// worked while it is seated, and sealed once it is cast.
+function initFix(station,s,L){
+  const fix=station.fix;
+  fix.phase='rot';fix.mass=s;fix.rotPlatform=L.platforms.find(q=>q.id===fix.rot)??null;
+  fix.blockPlatform=L.platforms.find(q=>q.id===fix.block)??null;
+  fix.floorPlatform=L.platforms.find(q=>q.id===fix.floor)??null;
+  // How far from the mould the seated lump reads, so the shaped share starts
+  // from nothing once it is seated rather than from wherever the dome lands.
+  fix.match0=formMatch(s.form,station.cast);
+  station.sealed=false;
+  // The mass keeps its view — its outline is drawn from it — and hides only
+  // its body while it is dormant; `active` alone takes its collision away.
+  s.active=false;s.outline=true;s.fixPhase='rot';s.heal=0;s.sealed=false;
+  // The block wears a lump of its own — squared off, if the station says so —
+  // holding the gap's volume exactly: its own heightfield, never worked, so it
+  // stands, walks and draws as the very clay that will fill the gap.
+  const block=fix.blockPlatform;
+  if(block){block.form=mouldFit(s.form,fix.blockClump||station.clump,station.cast);block.clayRole='mass';initPush(block);}
+}
+// Whether the station's clay takes work right now: a plain form always, a plug
+// only while it is seated and uncast.
+const fixWorkable=station=>!station.fix||station.fix.phase==='shaping';
+// One tick of the plug's life. Returns whether the mass is clay to be worked.
+function stepFix(game,station,s,dt){
+  const fix=station.fix,p=game.player,rot=fix.rotPlatform,block=fix.blockPlatform,floor=fix.floorPlatform;
+  const open=!rot||rot.broken||rot.active===false;
+  if(fix.phase==='rot'&&open)fix.phase='open';
+  if(block&&(fix.phase==='rot'||fix.phase==='open')){
+    const notch={x:s.x,w:s.w,floor:floor?floor.y:s.y-s.h};
+    // The block comes back only once nobody is standing where it started.
+    const crest=block.baseY-block.h+(block.form?block.form.ref:block.h);
+    const clear=Math.abs(p.x-(block.baseX+block.w/2))>block.w/2+.6||p.y>=crest-1e-6;
+    const t=stepPush(block,dt,{open,notch,clear});
+    if(t){
+      const at={x:block.x+block.w/2,y:block.y-block.h/2,w:block.w,platformId:block.id,id:station.id};
+      if(t==='dissolve')game.event('push-dissolve',at);
+      else if(t==='shatter')game.event('push-shatter',at);
+      else if(t==='respawn')game.event('push-respawn',at);
+      else if(t==='tip'){station.kneadPending=true;game.event('push-lock',at);}
+      else if(t==='locked'){
+        // The plug is seated: from here the mass stands in the block's place,
+        // as the very lump the block was, and settles — a lump squeezed into a
+        // hole bulges — into its own clump before it takes hands, boots and stomps.
+        fix.phase='settling';fix.settleT=0;s.active=true;resetForm(s.form);
+        fix.seatFrom=Float64Array.from(block.form?block.form.rest:s.form.rest);
+        s.form.h.set(fix.seatFrom);s.form.prev.set(fix.seatFrom);s.form.version++;
+        station.kneadPending=true;
+        game.event('push-locked',{...at,y:s.y});
+        game.event('land',{x:s.x+s.w/2,y:s.y,strong:true,impact:8,platformId:s.id});
+      }
+    }
+  }
+  if(fix.phase==='settling'){
+    const f=s.form,from=fix.seatFrom,u=Math.min(1,(fix.settleT+=dt)/PUSH.settle),k=u*u*(3-2*u);
+    // Between two legal shapes of one volume every step of the way is legal too.
+    for(let i=0;i<f.n;i++)f.h[i]=from[i]+(f.rest[i]-from[i])*k;
+    f.version++;
+    if(u>=1){f.h.set(f.rest);fix.phase='shaping';station.kneadPending=true;}
+  }
+  s.fixPhase=fix.phase;
+  return fix.phase==='shaping';
+}
+// The cast has read as done: snap the surface to the mould and seal it.
+function sealFix(station,s,f){
+  f.h.set(station.cast);f.prev.set(station.cast);f.dent.fill(0);f.idle=Infinity;f.settled=true;f.version++;
+  station.sealed=true;station.fix.phase='healed';station.grip=null;station.hand=false;
+  s.sealed=true;s.fixPhase='healed';s.mouldMatch=1;
+}
+// What the plug reads as shaped: nothing while the rot stands, a fifth once it
+// is cleared, and then the cast's progress from the seated lump to the mould.
+function fixShare(station,match){
+  const phase=station.fix.phase;
+  if(phase==='rot')return 0;
+  if(phase==='open'||phase==='settling')return .2;
+  const m0=station.fix.match0??0,k=Math.min(1,Math.max(0,(match-m0)/Math.max(1e-6,1-m0)));
+  return .2+.79*k;
+}
+// R: the rot stands again, the block is back on the dock, the mass is dormant.
+export function resetFix(station){
+  const fix=station.fix;if(!fix)return;
+  const rot=fix.rotPlatform,block=fix.blockPlatform,s=fix.mass;
+  if(rot){rot.broken=false;rot.active=true;rot.timer=0;}
+  if(block)resetPush(block);
+  if(s){s.active=false;s.fixPhase='rot';s.heal=0;s.sealed=false;s.mouldMatch=0;}
+  fix.phase='rot';station.sealed=false;
+}
+// A saved game that had the corner mended: mended again, without the show.
+export function healFix(station){
+  const fix=station.fix,s=fix?.mass;if(!fix||!s||!station.form||!station.cast)return;
+  const rot=fix.rotPlatform,block=fix.blockPlatform;
+  if(rot){rot.broken=true;rot.active=false;}
+  if(block){block.pushPhase='locked';block.active=false;block.hidden=true;block.x=block.prevX=s.x;block.y=block.prevY=s.y;}
+  s.active=true;
+  fix.phase='shaping';sealFix(station,s,station.form);
+  station.done=true;station.open=1;station.amount=station.target=1;station.announced=true;s.heal=1;
 }
 
 // How far along the marble is: from where it started to the middle of its
@@ -450,6 +589,8 @@ export function solveFormStation(station,s,{dt=TICK}={}){
 export function resetFormStation(station){
   if(station.form)resetForm(station.form);
   if(station.ball)resetMarble(station.ball);
+  // A plug's rot stands again, its block is back on the dock, its mass dormant.
+  if(station.fix)resetFix(station);
   station.grip=null;station.poke=null;station.pressed=false;station.punch=0;station.fall=0;station.stomped=false;
   // A rock that has gone over the edge is not brought back, and what it opened
   // stays open: only the clay softens.

@@ -33,7 +33,8 @@ const hopTo=(g,x,frames=1400)=>{
 {
   assert.equal(new Set(lab.platforms.map(p=>p.id)).size,lab.platforms.length,'platform ids are unique');
   assert(lab.playground,'the lab is a playground, so the station teleport works');
-  assert.deepEqual(lab.shaping.map(s=>s.id),['sag','catapult','stamp','form','lump','dig','lintel','mould','wet','marble']);
+  assert.deepEqual(lab.shaping.map(s=>s.id),['sag','catapult','stamp','form','lump','dig','lintel','mould','wet','marble','fix']);
+  assert.equal(lab.layoutVersion,3,'the bench grew a station, so saves of the old bench are not resumed');
   for(const s of lab.shaping){
     assert(isRule(s.rule),`${s.id} carries a known rule`);
     assert(s.end>s.x,`${s.id} owns a stretch of the bench`);
@@ -46,6 +47,11 @@ const hopTo=(g,x,frames=1400)=>{
   // and no other ever reaches a chapter.
   for(const L of LEVELS)for(const s of L.shaping||[])assert(!s.rule||s.rule==='form',`${L.short} station ${s.id} is hand-worked or formable`);
   assert.deepEqual(new Set(LEVELS.flatMap(L=>(L.shaping||[]).map(s=>s.rule).filter(Boolean))),new Set(['form']),'form is the only rule in the chapters');
+  // The throw a stomp gets back is opt-in, and so far only the bench has it:
+  // the slab, the lump and the wet clay, whose perches want it. No chapter's
+  // clay is bouncy yet, so no chapter's stomp is thrown.
+  assert.deepEqual(lab.shaping.filter(s=>s.bouncy).map(s=>s.id),['form','lump','wet'],'the bench\'s bouncy clay');
+  for(const L of LEVELS)for(const s of L.shaping||[])assert(!s.bouncy,`${L.short} station ${s.id} is not bouncy`);
   assert.equal(RULES.length,4);
   assert(!isRule('wear')&&!lab.platforms.some(p=>p.id.startsWith('wear-')),'wear through is gone from the bench');
 }

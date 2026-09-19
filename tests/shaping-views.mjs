@@ -6,7 +6,7 @@ import {Game,surfaceAt,FIXED_DT} from '../dist/simulation.js';
 import {clayWallBounds,nudgeClay,stompClay} from '../dist/shaping.js';
 import playground from '../dist/routes/clay-playground.js';
 import {createShapeHands,animateShapeHands,disposeShapeHands} from '../dist/shape-hand.js';
-import {animateClayView,MAGIC_CLAY,BLOCK_SQUASH} from '../dist/shaping-views.js';
+import {animateClayView,MAGIC_CLAY,BOUNCY_CLAY,BLOCK_SQUASH} from '../dist/shaping-views.js';
 import {attachClay} from './load-clay.mjs';
 import {FORM} from '../dist/clay-form.js';
 import clayLab from '../dist/routes/clay-lab.js';
@@ -269,3 +269,29 @@ console.log('PASS all clay poses: finite geometry/normals, stable buffers, colli
   }
   console.log('PASS every input moves clay: taps press it, stomps work any gesture, finished clay stops responding');
 }
+
+// Bouncy clay — a station whose stomp throws the player back up — is drawn in
+// pink, on a material of its own kept beside the violet one, so the throw is
+// read off the colour: the bench's slab, lump and wet clay are pink, the dig
+// bench and every chapter's mass are violet.
+{
+  const bw=Object.create(World.prototype);bw.mat={};
+  for(const name of ['top','terrain','cream'])bw.mat[name]=new THREE.MeshStandardMaterial();
+  await attachClay(bw);
+  const g=new Game();g.start(5,clayLab);
+  const mass=id=>g.level.platforms.find(p=>p.id===id);
+  const view=id=>createClayView(bw,mass(id),new THREE.Group()).clay.pieces[0].mesh;
+  assert(mass('form-mass').bouncy&&mass('form-lump').bouncy&&!mass('dig-mass').bouncy,'the station\'s throw is stamped on its clay');
+  const form=view('form-mass'),lump=view('form-lump'),dig=view('dig-mass');
+  assert.equal(form.material.color.getHex(),BOUNCY_CLAY,'the slab is pink');
+  assert.equal(lump.material.color.getHex(),BOUNCY_CLAY,'and so is the lump');
+  assert.equal(dig.material.color.getHex(),MAGIC_CLAY,'the dig bench stays violet');
+  assert(form.material!==dig.material,'two materials');assert.equal(lump.material,form.material,'one pink shared by every bouncy mass');
+  assert.equal(bw.mat.magicBlockBouncy,form.material);assert.equal(bw.mat.magicBlock,dig.material,'each under its own slot in w.mat');
+  assert.equal(form.material.roughness,dig.material.roughness,'the same clay, a different colour');
+  assert(form.material.emissive.getHex()===BOUNCY_CLAY&&dig.material.emissive.getHex()===MAGIC_CLAY,'the glow follows the colour');
+  const canyon=new Game();canyon.start(0);
+  const masses=canyon.level.platforms.filter(p=>p.form);
+  assert(masses.length>0&&masses.every(p=>!p.bouncy),'no chapter clay is bouncy: the canyon\'s masses are violet');
+}
+console.log('PASS bouncy clay is pink on its own shared material, everything else keeps the violet, and no chapter clay is bouncy');

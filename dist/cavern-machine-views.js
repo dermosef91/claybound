@@ -87,13 +87,18 @@ export function createCavernMachine(w,s,root){
 }
 export function animateCavernMachine(v,s,w){
   if(v.grate){v.grate.position.y=((s.h||10)+1)*(s.open||0);v.grate.visible=(s.open||0)<.99;v.lamp.material=s.active?w.mat.gold:w.mat.accent;}
+  // The rail and the axle stay with the world while the deck moves, so they are
+  // pushed back by the deck's drawn position — read off the root, like the
+  // ropeway's span (canyon.js) — not its simulated one.
   if(v.rail){
-    v.rail.position.x=s.baseX-s.x;v.left.visible=s.drive<-.05;v.right.visible=s.drive>.05;
-    for(const wheel of v.wheels)wheel.rotation.z=-(s.x-s.baseX)/.28;
+    const {x}=v.root.position;
+    v.rail.position.x=s.baseX-x;v.left.visible=s.drive<-.05;v.right.visible=s.drive>.05;
+    for(const wheel of v.wheels)wheel.rotation.z=-(x-s.baseX)/.28;
   }
   if(v.axle){
-    const dx=s.x-s.baseX,dy=s.y-s.baseY+(v.knotY||0),r=Math.hypot(dx,dy);
-    v.axle.position.set(s.baseX+s.w/2-s.x,s.baseY-s.y,0);
+    const {x,y}=v.root.position;
+    const dx=x-s.baseX,dy=y-s.baseY+(v.knotY||0),r=Math.hypot(dx,dy);
+    v.axle.position.set(s.baseX+s.w/2-x,s.baseY-y,0);
     // The rope runs from the hub to the knot above the deck, not to the deck.
     v.arm.rotation.z=Math.atan2(dy,dx);v.arm.scale.x=r/(v.armLength||r||1);
     if(v.wheel)v.wheel.rotation.z=s.orbitAngle||0;

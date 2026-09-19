@@ -35,9 +35,16 @@ for(const choice of CHARACTERS){
   const w=stage();attachHero(w,gltf,motion,animation,choice);const c=w.character;
   assert.equal(c.choice.id,choice.id);
   assert(c.hips.isBone);assert.equal(c.hips.name,'Hips','the rig exposes its root under the name the game binds to');
-  assert.deepEqual(Object.keys(c.clips).sort(),
+  // The push is the one state a rig may lack: it is carried only once a push
+  // clip has been prepared beside the idle (scripts/prepare-push.mjs).
+  assert.deepEqual(Object.keys(c.clips).filter(k=>k!=='push'&&k!=='pushStop').sort(),
     ['death','hurt','idle','jumpFall','jumpRise','land','leapFall','leapRise','longIdle','run','stomp','victory','walk'].sort(),
     `${choice.id}: the full state vocabulary is present`);
+  assert.equal('push' in c.clips,c.sourceClips.some(name=>/push/i.test(name)),`${choice.id}: a push state exactly when a push clip was supplied`);
+  if(c.clips.push){
+    assert.equal(c.clips.push.userData.source,'Push_Forward_and_Stop',`${choice.id}: the supplied take is the push`);
+    assert(c.clips.pushStop&&Math.abs(c.clips.push.duration-1.9)<1e-3&&c.clips.pushStop.duration>.5,`${choice.id}: the shove loops to the seam and the stop follows`);
+  }
 
   // Only the original is pulled toward the game's orange; the supplied
   // characters were painted in clay colours already and keep their own. A

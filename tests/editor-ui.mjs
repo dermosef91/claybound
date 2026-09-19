@@ -12,7 +12,10 @@ const storage=new Map(),localStorage={getItem:k=>storage.get(k)??null,setItem:(k
 let surface={width:900,height:600};
 Object.defineProperty(document,'activeElement',{value:document.body,writable:true});
 window.HTMLElement.prototype.focus=function(){document.activeElement=this;};window.HTMLElement.prototype.blur=function(){document.activeElement=document.body;};
-window.HTMLElement.prototype.getBoundingClientRect=function(){return {left:0,top:0,width:this.id==='editor-map'?400:surface.width,height:this.id==='editor-map'?49:surface.height};};
+// linkedom lays nothing out; a control the menu steering has to reason about is
+// given its desktop box through `lay`, everything else fills the surface.
+const rects=new WeakMap();
+window.HTMLElement.prototype.getBoundingClientRect=function(){return rects.get(this)||{left:0,top:0,width:this.id==='editor-map'?400:surface.width,height:this.id==='editor-map'?49:surface.height};};
 window.HTMLElement.prototype.setPointerCapture=function(id){this._pointers??=new Set();this._pointers.add(id);};
 window.HTMLElement.prototype.hasPointerCapture=function(id){return this._pointers?.has(id)||false;};
 window.HTMLElement.prototype.releasePointerCapture=function(id){this._pointers?.delete(id);};
@@ -52,15 +55,58 @@ const flush=limit=>{for(const [id,t]of [...timers])if(t.delay<=limit){timers.del
 const settle=async()=>{for(let i=0;i<40;i++)await Promise.resolve();flush(0);};
 const click=selector=>{const el=document.querySelector(selector);assert(el,selector);el.click();return settle();};
 const pointer=(id,x,y)=>({pointerId:id,clientX:x,clientY:y,button:0,preventDefault(){}});
+const lay=(el,left,top,width,height)=>{assert(el,'element to lay out');rects.set(el,{left,top,width,height});};
+const key=(code,props={})=>{const e=Object.assign(new window.Event('keydown',{bubbles:true,cancelable:true}),{code,...props});window.dispatchEvent(e);return e;};
 // Title navigation is available before the expensive WebGL scene loads.
 assert($('loading').classList.contains('hidden'));assert(!$('menu').inert);
 assert.equal($('play-label').textContent,'Play');assert(!$('menu').textContent.toLowerCase().includes('handmade'));
+// The title steers with the arrows: the three live buttons loop and the footer
+// the stylesheet hides never takes the cursor.
+for(const id of ['open-editor','howto','menu-sound','fullscreen'])lay($(id),0,0,0,0);
+['play','chapters','settings'].forEach((id,i)=>lay($(id),72,300+i*76,300,64));
+assert.equal(document.activeElement,document.body);
+key('ArrowDown');assert.equal(document.activeElement,$('play'),'the first press lands on Play');
+key('KeyS');assert.equal(document.activeElement,$('chapters'),'S is an alias for down');
+key('ArrowDown');key('ArrowDown');assert.equal(document.activeElement,$('play'),'down past Settings loops to Play');
+key('ArrowUp');assert.equal(document.activeElement,$('settings'),'up past Play loops to Settings');
+assert(document.body.classList.contains('menu-keys'),'steering by key marks the body so the ring follows focus');
+window.dispatchEvent(new window.Event('pointerdown'));assert(!document.body.classList.contains('menu-keys'),'a pointer press takes the mark away');
+assert(!key('KeyD',{metaKey:true}).defaultPrevented,'Cmd+D stays the browser\'s');
+$('play').blur();
 await click('#chapters');assert.equal(document.querySelectorAll('.chapter-collectibles').length,4,'the chapter still being built is hidden until ß');assert(document.querySelector('.chapter-choice[data-level="0"] .chapter-collectibles').textContent.includes('0/'));assert($('menu').inert);
+// The list steers too, and opens with the cursor on a chapter rather than on
+// the close button, which stays reachable above the first one.
+assert.equal(document.activeElement,document.querySelector('.chapter-choice[data-level="0"]'),'a dialog opens with its first choice under the cursor, not its close button');
+lay(document.querySelector('#dialog .dialog-close'),508,10,44,44);
+document.querySelectorAll('#dialog .chapter-choice').forEach((b,i)=>lay(b,38,120+i*95,484,84));
+key('ArrowDown');assert.equal(document.activeElement,document.querySelector('.chapter-choice[data-level="1"]'));
+key('ArrowRight');assert.equal(document.activeElement,document.querySelector('.chapter-choice[data-level="1"]'),'a list ignores sideways presses');
+key('ArrowUp');key('ArrowUp');assert.equal(document.activeElement,document.querySelector('#dialog .dialog-close'),'up past the first choice reaches the close button');
+key('ArrowUp');assert.equal(document.activeElement,document.querySelector('.chapter-choice[data-level="3"]'),'up from the X wraps to the last choice');
+key('ArrowDown');assert.equal(document.activeElement,document.querySelector('.chapter-choice[data-level="0"]'),'down from the last wraps to the first, skipping the X');
+assert.equal(app.input.stompPressed,false,'arrows in a menu never reach the game');
+key('Escape');await settle();assert($('dialog').classList.contains('hidden'),'Escape closes a title dialog');assert(!$('menu').inert);
+await click('#chapters');
 await click('[data-action="close"]');assert(!$('menu').inert);
 await click('#settings');assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'true');
 await click('[data-action="settings-sound"]');assert.equal(app.saved.sound,false);assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'false');assert.equal($('menu-sound').getAttribute('aria-label'),'Enable sound');
 await click('[data-action="close"]');await click('#settings');assert.equal(document.querySelector('[data-action="settings-sound"]').getAttribute('aria-checked'),'false');
 await click('[data-action="close"]');await click('#menu-sound');assert.equal(app.saved.sound,true);
+// Settings mixes sliders and switches: a slider keeps left and right for its
+// value while up and down move on, and the Tab loop counts the sliders.
+await click('#settings');
+{
+  const sliders=[...document.querySelectorAll('#dialog input[type="range"]')],toggles=[...document.querySelectorAll('#dialog .title-setting')];
+  assert.equal(sliders.length,2);assert.equal(document.activeElement,sliders[0],'settings open on the music slider, the panel\'s landmark');
+  lay(document.querySelector('#dialog .dialog-close'),508,10,44,44);sliders.forEach((s,i)=>lay(s,38,120+i*50,484,40));toggles.forEach((b,i)=>lay(b,38,240+i*62,484,50));
+  assert(!key('ArrowLeft').defaultPrevented,'a slider keeps left and right for its own value');assert.equal(document.activeElement,sliders[0]);
+  key('ArrowDown');assert.equal(document.activeElement,sliders[1],'while down still steers');
+  key('ArrowDown');assert.equal(document.activeElement,toggles[0]);
+  key('ArrowUp');key('ArrowUp');assert.equal(document.activeElement,sliders[0]);
+  assert(!key('Tab',{shiftKey:true}).defaultPrevented,'Shift+Tab from the first slider is the browser\'s: the loop counts sliders now, so it no longer jumps to the last button');
+  toggles.at(-1).focus();key('Tab');assert.equal(document.activeElement,document.querySelector('#dialog .dialog-close'),'Tab past the last control wraps to the first');
+}
+await click('[data-action="close"]');
 // Stop motion: off until chosen, flipped in place, remembered, and pushed onto the running world.
 await click('#settings');assert.equal(document.querySelector('[data-action="settings-stopmotion"]').getAttribute('aria-checked'),'false');
 await click('[data-action="settings-stopmotion"]');assert.equal(app.saved.stopMotion,true);assert.equal(document.querySelector('[data-action="settings-stopmotion"]').getAttribute('aria-checked'),'true');
@@ -82,6 +128,20 @@ await click('#open-editor');await settle();assert.equal(document.querySelectorAl
 console.log('PASS title menu: slow/shared loading, overlapping play requests, immediate navigation, four chapters shown and a fifth behind ß, saved collectibles, sound preference and dialog focus boundaries');
 await click('#play');assert.equal(app.game.status,'playing');assert(editor.world);assert($('loading').classList.contains('hidden'));
 assert(!editor.world.titleView.active,'Gameplay releases the title hero and stops its render');
+// With no menu up the arrows are the game's; the pause menu takes them back,
+// and its two-up row is walked sideways.
+key('ArrowDown');assert.equal(app.input.stompPressed,true,'with no menu up, down is a stomp');app.input.stompPressed=false;window.dispatchEvent(Object.assign(new window.Event('keyup'),{code:'ArrowDown'}));
+app.pause();await settle();
+{
+  const keep=document.querySelector('#dialog .primary[data-action="resume"]'),row=[...document.querySelectorAll('#dialog .dialog-actions button')];
+  assert.equal(document.activeElement,keep,'the pause menu opens on Keep going, not on the X');
+  lay(document.querySelector('#dialog .dialog-close'),508,20,32,32);lay(keep,38,120,484,54);lay(row[0],38,190,236,46);lay(row[1],286,190,236,46);
+  key('ArrowDown');assert.equal(document.activeElement,row[0]);
+  key('KeyD');assert.equal(document.activeElement,row[1],'D moves along the row');
+  key('ArrowLeft');assert.equal(document.activeElement,row[0]);
+  assert.equal(app.input.stompPressed,false);assert.equal(app.input.moveAxis,0,'menu steering leaves the game\'s input alone');
+  key('Escape');await settle();assert.equal(app.game.status,'playing','Escape resumes');
+}
 app.pause();await click('[data-action="home"]');assert.equal(app.game.status,'menu');assert(!$('menu').inert);assert.equal($('play-label').textContent,'Play');
 assert(editor.world.titleView.active,'Returning home reuses the live scene');
 await click('#open-editor');assert(editor.active);assert.equal(app.game.status,'editing');assert(document.body.classList.contains('is-editing'));assert(!$('level-editor').classList.contains('hidden'));

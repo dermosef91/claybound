@@ -3,6 +3,7 @@ import {rampProfile} from './shaping.js';
 import {clayMaterial} from './clay.js';
 import {GIVE,giveDepth} from './clay-give.js';
 import {FORM,formHeight} from './clay-form.js';
+import {biteOutline,biteSeed} from './rot-shape.js';
 // Keep vertices across the broad faces, so curved collision profiles also
 // curve between the corners. Corner-only rounded boxes leave a flat centre.
 function roundedGrid(radius){
@@ -20,6 +21,18 @@ function roundedGrid(radius){
 // One step darker than the first pass: the reference blob is a deeper violet
 // than the lilac that ended up on screen, which read washed out against the sky.
 export const MAGIC_CLAY=0x7a55b5;
+// Bouncy clay — a formable mass whose station throws a stomper back up
+// (clay-rules.js) — is the same material in pink: a raspberry a step darker
+// than the river's hot pink, so the prints and the glitter still read, and
+// unmistakably not the violet, so the throw is never expected of clay that
+// only takes the crater. The chapters meet it later; the lab has it now.
+export const BOUNCY_CLAY=0xd9609b;
+// The two tints the skin needs beyond the colour itself: the turned-away tone
+// the light bouncing inside the clay gives it, and the glow that scatters back
+// out at the rims. The violet pair is the one the skin was tuned with.
+const VIOLET_TINTS=Object.freeze({deep:new THREE.Vector3(.62,.5,.95),rim:new THREE.Vector3(.32,.16,.8)});
+const PINK_TINTS=Object.freeze({deep:new THREE.Vector3(.96,.5,.74),rim:new THREE.Vector3(.8,.16,.44)});
+const BOUNCY_BLOCK=Object.freeze({name:'magicBlockBouncy',hex:BOUNCY_CLAY,tints:PINK_TINTS});
 function magicMaterials(w){
   if(w.mat.magicClay)return;
   const m=new THREE.MeshStandardMaterial({color:MAGIC_CLAY,roughness:.55,metalness:0,emissive:MAGIC_CLAY,emissiveIntensity:.04});
@@ -34,6 +47,16 @@ function magicMaterials(w){
 // tongue). Its geometry has to carry the `magicSeed` attribute the skin reads,
 // set the way createClayView sets it below.
 export function magicClayMaterial(w){magicMaterials(w);return w.mat.magicClay;}
+
+// The plug reacting with the rot: violet clay gone to corruption's black. One
+// plain material — the dying block has no relief left to show — lerped from the
+// clay's own violet to the rot's near-black as the reaction runs; and the dark
+// chips it falls apart into.
+const ROT_BLACK=0x2a2830;
+export function pushChipMaterial(w){return w.mat.pushChip??=new THREE.MeshStandardMaterial({color:0x3a2c48,roughness:.9,metalness:0});}
+function dissolveMaterial(view){
+  return view.clay.dissolve??=new THREE.MeshStandardMaterial({color:MAGIC_CLAY,roughness:.7,metalness:0,emissive:0x000000});
+}
 
 // One lump of clay, and nothing stuck on it. An earlier pass gave every piece a
 // separate slab on top and a cream grip ring with dents around it; on screen
@@ -69,6 +92,11 @@ export function animateClayView(view,s,dt,{near=false,playing=true,reducedMotion
     if(clay.marble)animateMarbleView(clay.marble,s);
     if(clay.socket)animateSocketView(clay.socket,s,playing?dt:0);
     if(clay.mould)animateMouldView(clay.mould,s);
+    // A plug's mass is not there until the block has dropped in — its outline
+    // is, so the mass hides its own body, not its root.
+    if(s.fixPhase)clay.pieces[0].mesh.visible=s.fixPhase!=='rot'&&s.fixPhase!=='open';
+    if(s.push)animatePushView(view,s,reducedMotion);
+    if(s.fixPhase)animateHealView(view,s,dt,reducedMotion);
     return;
   }
   // Everything about the breath holds still when the game does, envelope
@@ -220,7 +248,9 @@ function createBlockView(w,s,root,{form=false}={}){
   const stretch=new THREE.BufferAttribute(new Float32Array(count).fill(1),1);stretch.setUsage(THREE.DynamicDrawUsage);
   geometry.setAttribute('clayStretch',stretch);
   geometry.setIndex(faces);
-  const mesh=new THREE.Mesh(geometry,blockMaterial(w));mesh.castShadow=true;mesh.receiveShadow=true;
+  // Pink where the station throws a stomper back up (clay-rules.js stamps it
+  // on the platform), violet everywhere else.
+  const mesh=new THREE.Mesh(geometry,blockMaterial(w,s.bouncy?BOUNCY_BLOCK:undefined));mesh.castShadow=true;mesh.receiveShadow=true;
   mesh.name='Soft clay block';root.add(mesh);
   // Room for the swell above the top and the belly at the sides, so culling
   // never drops a block that is still on screen.
@@ -229,7 +259,7 @@ function createBlockView(w,s,root,{form=false}={}){
   const reachY=form?FORM.maxHeight:H,base=form?-(s.h||0):-H;
   geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3(W/2,base+reachY/2,0),Math.hypot(W/2+.5,reachY/2+.6,D/2+.5));
   const block={rest:new Float32Array(rest),push,down,columns:Uint16Array.from(columns),xs:Float64Array.from(xs),lift:new Float64Array(NX),version:-1,form,H,base};
-  const view={root,clay:{pieces:[{mesh,rest:block.rest}],block,breath:0,time:0},ropes:[],bounce:0};
+  const view={root,clay:{pieces:[{mesh,rest:block.rest}],block,breath:0,time:0,world:w,D},ropes:[],bounce:0};
   if(form&&s.mould)view.clay.mould=createMouldView(s,root,D,base);
   if(form&&s.marble)view.clay.marble=createMarbleView(w,s,root);
   if(form&&s.marble&&s.socket)view.clay.socket=createSocketView(w,s,root);
@@ -245,11 +275,20 @@ function createBlockView(w,s,root,{form=false}={}){
 const MOULD_INK=0xf6ecd6,MOULD_CAST=0x9be7a8,MOULD_BAND=.09;
 function createMouldView(s,root,D,base){
   const target=s.mould,n=target.length,dx=s.w/(n-1),z=D/2+.06;
-  const positions=new Float32Array(n*2*3),indices=[];
-  for(let i=0;i<n;i++){
-    const x=i*dx,y=base+target[i],j=i*6;
-    positions[j]=x;positions[j+1]=y+MOULD_BAND;positions[j+2]=z;
-    positions[j+3]=x;positions[j+4]=y-MOULD_BAND;positions[j+5]=z;
+  // The line to lie along: the target's top. A mould that is a gap to fill
+  // (`outline`) is drawn whole — down the open side, along the floor and up
+  // the wall — so it reads as the piece that is missing.
+  const line=[];for(let i=0;i<n;i++)line.push([i*dx,base+target[i]]);
+  if(s.outline)line.push([s.w,base],[0,base],[0,base+target[0]]);
+  const positions=new Float32Array(line.length*2*3),indices=[];
+  for(let i=0;i<line.length;i++){
+    const [x,y]=line[i],j=i*6;
+    // The band lies across the line: up and down along the top, side to side
+    // down the walls and along the floor.
+    const prev=line[Math.max(0,i-1)],next=line[Math.min(line.length-1,i+1)];
+    const tx=next[0]-prev[0],ty=next[1]-prev[1],len=Math.hypot(tx,ty)||1,nx=-ty/len*MOULD_BAND,ny=tx/len*MOULD_BAND;
+    positions[j]=x+nx;positions[j+1]=y+ny;positions[j+2]=z;
+    positions[j+3]=x-nx;positions[j+4]=y-ny;positions[j+5]=z;
     if(i){const a=(i-1)*2,b=i*2;indices.push(a,a+1,b,a+1,b+1,b);}
   }
   const geometry=new THREE.BufferGeometry();
@@ -263,6 +302,66 @@ function animateMouldView(mesh,s){
   const k=Math.max(0,Math.min(1,s.mouldMatch||0));
   mesh.material.opacity=.45+.45*k;
   mesh.material.color.setHex(k>=.995?MOULD_CAST:MOULD_INK);
+  // A gap's outline shows once the rot has left it, and fades as the corner
+  // mends over it.
+  if(s.fixPhase){mesh.visible=s.fixPhase!=='rot';mesh.material.opacity*=1-Math.max(0,Math.min(1,s.heal||0));}
+}
+
+// --- the plug: a block that dissolves and comes back, a corner that mends ------
+
+// The block reacting with the rot: its violet goes to the rot's black and it
+// shivers as it goes; the relief goes with the colour, since the lattice's own
+// material is shared by every mass and cannot be recoloured for one. Back on
+// the dock it pops up from a squash, about its base so it never leaves the deck.
+function animatePushView(view,s,reducedMotion){
+  const clay=view.clay,{mesh}=clay.pieces[0];
+  if(s.pushPhase==='dissolving'&&s.dissolve>0){
+    const m=dissolveMaterial(view);
+    if(mesh.material!==m){clay.liveMaterial=mesh.material;mesh.material=m;}
+    m.color.setHex(MAGIC_CLAY).lerp(new THREE.Color(ROT_BLACK),Math.min(1,s.dissolve*1.15));
+    mesh.position.x=reducedMotion?0:Math.sin(s.dissolve*140)*.03*s.dissolve;
+  } else {
+    if(clay.liveMaterial){mesh.material=clay.liveMaterial;clay.liveMaterial=null;}
+    mesh.position.x=0;
+  }
+  const pop=reducedMotion?0:Math.max(0,Math.min(1,s.pop||0))**2,sx=1+.3*pop,sy=1-.55*pop;
+  view.root.scale.set(sx,sy,sx);
+  view.root.position.set(s.x+s.w/2*(1-sx),s.y-s.h*(1-sy),0);
+}
+
+// The corner mending. `heal` is the station's own 0→1 ramp from the moment
+// the cast reads as done: a white flash over the plug for its first part, and
+// under the flash the plug becomes the bench's own clay — a patch the size of
+// the gap, body and orange cap like every bench here, standing in for the
+// lattice, which is stood down. R takes the ramp to nothing and the lattice is
+// back, dormant with the rest.
+const HEAL_FLASH=.45;
+function animateHealView(view,s){
+  const clay=view.clay,heal=Math.max(0,Math.min(1,s.heal||0)),{mesh}=clay.pieces[0];
+  if(heal<=0){
+    if(clay.flash)clay.flash.visible=false;
+    if(clay.patch)clay.patch.visible=false;
+    return;
+  }
+  const w=clay.world,D=clay.D,H=s.h;
+  if(!clay.flash){
+    clay.flash=new THREE.Mesh(new THREE.BoxGeometry(s.w+.12,H+.16,D+.12),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));
+    clay.flash.position.set(s.w/2,-H/2,0);clay.flash.renderOrder=3;clay.flash.name='Mend flash';view.root.add(clay.flash);
+  }
+  const f=heal<HEAL_FLASH?Math.sin(Math.PI*heal/HEAL_FLASH):0;
+  clay.flash.visible=f>0;clay.flash.material.opacity=.92*f;
+  if(heal>=HEAL_FLASH*.5){
+    if(!clay.patch){
+      // The whole bite the rot ate, ragged wall and all, filled with the
+      // bench's clay and capped like the bench beside it.
+      clay.patch=new THREE.Group();clay.patch.name='Mended corner';view.root.add(clay.patch);
+      const outline=biteOutline(s.w,H,biteSeed(s)),shape=new THREE.Shape(outline.map(([x,y])=>new THREE.Vector2(x,y))),depth=D-.16;
+      const body=w.mesh(new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelThickness:.05,bevelSize:.05,bevelSegments:2}),'terrain',clay.patch,0,0,-depth/2);
+      body.name='Mended clay';
+      w.box(s.w+.06,.55,D+.01,'top',clay.patch,s.w/2,-.22,0,.19);
+    }
+    clay.patch.visible=true;mesh.visible=false;
+  }
 }
 
 // The marble: a bead-gold ball that sits on the surface where the rule has it
@@ -383,21 +482,25 @@ vec3 magicGlitter(vec3 p, vec3 n, float pixel) {
 }
 `;
 
-// Layers the violet skin over a material the clay relief is already installed
+// Layers the magic skin over a material the clay relief is already installed
 // on. `source` names the clay's own coordinates and `height` how far below its
-// top a point sits, both as vertex-shader expressions.
-function magicSkin(m,source,height,declare=''){
+// top a point sits, both as vertex-shader expressions; `tints` are the deep and
+// rim tones (violet unless a bouncy pink asks otherwise), carried as uniforms
+// so the two colours share one program.
+function magicSkin(m,source,height,declare='',tints=VIOLET_TINTS){
   if(!m.userData.clay)return m;
   const compile=m.onBeforeCompile,key=m.customProgramCacheKey;
   m.onBeforeCompile=(shader,renderer)=>{
     compile.call(m,shader,renderer);
+    shader.uniforms.magicDeep={value:tints.deep};
+    shader.uniforms.magicRim={value:tints.rim};
     shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
 ${declare}
 varying vec3 vMagicPosition;
 varying float vMagicHeight;`).replace('#include <project_vertex>',`vMagicPosition = ${source};
 vMagicHeight = ${height};
 #include <project_vertex>`);
-    shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vMagicPosition;\nvarying float vMagicHeight;'+MAGIC_SKIN)
+    shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vMagicPosition;\nvarying float vMagicHeight;\nuniform vec3 magicDeep;\nuniform vec3 magicRim;'+MAGIC_SKIN)
       .replace('diffuseColor.rgb *= mix(1.0, clayData.b / 0.94, 0.55);',`diffuseColor.rgb *= mix(1.0, clayData.b / 0.94, 0.55);
 vec2 magicUV = magicPlane(vMagicPosition, vClayNormal);
 float magicPixel = max(length(dFdx(magicUV)), length(dFdy(magicUV)));
@@ -411,11 +514,11 @@ diffuseColor.rgb *= mix(0.66, 1.0, smoothstep(-7.5, -1.0, vMagicHeight));`)
       .replace('clayData.r * bumpScale, faceDirection','clayData.r * bumpScale + magicPrint * magicMask * 0.0019, faceDirection')
       .replace('#include <lights_fragment_end>',`#include <lights_fragment_end>
 // Light bouncing inside the clay keeps its turned-away sides a deep, saturated
-// violet rather than the grey the sky's ground colour would give them, and a
-// little of it scatters back out at the rims.
+// tone of its own colour rather than the grey the sky's ground colour would
+// give them, and a little of it scatters back out at the rims.
 vec3 magicUp = inverseTransformDirection(geometryNormal, viewMatrix);
-reflectedLight.indirectDiffuse *= mix(vec3(0.62, 0.5, 0.95), vec3(1.0), smoothstep(-0.8, 0.6, magicUp.y));
-totalEmissiveRadiance += vec3(0.32, 0.16, 0.8) * pow(1.0 - saturate(dot(geometryNormal, geometryViewDir)), 3.0) * 0.16;
+reflectedLight.indirectDiffuse *= mix(magicDeep, vec3(1.0), smoothstep(-0.8, 0.6, magicUp.y));
+totalEmissiveRadiance += magicRim * pow(1.0 - saturate(dot(geometryNormal, geometryViewDir)), 3.0) * 0.16;
 // Glitter at half strength, and only in about three tenths of the skin. Its
 // brightest cores clip in tone mapping, so 0.45 of the light is what reads as
 // half as bright on screen.
@@ -434,12 +537,14 @@ if (magicSparkle > 0.0) totalEmissiveRadiance += magicGlitter(vMagicPosition, no
 // thumbprint goes on being a thumbprint.
 export const BLOCK_SQUASH=2;
 
-// The shared magic clay, taught to read its relief from the rest shape.
-function blockMaterial(w){
-  if(w.mat.magicBlock)return w.mat.magicBlock;
+// The shared magic clay, taught to read its relief from the rest shape. Each
+// colour lives under its own slot in w.mat, so the streaming disposer and the
+// level rebuild treat it as shared, the way the river's streams are.
+function blockMaterial(w,{name='magicBlock',hex=MAGIC_CLAY,tints=VIOLET_TINTS}={}){
+  if(w.mat[name])return w.mat[name];
   // A fresh material rather than a clone: a clone shares the relief's settings
   // but not its shader hook, and would come out perfectly smooth.
-  const m=new THREE.MeshStandardMaterial({color:MAGIC_CLAY,roughness:.55,metalness:0,emissive:MAGIC_CLAY,emissiveIntensity:.04});
+  const m=new THREE.MeshStandardMaterial({color:hex,roughness:.55,metalness:0,emissive:hex,emissiveIntensity:.04});
   clayMaterial(w,m,.045);
   const cap=BLOCK_SQUASH.toFixed(1),compile=m.onBeforeCompile,key=m.customProgramCacheKey;
   m.onBeforeCompile=(shader,renderer)=>{
@@ -474,7 +579,7 @@ vClayPosition = clayFlat * claySize`)
   };
   m.customProgramCacheKey=()=>key.call(m)+'-rest';
   // The block's top is its rest shape's zero, so its rest height is the depth.
-  return w.mat.magicBlock=magicSkin(m,'clayFlat','clayFlat.y');
+  return w.mat[name]=magicSkin(m,'clayFlat','clayFlat.y','',tints);
 }
 
 // Rebuilds the buffer only when the heightfield has actually moved, and

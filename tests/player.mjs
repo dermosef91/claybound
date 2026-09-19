@@ -13,10 +13,15 @@ assert.equal(motion.shippedSha256,createHash('sha256').update(bytes).digest('hex
 const w={scene:new THREE.Scene(),mat:{shadow:new THREE.MeshBasicMaterial()},reducedMotion:false,time:0,mesh(g,m,parent){const o=new THREE.Mesh(g,m);parent.add(o);return o;}};
 w.character=createHero(w);w.scene.add(w.character.root);
 const gltf=await readPlayer();attachHero(w,gltf,motion,idle);const c=w.character;
-assert.equal(c.sourceClips.length,12);assert.equal(c.model.children[0],gltf.scene);
+assert.equal(c.sourceClips.length,13,'the model\'s own clips, the supplied idle and the supplied push');assert.equal(c.model.children[0],gltf.scene);
 const mesh=c.asset.getObjectByName('char1');assert(mesh.isSkinnedMesh);assert.equal(mesh.skeleton.bones.length,24);assert.equal(mesh.geometry.index.count/3,10418);
 assert(mesh.material.map);assert.equal(mesh.material.metalness,0);assert(mesh.castShadow);
-console.log('PASS original skinned GLB, all 11 source clips plus the new idle, texture references and 24-bone rig are loaded');
+// The push is the supplied take, not the one the model shipped with, cut at
+// the seam between the shove and the standing-down, both grounded.
+assert(c.clips.push&&c.clips.pushStop,'a push and its stop');
+assert.equal(c.clips.push.userData.source,'Push_Forward_and_Stop','the supplied push is preferred over the model\'s stock one');
+assert(Math.abs(c.clips.push.duration-idle.pushSplit)<1e-3&&c.clips.pushStop.duration>.5&&c.clips.pushStop.duration<1,'the shove loops up to the split, the stop is what follows');
+console.log('PASS original skinned GLB, all 11 source clips plus the supplied idle and push, texture references and 24-bone rig are loaded');
 
 const bounds=()=>{c.root.updateMatrixWorld(true);return new THREE.Box3().setFromObject(c.model,true);};
 const neutralHipY=motion.anchor[1];
@@ -53,7 +58,18 @@ game.respawnTimer=.48;heroEvent(c,{type:'fall'});animateHero(w,game,1/60);assert
 game.respawn();animateHero(w,game,1/60);assert.equal(c.death,false);assert.notEqual(c.state,'death');
 game.status='complete';animateHero(w,game,1/60);assert.equal(c.state,'victory');
 game.start(1);step(60);assert.equal(c.state,'locomotion');assert.equal(c.death,false);assert(c.weights.idle>.98);
-console.log('PASS analog walk/run blending, moving jump, paused pose, stomp, damage recovery, knockdown, respawn and celebration');
+// Leaning on a block plays the push, paced to a block that moves and not to
+// one that does not; let go standing still, the take's own stop plays once
+// and the idle follows; walking away skips the stop.
+// The simulation owns `pushing`, so here the pose is driven alone, as a
+// player standing against a block would set it.
+const pose=(n,fields)=>{for(let i=0;i<n;i++){Object.assign(game.player,fields);w.time+=1/60;animateHero(w,game,1/60);}};
+pose(20,{pushing:1,pushed:2.4});assert.equal(c.state,'push');assert(c.weights.push>.9);assert.equal(c.actions.push.timeScale,2.4,'a moving block hurries the shove');
+pose(2,{pushing:1,pushed:0});assert.equal(c.actions.push.timeScale,1,'a stopped block is leant on at the take\'s own pace');
+pose(1,{pushing:0,pushed:0});assert.equal(c.state,'pushStop');assert(c.pushStop>0);
+pose(Math.round(c.clips.pushStop.duration*60)+5,{pushing:0});assert.equal(c.state,'locomotion');assert(c.weights.idle>.5,'and the idle takes over');
+pose(10,{pushing:1});assert.equal(c.state,'push');game.player.pushing=0;step(20,{right:true});assert.equal(c.state,'locomotion');assert.equal(c.pushStop,0,'walking away skips the stop');
+console.log('PASS analog walk/run blending, moving jump, paused pose, stomp, damage recovery, knockdown, respawn, celebration, and the push with its stop');
 
 game.player.facing=-1;step(100);assert(Math.abs(c.turn-Math.PI)<.01);
 game.player.facing=1;step(100);assert(c.turn<.01);assert.equal(c.model.scale.x,c.model.scale.z);

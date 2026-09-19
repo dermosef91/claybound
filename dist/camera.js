@@ -42,3 +42,17 @@ export const anchorDragged=(anchor,p,viewH)=>Math.abs(anchor-p.y)>=verticalBand(
 export function cameraTarget(p,viewW,viewH,landscape,look=0,anchorY=p.y,facing=p.facing||1){
   return {x:p.x+viewW*.11*facing+look,y:anchorY+viewH*VERTICAL_BIAS};
 }
+
+// Where something is drawn between two ticks: `alpha` of the way from the pose
+// the last tick started at to the one it ended on. The simulation runs a fixed
+// 1/120 step and a frame seldom lands on a tick — at 120Hz one frame carries
+// one tick and the next two — so a body drawn where its last tick left it
+// trembles; the ropeway's trolley, three times a run's speed against a cable
+// that does not move, showed it first. Drawing a tick behind costs eight
+// milliseconds of latency and buys a steady picture.
+// Exactly `cur` at alpha 1: every caller but the frame loop asks for that, and
+// the checks compare positions by equality. And exactly `cur` across a jump
+// wider than any tick's travel (a fall covers .22 a tick), which is a teleport
+// — a respawn, the lab's R — to be shown where it landed rather than on the way.
+export const TELEPORT=1.5;
+export const between=(prev,cur,alpha)=>alpha>=1||!Number.isFinite(prev)||Math.abs(cur-prev)>TELEPORT?cur:prev+(cur-prev)*alpha;

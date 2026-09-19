@@ -197,6 +197,13 @@ const L=makeRoom({
   hints:[
     {x:0,end:9,icon:'walk',title:'Move and jump',text:'A / D or arrows to move. Hold jump to leap.'},
     {x:46,end:55,icon:'sink',title:'Crumbling ledges',text:'Cracked ledges crumble. Keep moving — the riverbed below them bites.'},
+    // The pocket is the game's first formable clay, so its card says what the
+    // violet stuff is and the one thing to do with it, and that this clay in
+    // particular does not wait; the 3D hand (shape-hand.js) mimes the stroke.
+    // Seventeen words, seven seconds on screen — a sign, not a manual.
+    {x:92,end:118.4,icon:'knead',title:'Soft clay',
+      text:'Violet clay can be reshaped: grab it and drag. This wet clay slumps back in seconds — build fast.',
+      touchText:'Violet clay can be reshaped: touch it and drag. This wet clay slumps back in seconds — build fast.'},
     {x:128,end:136,icon:'updraft',title:'Activate wind',text:'Step on the valve. From here the wells blow, and the wind lifts your jumps.'},
     {x:272,end:284,icon:'bell',title:'Ride the ropeway',text:'Step onto the trolley. Your weight sends it down the cable to the bell.',
       touchText:'Step onto the trolley. Your weight sends it down the cable to the bell.'}
@@ -216,16 +223,16 @@ const L=makeRoom({
 // sandstone kills and any clay at all is safe.
 //
 // What the clay is for is the flower: a perch hangs over the middle of the
-// pocket, out of reach of a jump from the level clay and of a stomp off it.
-// Pull the ground up under yourself and jump before it melts — or pull it up,
-// let go, and stomp off its top before it sinks — and the perch is yours.
+// pocket, out of reach of a jump from the level clay. Pull the ground up under
+// yourself and jump before it melts, and the perch is yours. This is the
+// game's first formable clay, and a stomp into it is only a crater — the throw
+// the lab's bouncy clay gives back is a later chapter's mechanic.
 // A knot is placed by the world x it stands at, as a share of the mass's width.
 // Rounded, because the last knot sits exactly on the far end and the division
 // that puts it there lands a whisker past 1 in binary.
 const K=(x,top)=>[Math.round((x-101.3)/17.2*1e6)/1e6,top];
-// The perch's height: past a jump (feet to 8.7) and past a stomp off the level
-// clay (9.7, with the wet clay's softer throw), within a jump off the pillar
-// the authored stroke pulls up (11.3).
+// The perch's height: past a jump off the level clay (feet to 8.7), within a
+// jump off the pillar the authored stroke pulls up (11.3).
 const POCKET_PERCH=10.6;
 L.platforms.push(p('pocket-perch',108.7,2.6,POCKET_PERCH,'ledge',{optional:true}));
 L.stamps.push({x:110,y:POCKET_PERCH+.9});
@@ -233,11 +240,10 @@ L.shaping.push(
   {id:'canyon-pocket',rule:'form',free:true,shaped:.17,icon:'spark',name:'Wet clay',verb:'Build fast, climb faster',gesture:'up',cueX:110,
    parts:['pocket-clay'],x:92,end:126,spawn:{x:96,y:6.25,groundId:'pocket-dock'},
    clump:[K(101.3,0),K(105.5,.12),K(110,-.05),K(114.5,.1),K(118.5,0)],
-   // The lab's wet pace, and a softer throw than dry clay's: wet clay gives
-   // less back under a stomp, which is what keeps the perch a pillar's climb.
-   pace:{settle:.6,relaxTime:5,relaxMin:.4,holdUnderfoot:false},launch:14,
+   // The lab's wet pace. Not bouncy: the perch is a pillar's climb and a jump.
+   pace:{settle:.6,relaxTime:5,relaxMin:.4,holdUnderfoot:false},
    solution:[{x:110,lift:0,dx:0,dy:4.8,t:1.4}],
-   hint:'Wet clay slumps back in seconds unless a hand is on it. Pull the ground up under yourself and jump for the perch before it melts, or let go and stomp off its top before it sinks. R softens it.'}
+   hint:'Wet clay slumps back in seconds unless a hand is on it. Pull the ground up under yourself and jump for the perch before it melts. R softens it.'}
 );
 
 // --- The Boulder Drop ------------------------------------------------------------

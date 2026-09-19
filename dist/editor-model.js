@@ -224,6 +224,10 @@ export function validateDraft(source,base){
           station.pace=pace;
         }
         if(s.launch!==undefined)station.launch=finite(s.launch,4,40,`station ${s.id} launch`);
+        // Whether a stomp throws the stomper back up (and the clay is drawn
+        // pink): carried only when set, so a chapter that never says so
+        // exports exactly as it did.
+        if(s.bouncy)station.bouncy=true;
         // A mould is a target surface authored like a clump; the station is done
         // when the clay lies along it, and `message` is what that announces.
         if(s.mould!==undefined){

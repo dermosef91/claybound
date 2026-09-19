@@ -4,6 +4,7 @@ import {clayModel} from './clay.js';
 import {assetURL} from './model-assets.js';
 import {animateFlowerCelebration} from './flower-celebration.js';
 import {CHARACTERS} from './characters.js';
+import {between} from './camera.js';
 import {puppetStep,boilPuppet} from './stop-motion.js';
 
 const clamp=THREE.MathUtils.clamp;
@@ -13,7 +14,17 @@ const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
 // expressed in. A taller character carries all of them up with it.
 const MODEL_HEIGHT=1.78;
 const SOURCE={idle:'Armature|Idle_9|baselayer',longIdle:'Idle_03',walk:'Walking',run:'Running',jump:'Regular_Jump',leap:'Jump_Over_Obstacle_2',hurt:'Face_Punch_Reaction_2',death:'Knock_Down',victory:'Skip_Forward'};
-const LOOPING=new Set(['idle','walk','run','victory']);
+// The push is the one state a rig may lack: it arrived after the set, as a
+// clip of its own, so it is whichever supplied clip names a push — a supplied
+// take before any the model shipped with — and a character without one walks
+// against a block the way it walks anywhere. The take pushes and then stops:
+// `pushSplit` (from the supplied set) is where the shoving ends, so the push
+// state loops up to it and `pushStop` is the standing-down that follows,
+// played once when the block is let go. While the block goes, the loop runs
+// at `PUSH_PACE` times its own speed: the take shoves slowly, the block does not.
+const pushSource=names=>names.find(name=>/push/i.test(name));
+const PUSH_PACE=2.4;
+const LOOPING=new Set(['idle','walk','run','victory','push']);
 // The impact response. A landing sets the deformation outright, so its peak is
 // on the frame of contact rather than a twentieth of a second after it, and a
 // damped spring relaxes it with the rebound clay gives back. Jump, spring and
@@ -86,13 +97,17 @@ export function makeHeroClips(animations,motion,animation){
     }
     const result=excerpt(clip,name,start,end);result.userData={source,mode};return result;
   }
+  const push=pushSource(supplied.map(clip=>clip.name))||pushSource(animations.map(clip=>clip.name));
+  const split=push&&Number.isFinite(animation.pushSplit)&&animation.pushSplit<originals.get(push).duration-.1?animation.pushSplit:null;
   return {
     idle:prepare(SOURCE.idle,'idle','ground'),longIdle:prepare(SOURCE.longIdle,'longIdle','ground'),walk:prepare(SOURCE.walk,'walk','ground'),run:prepare(SOURCE.run,'run','ground'),
     jumpRise:prepare(SOURCE.jump,'jumpRise','air',.53,.86),jumpFall:prepare(SOURCE.jump,'jumpFall','air',.88,1.13),
     leapRise:prepare(SOURCE.leap,'leapRise','air',.1,.39),leapFall:prepare(SOURCE.leap,'leapFall','air',.43,.60),
     stomp:prepare(SOURCE.jump,'stomp','air',1.03,1.13),land:prepare(SOURCE.jump,'land','ground',1.2,1.7),
     hurt:prepare(SOURCE.hurt,'hurt','ground',.70,1.40),death:prepare(SOURCE.death,'death','ground',.08,1.1),
-    victory:prepare(SOURCE.victory,'victory','ground')
+    victory:prepare(SOURCE.victory,'victory','ground'),
+    ...(push?{push:prepare(push,'push','ground',0,split??undefined)}:{}),
+    ...(split?{pushStop:prepare(push,'pushStop','ground',split+.03)}:{})
   };
 }
 
@@ -199,14 +214,14 @@ export function heroEvent(c,e){
   if(e.type==='respawn'){
     if(c.flower){c.flower.root.visible=false;if(c.flower.basePose)for(const [bone,q] of c.flower.basePose)bone.quaternion.copy(q);c.flower.basePose=null;}
     c.idleTime=0;c.idleVariant='idle';c.longIdlePlayed=false;
-    c.spring=0;c.springV=0;c.gait=0;c.hurt=0;c.landing=0;c.death=false;c.lastVx=0;c.jumpKind='jump';
+    c.spring=0;c.springV=0;c.gait=0;c.hurt=0;c.landing=0;c.pushStop=0;c.death=false;c.lastVx=0;c.jumpKind='jump';
     c.body.scale.setScalar(1);c.body.rotation.set(0,0,0);c.turn=0;c.root.rotation.y=0;
     if(c.loaded){for(const [name,action] of Object.entries(c.actions)){action.reset().play();action.setEffectiveWeight(name==='idle'?1:0);c.weights[name]=name==='idle'?1:0;}c.mixer.update(0);}
     c.state='idle';
   }
 }
 
-export function animateHero(w,game,dt){
+export function animateHero(w,game,dt,alpha=1){
   const c=w.character,p=game.player,paused=game.status==='paused';
   // Remove last frame's procedural pose before the mixer evaluates its clips.
   if(c.flower?.basePose){for(const [bone,q] of c.flower.basePose)bone.quaternion.copy(q);c.flower.basePose=null;}
@@ -216,10 +231,13 @@ export function animateHero(w,game,dt){
   // holds and cuts together rather than the clips stepping inside a body that
   // still glides. The root's position is set from the simulation and stays smooth.
   const step=paused?0:puppetStep(w.puppetClock,dt),air=!p.groundId;
-  c.clock+=step;c.root.position.set(p.x,p.y,.48);c.lastVx=p.vx;
+  // Drawn `alpha` of the way between the last two ticks (camera.js `between`),
+  // as the decks are, so a rider and their deck move as one.
+  const x=between(p.prevX,p.x,alpha),y=between(p.prevY,p.y,alpha);
+  c.clock+=step;c.root.position.set(x,y,.48);c.lastVx=p.vx;
   c.turn=damp(c.turn,p.facing<0?Math.PI:0,26,step);c.root.rotation.y=c.turn;
   if(c.loaded){
-    c.hurt=Math.max(0,c.hurt-step);c.landing=Math.max(0,c.landing-step);
+    c.hurt=Math.max(0,c.hurt-step);c.landing=Math.max(0,c.landing-step);c.pushStop=Math.max(0,(c.pushStop||0)-step);
     const speed=game.status==='playing'?Math.abs(p.vx):0;
     if(!paused){
       const encounter=game.level.boss&&!['sleeping','defeated'].includes(game.level.boss.state);
@@ -244,7 +262,16 @@ export function animateHero(w,game,dt){
     else if(c.hurt>0||p.stunTime>0)state='hurt';
     else if(air)state=p.stomping?'stomp':`${c.jumpKind}${p.vy>0?'Rise':'Fall'}`;
     else if(c.landing>0&&speed<2.4)state='land';
+    // Leaning on a block: the push, where the rig has one; a walk otherwise.
+    // A block let go of standing still gets the take's own standing-down.
+    else if(p.pushing&&c.actions.push)state='push';
+    else if(c.pushStop>0&&speed<1&&c.actions.pushStop)state='pushStop';
     else state='locomotion';
+    if(!paused){
+      if(c.state==='push'&&state!=='push'&&state!=='pushStop'&&!air&&speed<1&&c.actions.pushStop){c.pushStop=c.clips.pushStop.duration;state='pushStop';}
+      else if(state!=='pushStop')c.pushStop=0;
+    }
+    if(c.actions.push)c.actions.push.timeScale=state==='push'&&Math.abs(p.pushed||0)>.5?PUSH_PACE:1;
     // Pausing freezes both the current pose and crossfade, even during a jump.
     if(!paused)transition(c,state);
     const target={};
@@ -294,5 +321,6 @@ export function animateHero(w,game,dt){
   for(const s of game.level.platforms)if(s.active&&!s.broken&&p.x>s.x-.2&&p.x<s.x+s.w+.2&&p.y>=s.y-.15&&(!beneath||s.y>beneath.y))beneath=s;
   c.shadow.visible=c.loaded&&!!beneath&&p.y-beneath.y<8&&!dying;
   // The pool under a bigger character is bigger; its softening with height is not.
-  if(beneath){const height=Math.max(0,p.y-beneath.y),scale=c.build/(1+height*.15);c.shadow.position.set(p.x,beneath.y+.10,.48);c.shadow.scale.set(scale,scale*.58,1);c.shadow.material.opacity=.22/(1+height*.36);}
+  // The deck is drawn between ticks too, so the pool sits on the drawn deck.
+  if(beneath){const floor=between(beneath.prevY,beneath.y,alpha),height=Math.max(0,y-floor),scale=c.build/(1+height*.15);c.shadow.position.set(x,floor+.10,.48);c.shadow.scale.set(scale,scale*.58,1);c.shadow.material.opacity=.22/(1+height*.36);}
 }

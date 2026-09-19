@@ -1,7 +1,7 @@
 // The frame's own behaviour, independent of the renderer: what the player sees
 // when they jump, fall, land and turn around.
 import assert from 'node:assert/strict';
-import {cameraFraming, cameraTarget, cameraAnchorY, anchorDragged, verticalBand, VERTICAL_BAND, VERTICAL_BIAS} from '../dist/camera.js';
+import {cameraFraming, cameraTarget, cameraAnchorY, anchorDragged, verticalBand, between, TELEPORT, VERTICAL_BAND, VERTICAL_BIAS} from '../dist/camera.js';
 import {Game, RULES, FIXED_DT} from '../dist/simulation.js';
 
 const wide = cameraFraming(844, 390, 'desert');
@@ -93,3 +93,18 @@ assert(VERTICAL_BAND > 0 && VERTICAL_BIAS > 0);
 const zeroFacing = cameraTarget({...still, facing: 0}, wide.viewW, wide.viewH, true);
 assert(zeroFacing.x > still.x, 'a character with no facing still gets a lead, not a collapse');
 console.log('PASS anchor seeding, unset facing and constant sanity');
+
+// --- drawing between ticks ---------------------------------------------------
+// The frame loop draws `alpha` of the way from the pose the last tick started
+// at to the one it ended on; alpha 1 is the simulated pose itself, and a jump
+// wider than any tick's travel is a teleport, shown where it landed.
+assert.equal(between(.1, .3, 1), .3, 'alpha 1 is exactly the current pose, not a lerp that lands a bit off it');
+assert.equal(between(1, 2, 0), 1);
+assert.equal(between(1, 2, .5), 1.5);
+assert.equal(between(0, 1, .25), .25);
+assert.equal(between(undefined, 7, .5), 7, 'a body with no previous pose draws where it is');
+assert.equal(between(NaN, 7, .5), 7);
+assert.equal(between(0, TELEPORT + .01, .5), TELEPORT + .01, 'a teleport is not drawn on the way');
+assert.equal(between(0, TELEPORT - .01, .5), (TELEPORT - .01) / 2, 'and anything a tick can travel is');
+assert(TELEPORT > .3, 'the teleport threshold clears a full-speed fall\'s tick (about .22)');
+console.log('PASS between: exact at alpha 1, linear inside a tick, and snapped across a teleport');

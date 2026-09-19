@@ -8,7 +8,8 @@ import {resetSpitter,contactSpitter,updateShots} from './spitter-rules.js';
 import {DREAM_KINDS,contactDreamEnemy,resetDreamEnemy} from './dream-enemy-rules.js';
 
 import {claySurface,clayWallBounds,updateShaping,stompClay,formWallAhead,formStaysGrounded,formSteepAt,resolveFormBody} from './shaping.js';
-import {solveFormStation} from './clay-rules.js';
+import {solveFormStation,healFix} from './clay-rules.js';
+import {resolvePush} from './clay-push.js';
 import {bridgeOffset} from './bridge-surface.js';
 import {MOTHER_PUFF,motherCinematic,motherIntroTarget,updateMotherPuff,contactMotherPuff,resetMotherPuff} from './mother-puff-rules.js';
 
@@ -52,7 +53,7 @@ export function domeSteepAt(s,x,radius){
   const left=domeSurface(s,x)-domeSurface(s,x-radius),right=domeSurface(s,x+radius)-domeSurface(s,x);
   return Math.sign(left)===Math.sign(right)&&Math.min(Math.abs(left),Math.abs(right))/radius>DOME_WALK;
 }
-export const surfaceAt=(s,x,previous=false)=>s.shape?claySurface(s,x,previous):s.kind==='dome'?domeSurface(s,x,previous):(previous?s.prevY:s.y)+(s.kind==='bridge'?bridgeOffset(s,x-(previous?s.prevX:s.x)):s.kind==='balance'?Math.sin(previous?s.prevAngle:s.angle)*(x-(previous?s.prevX:s.x)-s.w/2):0);
+export const surfaceAt=(s,x,previous=false)=>s.shape||s.form?claySurface(s,x,previous):s.kind==='dome'?domeSurface(s,x,previous):(previous?s.prevY:s.y)+(s.kind==='bridge'?bridgeOffset(s,x-(previous?s.prevX:s.x)):s.kind==='balance'?Math.sin(previous?s.prevAngle:s.angle)*(x-(previous?s.prevX:s.x)-s.w/2):0);
 
 export class Game {
   constructor(onEvent=()=>{}) {this.onEvent=onEvent;this.status='menu';this.load(0);this.status='menu';}
@@ -109,8 +110,16 @@ export class Game {
     const shaped=new Set(Array.isArray(save.shaped)?save.shaped:[]);
     for(const station of this.level.shaping||[])if(shaped.has(station.id)){
       const mass=station.rule==='form'&&this.level.platforms.find(s=>s.id===station.parts[0]);
-      if(mass){if(this.checkpoint.x>mass.x+mass.w)solveFormStation(station,mass,{dt:FIXED_DT});}
+      // A mended corner is mended again, plug seated and cast, without the
+      // show; its channel is part of the corner holding, so it is latched with it.
+      if(station.fix){healFix(station);if(station.channel){this.latched[station.channel]=true;this.channels[station.channel]=1;}}
+      else if(mass){if(this.checkpoint.x>mass.x+mass.w)solveFormStation(station,mass,{dt:FIXED_DT});}
       else {station.target=1;station.amount=1;station.announced=true;}
+    }
+    // A rot the player has already brought down stays down, gap open.
+    for(const station of this.level.shaping||[]){
+      const rot=station.fix?.rotPlatform;
+      if(rot&&Array.isArray(save.broken)&&save.broken.includes(rot.id)){rot.broken=true;rot.active=false;}
     }
     // A rock that went over its edge stays down where it fell: the clay above
     // cannot reach it any more, and the planks it smashed are in `broken`.
@@ -173,7 +182,9 @@ export class Game {
     const p=this.player;Object.assign(p,{...this.checkpoint,vx:0,vy:0,health:p.health<=0?RULES.maxHealth:Math.min(RULES.maxHealth,p.health),invuln:1.4,groundId:null,coyote:.135,jumpBuffer:0,stomping:false,springing:false,skidding:false,stride:0,stompWindup:0,dropTimer:0,dropThrough:null,stunTime:0,sporeGrace:0,zipGrace:0,stunJumpQueued:false});
     resetMotherPuff(this,this.level.boss?.state==='defeated');
     // A failed timed crossing always resets its route so the switch can be used again.
-    this.level.platforms.forEach(s=>{if(s.kind==='crumble'){s.active=true;s.timer=0;}});
+    // A rotten deck that has gone does not come back with the player: its gap
+    // is the puzzle, and only R closes it.
+    this.level.platforms.forEach(s=>{if(s.kind==='crumble'&&!s.broken){s.active=true;s.timer=0;}});
     this.shots=[];this.level.enemies.forEach(e=>{resetBat(e,this.time);resetDrifter(e,this.time);resetSpore(e);resetSpitter(e);resetDreamEnemy(e);});
     for(const s of this.level.platforms)if(s.kind==='ferry'){s.x=s.prevX=s.baseX;s.velocity=0;s.emptyTime=0;s.drive=0;}
     // A zip trolley goes back to its mast too: dying halfway down a cable must
@@ -216,6 +227,11 @@ export class Game {
     this.time+=dt;this.elapsed+=dt;
     const p=this.player, L=this.level;
     const previousPlayer={x:p.x,y:p.y};
+    // Kept on the player too, for the frame: the world draws them between this
+    // pose and the one the tick ends on (camera.js `between`), so a display
+    // whose frames land one tick or two never sees them stutter. Recorded
+    // before the machines move, so a carried rider's step is inside it.
+    p.prevX=p.x;p.prevY=p.y;
     updateMotherPuff(this,dt);
     if(motherCinematic(L.boss)){
       // Keep gravity and landing live; gently bring the player beside her for
@@ -287,8 +303,13 @@ export class Game {
       }
       if(s.kind==='crumble'&&s.timer>0) {
         s.timer+=dt;
-        if(s.timer>(s.delay||.62)&&s.active){s.active=false;this.event('crumble-collapse',{platformId:s.id,x:s.x+s.w/2,y:s.y,w:s.w});}
-        if(s.timer>3.8){s.timer=0;s.active=true;}
+        // A rotten deck goes for good: no regrowing, and whoever was on it has
+        // no ground left to jump from.
+        if(s.timer>(s.delay||.62)&&s.active){
+          s.active=false;if(s.rot){s.broken=true;if(p.groundId===s.id)p.coyote=0;}
+          this.event('crumble-collapse',{platformId:s.id,x:s.x+s.w/2,y:s.y,w:s.w,h:s.h,rot:!!s.rot});
+        }
+        if(s.timer>3.8&&!s.broken){s.timer=0;s.active=true;}
       }
     }
     updateShaping(this,dt,input);
@@ -313,7 +334,9 @@ export class Game {
       // A yellow river: the deck itself stands still, but whatever stands on
       // it is carried along at `conveyor` units a second, walking or not.
       if(oldGround.conveyor)p.x+=oldGround.conveyor*dt;
-      p.coyote=.135;
+      // Rotten ground is no ground to jump from: it gives under the stand, and
+      // gives nothing back.
+      p.coyote=oldGround.rot?0:.135;
     }
     else {p.groundId=null;p.coyote=Math.max(0,p.coyote-dt);}
     if(p.stunTime>0)p.jumpBuffer=0;
@@ -346,6 +369,23 @@ export class Game {
     p.vy=Math.max(-26,p.vy);
     p.x=Math.max(-6,p.x+p.vx*dt);p.y+=p.vy*dt;
     p.groundId=null;
+    // A block that is pushed: a grounded walk that runs into its face carries
+    // it ahead by a walk's third, as far as the first wall in its way. The
+    // passes below then set the walker against the face where it now stands.
+    // `pushing` is the way the walker leans on a block this tick, for the
+    // character's pose: pushing right, pushing left, or not at all; `pushed`
+    // is how fast the block went, so a shove that moves nothing reads as a lean.
+    p.pushing=0;p.pushed=0;
+    if(oldGround&&!p.stomping)for(const s of L.platforms)if(s.push&&s.active!==false){
+      const walls=[];
+      for(const q of L.platforms){
+        if(q===s||q.active===false||q.broken)continue;
+        const box=wallBox(q);if(box){walls.push(box);continue;}
+        if(solidWall(q)&&!q.push)walls.push({x:q.x,w:q.w,top:q.y,bottom:q.y-solidDepth(q)});
+      }
+      const moved=resolvePush(s,p,{prevX,radius:RULES.radius,height:RULES.height,dt,walls});
+      if(s.pushContact){p.pushing=s.pushContact;p.pushed=moved/dt;}
+    }
     // Wall blocks occupy their full rectangle. Resolve horizontal travel
     // against the previous height, then stop rising heads at the underside.
     // Swept edges also catch narrow blocks at high movement speeds.
@@ -381,9 +421,16 @@ export class Game {
       const s=candidates[0],impact=p.vy;
       if(s.kind==='break'&&p.stomping&&!s.rockOnly) {
         this.breakPlatform(s,p.x,s.y);p.vy=-14;p.stomping=false;
+      } else if(s.kind==='crumble'&&s.rot&&p.stomping) {
+        // A stomp brings a rotten deck down at once, for good, and the
+        // stomper is thrown back up off it a little, as off a squashed enemy.
+        s.active=false;s.broken=true;s.timer=(s.delay||.62)+.001;
+        this.event('crumble-collapse',{platformId:s.id,x:s.x+s.w/2,y:s.y,w:s.w,h:s.h,rot:true,stomped:true});
+        p.y=s.y;p.vy=9.5;p.groundId=null;p.coyote=0;p.stomping=false;p.stompWindup=0;p.springing=true;p.squash=.3;
+        this.event('land',{x:p.x,y:p.y,strong:true,impact:-impact,platformId:s.id});
       } else {
         if(s.shape&&p.stomping)stompClay(this,s);
-        p.y=surfaceAt(s,p.x);p.vy=0;p.groundId=s.id;p.coyote=.135;p.springing=false;
+        p.y=surfaceAt(s,p.x);p.vy=0;p.groundId=s.id;p.coyote=s.rot?0:.135;p.springing=false;
         if(impact<-2){p.squash=Math.min(.4,-impact*.019);this.event('land',{x:p.x,y:p.y,strong:p.stomping,impact:-impact,platformId:s.id});}
         if(s.kind==='spring') {
           p.vy=(input.jumpHeld?18.7:17.6)+(p.stomping?1.7:0);p.groundId=null;p.coyote=0;p.squash=.34;p.springing=true;
@@ -404,7 +451,8 @@ export class Game {
     // Tall solid towers have sides; ledges and rope decks can be jumped through.
     // Formable clay goes last, so it answers to where the walls beside it have
     // already put the player.
-    for(const s of L.platforms.some(s=>s.form)?[...L.platforms].sort((a,b)=>(a.form?1:0)-(b.form?1:0)):L.platforms)if(s.kind!=='wall'&&(solidWall(s)||s.shape)&&p.y<(s.shape?surfaceAt(s,p.x):s.y)-.12&&p.y+RULES.height>s.y-(s.shape?s.h:solidDepth(s))){
+    // A dormant mass — a plug not yet in its gap — has no body at all.
+    for(const s of L.platforms.some(s=>s.form)?[...L.platforms].sort((a,b)=>(a.form?1:0)-(b.form?1:0)):L.platforms)if(s.kind!=='wall'&&s.active!==false&&(solidWall(s)||s.shape)&&p.y<(s.shape||s.form?surfaceAt(s,p.x):s.y)-.12&&p.y+RULES.height>s.y-(s.shape||s.form?s.h:solidDepth(s))){
       const bounds=s.shape?clayWallBounds(s,p.y+RULES.height):{left:s.x,right:s.x+s.w};
       if(p.x+RULES.radius>bounds.left&&p.x-RULES.radius<bounds.right){
         // A block of soft clay has no sides above the deepest it can give. Feet

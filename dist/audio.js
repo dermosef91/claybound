@@ -272,6 +272,18 @@ export class Sound {
     this.windVoices=[];this.windGain=null;this.windSwellGain=null;
   }
   tone(freq,duration=.12,type='sine',volume=.04,slide=1,music=false){if(!this.enabled||!this.foreground||!this.ctx)return;const now=this.ctx.currentTime;const o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,now);o.frequency.exponentialRampToValueAtTime(Math.max(30,freq*slide),now+duration);g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(volume,now+.012);g.gain.exponentialRampToValueAtTime(.001,now+duration);o.connect(g);g.connect(music?this.motifGain:this.effectsBus);o.start(now);o.stop(now+duration+.02);}
+  // A hiss: white noise through a high-pass, swelling in over a few
+  // milliseconds and dying away over `duration`. The one synthesized sound with
+  // no pitch to it, for clay reacting rather than clay struck.
+  noise(duration=.5,volume=.04,highpass=1600){
+    if(!this.enabled||!this.foreground||!this.ctx)return;
+    const ctx=this.ctx,now=ctx.currentTime,rate=ctx.sampleRate,buffer=ctx.createBuffer(1,Math.ceil(rate*duration),rate),data=buffer.getChannelData(0);
+    for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;
+    const source=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),g=ctx.createGain();
+    source.buffer=buffer;filter.type='highpass';filter.frequency.value=highpass;filter.Q.value=.7;
+    g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(volume,now+.03);g.gain.exponentialRampToValueAtTime(.001,now+duration);
+    source.connect(filter);filter.connect(g);g.connect(this.effectsBus);source.start(now);source.stop(now+duration+.02);
+  }
   bufferEffect(buffer,volume=.5,duration,playbackRate=1,offset=0){
     if(!buffer)return false;
     const source=this.ctx.createBufferSource(),gain=this.ctx.createGain();source.buffer=buffer;gain.gain.value=volume;source.connect(gain);gain.connect(this.effectsBus);
@@ -310,7 +322,14 @@ export class Sound {
     // Unlike the footstep, this one plays to its end: the rubble settles over
     // about the second the fragments take to fall. A deck regrows and can break
     // again every few seconds, so the pitch moves a little on each collapse.
-    if(type==='crumble-collapse'&&this.bufferEffect(this.ledgeCollapseBuffer,.13,undefined,.94+Math.random()*.12))return;
+    if(type==='crumble-collapse'&&this.bufferEffect(this.ledgeCollapseBuffer,event.rot?.2:.13,undefined,event.rot?.8:.94+Math.random()*.12))return;
+    // The plug meeting the rot: a hiss while it reacts, the ledge's own rubble
+    // as it goes to pieces, a soft pop as it comes back, and a low thud as it
+    // drops into the gap and seats.
+    if(type==='push-dissolve'){this.noise(.55,.05,1700);return;}
+    if(type==='push-shatter'){if(!this.bufferEffect(this.ledgeCollapseBuffer,.12,undefined,1.1))this.tone(140,.2,'triangle',.03,.5);return;}
+    if(type==='push-respawn'){this.tone(520,.14,'sine',.025,1.3);return;}
+    if(type==='push-locked'){this.tone(110,.24,'triangle',.04,.6);return;}
     if(type==='mother-open'){
       if(!this.bufferEffect(this.motherGrowlBuffer,.2))this.tone(90,1.5,'sine',.04,.65);
       return;
