@@ -79,15 +79,21 @@ const OPTIONAL=new Set(['head_end']);
 // unnoticed. On the explorer — a child's build, hands as wide as its forearms,
 // a pelvis half the original's width for the same splay of thigh — it did not:
 // the mitts flared out from under the sleeves and the knees bowed out over the
-// boots. These are degrees about the model's own axes, applied to the named
-// joint at rest and nowhere else: a child that is aimed keeps its own aim, so
-// turning a thigh moves the knee without tipping the boot beneath it. Read them
-// off `scripts/measure-pose.mjs`, judge them on `scripts/review-cast.cjs`.
+// boots, and the stance the references asked for — feet a boot apart, elbows
+// bent with the fists out beside the coat — is not one the original strikes.
+// These are degrees about the model's own axes as the character stands at
+// idle (x tips a limb's end forward for negative values, z turns it toward the
+// model's +x), applied to the named joint and nowhere else: a child that is
+// aimed keeps its own aim, so turning a thigh moves the knee without tipping
+// the boot beneath it. Read them off `scripts/measure-pose.mjs`, judge them on
+// `scripts/review-cast.cjs`.
 const TUNE={
   explorer:{
-    LeftHand:[9,0,-7],RightHand:[9,0,22],
-    LeftUpLeg:[0,0,-10],RightUpLeg:[0,0,10],
-    LeftLeg:[0,0,7],RightLeg:[0,0,-7]
+    LeftArm:[0,0,21],RightArm:[0,0,-19],
+    LeftForeArm:[-40,0,16],RightForeArm:[-40,0,-14],
+    LeftHand:[-32,0,7],RightHand:[-32,0,22],
+    LeftUpLeg:[5,0,2],RightUpLeg:[-5,0,2],
+    LeftLeg:[5,0,24],RightLeg:[-5,0,-24]
   }
 };
 const PREFIX='mixamorig';
@@ -148,11 +154,6 @@ for(const {from,source,joint} of pairs){
     :YAW.has(from)?new THREE.Quaternion().setFromUnitVectors(flat(aim(source,bone(donor.scene,TOES[from]))),flat(aim(joint,bone(target.scene,JOINTS[TOES[from]]))))
     :inherit(swings,joint);
   swings.set(joint,swing);
-  // A correction sits between the swing and the original's motion, so it turns
-  // the joint in the model's own axes at rest and rides along unchanged after.
-  const turn=TUNE[name]?.[joint.name],
-    correction=turn?new THREE.Quaternion().setFromEuler(new THREE.Euler(...turn.map(THREE.MathUtils.degToRad))):new THREE.Quaternion();
-  frame.set(joint,rest.get(source).clone().invert().multiply(correction).multiply(swing.clone().invert()).multiply(rest.get(joint)));
 }
 const hips=bone(target.scene,'Hips'),donorHips=bone(donor.scene,'Hips');
 const restHipsLocal=hips.position.clone();
@@ -174,6 +175,26 @@ const pushName=suppliedClips.map(c=>c.name).find(name=>/push/i.test(name))||[...
 if(pushName){WANTED.push(pushName);GROUNDED.add(pushName);}
 const mixer=new THREE.AnimationMixer(donor.scene);
 const world=new Map(),scratch=new THREE.Quaternion(),local=new THREE.Quaternion(),hipsWorld=new THREE.Vector3();
+
+// A correction sits between the swing and the original's motion, so it rides
+// along unchanged through every clip. Its degrees are written the way they are
+// read — about the model's axes with the character standing at idle — and
+// the original stands at idle forty degrees of arm away from its A-pose rest,
+// so each is carried back through that joint's idle-to-rest turn before it is
+// kept; applied at rest in the frame below, it comes out at idle as written.
+{
+  const standing=mixer.clipAction(sources.get(WANTED[0]));standing.play();standing.time=0;mixer.update(0);donor.scene.updateMatrixWorld(true);
+  for(const {source,joint} of pairs){
+    const turn=TUNE[name]?.[joint.name],swing=swings.get(joint);
+    const correction=new THREE.Quaternion();
+    if(turn){
+      const idle=source.getWorldQuaternion(new THREE.Quaternion()).multiply(rest.get(source).clone().invert());
+      correction.copy(idle).invert().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(...turn.map(THREE.MathUtils.degToRad)))).multiply(idle);
+    }
+    frame.set(joint,rest.get(source).clone().invert().multiply(correction).multiply(swing.clone().invert()).multiply(rest.get(joint)));
+  }
+  mixer.stopAllAction();mixer.uncacheClip(sources.get(WANTED[0]));
+}
 
 function retarget(source){
   const clip=sources.get(source);if(!clip)throw new Error(`The original character has no clip named ${source}.`);
