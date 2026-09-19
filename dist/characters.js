@@ -52,12 +52,12 @@ export const CHARACTERS=[
     height:STANDING*1.5,orangeSource:0,bonePrefix:'mixamorig'
   },
   {
-    id:'apprentice',name:'Clay apprentice',note:'Terracotta and cream, capped. Who you start as.',
+    id:'apprentice',name:'Clay apprentice',note:'Terracotta and cream, capped.',
     model:'apprentice.glb',motion:'apprentice-motion.json',animation:'apprentice-animation.json',
     height:STANDING*1.15,orangeSource:0,clayDepth:.06,mirror:true
   },
   {
-    id:'explorer',name:'Raincoat explorer',note:'Sunflower yellow, chestnut and olive.',
+    id:'explorer',name:'Raincoat explorer',note:'Marigold, chestnut and olive. Who you start as.',
     model:'explorer.glb',motion:'explorer-motion.json',animation:'explorer-animation.json',
     height:STANDING*1.2,orangeSource:0,bonePrefix:'mixamorig'
   }
@@ -65,6 +65,6 @@ export const CHARACTERS=[
 
 // Who everyone plays as until they choose otherwise. The original stays first
 // in the list — it is the rig the others were retargeted from, and every test
-// that reads CHARACTERS[0] means it — but the apprentice is the one worn.
-export const DEFAULT_CHARACTER='apprentice';
+// that reads CHARACTERS[0] means it — but the explorer is the one worn.
+export const DEFAULT_CHARACTER='explorer';
 export const characterChoice=id=>CHARACTERS.find(entry=>entry.id===id)||CHARACTERS.find(entry=>entry.id===DEFAULT_CHARACTER);

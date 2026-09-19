@@ -59,7 +59,7 @@ const lay=(el,left,top,width,height)=>{assert(el,'element to lay out');rects.set
 const key=(code,props={})=>{const e=Object.assign(new window.Event('keydown',{bubbles:true,cancelable:true}),{code,...props});window.dispatchEvent(e);return e;};
 // Title navigation is available before the expensive WebGL scene loads.
 assert($('loading').classList.contains('hidden'));assert(!$('menu').inert);
-assert.equal(app.saved.character,'apprentice','a fresh device wears the apprentice');
+assert.equal(app.saved.character,'explorer','a fresh device wears the explorer');
 assert.equal(app.saved.stopMotion,true,'and plays in stop motion');assert.equal(app.saved.stopMotionChosen,false,'without having chosen to');
 assert.equal($('play-label').textContent,'Play');assert(!$('menu').textContent.toLowerCase().includes('handmade'));
 // The title steers with the arrows: the three live buttons loop and the footer

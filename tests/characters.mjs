@@ -23,7 +23,7 @@ const load=async choice=>({
 });
 
 assert.equal(characterChoice('emberleaf').id,'emberleaf');
-assert.equal(DEFAULT_CHARACTER,'apprentice','the apprentice is who everyone starts as');
+assert.equal(DEFAULT_CHARACTER,'explorer','the explorer is who everyone starts as');
 assert.equal(characterChoice('nobody').id,DEFAULT_CHARACTER,'an unknown id falls back to the default');
 assert.equal(characterChoice(undefined).id,DEFAULT_CHARACTER);
 assert.equal(CHARACTERS[0].id,'clay','the original stays first in the cast: it is the rig the others were retargeted from');
