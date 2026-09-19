@@ -1,0 +1,35 @@
+{
+  "source": "Meshy_AI_Raincoat_Explorer_Running.glb",
+  "sourceSha256": "594c8769a4c94306fab9ce306bd77ae72fabe52c48348e5a3286a318b2bab4ad",
+  "shippedSha256": "486ddb9833db7a07c4f0199e3fc6e6d33d13bb2ea8427f11a9f05ae004607ba1",
+  "sourceBytes": 12051496,
+  "shippedBytes": 3612256,
+  "textures": [
+    {
+      "role": "normal",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "baseColor",
+      "size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "role": "other",
+      "size": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "textureLimit": 1024,
+  "geometryUnchanged": true,
+  "geometrySha256": "79b41d4e5def8592ce49dd0fa4a90a88837c3de23296c438a0f91d42cd8cf9cc",
+  "animations": 2,
+  "triangles": 17812
+}

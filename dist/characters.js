@@ -8,7 +8,7 @@
 //
 // The supplied files each arrived with at most a single Running cycle, so
 // scripts/prepare-character.mjs retargets the rest of the set from the original
-// rig. Three of them name their joints the way the original does under a vendor
+// rig. Four of them name their joints the way the original does under a vendor
 // prefix, which hero.js drops on load. The apprentice came off another exporter
 // entirely — its own anatomy of names, no clips, and a root bone carrying the
 // tilt of whatever authored it — so scripts/prepare-rig.mjs settled its names
@@ -55,6 +55,11 @@ export const CHARACTERS=[
     id:'apprentice',name:'Clay apprentice',note:'Terracotta and cream, capped. Who you start as.',
     model:'apprentice.glb',motion:'apprentice-motion.json',animation:'apprentice-animation.json',
     height:STANDING*1.15,orangeSource:0,clayDepth:.06,mirror:true
+  },
+  {
+    id:'explorer',name:'Raincoat explorer',note:'Sunflower yellow, chestnut and olive.',
+    model:'explorer.glb',motion:'explorer-motion.json',animation:'explorer-animation.json',
+    height:STANDING*1.5,orangeSource:0,bonePrefix:'mixamorig'
   }
 ];
 
