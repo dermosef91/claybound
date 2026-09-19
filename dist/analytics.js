@@ -26,10 +26,12 @@
 // ingest keys meant to ship in client code. It is a constant here rather than a
 // build-time variable because dist/ has to stay servable with no build step.
 
-// Replace with the phc_… project key, then redeploy. Until it is filled in,
-// initAnalytics returns false and the whole module stays inert — which is why a
-// half-finished setup can never send events to nowhere.
-const PROJECT_KEY = 'phc_REPLACE_WITH_PROJECT_KEY';
+// The phc_ project key. Until one is filled in, initAnalytics returns false and
+// the whole module stays inert — which is why a half-finished setup can never
+// send events to nowhere. Note the prefix: phc_ is the public ingest key. A
+// phs_ or phx_ key is a secret and must never be pasted here, because every
+// player can read this file.
+const PROJECT_KEY = 'phc_xUa2rawX6XuojQu6UztXMN4xiAWzgyKga7tHgy3unPu9';
 const API_HOST = 'https://eu.i.posthog.com';
 
 // The two addresses Firebase Hosting answers on for this project. Pages
@@ -53,6 +55,10 @@ export const active = () => !!client;
 export async function initAnalytics({host = '', enabled = true} = {}) {
   if (client || !enabled || !reportsFrom(host)) return false;
   if (!PROJECT_KEY.startsWith('phc_') || PROJECT_KEY.includes('REPLACE')) return false;
+  // There has to be a real browser under this. Tests import dist/ modules into
+  // bare Node, and the SDK loaded there installs timers that keep the process
+  // alive for ever — a hung test run rather than a failing one, which is worse.
+  if (typeof window === 'undefined' || typeof document === 'undefined') return false;
   try {
     const {posthog} = await import('./lib/posthog.js');
     posthog.init(PROJECT_KEY, {

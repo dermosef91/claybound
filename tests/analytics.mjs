@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {reportsFrom,active,initAnalytics,track,setAnalyticsEnabled,flush,sampleFrame,frameSummary,rendererInfo} from '../dist/analytics.js';
 import {settingsMarkup} from '../dist/title-menu.js';
 
@@ -34,15 +35,26 @@ assert.equal(await initAnalytics({host:'dermosef91.github.io',enabled:true}),fal
 assert.equal(await initAnalytics({host:'localhost',enabled:true}),false,'local development');
 assert.equal(await initAnalytics({host:'claybound-56949.web.app',enabled:false}),false,'player opted out');
 assert.equal(await initAnalytics({}),false,'no host at all');
-// The real host with capture allowed: this is the one call that would start
-// PostHog, and it must still refuse while PROJECT_KEY is the placeholder.
-const started=await initAnalytics({host:'claybound-56949.web.app',enabled:true});
-const {default:source}=await import('node:fs').then(fs=>({default:fs.readFileSync(new URL('../dist/analytics.js',import.meta.url),'utf8')}));
-const placeholder=/const PROJECT_KEY *= *'phc_REPLACE_WITH_PROJECT_KEY'/.test(source);
-if(placeholder)assert.equal(started,false,'the placeholder key must start nothing');
-else assert.equal(typeof started,'boolean','a real key either starts or fails cleanly');
-assert.equal(active(),started,'active() agrees with what init reported');
-console.log(`PASS analytics init refuses every wrong condition (key ${placeholder?'still the placeholder':'filled in'})`);
+// Every condition met except a browser. This runs in bare Node, so it must
+// still refuse -- and refusing matters more than it looks: the SDK imported
+// into Node installs timers that never let the process exit, which turns a
+// test run into a hang rather than a failure.
+assert.equal(await initAnalytics({host:'claybound-56949.web.app',enabled:true}),false,'no browser, no SDK');
+assert.equal(active(),false,'and nothing was started');
+console.log('PASS analytics init refuses every wrong condition, including bare Node');
+
+// The key that ships. It has to be a public phc_ ingest key: a phs_ or phx_
+// key is a secret, and this file is readable by every player.
+const source=readFileSync(new URL('../dist/analytics.js',import.meta.url),'utf8');
+const key=source.match(/const PROJECT_KEY *= *'([^']*)'/)?.[1];
+assert(key,'a PROJECT_KEY constant is present');
+assert(key.startsWith('phc_'),`the shipped key must be a public phc_ key, not ${key.slice(0,4)}…`);
+// Quoted literals only: the file's own comment warns about phs_/phx_ keys by
+// name, and that warning is not a leak.
+assert(!/['"`](phs_|phx_)/.test(source),'no secret key may be written as a literal in this file');
+const host=source.match(/const API_HOST *= *'([^']*)'/)?.[1];
+assert(/^https:\/\/(eu|us)\.i\.posthog\.com$/.test(host),`API_HOST is a PostHog ingest host, got ${host}`);
+console.log(`PASS analytics ships a public ${key.slice(0,4)} key to ${host}`);
 
 // frameSummary only speaks when it has enough frames to mean something, and
 // drains itself so one chapter's cost never leaks into the next.
