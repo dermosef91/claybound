@@ -17,6 +17,7 @@ review(async({page,url,errors})=>{
   await patchApp(page,{root,expose:'window.playtest={manual:false,get game(){return game},get world(){return world},begin,draw(){world.render(game,0);healthHUD.draw(game,0);updateHUD(performance.now());}};'});
   await page.goto(process.env.REVIEW_URL||url);
   await page.waitForFunction(()=>document.body.classList.contains('title-scene-ready'),null,{timeout:120000});
+  if(process.env.REVIEW_TITLE){await page.waitForTimeout(1500);await page.screenshot({path:`${out}/${label}-title.png`});console.log(label,'title');return;}
   await page.evaluate(async([level,force])=>{window.forceComposite=force;playtest.manual=true;await playtest.begin(level,true,'original');},[+(process.env.REVIEW_LEVEL||0),!!process.env.REVIEW_FORCE_COMPOSITE]);
   const all={};
   for(const spot of spots){
