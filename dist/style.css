@@ -23,6 +23,8 @@ html:fullscreen #game-shell,html:-webkit-full-screen #game-shell{height:100%;wid
 .menu-actions .secondary:hover{background:#382e2480}
 .health i{border:1px solid #ffd09a5c}
 .hud-right .icon-button{background:var(--hud-glass,#29435299)}
+/* Solid bars, as in the reference: the outline pair read as an equals sign. */
+#pause svg{fill:currentColor;stroke-width:1}
 [data-fullscreen][aria-pressed="true"]{background:#fff0d52e;border-color:#ffe0a2}
 .hint{background:var(--hud-glass,#294352dd)}
 .touch-button{background:var(--hud-glass,#29435299)}

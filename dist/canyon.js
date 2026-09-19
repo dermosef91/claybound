@@ -5,6 +5,7 @@ import {clayMaterial,clayBox,cachedClayShape,retainClayShape,positionGroups} fro
 import {archLiftCeiling} from './great-arch.js';
 import {makeMovingPlatform,braid,movingPlatformMaterials} from './moving-platform.js';
 import {porousClay} from './porous-clay.js';
+import {skyGradient} from './sky-gradient.js';
 
 const random=n=>{const f=Math.sin(n*127.1+47.7)*43758.5453;return f-Math.floor(f);};
 const group=parent=>{const g=new THREE.Group();parent.add(g);return g;};
@@ -206,35 +207,118 @@ export function buildCanyonTerrain(w,s,g){
   if(s.goal)w.makeBell(g,s.bellX??s.w-3.5,.1);
 }
 
-export function buildCanyonBackdrop(w){
-  const far=group(w.backRoot),middle=group(w.backRoot),low=group(w.backRoot),clouds=group(w.backRoot);
+// Distant clay for the three ranks of buttes. Fog used to carry the whole
+// distance by itself: every rank was the playfield's own orange, and the far
+// summits sat nine tenths of the way into a cream fog, so they came out as
+// flat pale cut-outs — hue, bump shading and the baked flags gone in one mix.
+// Sampled from the reference, the buttes brighten to a sunlit peach just
+// behind the route, then cool through salmon to a dusty red that the longer,
+// lavender fog turns mauve. Each rank is its own clay, so the fog only has to
+// add the last of the distance and the shading survives it. The far ranks
+// carry an emissive floor for the same reason the cave's spires do: their
+// shadow sides face away from every light and went to flat fog colour.
+const RANKS={
+  low:{clay:0xec8a60,emissive:0},
+  middle:{clay:0xd96b43,emissive:.03},
+  far:{clay:0xc46262,emissive:.03}
+};
+function rankMaterial(w,rank,source){
+  const base=typeof source==='string'?w.mat[source]:source;
+  if(!w.clay||!base?.isMeshStandardMaterial)return base;
+  w.canyonRanks??=new Map();const key=rank+':'+base.uuid;
+  if(!w.canyonRanks.has(key)){
+    const {clay,emissive}=RANKS[rank],m=base.clone();
+    // A clone carries a JSON copy of the clay annotation and no shader hook:
+    // keep only the orange source and depth, and let clayMaterial install anew.
+    m.userData={clayOrangeSource:base.userData.clayOrangeSource,clayDepth:base.userData.clayDepth};
+    if(m.userData.clayOrangeSource)m.userData.clayOrange=clay;else m.color.setHex(clay);
+    m.emissive.setHex(clay);m.emissiveIntensity=emissive;
+    clayMaterial(w,m,base.userData.clay?.requestedDepth);
+    w.assetMaterials.add(m);w.canyonRanks.set(key,m);
+  }
+  return w.canyonRanks.get(key);
+}
+function butte(w,kind,rank,parent,x,y,z,height,turn){
+  const root=canyonModel(w,kind,parent,x,y,z,height,turn);
+  root.traverse(o=>{if(o.isMesh)o.material=rankMaterial(w,rank,o.material);});return root;
+}
+
+// A field of small ivory puffs at three depths. One cloud every sixteen units
+// at a single depth put about two on screen at a time, both 96% into the fog,
+// so the sky held one large salmon shape. The reference scatters eight or so
+// white puffs of different sizes across the upper frame. The camera is
+// orthographic, so size never comes from depth — it is authored per rank —
+// and the clouds keep their own white: the sky behind them is unfogged too,
+// and a cloud that takes the fog reads as a butte. Farther ranks lean a
+// little toward the sky instead. `y` is world height at the rank's depth;
+// the camera's downward tilt lifts a plane that deep by ~3 units on screen.
+const CLOUD_RANKS=[
+  {factor:.06,z:-60,y:[-1.8,2.6],width:[.9,1.6],spacing:5.5,tint:0xe2eaf5},
+  {factor:.12,z:-52,y:[-1.3,3.0],width:[1.4,2.2],spacing:8,tint:0xf1f5fa},
+  {factor:.2,z:-44,y:[-.6,3.4],width:[1.9,2.8],spacing:12,tint:0xffffff}
+];
+function cloudMaterial(w,rank,source){
+  if(!source?.isMeshStandardMaterial)return source;
+  w.canyonClouds??=new Map();const key=rank+':'+source.uuid;
+  if(!w.canyonClouds.has(key)){
+    const m=source.clone();m.userData={};m.fog=false;m.color.multiply(new THREE.Color(CLOUD_RANKS[rank].tint));
+    clayMaterial(w,m,source.userData.clay?.requestedDepth??.035);
+    w.assetMaterials??=new Set();w.assetMaterials.add(m);w.canyonClouds.set(key,m);
+  }
+  return w.canyonClouds.get(key);
+}
+function cloudField(w,end){
   const anchors=(w.currentLevel?.platforms||[]).filter(s=>s.id==='arch-drop'&&s.kind==='bridge').map(s=>({x:s.x+s.w*.38,y:s.y+.72,scale:4.1/(w.cloudAsset?.width||1)}));
-  w.parallax.push({group:far,factor:.17,heightFollow:1},{group:middle,factor:.36,heightFollow:1},{group:low,factor:.62,heightFollow:1},{group:clouds,factor:.1,heightFollow:1,anchors});
+  CLOUD_RANKS.forEach((rank,r)=>{
+    const g=group(w.backRoot);g.name='Canyon clouds '+r;
+    // Only the far rank lends a cloud to the Boulder Drop's authored composition.
+    w.parallax.push({group:g,factor:rank.factor,heightFollow:1,...(r===0?{anchors}:{})});
+    // Cover the view from the chapter's first frame to its last: the rank's
+    // own travel plus a screen either side, so nothing pops in at the edges.
+    const reach=end*rank.factor+14;
+    for(let x=-12,i=r*31;x<reach;x+=rank.spacing*(.8+random(i)*.4),i++){
+      const y=rank.y[0]+random(i+1)*(rank.y[1]-rank.y[0]),width=rank.width[0]+random(i+2)*(rank.width[1]-rank.width[0]);
+      const cloud=cloudModel(w,g,x,y,rank.z,width,(random(i+3)-.5)*.2);
+      cloud.traverse(o=>{if(o.isMesh)o.material=cloudMaterial(w,r,o.material);});
+    }
+  });
+}
+
+// Sampled from the reference sky: a touch deeper overhead, paler toward the
+// horizon behind the buttes. The stops are screen heights around the eye
+// line; the quad rides a layer that follows the camera exactly.
+const SKY_STOPS=[[30,0x71a8e3],[5,0x75ade5],[1.5,0x7eb4e7],[-1.5,0x8bbde9],[-5,0x98c6ec],[-30,0xa0caed]];
+
+export function buildCanyonBackdrop(w){
+  const sky=group(w.backRoot);sky.name='Canyon sky';w.parallax.push({group:sky,factor:0,heightFollow:1});
+  skyGradient(w,sky,SKY_STOPS,{name:'Canyon sky gradient'});
+  const far=group(w.backRoot),middle=group(w.backRoot),low=group(w.backRoot);
+  w.parallax.push({group:far,factor:.17,heightFollow:1},{group:middle,factor:.36,heightFollow:1},{group:low,factor:.62,heightFollow:1});
   for(let i=-2;i<10;i++){
     const x=i*16;
-    canyonModel(w,'summit',far,x+5,-3.7,-53,3.2+random(i+3)*1.2,(random(i+9)-.5)*.3);
-    if(i%3===0)canyonModel(w,'arch',far,x-1,-3.6,-49,3.8+random(i)*.8,.28);
-    cloudModel(w,clouds,x+2,-.4+random(i+8)*.8,-58,2.8+random(i+4)*1.3,.05);
+    butte(w,'summit','far',far,x+5,-3.7,-53,3.2+random(i+3)*1.2,(random(i+9)-.5)*.3);
+    if(i%3===0)butte(w,'arch','far',far,x-1,-3.6,-49,3.8+random(i)*.8,.28);
   }
   for(let i=-2;i<8;i++){
     const x=i*24;
     // Broad openings alternate with eroded stacks. The skyline has breathing
     // room instead of repeating the same arch / flag pair in every view.
-    const arch=i%2===0?canyonModel(w,'arch',middle,x-1.4,-3.5,-34,5.0+random(i)*1.4,-.3+random(i+2)*.6):null;
-    canyonModel(w,'summit',middle,x+9,-4.8,-30,4.5+random(i+4)*2.8,-.42+random(i+6)*.84);
+    const arch=i%2===0?butte(w,'arch','middle',middle,x-1.4,-3.5,-34,5.0+random(i)*1.4,-.3+random(i+2)*.6):null;
+    butte(w,'summit','middle',middle,x+9,-4.8,-30,4.5+random(i+4)*2.8,-.42+random(i+6)*.84);
     if(!arch){
       for(let j=0;j<3;j++){
         const h=3.1+random(i*9+j)*3.5;
-        block(w,middle,2.2-j*.35,h,3,x-4+j*2.05,-3.8-h/2,-27,'back2',i*13+j);
+        block(w,middle,2.2-j*.35,h,3,x-4+j*2.05,-3.8-h/2,-27,rankMaterial(w,'middle','back2'),i*13+j);
       }
     }
   }
   for(let i=-2;i<14;i++){
     const x=i*11.5,h=3.8+random(i+7)*2.1,width=3.4+random(i+5)*2.4;
-    block(w,low,width,h,3.2,x,-6.5-h/2,-17,'back2',i*13);
-    w.box(width+.16,.47,3.4,'back',low,x,-6.5,-17,.2);
-    if(i%3===0)canyonModel(w,'summit',low,x,-7.1,-21,4.3,.1);
+    block(w,low,width,h,3.2,x,-6.5-h/2,-17,rankMaterial(w,'low','back2'),i*13);
+    w.box(width+.16,.47,3.4,rankMaterial(w,'low','back'),low,x,-6.5,-17,.2);
+    if(i%3===0)butte(w,'summit','low',low,x,-7.1,-21,4.3,.1);
   }
+  cloudField(w,w.currentLevel?.end??354);
   w.backRoot.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
 }
 

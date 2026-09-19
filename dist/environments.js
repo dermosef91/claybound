@@ -57,7 +57,13 @@ export function applyEnvironment(w,L){
   // route. Its far layers fade into one blue-grey haze, so sky and fog are
   // that haze; the ceiling and floor geometry supply the dark bands instead.
   if(lit){w.scene.background.setHex(CAVE_HAZE);w.scene.fog.color.setHex(CAVE_HAZE);}
-  w.scene.fog.near=L.biome==='forest'?24:L.biome==='cave'?28:L.biome==='citadel'?34:L.biome==='dream'?26:32;w.scene.fog.far=L.biome==='forest'?76:L.biome==='cave'?108:L.biome==='citadel'?104:L.biome==='dream'?90:91;
+  // The canyon's fog is long and lavender. Its buttes are each their own clay
+  // (canyon.js RANKS), so the fog adds only the last of the distance: the far
+  // rank at z -53 takes four tenths, the middle a fifth, the low rank a
+  // fifteenth, and the play plane at depth 26 none. The old 32..91 cream put
+  // the far rank nine tenths of the way to a flat pale cut-out.
+  const FOG={forest:[24,76],cave:[28,108],citadel:[34,104],dream:[26,90],desert:[24,150]}[L.biome]||[32,91];
+  w.scene.fog.near=FOG[0];w.scene.fog.far=FOG[1];
 }
 
 function group(parent,x=0,y=0,z=0,scale=1){const g=new THREE.Group();g.position.set(x,y,z);g.scale.setScalar(scale);parent.add(g);return g;}

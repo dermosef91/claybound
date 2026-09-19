@@ -32,7 +32,7 @@ const L=makeRoom({
   layoutVersion:12,
   name:'The Sunbaked Canyon',short:'Sunbaked Canyon',label:'Riverbed & ropeway',biome:'desert',
   intro:'Down off the plateau to the clay riverbed, then up the long wall to the ropeway.',
-  sky:'#80afe0',fog:'#f1bba0',spawn:{x:1.5,y:13},end:354,previousDistance:1342,cameraY:2,
+  sky:'#80afe0',fog:'#9ea8d2',spawn:{x:1.5,y:13},end:354,previousDistance:1342,cameraY:2,
   sections:[
     {x:-8,name:'The Caravan Steps',landmark:'arch'},
     {x:46,name:'The Sinking Shortcut',landmark:'sandwheel'},

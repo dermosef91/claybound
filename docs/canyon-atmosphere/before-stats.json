@@ -1,0 +1,43 @@
+{
+  "last-well": {
+    "calls": 390,
+    "triangles": 497120,
+    "clouds": 12,
+    "cameraX": 183.37,
+    "cameraY": 18.1,
+    "fog": "#f1bba0",
+    "fogNear": 32,
+    "fogFar": 91
+  },
+  "start": {
+    "calls": 301,
+    "triangles": 331322,
+    "clouds": 12,
+    "cameraX": 3.77,
+    "cameraY": 13.7,
+    "fog": "#f1bba0",
+    "fogNear": 32,
+    "fogFar": 91
+  },
+  "arch-drop": {
+    "calls": 432,
+    "triangles": 975164,
+    "clouds": 12,
+    "cameraX": 231.12,
+    "cameraY": 27.2,
+    "fog": "#f1bba0",
+    "fogNear": 32,
+    "fogFar": 91
+  },
+  "summit": {
+    "calls": 230,
+    "triangles": 293096,
+    "clouds": 12,
+    "cameraX": 282.37,
+    "cameraY": 35.3,
+    "fog": "#f1bba0",
+    "fogNear": 32,
+    "fogFar": 91
+  },
+  "errors": []
+}

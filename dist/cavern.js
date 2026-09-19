@@ -3,6 +3,7 @@ import {mergeGeometries} from './lib/BufferGeometryUtils.js';
 import {RoundedBoxGeometry} from './lib/RoundedBoxGeometry.js';
 import {clayMaterial,sculptClay} from './clay.js';
 import {cavernModel} from './cavern-asset.js';
+import {skyGradient} from './sky-gradient.js';
 
 const group=(parent,x=0,y=0,z=0)=>{const g=new THREE.Group();g.position.set(x,y,z);parent.add(g);return g;};
 // Sampled from the supplied grotto/crystalcap albedo under their glow masks:
@@ -216,22 +217,8 @@ function backdropMaterials(w){
     clayMaterial(w,w.mat[name],name.includes('Moss')?.022:['caveVault','caveColumn','cavePillar','caveClay','caveClayDark'].includes(name)?.085:.06);
   }
 }
-// One vertex-coloured quad far behind every layer is the whole sky: unfogged
-// and untone-mapped so its stops show exactly. Two triangles, one draw.
-function hazeGradient(w,parent){
-  const geo=new THREE.PlaneGeometry(240,60,1,HAZE_STOPS.length-1),p=geo.attributes.position,colors=new Float32Array(p.count*3),c=new THREE.Color();
-  for(let i=0;i<p.count;i++){
-    const [y,hex]=HAZE_STOPS[Math.floor(i/2)];c.setHex(hex);
-    p.setY(i,y);colors.set([c.r,c.g,c.b],i*3);
-  }
-  geo.setAttribute('color',new THREE.BufferAttribute(colors,3));
-  const sky=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({vertexColors:true,fog:false,toneMapped:false}));
-  // The camera looks down at the play plane from its elevation, so a plane
-  // this deep appears seven and a half units higher than its world height;
-  // the offset puts the stops back at the screen heights they name. Without
-  // it only the gradient's dark floor showed behind the route.
-  sky.name='Cave haze gradient';sky.position.set(0,1.2-110*(w.theme?.cameraElevation??1.8)/26,-110);parent.add(sky);return sky;
-}
+// The whole sky is one gradient quad (sky-gradient.js), stopped at these heights.
+function hazeGradient(w,parent){return skyGradient(w,parent,HAZE_STOPS,{name:'Cave haze gradient'});}
 const rand=n=>{const r=Math.sin(n*117.17+51.61)*43758.5453;return r-Math.floor(r);};
 const MERGE_BLOCK=12;
 

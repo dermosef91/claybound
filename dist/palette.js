@@ -29,9 +29,11 @@ export function applyUIPalette(element){
 // eyes, blue walls, foliage and golden collectibles retain their source colors.
 // sourceValue is a reference sRGB red measured from the source orange and
 // calibrated for its main surface. Relative brightness preserves baked detail.
-export function orangeTextureShader(shader,sourceValue){
+// `pigment` is the clay the matched orange becomes: the palette's by default,
+// or a distant rank's dustier clay when a backdrop asks for one.
+export function orangeTextureShader(shader,sourceValue,pigment=orange){
   if(!sourceValue)return;
-  shader.uniforms.clayOrange={value:new Color(orange)};
+  shader.uniforms.clayOrange={value:new Color(pigment)};
   shader.uniforms.clayOrangeSource={value:sourceValue};
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
 uniform vec3 clayOrange;

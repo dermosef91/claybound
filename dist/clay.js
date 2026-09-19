@@ -43,7 +43,7 @@ export function clayMaterial(w,material,depth){
   // recompile — the stop-motion boil nudges a puppet's by a hair each step.
   material.userData.clay={type:'relief',period:w.clay.profile.period,requestedDepth,depth:material.bumpScale,offset:new THREE.Vector3().fromArray(material.userData.clayOffset||[0,0,0])};
   material.onBeforeCompile=shader=>{
-    orangeTextureShader(shader,material.userData.clayOrangeSource);
+    orangeTextureShader(shader,material.userData.clayOrangeSource,material.userData.clayOrange);
     shader.uniforms.clayPeriod={value:w.clay.profile.period};
     shader.uniforms.clayOffset={value:material.userData.clay.offset};
     shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
