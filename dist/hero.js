@@ -6,6 +6,7 @@ import {animateFlowerCelebration} from './flower-celebration.js';
 import {CHARACTERS,characterChoice} from './characters.js';
 import {between} from './camera.js';
 import {puppetStep,boilPuppet,placePuppet} from './stop-motion.js';
+import {DOME_WALK} from './simulation.js';
 
 const clamp=THREE.MathUtils.clamp;
 const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
@@ -13,7 +14,25 @@ const damp=(a,b,k,dt)=>a+(b-a)*(1-Math.exp(-k*dt));
 // follows a body — its shadow, its reach, the motes that circle its head — is
 // expressed in. A taller character carries all of them up with it.
 const MODEL_HEIGHT=1.78;
-const SOURCE={idle:'Armature|Idle_9|baselayer',longIdle:'Idle_03',walk:'Walking',run:'Running',jump:'Regular_Jump',leap:'Jump_Over_Obstacle_2',hurt:'Face_Punch_Reaction_2',death:'Knock_Down',victory:'Skip_Forward'};
+const SOURCE={idle:'Armature|Idle_9|baselayer',longIdle:'Idle_03',walk:'Walking',run:'Running',jump:'Regular_Jump',leap:'Jump_Over_Obstacle_2',hurt:'Face_Punch_Reaction_2',death:'Knock_Down',victory:'Skip_Forward',slide:'slide_light'};
+// The slide take goes down, along and back up in one piece: the body drops onto
+// its side, glides low, then stands. `SLIDE_SPLIT` is where the gliding ends
+// and the standing begins, read off the shipped take — so `slide` runs to there
+// and holds its last pose for as long as the face keeps going, and `slideStop`
+// is the getting-up, played once when the ground eases off. It is the same
+// loop-then-stop shape as the push, but timed here rather than carried in the
+// data, because unlike the push this clip ships with the rig and retargeting
+// leaves its timing alone. A rig baked before the slide was wired up simply has
+// no slide clip, and runs down the hill as it always did.
+const SLIDE_SPLIT=.8;
+// The grade, as a share of the steepest anyone can stand on, at which a climb
+// has gone over to the walk entirely. A rise gentler than this is still run up,
+// a little less of a run the steeper it gets; .35 of the limit is a touch over
+// thirty degrees, which is about where a run stops looking like one. The pace
+// drops on a hill too, but only by half as much again at worst, so the gait
+// cannot be left to fall out of the speed alone — this is what makes the climb
+// read as a walk rather than as a slow run.
+const CLIMB_WALK=.35;
 // The push is the one state a rig may lack: it arrived after the set, as a
 // clip of its own, so it is whichever supplied clip names a push — a supplied
 // take before any the model shipped with — and a character without one walks
@@ -99,6 +118,8 @@ export function makeHeroClips(animations,motion,animation){
   }
   const push=pushSource(supplied.map(clip=>clip.name))||pushSource(animations.map(clip=>clip.name));
   const split=push&&Number.isFinite(animation.pushSplit)&&animation.pushSplit<originals.get(push).duration-.1?animation.pushSplit:null;
+  // A rig baked before the slide was wired up has no such clip, and goes without.
+  const slide=originals.has(SOURCE.slide)&&(motion.clips[SOURCE.slide]||animation.ground)&&originals.get(SOURCE.slide).duration>SLIDE_SPLIT+.1;
   return {
     idle:prepare(SOURCE.idle,'idle','ground'),longIdle:prepare(SOURCE.longIdle,'longIdle','ground'),walk:prepare(SOURCE.walk,'walk','ground'),run:prepare(SOURCE.run,'run','ground'),
     jumpRise:prepare(SOURCE.jump,'jumpRise','air',.53,.86),jumpFall:prepare(SOURCE.jump,'jumpFall','air',.88,1.13),
@@ -107,7 +128,8 @@ export function makeHeroClips(animations,motion,animation){
     hurt:prepare(SOURCE.hurt,'hurt','ground',.70,1.40),death:prepare(SOURCE.death,'death','ground',.08,1.1),
     victory:prepare(SOURCE.victory,'victory','ground'),
     ...(push?{push:prepare(push,'push','ground',0,split??undefined)}:{}),
-    ...(split?{pushStop:prepare(push,'pushStop','ground',split+.03)}:{})
+    ...(split?{pushStop:prepare(push,'pushStop','ground',split+.03)}:{}),
+    ...(slide?{slide:prepare(SOURCE.slide,'slide','ground',0,SLIDE_SPLIT),slideStop:prepare(SOURCE.slide,'slideStop','ground',SLIDE_SPLIT+.03)}:{})
   };
 }
 
@@ -240,7 +262,7 @@ export function animateHero(w,game,dt,alpha=1){
   c.clock+=step;c.root.position.set(x,y,.48);c.lastVx=p.vx;
   c.turn=damp(c.turn,p.facing<0?Math.PI:0,26,step);c.root.rotation.y=c.turn;
   if(c.loaded){
-    c.hurt=Math.max(0,c.hurt-step);c.landing=Math.max(0,c.landing-step);c.pushStop=Math.max(0,(c.pushStop||0)-step);
+    c.hurt=Math.max(0,c.hurt-step);c.landing=Math.max(0,c.landing-step);c.pushStop=Math.max(0,(c.pushStop||0)-step);c.slideStop=Math.max(0,(c.slideStop||0)-step);
     const speed=game.status==='playing'?Math.abs(p.vx):0;
     if(!paused){
       const encounter=game.level.boss&&!['sleeping','defeated'].includes(game.level.boss.state);
@@ -269,20 +291,35 @@ export function animateHero(w,game,dt,alpha=1){
     // A block let go of standing still gets the take's own standing-down.
     else if(p.pushing&&c.actions.push)state='push';
     else if(c.pushStop>0&&speed<1&&c.actions.pushStop)state='pushStop';
+    // Down a face too steep to walk. The getting-up that follows plays at
+    // whatever speed the hill left behind, rather than waiting to stand still
+    // the way the push does — the slide runs out onto flat ground still moving.
+    else if(p.sliding&&c.actions.slide)state='slide';
+    else if(c.slideStop>0&&c.actions.slideStop)state='slideStop';
     else state='locomotion';
     if(!paused){
       if(c.state==='push'&&state!=='push'&&state!=='pushStop'&&!air&&speed<1&&c.actions.pushStop){c.pushStop=c.clips.pushStop.duration;state='pushStop';}
       else if(state!=='pushStop')c.pushStop=0;
+      if(c.state==='slide'&&state!=='slide'&&state!=='slideStop'&&!air&&c.actions.slideStop){c.slideStop=c.clips.slideStop.duration;state='slideStop';}
+      else if(state!=='slideStop')c.slideStop=0;
     }
     if(c.actions.push)c.actions.push.timeScale=state==='push'&&Math.abs(p.pushed||0)>.5?PUSH_PACE:1;
     // Pausing freezes both the current pose and crossfade, even during a jump.
     if(!paused)transition(c,state);
     const target={};
+    // A climb is walked. The hill takes the run out of the gait in proportion to
+    // itself, so the same pace that runs along the flat walks up a slope and
+    // picks the run back up as the ground levels out; a descent is left alone,
+    // since the speed gathered going down one is meant to read as a run getting
+    // away from itself. The gait is clocked off the same figure, so the stride
+    // stays the walk's own length for as long as the walk is what is showing.
+    const climb=clamp((p.grade||0)*Math.sign(p.vx||p.facing||1)/DOME_WALK,0,1);
+    const running=clamp((speed-2.5)/2.4,0,1)*(1-clamp(climb/CLIMB_WALK,0,1));
     if(c.state==='locomotion'){
-      const moving=clamp(speed/1.0,0,1),running=clamp((speed-2.5)/2.4,0,1);
+      const moving=clamp(speed/1.0,0,1);
       target[c.idleVariant]=1-moving;target.walk=moving*(1-running);target.run=moving*running;
     }else target[c.state==='idle'?c.idleVariant:c.state]=1;
-    if(!air&&speed>.1)c.gait=(c.gait+step*speed/THREE.MathUtils.lerp(2.1,2.85,clamp((speed-2.5)/2.4,0,1)))%1;
+    if(!air&&speed>.1)c.gait=(c.gait+step*speed/THREE.MathUtils.lerp(2.1,2.85,running))%1;
     c.actions.walk.time=c.gait*c.clips.walk.duration;c.actions.run.time=c.gait*c.clips.run.duration;
     for(const [name,action] of Object.entries(c.actions)){
       c.weights[name]=damp(c.weights[name],target[name]||0,28,step);

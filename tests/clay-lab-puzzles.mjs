@@ -8,7 +8,7 @@
 // speed or less, feet never end inside the clay, a rider stands exactly on it,
 // the volume holds, and nobody dies.
 import assert from 'node:assert/strict';
-import {Game,FIXED_DT as dt,surfaceAt,RULES as PLAYER} from '../dist/simulation.js';
+import {Game,FIXED_DT as dt,surfaceAt,SLOPE,RULES as PLAYER} from '../dist/simulation.js';
 import {LEVELS} from '../dist/levels.js';
 import lab from '../dist/routes/clay-lab.js';
 import {visitStation,nearbyStation} from '../dist/shaping.js';
@@ -299,7 +299,9 @@ function rig(id){
   let last=p.x,ticks=0;
   const tick=(input={})=>{
     g.tick(dt,input);ticks++;
-    assert(Math.abs(p.x-last)<=6.7*dt+1e-3,`${id}: x moves continuously (tick ${ticks}: ${last.toFixed(3)} -> ${p.x.toFixed(3)})`);last=p.x;
+    // Walking pace, or what a slope may add to it: a descent gathers up to
+    // `downhill` more, and a face too steep to walk is slid down as far as `top`.
+    assert(Math.abs(p.x-last)<=(p.sliding?SLOPE.top:6.7*(1+SLOPE.downhill))*dt+1e-3,`${id}: x moves continuously (tick ${ticks}: ${last.toFixed(3)} -> ${p.x.toFixed(3)})`);last=p.x;
     // A plug's mass is no clay at all until it is seated: nothing to be inside.
     if(s.active!==false&&p.x>s.x&&p.x<s.x+s.w&&p.y<base+FORM.maxHeight){
       assert(p.y>=surfaceAt(s,p.x)-.12-1e-9,`${id}: feet never end a tick inside the clay (tick ${ticks}: ${p.y.toFixed(3)} under ${surfaceAt(s,p.x).toFixed(3)})`);
@@ -497,7 +499,10 @@ console.log('PASS wet clay: E builds the step to the far bench in time and it me
   assert.deepEqual(s.socket,socket,'and the socket, so the goal can be marked');
   // Nothing moves it but the ground. A player walking through does nothing.
   walk(s.x+6,frames(3));walk(s.x+1,frames(3));hold(20);
-  assert(close(m.x,2.4,1e-6),'the player walks through the marble and leaves it be');
+  // Not to the micron: the marble answers the ground, and boots on clay press
+  // it a little wherever they fall, so walking past tilts its hollow by a hair.
+  // Half a millimetre is that hair; herding it later moves it whole units.
+  assert(close(m.x,2.4,2e-3),`the player walks through the marble and leaves it be (${m.x.toFixed(5)})`);
   assert(shapedShare(st)<.05,'and nothing has happened yet');
   // Herd it: raise the ground a little behind it whenever it stops, and never
   // once it is in the socket. The first time it stops out on the flat, a stomp
